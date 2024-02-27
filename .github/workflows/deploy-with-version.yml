@@ -7,8 +7,8 @@ on:
         type: string
         description: '@dcl/sdk package'
         default: '@dcl/sdk@latest'
+    secrets:
       bucket:
-        type: string
         required: true
 
 jobs:
@@ -39,7 +39,7 @@ jobs:
 
       - name: Log vars
         run: |
-          echo "${{ inputs.bucket }} ////////// ${{ steps.get-branch-realm-name.outputs.result }}"
+          echo "${{ secrets.bucket }} ////////// ${{ steps.get-branch-realm-name.outputs.result }}"
 
 
       - name: install sdk version

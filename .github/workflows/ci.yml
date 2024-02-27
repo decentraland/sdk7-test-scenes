@@ -8,11 +8,8 @@ on:
 
 jobs:
   push-or-pr:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: ./.github/workflows/deploy-with-version.yml
-        with:
-          dcl-sdk-package: '@dcl/sdk/next'
-          bucket: ${{ secrets.SDK_TEAM_S3_BUCKET }}
+    uses: ./.github/workflows/deploy-with-version.yml
+    with:
+      dcl-sdk-package: '@dcl/sdk@next'
+    secrets:
+      bucket: ${{ secrets.SDK_TEAM_S3_BUCKET }}
