@@ -18,11 +18,12 @@
   "author": "Decentraland",
   "license": "ISC",
   "dependencies": {
-    "@dcl/sdk": "latest",
-    "syncpack": "^12.3.0",
-    "@dcl-sdk/utils": "latest"
+    "@dcl-sdk/utils": "latest",
+    "@dcl/sdk": "^7.4.5",
+    "syncpack": "^12.3.0"
   },
   "workspaces": [
+    ".",
     "scenes/*"
   ]
 }
