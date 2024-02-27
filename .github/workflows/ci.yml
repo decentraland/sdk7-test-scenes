@@ -11,5 +11,3 @@ jobs:
     uses: ./.github/workflows/deploy-with-version.yml
       with:
         dcl-sdk-package: '@dcl/sdk@next'
-      secrets:
-        bucket: ${{ secrets.SDK_TEAM_S3_BUCKET }}
