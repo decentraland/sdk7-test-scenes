@@ -1,0 +1,26 @@
+{
+  "name": "sdk7-test-scenes",
+  "version": "1.0.0",
+  "description": "SDK7 scenes for testing purpose",
+  "main": " ",
+  "scripts": {
+    "build": "sdk-commands build",
+    "start": "sdk-commands start --skip-build",
+    "export-static": "sdk-commands export-static"
+  },
+  "repository": {
+    "type": "git",
+    "url": " "
+  },
+  "keywords": [],
+  "author": "Decentraland",
+  "license": "ISC",
+  "dependencies": {
+    "@dcl/sdk": "^7.4.5",
+    "syncpack": "^12.3.0"
+  },
+  "workspaces": [
+    ".",
+    "scenes/**"
+  ]
+}
