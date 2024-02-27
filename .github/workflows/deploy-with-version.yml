@@ -8,7 +8,13 @@ on:
         description: '@dcl/sdk package'
         default: '@dcl/sdk@latest'
     secrets:
-      bucket:
+      SDK_TEAM_S3_BUCKET:
+        required: true
+      SDK_TEAM_AWS_ID:
+        required: true
+      SDK_TEAM_AWS_SECRET:
+        required: true
+      SDK_TEAM_S3_BASE_URL:
         required: true
 
 jobs:
@@ -39,7 +45,7 @@ jobs:
 
       - name: Log vars
         run: |
-          echo "${{ secrets.bucket }} ////////// ${{ steps.get-branch-realm-name.outputs.result }}"
+          echo "${{ secrets.SDK_TEAM_S3_BUCKET }} ////////// ${{ steps.get-branch-realm-name.outputs.result }}"
 
 
       - name: install sdk version
