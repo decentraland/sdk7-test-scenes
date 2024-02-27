@@ -4,9 +4,11 @@
   "description": "SDK7 scenes for testing purpose",
   "main": " ",
   "scripts": {
+    "install-sdk": "npm i @dcl/sdk@latest --workspaces",
     "build": "sdk-commands build",
-    "start": "sdk-commands start --skip-build",
-    "export-static": "sdk-commands export-static"
+    "start": "sdk-commands start",
+    "export-static": "sdk-commands export-static",
+    "check-parcels": "node ./check-parcel-collisions.js"
   },
   "repository": {
     "type": "git",
@@ -16,11 +18,11 @@
   "author": "Decentraland",
   "license": "ISC",
   "dependencies": {
-    "@dcl/sdk": "^7.4.5",
-    "syncpack": "^12.3.0"
+    "@dcl/sdk": "latest",
+    "syncpack": "^12.3.0",
+    "@dcl-sdk/utils": "latest"
   },
   "workspaces": [
-    ".",
-    "scenes/**"
+    "scenes/*"
   ]
 }

@@ -13,10 +13,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: actions/setup-node@v3
         with:
-          node-version: 16
-      - name: install
+          node-version: 18
+
+      - name: install sdk version
         run: npm i ${{github.event.inputs.dcl-sdk-package}} --workspaces
+
+      - name: install dependencies
+        run: npm i --workspaces
+
       - name: build
         run: npm run build
+
+      - name: export-static (branch)
+        run: >
+          npm run export-static -- \
+            --realmName sdk7-test-scenes-main \
+            --commsAdapter ws-room:ws-room-service.decentraland.org/rooms/sdk7-test-scenes-main \
+            --baseUrl '${{ secrets.SDK_TEAM_S3_BASE_URL }}/ipfs' \
+            --destination "$(pwd)/ipfs"
+
+      - name: upload to s3
+        run: >
+          npx @dcl/cdn-uploader@next \
+              --bucket ${{ secrets.SDK_TEAM_S3_BUCKET }} \
+              --local-folder "$(pwd)/ipfs" \
+              --bucket-folder 'ipfs'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SDK_TEAM_AWS_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SDK_TEAM_AWS_SECRET }}
