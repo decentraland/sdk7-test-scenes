@@ -9,5 +9,5 @@ on:
 jobs:
   push-or-pr:
     uses: ./.github/workflows/deploy-with-version.yml
-      with:
-        dcl-sdk-package: '@dcl/sdk@next'
+    with:
+      dcl-sdk-package: '@dcl/sdk/next'
