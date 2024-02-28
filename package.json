@@ -6,7 +6,7 @@
   "scripts": {
     "install-sdk": "npm i @dcl/sdk@latest --workspaces",
     "build": "sdk-commands build",
-    "start": "sdk-commands start",
+    "start": "node ./check-parcel-collisions.js && sdk-commands start",
     "export-static": "sdk-commands export-static",
     "check-parcels": "node ./check-parcel-collisions.js"
   },
