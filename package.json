@@ -25,5 +25,8 @@
   "workspaces": [
     ".",
     "scenes/*"
-  ]
+  ],
+  "devDependencies": {
+    "glob": "^10.3.10"
+  }
 }

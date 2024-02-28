@@ -1,6 +1,27 @@
 {
   "folders": [
     {
+      "path": "scenes/80,-2-main-crdt"
+    },
+    {
+      "path": "scenes/77,-1-raycast-unit-tests"
+    },
+    {
+      "path": "scenes/76,-10-UiCanvasInformation"
+    },
+    {
+      "path": "scenes/73,-2-dbmonster"
+    },
+    {
+      "path": "scenes/54,-55-Testing-3d-models"
+    },
+    {
+      "path": "scenes/52,-52-testing-gallery"
+    },
+    {
+      "path": "scenes/5,90-scene-bounds-check"
+    },
+    {
       "path": "scenes/0,2-cube-wave-32x32"
     },
     {
