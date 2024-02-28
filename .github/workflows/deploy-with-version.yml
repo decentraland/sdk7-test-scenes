@@ -104,3 +104,15 @@ jobs:
               /changerealm ${{ secrets.SDK_TEAM_S3_BASE_URL }}/ipfs/${{steps.get-branch-realm-name.outputs.result}}
               ```
           edit-mode: replace
+
+      - name: Slack Notification
+        if: ${{ always() && github.event_name != 'pull_request'}}
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: sdk-alerts
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_USERNAME: sdk
+          SLACK_TITLE: 'SDK7 Test Scenes: ${{ steps.extract_version.outputs.result }}'
+          SLACK_MESSAGE: https://play.decentraland.org/?realm=${{ secrets.SDK_TEAM_S3_BASE_URL }}/ipfs/${{steps.get-branch-realm-name.outputs.result}}
+          SLACK_ICON: https://decentraland.org/icons/icon-144x144.png?v=b57be10317666edc399e2bdf863f26bf
