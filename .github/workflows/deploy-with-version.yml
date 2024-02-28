@@ -97,11 +97,10 @@ jobs:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ## Test This Pull Request
+            ## How to test
             - [Test in-world](https://play.decentraland.zone/?realm=${{ secrets.SDK_TEAM_S3_BASE_URL }}/ipfs/${{steps.get-branch-realm-name.outputs.result}})
-            - Use this command to switch the realm:
+            - Or use this command to switch the realm
               ```bash
-              # branch name
               /changerealm ${{ secrets.SDK_TEAM_S3_BASE_URL }}/ipfs/${{steps.get-branch-realm-name.outputs.result}}
               ```
           edit-mode: replace
