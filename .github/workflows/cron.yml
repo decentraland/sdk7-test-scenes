@@ -2,7 +2,7 @@ name: cron-job-sdk-next
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "12 * * * *"
 jobs:
   skip-up-to-date-schedules:
     runs-on: ubuntu-latest
