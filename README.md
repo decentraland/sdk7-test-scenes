@@ -11,3 +11,13 @@ Welcome to the SDK Test Scene repository!
 1. npm run install-sdk
 2. npm install
 3. npm run start
+
+## Testing main branch
+- latest sdk version https://decentraland.org/play/?realm=sdk-team-cdn.decentraland.org/ipfs/sdk7-test-scenes-main-latest
+- next sdk version https://decentraland.org/play/?realm=sdk-team-cdn.decentraland.org/ipfs/sdk7-test-scenes-main-next
+
+In a Decentraland explorer execute:
+```bash
+/changerealm https://sdk-team-cdn.decentraland.org/ipfs/sdk7-test-scenes-main-latest
+```
+
