@@ -1,6 +1,9 @@
 {
   "folders": [
     {
+      "path": "scenes/80,-3-ui"
+    },
+    {
       "path": "scenes/80,-2-main-crdt"
     },
     {
