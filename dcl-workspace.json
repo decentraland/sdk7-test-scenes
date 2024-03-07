@@ -1,6 +1,9 @@
 {
   "folders": [
     {
+      "path": "scenes/80,-4-restricted-actions"
+    },
+    {
       "path": "scenes/80,-2-main-crdt"
     },
     {
