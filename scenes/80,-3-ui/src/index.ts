@@ -1,6 +1,6 @@
 // We define the empty imports so the auto-complete feature works as expected.
 import { } from '@dcl/sdk/math'
-import { Animator, AudioSource, AvatarAttach, GltfContainer, Material, Transform, UiBackground, UiText, UiTransform, VideoPlayer, VisibilityComponent, engine, pointerEventsSystem } from '@dcl/sdk/ecs'
+import { engine } from '@dcl/sdk/ecs'
 
 import { changeColorSystem, circularSystem } from './systems'
 import { setupUi } from './ui'
