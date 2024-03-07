@@ -179,7 +179,10 @@ function ChangeRealmExample() {
           variant="primary"
           uiTransform={{ width: 200, height: 60 }}
           onMouseDown={() => {
-            changeRealm({ realm: "https://peer.decentraland.org" })
+            changeRealm({ 
+              realm: "https://peer.decentraland.org",
+              message: "Are you sure you want to change realm?",
+            })
           }}
       />
   </UiEntity>
