@@ -173,8 +173,28 @@ function ChangeRealmExample() {
           position: { right: '50px', bottom: '130px' },
       }}
   >
-      <Button
-          value="Change Realm"
+      <UiEntity
+          uiTransform={{
+            margin : '0px 0px 0px 10px',
+          }}
+      >
+        <Button
+          value="Change Realm\nWITHOUT PROMPT"
+          fontSize={20}
+          variant="primary"
+          uiTransform={{ width: 200, height: 60 }}
+          onMouseDown={() => {
+            changeRealm({ realm: "https://peer.decentraland.org" })
+          }}
+        />
+      </UiEntity>
+      <UiEntity
+          uiTransform={{
+            margin : '0px 0px 0px 10px',
+          }}
+      >
+        <Button
+          value="Change Realm\nWITH PROMPT"
           fontSize={20}
           variant="primary"
           uiTransform={{ width: 200, height: 60 }}
@@ -184,7 +204,8 @@ function ChangeRealmExample() {
               message: "Are you sure you want to change realm?",
             })
           }}
-      />
+        />
+      </UiEntity>
   </UiEntity>
 }
 
