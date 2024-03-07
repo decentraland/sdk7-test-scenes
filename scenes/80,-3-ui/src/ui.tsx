@@ -73,12 +73,6 @@ function TextsAndBackgroundsExample() {
                 fontSize={25}
                 color={Color4.Black()}
                 uiTransform={{ width: '100%', height: 30 } }
-                onMouseDown={() => {
-                    buttonClicked = 'TEXT 3 Button down at ' + getTime()
-                }}
-                onMouseUp={() => {
-                    buttonClicked = 'TEXT 3 Button up at ' + getTime()
-                }}
             />
             <Label
                 value={'Static Text 4'}
