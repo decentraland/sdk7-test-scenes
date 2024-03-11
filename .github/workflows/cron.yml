@@ -27,6 +27,7 @@ jobs:
       SDK_TEAM_AWS_ID: ${{ secrets.SDK_TEAM_AWS_ID }}
       SDK_TEAM_AWS_SECRET: ${{ secrets.SDK_TEAM_AWS_SECRET }}
       SDK_TEAM_S3_BASE_URL: ${{ secrets.SDK_TEAM_S3_BASE_URL }}
+      AB_TOKEN: ${{ secrets.secrets.AB_TOKEN }}
 
   build-and-deploy-latest:
     needs: [skip-up-to-date-schedules, build-and-deploy-next]
@@ -39,3 +40,4 @@ jobs:
       SDK_TEAM_AWS_ID: ${{ secrets.SDK_TEAM_AWS_ID }}
       SDK_TEAM_AWS_SECRET: ${{ secrets.SDK_TEAM_AWS_SECRET }}
       SDK_TEAM_S3_BASE_URL: ${{ secrets.SDK_TEAM_S3_BASE_URL }}
+      AB_TOKEN: ${{ secrets.secrets.AB_TOKEN }}
