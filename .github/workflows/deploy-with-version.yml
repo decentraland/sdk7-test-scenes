@@ -22,6 +22,8 @@ on:
         required: true
       SDK_TEAM_S3_BASE_URL:
         required: true
+      AB_TOKEN:
+        required: true
 
 jobs:
   build-and-deploy:
@@ -48,11 +50,6 @@ jobs:
         with:
           script: return `sdk7-test-scenes-${process.env.BRANCH.replaceAll('/', '-').replaceAll('refs-heads-', '').substr(0, 28)}-${{ steps.extract_version.outputs.result }}`
           result-encoding: string
-
-      - name: Log vars
-        run: |
-          echo "${{ secrets.SDK_TEAM_S3_BUCKET }} ////////// ${{ steps.get-branch-realm-name.outputs.result }}"
-
 
       - name: install sdk version
         run: npm i ${{inputs.dcl-sdk-package}} --workspaces
