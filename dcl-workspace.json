@@ -10,6 +10,15 @@
       "path": "scenes/80,-2-main-crdt"
     },
     {
+      "path": "scenes/8.9.portable-experience-disabled"
+    },
+    {
+      "path": "scenes/8.8.portable-experience"
+    },
+    {
+      "path": "scenes/8.7.portable-experience-hide-ui"
+    },
+    {
       "path": "scenes/77,-1-raycast-unit-tests"
     },
     {
@@ -17,6 +26,9 @@
     },
     {
       "path": "scenes/73,-2-dbmonster"
+    },
+    {
+      "path": "scenes/70.-9.sdk7-ui-backgrounds"
     },
     {
       "path": "scenes/54,-55-Testing-3d-models"
