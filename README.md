@@ -1,5 +1,6 @@
 # SDK7 Test Scenes
-Welcome to the SDK Test Scene repository!
+Welcome to the SDK7 Test Scene repository!
+Provides a simple environment for testing basic functionality during development.
 
 ## Step to add a local scene
 1. Just create a new folder inside the `scenes/` path.
