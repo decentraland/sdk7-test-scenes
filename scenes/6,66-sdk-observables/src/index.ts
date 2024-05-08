@@ -162,7 +162,7 @@ function SpawnTextShape(entity: Entity, text: string, position: Vector3, rotatio
   })
   TextShape.create(entity, {
     text,
-    textColor: Color4.Yellow(),
+    textColor: Color4.Red(),
     outlineColor: Color3.Black(),
     outlineWidth: 0.15,
     fontSize: 6,
