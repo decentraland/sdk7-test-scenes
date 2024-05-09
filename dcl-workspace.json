@@ -1,6 +1,12 @@
 {
   "folders": [
     {
+      "path": "scenes/100,102-avatar-attach-test"
+    },
+    {
+      "path": "scenes/100,100-mannakia-test-scene"
+    },
+    {
       "path": "scenes/6,66-sdk-observables"
     },
     {
