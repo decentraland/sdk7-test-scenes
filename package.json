@@ -19,9 +19,9 @@
   "license": "ISC",
   "dependencies": {
     "@dcl-sdk/utils": "latest",
-    "@dcl/sdk": "^7.4.5",
-    "syncpack": "^12.3.0",
-	"glob": "^7.1.6"
+    "@dcl/sdk": "^7.4.22-9118542123.commit-6049b3a",
+    "glob": "^7.1.6",
+    "syncpack": "^12.3.0"
   },
   "workspaces": [
     ".",
