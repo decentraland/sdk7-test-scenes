@@ -34,7 +34,7 @@ addBox(AvatarAnchorPointType.AAPT_LEFT_FOREARM , Color4.create(0.5, 0.0, 0.5, 1)
 addBox(AvatarAnchorPointType.AAPT_LEFT_HAND, Color4.create(0.0, 0.5, 0.5, 1))
 addBox(AvatarAnchorPointType.AAPT_LEFT_HAND_INDEX , Color4.create(0.75, 0.25, 0.5, 1))
 addBox(AvatarAnchorPointType.AAPT_RIGHT_SHOULDER , Color4.create(0.25, 0.75, 0.5, 1))
-addBox(AvatarAnchorPointType.AAPT_RIGHT_ARM , Color4.create(0.5, 0.25, 0.75, 1))C
+addBox(AvatarAnchorPointType.AAPT_RIGHT_ARM , Color4.create(0.5, 0.25, 0.75, 1))
 addBox(AvatarAnchorPointType.AAPT_RIGHT_FOREARM , Color4.create(0.25, 0.5, 0.75, 1))
 addBox(AvatarAnchorPointType.AAPT_RIGHT_HAND, Color4.create(0.75, 0.5, 0.25, 1))
 addBox(AvatarAnchorPointType.AAPT_RIGHT_HAND_INDEX , Color4.create(0.5, 0.75, 0.25, 1))
