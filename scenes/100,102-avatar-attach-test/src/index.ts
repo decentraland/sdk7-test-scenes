@@ -1,59 +1,138 @@
-import { Color4, Quaternion, Vector3 } from '@dcl/ecs-math'
-import { AvatarAnchorPointType, AvatarAttach, Entity, Material, MeshCollider, MeshRenderer, PlayerIdentityData, Transform, engine } from '@dcl/sdk/ecs'
+// We define the empty imports so the auto-complete feature works as expected.
+import { Color4 } from '@dcl/sdk/math'
+import { AvatarAnchorPointType, AvatarAttach, ColliderLayer, Entity, GltfContainer, InputAction, Material, MeshRenderer, TextShape, Transform, engine, pointerEventsSystem } from '@dcl/sdk/ecs'
 
-function createBlock(position: Vector3): Entity {
-  const block = engine.addEntity()
-  Transform.create(block, { position, scale: Vector3.create(3, 2, 3) })
+function createConsole():Entity {
+  const consoleStool = engine.addEntity()
+  Transform.create(consoleStool,
+    {
+      position: { x: 8, y: 0, z: 8 },
+    })
 
-  MeshCollider.setBox(block)
-  MeshRenderer.setBox(block)
-  Material.setPbrMaterial(block, { albedoColor: Color4.create(1.0, 0.0, 0.0, 0.2) , castShadows: false})
-
-  const face = engine.addEntity()
-  Transform.create(face, { position:Vector3.create(0, 0.501, 0), parent: block, rotation: Quaternion.fromEulerDegrees(90,0,0)})
-  MeshRenderer.setPlane(face)
-  Material.setPbrMaterial(face, { albedoColor: Color4.create(1.0, 1.0, 1.0, 0.8), castShadows: false})
-
-  return block
-}
-
-const WithAttached = engine.defineComponent("WithAttached", {})
-
-function createAttached(avatarId: string, anchorPointId: AvatarAnchorPointType, color: Color4, scale: number = 1.0): Entity {
-  const parent = engine.addEntity()
-  const entity = engine.addEntity()
-  Transform.create(entity, { scale: Vector3.create(scale,scale,scale), rotation: Quaternion.fromEulerDegrees(90,0,0), parent})
-
-  MeshRenderer.setPlane(entity)
-  Material.setPbrMaterial(entity, { albedoColor: color , castShadows: false})
-  
-  AvatarAttach.create(parent, { avatarId, anchorPointId })
-
-  return entity
-}
-
-function avatarAttachTest() {
-  createBlock(Vector3.create(1.5, 0, 1.5))
-  createBlock(Vector3.create(2 + 1.5, 1, 1.5))
-
-  engine.addSystem(function() {
-
-    for (const [entity, player] of engine.getEntitiesWith(PlayerIdentityData)) {
-      if (WithAttached.has(entity)) continue
-      
-      createAttached(player.address,  AvatarAnchorPointType.AAPT_POSITION, Color4.Yellow())
-      createAttached(player.address,  AvatarAnchorPointType.AAPT_NAME_TAG, Color4.Green())
-      WithAttached.create(entity)
-
-      const sphere = engine.addEntity()
-      Transform.create(sphere, { scale: Vector3.create(.2,.2,.2), parent: entity})
-      MeshRenderer.setSphere(sphere)
-      Material.setPbrMaterial(sphere, { albedoColor: Color4.Blue() , castShadows: false})
-    }
+  GltfContainer.create(consoleStool, {
+    src: "assets/CommandControl_01.glb"
   })
 
+
+  pointerEventsSystem.onPointerDown(
+    {
+    entity: consoleStool,
+    opts: {
+        button: InputAction.IA_POINTER,
+        hoverText: 'Click'
+      }
+    },
+    function(){
+      cycleAttachPoints();
+    }
+      )
+
+
+const consoleText = engine.addEntity()
+Transform.create(consoleText,
+  {
+    position: { x: 0, y: 3, z: 0 },
+    rotation: {x: 0, y: 180, z: 0, w: 0},
+    parent: consoleStool
+  })
+
+TextShape.create(consoleText,{
+  text: "Click me"
+})
+return consoleText
 }
 
-export function main() {
-  avatarAttachTest()
+
+function createParrot() : Entity{
+  const parrot = engine.addEntity()
+  Transform.create(parrot,
+    {
+      position: { x: 0, y: 1, z: 0 },
+      scale: { x: 0.3, y: 0.3, z: 0.3 },
+    })
+  GltfContainer.create(parrot, {
+    src: "assets/Parrot.glb",
+    invisibleMeshesCollisionMask : ColliderLayer.CL_NONE
+  })
+  return parrot;
 }
+
+let attachPoints = [
+  AvatarAnchorPointType.AAPT_POSITION,
+  AvatarAnchorPointType.AAPT_NAME_TAG,
+  AvatarAnchorPointType.AAPT_HEAD,
+  AvatarAnchorPointType.AAPT_NECK,
+  AvatarAnchorPointType.AAPT_SPINE,
+  AvatarAnchorPointType.AAPT_SPINE1,
+  AvatarAnchorPointType.AAPT_SPINE2,
+  AvatarAnchorPointType.AAPT_HIP,
+  AvatarAnchorPointType.AAPT_LEFT_SHOULDER,
+  AvatarAnchorPointType.AAPT_LEFT_ARM,
+  AvatarAnchorPointType.AAPT_LEFT_FOREARM,
+  AvatarAnchorPointType.AAPT_LEFT_HAND,
+  AvatarAnchorPointType.AAPT_LEFT_HAND_INDEX,
+  AvatarAnchorPointType.AAPT_RIGHT_SHOULDER,
+  AvatarAnchorPointType.AAPT_RIGHT_ARM,
+  AvatarAnchorPointType.AAPT_RIGHT_FOREARM,
+  AvatarAnchorPointType.AAPT_RIGHT_HAND,
+  AvatarAnchorPointType.AAPT_RIGHT_HAND_INDEX,
+  AvatarAnchorPointType.AAPT_LEFT_UP_LEG,
+  AvatarAnchorPointType.AAPT_LEFT_LEG,
+  AvatarAnchorPointType.AAPT_LEFT_FOOT,
+  AvatarAnchorPointType.AAPT_LEFT_TOE_BASE,
+  AvatarAnchorPointType.AAPT_RIGHT_UP_LEG,
+  AvatarAnchorPointType.AAPT_RIGHT_LEG,
+  AvatarAnchorPointType.AAPT_RIGHT_FOOT,
+  AvatarAnchorPointType.AAPT_RIGHT_TOE_BASE,
+]
+
+let attachPointsNames = [
+  "POSITION",
+  "NAME_TAG",
+  "HEAD",
+  "NECK",
+  "SPINE",
+  "SPINE1",
+  "SPINE2",
+  "HIP",
+  "LEFT_SHOULDER",
+  "LEFT_ARM",
+  "LEFT_FOREARM",
+  "LEFT_HAND",
+  "LEFT_HAND_INDEX",
+  "RIGHT_SHOULDER",
+  "RIGHT_ARM",
+  "RIGHT_FOREARM",
+  "RIGHT_HAND",
+  "RIGHT_HAND_INDEX",
+  "LEFT_UP_LEG",
+  "LEFT_LEG",
+  "LEFT_FOOT",
+  "LEFT_TOE_BASE",
+  "RIGHT_UP_LEG",
+  "RIGHT_LEG",
+  "RIGHT_FOOT",
+  "RIGHT_TOE_BASE",
+]
+
+let currentAttachPoint = 0;
+
+function cycleAttachPoints():void{
+
+  currentAttachPoint++
+  if(currentAttachPoint > attachPoints.length -1)
+    currentAttachPoint = 0
+
+  const anchor = attachPoints[currentAttachPoint];
+
+  AvatarAttach.createOrReplace(parrot, {
+    anchorPointId: anchor
+  })
+
+  TextShape.getMutable(consoleText).text = attachPointsNames[currentAttachPoint];
+}
+
+
+let consoleText = createConsole()
+let parrot = createParrot()
+
