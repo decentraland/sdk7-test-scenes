@@ -49,10 +49,9 @@ Transform.create(monsterEntity, {
 })
 GltfContainer.create(monsterEntity, { src: "models/Monster.glb" })
 
-// Underwater mesh (GLTF + external tex)
+// Tree (GLTF + external tex)
 const underwaterEntity = engine.addEntity()
 Transform.create(underwaterEntity, {
-  position: Vector3.create(9, 1, 8),
-  scale: Vector3.create(0.25, 0.25, 0.25)
+  position: Vector3.create(8, 1, 10)
 })
-GltfContainer.create(underwaterEntity, { src: "models/Underwater.gltf" })
+GltfContainer.create(underwaterEntity, { src: "models/Tree.gltf" })
