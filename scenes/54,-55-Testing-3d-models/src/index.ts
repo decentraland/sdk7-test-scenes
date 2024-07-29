@@ -1,4 +1,4 @@
-import { engine, GltfContainer, MeshRenderer, Transform, Material } from '@dcl/sdk/ecs'
+import { engine, GltfContainer, MeshRenderer, Transform, Material, Animator } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
 
 // export all the functions required to make the scene work
@@ -50,8 +50,10 @@ Transform.create(monsterEntity, {
 GltfContainer.create(monsterEntity, { src: "models/Monster.glb" })
 
 // Tree (GLTF + external tex)
-const underwaterEntity = engine.addEntity()
-Transform.create(underwaterEntity, {
+const treeEntity = engine.addEntity()
+Transform.create(treeEntity, {
   position: Vector3.create(8, 1, 10)
 })
-GltfContainer.create(underwaterEntity, { src: "models/Tree.gltf" })
+GltfContainer.create(treeEntity, { src: "models/Tree.gltf" })
+
+Animator.create(treeEntity)
