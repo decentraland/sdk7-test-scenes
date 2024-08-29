@@ -1,7 +1,8 @@
 // We define the empty imports so the auto-complete feature works as expected.
 import { Vector3 } from '@dcl/sdk/math'
-import { Billboard, engine, Entity, InputAction, InputModifier, inputSystem, MeshRenderer, PointerEventType, TextShape, Transform } from '@dcl/sdk/ecs'
+import { Billboard, engine, Entity, InputAction, InputModifier, MeshCollider, MeshRenderer, pointerEventsSystem, TextShape, Transform } from '@dcl/sdk/ecs'
 import { setupUi } from './ui'
+import { triggerSceneEmote } from '~system/RestrictedActions'
 
 let mode = 0
 let disableAll = false
@@ -10,10 +11,10 @@ let disableJog = false
 let disableRun = false
 let disableJump = false
 let disableEmote = false
-let textShape:Entity
+let textShape: Entity
 
 function modeName() {
-  return `mode ${mode} | disableAll ${disableAll} | disableWalk ${disableWalk} | disableJog ${disableJog} | disableRun ${disableRun} | disableJump ${disableJump} | disableEmote ${disableEmote}`
+  return `disableAll ${disableAll} | disableWalk ${disableWalk} | disableJog ${disableJog} | disableRun ${disableRun} | disableJump ${disableJump} | disableEmote ${disableEmote}`
 }
 
 interface Modes {
@@ -25,70 +26,29 @@ interface Modes {
   disableEmoteVal?: boolean
 }
 
-function setModeValues({
-  disableAllVal = false,
-  disableWalkVal = false,
-  disableJogVal = false,
-  disableRunVal = false,
-  disableJumpVal = false,
-  disableEmoteVal = false
+
+export function toggleModeValues({
+  disableAllVal = undefined,
+  disableWalkVal = undefined,
+  disableJogVal = undefined,
+  disableRunVal = undefined,
+  disableJumpVal = undefined,
+  disableEmoteVal = undefined
 }: Modes = {}) {
-  disableAll = disableAllVal
-  disableWalk = disableWalkVal
-  disableJog = disableJogVal
-  disableRun = disableRunVal
-  disableJump = disableJumpVal
-  disableEmote = disableEmoteVal
+  disableAll = disableAllVal ?? disableAll
+  disableWalk = disableWalkVal ?? disableWalk
+  disableJog = disableJogVal ?? disableJog
+  disableRun = disableRunVal ?? disableRun
+  disableJump = disableJumpVal ?? disableJump
+  disableEmote = disableEmoteVal ?? disableEmote
+
+  updateInputModifier()
 }
 
-function switchMode(goToNextMode = true) {
-  switch (mode) {
-    case 0:
-      setModeValues({ disableAllVal: true })
-      break
-    case 1:
-      setModeValues({ disableWalkVal: true })
-      break
-    case 2:
-      setModeValues({ disableJogVal: true })
-      break
-    case 3:
-      setModeValues({ disableRunVal: true })
-      break
-    case 4:
-      setModeValues({ disableJumpVal: true })
-      break
-    case 5:
-      setModeValues({ disableEmoteVal: true })
-      break
-    case 6:
-      setModeValues({ disableJumpVal: true, disableJogVal: false, disableAllVal: true })
-      break
-    case 7:
-      setModeValues({ disableJumpVal: true, disableJogVal: true, disableAllVal: false })
-      break
-    case 8:
-      setModeValues()
-      break
-  }
+function updateInputModifier() {
+  TextShape.getMutable(textShape).text = modeName()
 
-  if (goToNextMode)
-    mode++
-  else
-    mode--
-
-  if (mode == 9)
-    mode = 0
-  else if (mode == -1)
-    mode = 8
-}
-
-function switchInputModifier(goToNextMode: boolean) {
-  switchMode(goToNextMode)
-
-  let myEntity = engine.PlayerEntity
-
-  InputModifier.createOrReplace(myEntity, {
+  InputModifier.createOrReplace(engine.PlayerEntity, {
     mode: {
       $case: "standard", standard:
       {
@@ -101,11 +61,9 @@ function switchInputModifier(goToNextMode: boolean) {
       }
     }
   })
-
-  TextShape.getMutable(textShape).text = modeName()
 }
 
-function createTextBillboard():Entity {
+function createTextBillboard(): Entity {
   const sign = engine.addEntity()
 
   Transform.create(sign, {
@@ -126,55 +84,51 @@ function createTextBillboard():Entity {
   return sign
 }
 
-function createCornerBoxes() {
+function createSceneLimits() {
   let box = engine.addEntity()
-  Transform.create(box, { position: Vector3.create(0, 1, 0) })
+  Transform.create(box, { position: Vector3.create(0, 0, 8), scale: Vector3.create(.1, .1, 16) })
   MeshRenderer.setBox(box)
 
   box = engine.addEntity()
-  Transform.create(box, { position: Vector3.create(0, 1, 16) })
+  Transform.create(box, { position: Vector3.create(16, 0, 8), scale: Vector3.create(.1, .1, 16) })
   MeshRenderer.setBox(box)
 
   box = engine.addEntity()
-  Transform.create(box, { position: Vector3.create(16, 1, 0) })
+  Transform.create(box, { position: Vector3.create(8, 0, 16), scale: Vector3.create(16, .1, .1) })
   MeshRenderer.setBox(box)
 
   box = engine.addEntity()
-  Transform.create(box, { position: Vector3.create(16, 1, 16) })
+  Transform.create(box, { position: Vector3.create(8, 0, 0), scale: Vector3.create(16, .1, .1) })
   MeshRenderer.setBox(box)
 }
 
 export function main() {
-  createCornerBoxes()
+  createSceneLimits()
 
   textShape = createTextBillboard()
 
-  engine.addSystem(() => {
-    if (inputSystem.isTriggered(InputAction.IA_ACTION_3, PointerEventType.PET_DOWN)) {
-      switchInputModifier(false);
-    }
-    else if (inputSystem.isTriggered(InputAction.IA_ACTION_4, PointerEventType.PET_DOWN)) {
-      switchInputModifier(true);
-    }
-  })
+  createEmoteTrigger()
 
   setupUi()
 }
 
 
 
-// import { triggerSceneEmote } from '~system/RestrictedActions'
+function createEmoteTrigger() {
+  const emoter = engine.addEntity()
+  Transform.create(emoter, { position: Vector3.create(8, 0, 8) })
+  MeshRenderer.setBox(emoter)
+  MeshCollider.setBox(emoter)
 
-// const emoter = engine.addEntity()
-// Transform.create(emoter, { position: Vector3.create(8, 0, 8) })
-// MeshRenderer.setBox(emoter)
-// MeshCollider.setBox(emoter)
-// pointerEventsSystem.onPointerDown(
-//   {
-//     entity: emoter,
-//     opts: { button: InputAction.IA_POINTER, hoverText: 'Make snowball' },
-//   },
-//   () => {
-//     triggerSceneEmote({ src: 'animations/Snowball_Throw.glb', loop: false })
-//   }
-// )
+  pointerEventsSystem.onPointerDown(
+      {
+        entity: emoter,
+        opts: { button: InputAction.IA_POINTER, hoverText: 'Make snowball' },
+      },
+      () => {
+        triggerSceneEmote({ src: 'animations/Snowball_Throw.glb', loop: false })
+      }
+    )
+
+}
+

@@ -1,79 +1,132 @@
-import {
-  engine,
-  Transform,
-} from '@dcl/sdk/ecs'
+import ReactEcs, { Button, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
+import { toggleModeValues } from './index'
 import { Color4 } from '@dcl/sdk/math'
-import ReactEcs, { Button, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { Cube } from './components'
-import { createCube } from './factory'
 
 export function setupUi() {
-  //ReactEcsRenderer.setUiRenderer(uiComponent)
+  ReactEcsRenderer.setUiRenderer(uiComponent)
 }
+
+
+let disableAll = false
+let disableWalk = false
+let disableJog = false
+let disableRun = false
+let disableJump = false
+let disableEmote = false
 
 const uiComponent = () => (
   <UiEntity
     uiTransform={{
-      width: 400,
-      height: 230,
-      margin: '16px 0 8px 270px',
-      padding: 4,
-    }}
-    uiBackground={{ color: Color4.create(0.5, 0.8, 0.1, 0.6) }}
-  >
-    <UiEntity
-      uiTransform={{
-        width: '100%',
-        height: '100%',
-        flexDirection: 'column',
+      width: 200,
+      height: 350,
+      
+      flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        positionType: 'absolute',
+        position: { right: '3%', top: '3%' }
+    }}>
+    <Button
+      value="Disable All"
+      variant="primary"
+      uiTransform={{ width: 100, height: 100 }}
+      onMouseDown={() => {
+        console.log('Clicked on Disable All')
+        disableAll = !disableAll;
+        toggleModeValues({ disableAllVal: disableAll })
       }}
-      uiBackground={{ color: Color4.fromHexString("#70ac76ff") }}
-    >
-      <UiEntity
-        uiTransform={{
-          width: '100%',
-          height: 50,
-          margin: '8px 0'
+      uiBackground={{
+      color : disableAll ? Color4.Green() : Color4.Red()
+      }}
+    />
+    <Button
+      value="Disable Run"
+      variant="primary"
+      uiTransform={{ width: 100, height: 100 }}
+      onMouseDown={() => {
+        console.log('Clicked on Disable Run')
+        disableRun = !disableRun
+        toggleModeValues({ disableRunVal: disableRun })
+      }}
+      uiBackground={{
+        color : disableRun ? Color4.Green() : Color4.Red()
         }}
-        uiBackground={{
-          textureMode: 'center',
-          texture: {
-            src: 'images/scene-thumbnail.png',
-          },
+    />
+    <Button
+      value="Disable Jog"
+      variant="primary"
+      uiTransform={{ width: 100, height: 100 }}
+      onMouseDown={() => {
+        console.log('Clicked on Disable Jog')
+        disableJog = !disableJog
+        toggleModeValues({ disableJogVal: disableJog })
+      }}
+      uiBackground={{
+        color : disableJog ? Color4.Green() : Color4.Red()
         }}
-        uiText={{ value: 'SDK7', fontSize: 18 }}
-      />
-      <Label
-        onMouseDown={() => {console.log('Player Position clicked !')}}
-        value={`Player: ${getPlayerPosition()}`}
-        fontSize={18}
-        uiTransform={{ width: '100%', height: 30 } }
-      />
-      <Label
-        onMouseDown={() => {console.log('# Cubes clicked !')}}
-        value={`# Cubes: ${[...engine.getEntitiesWith(Cube)].length}`}
-        fontSize={18}
-        uiTransform={{ width: '100%', height: 30 } }
-      />
-      <Button
-        uiTransform={{ width: 100, height: 40, margin: 8 }}
-        value='Spawn cube'
-        variant='primary'
-        fontSize={14}
-        onMouseDown={() => {
-          createCube(1 + Math.random() * 8, Math.random() * 8, 1 + Math.random() * 8, false)
+    />
+    <Button
+      value="Disable Walk"
+      variant="primary"
+      uiTransform={{ width: 100, height: 100 }}
+      onMouseDown={() => {
+        console.log('Clicked on Disable Walk')
+        disableWalk = !disableWalk
+        toggleModeValues({ disableWalkVal: disableWalk })
+      }}
+      uiBackground={{
+        color : disableWalk ? Color4.Green() : Color4.Red()
         }}
-      />
-     </UiEntity>
+    />
+     <Button
+      value="Disable Jump"
+      variant="primary"
+      uiTransform={{ width: 100, height: 100 }}
+      onMouseDown={() => {
+        console.log('Clicked on Disable Jump')
+        disableJump = !disableJump
+        toggleModeValues({ disableJumpVal: disableJump })
+      }}
+      uiBackground={{
+        color : disableJump ? Color4.Green() : Color4.Red()
+        }}
+    />
+     <Button
+      value="Disable Emote"
+      variant="primary"
+      uiTransform={{ width: 100, height: 100 }}
+      onMouseDown={() => {
+        console.log('Clicked on Disable Emote')
+        disableEmote = !disableEmote
+        toggleModeValues({ disableEmoteVal: disableEmote })
+      }}
+      uiBackground={{
+        color : disableEmote ? Color4.Green() : Color4.Red()
+        }}
+    />
+    <Button
+      value="Reset"
+      variant="primary"
+      uiTransform={{ width: 100, height: 100 }}
+      onMouseDown={() => {
+        console.log('Clicked on Reset')
+
+        disableAll = false
+        disableWalk = false
+        disableJog = false
+        disableRun = false
+        disableJump = false
+        disableEmote = false
+
+        toggleModeValues({
+          disableAllVal: disableAll,
+          disableWalkVal: disableWalk,
+          disableJogVal: disableJog,
+          disableRunVal: disableRun,
+          disableJumpVal: disableJump,
+          disableEmoteVal: disableEmote
+        })
+      }}
+    />
   </UiEntity>
 )
-
-function getPlayerPosition() {
-  const playerPosition = Transform.getOrNull(engine.PlayerEntity)
-  if (!playerPosition) return ' no data yet'
-  const { x, y, z } = playerPosition.position
-  return `{X: ${x.toFixed(2)}, Y: ${y.toFixed(2)}, z: ${z.toFixed(2)} }`
-}
-
