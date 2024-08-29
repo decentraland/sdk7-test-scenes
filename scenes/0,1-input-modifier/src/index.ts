@@ -4,7 +4,6 @@ import { Billboard, engine, Entity, InputAction, InputModifier, MeshCollider, Me
 import { setupUi } from './ui'
 import { triggerSceneEmote } from '~system/RestrictedActions'
 
-let mode = 0
 let disableAll = false
 let disableWalk = false
 let disableJog = false
@@ -112,8 +111,6 @@ export function main() {
   setupUi()
 }
 
-
-
 function createEmoteTrigger() {
   const emoter = engine.addEntity()
   Transform.create(emoter, { position: Vector3.create(8, 0, 8) })
@@ -129,6 +126,5 @@ function createEmoteTrigger() {
         triggerSceneEmote({ src: 'animations/Snowball_Throw.glb', loop: false })
       }
     )
-
 }
 
