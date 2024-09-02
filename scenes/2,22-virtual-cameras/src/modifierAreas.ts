@@ -34,9 +34,9 @@ export function InstantiateModifierAreas() {
         rotation: Quaternion.fromEulerDegrees(0, 45, 0)
     })
     TextShape.create(avatarModifierAreaText, {
-        text: "AVATAR MOD AREA",
+        text: "AVATAR MODIFIER AREA",
         fontSize: 1.25,
-        textColor: Color4.Green()
+        textColor: Color4.Black()
     })
 
     // CAMERA MODE AREA
@@ -60,8 +60,8 @@ export function InstantiateModifierAreas() {
         rotation: Quaternion.fromEulerDegrees(0, 135, 0)
     })
     TextShape.create(cameraModAreaText, {
-        text: "CAMERA MOD AREA",
+        text: "CAMERA MODE AREA",
         fontSize: 1.25,
-        textColor: Color4.Green()
+        textColor: Color4.Black()
     })   
 }
