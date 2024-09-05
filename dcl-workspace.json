@@ -1,15 +1,6 @@
 {
   "folders": [
     {
-      "path": "scenes/100,102-avatar-attach-test"
-    },
-    {
-      "path": "scenes/100,100-mannakia-test-scene"
-    },
-    {
-      "path": "scenes/6,66-sdk-observables"
-    },
-    {
       "path": "scenes/80,-4-restricted-actions"
     },
     {
@@ -46,6 +37,9 @@
       "path": "scenes/70,-9-sdk7-ui-backgrounds"
     },
     {
+      "path": "scenes/6,66-sdk-observables"
+    },
+    {
       "path": "scenes/54,-55-Testing-3d-models"
     },
     {
@@ -53,6 +47,15 @@
     },
     {
       "path": "scenes/5,90-scene-bounds-check"
+    },
+    {
+      "path": "scenes/2,22-virtual-cameras"
+    },
+    {
+      "path": "scenes/100,102-avatar-attach-test"
+    },
+    {
+      "path": "scenes/100,100-mannakia-test-scene"
     },
     {
       "path": "scenes/0,2-cube-wave-32x32"
