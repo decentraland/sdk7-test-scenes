@@ -108,11 +108,11 @@ export function InstantiateGlobalInputCameras() {
     // Cameras Changing System
     engine.addSystem(() => {
         if (controllableCameraIsActive) return
-
-        const mainCamera = MainCamera.getMutableOrNull(engine.CameraEntity)
-        if (!mainCamera) return
-
+        
         if (inputSystem.isTriggered(InputAction.IA_PRIMARY, PointerEventType.PET_DOWN)) {
+            const mainCamera = MainCamera.getMutableOrNull(engine.CameraEntity)
+            if (!mainCamera) return
+            
             // const currentVCam = VirtualCamera.getMutableOrNull(mainCamera.virtualCameraEntity as Entity)
             // if (currentVCam && currentVCam.lookAtEntity) {
             //   currentVCam.lookAtEntity = undefined;
@@ -130,9 +130,8 @@ export function InstantiateGlobalInputCameras() {
                 currentVirtualCameraIndex = 0
 
             if (virtualCamerasCollection[currentVirtualCameraIndex] == engine.CameraEntity) {
-                mainCamera.virtualCameraEntity = 0                
-            }
-            else {
+                mainCamera.virtualCameraEntity = 0
+            } else {
                 mainCamera.virtualCameraEntity = virtualCamerasCollection[currentVirtualCameraIndex]
                 VisibilityComponent.getMutable(virtualCamerasCollection[currentVirtualCameraIndex]).visible = false
                 VisibilityComponent.getMutable(virtualCamerasTextCollection[currentVirtualCameraIndex]).visible = false                
