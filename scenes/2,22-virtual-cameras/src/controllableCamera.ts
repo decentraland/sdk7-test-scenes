@@ -14,6 +14,8 @@ import { engine,
     VisibilityComponent,
 } from '@dcl/sdk/ecs'
 
+// TODO: Replace all the "character movement confinement" logic with the new input freeze whenever it's released...
+
 // Character movement confinement setup (until player input freeze component is there)
 const characterPrisonPos = Vector3.create(14.5, 0.5, 14.5)
 const characterPrison = engine.addEntity()
