@@ -1,11 +1,10 @@
 import ReactEcs, { Button, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { toggleModeValues } from './index'
 import { Color4 } from '@dcl/sdk/math'
+import { toggleModeValues } from '.'
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
 }
-
 
 let disableAll = false
 let disableWalk = false
@@ -14,22 +13,26 @@ let disableRun = false
 let disableJump = false
 let disableEmote = false
 
+let buttonsWidth = 150
+let buttonsHeight = 75
+let buttonFontSize = 18
+
 const uiComponent = () => (
   <UiEntity
     uiTransform={{
-      width: 200,
-      height: 350,
+      width: 250,
+      height: 600,
       
       flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'space-between',
         positionType: 'absolute',
-        position: { right: '3%', top: '3%' }
+        position: { right: '1%', top: '3%' }
     }}>
     <Button
       value="Disable All"
+      fontSize={buttonFontSize}
       variant="primary"
-      uiTransform={{ width: 100, height: 100 }}
+      uiTransform={{ width: buttonsWidth, height: buttonsHeight }}
       onMouseDown={() => {
         console.log('Clicked on Disable All')
         disableAll = !disableAll;
@@ -41,8 +44,9 @@ const uiComponent = () => (
     />
     <Button
       value="Disable Run"
+      fontSize={buttonFontSize}
       variant="primary"
-      uiTransform={{ width: 100, height: 100 }}
+      uiTransform={{ width: buttonsWidth, height: buttonsHeight }}
       onMouseDown={() => {
         console.log('Clicked on Disable Run')
         disableRun = !disableRun
@@ -54,8 +58,9 @@ const uiComponent = () => (
     />
     <Button
       value="Disable Jog"
+      fontSize={buttonFontSize}
       variant="primary"
-      uiTransform={{ width: 100, height: 100 }}
+      uiTransform={{ width: buttonsWidth, height: buttonsHeight }}
       onMouseDown={() => {
         console.log('Clicked on Disable Jog')
         disableJog = !disableJog
@@ -67,8 +72,9 @@ const uiComponent = () => (
     />
     <Button
       value="Disable Walk"
+      fontSize={buttonFontSize}
       variant="primary"
-      uiTransform={{ width: 100, height: 100 }}
+      uiTransform={{ width: buttonsWidth, height: buttonsHeight }}
       onMouseDown={() => {
         console.log('Clicked on Disable Walk')
         disableWalk = !disableWalk
@@ -80,8 +86,9 @@ const uiComponent = () => (
     />
      <Button
       value="Disable Jump"
+      fontSize={buttonFontSize}
       variant="primary"
-      uiTransform={{ width: 100, height: 100 }}
+      uiTransform={{ width: buttonsWidth, height: buttonsHeight }}
       onMouseDown={() => {
         console.log('Clicked on Disable Jump')
         disableJump = !disableJump
@@ -93,8 +100,9 @@ const uiComponent = () => (
     />
      <Button
       value="Disable Emote"
+      fontSize={buttonFontSize}
       variant="primary"
-      uiTransform={{ width: 100, height: 100 }}
+      uiTransform={{ width: buttonsWidth, height: buttonsHeight }}
       onMouseDown={() => {
         console.log('Clicked on Disable Emote')
         disableEmote = !disableEmote
@@ -106,8 +114,9 @@ const uiComponent = () => (
     />
     <Button
       value="Reset"
+      fontSize={buttonFontSize}
       variant="primary"
-      uiTransform={{ width: 100, height: 100 }}
+      uiTransform={{ width: buttonsWidth, height: buttonsHeight }}
       onMouseDown={() => {
         console.log('Clicked on Reset')
 

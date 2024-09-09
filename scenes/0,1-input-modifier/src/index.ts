@@ -1,8 +1,25 @@
 // We define the empty imports so the auto-complete feature works as expected.
 import { Vector3 } from '@dcl/sdk/math'
-import { Billboard, engine, Entity, InputAction, InputModifier, MeshCollider, MeshRenderer, pointerEventsSystem, TextShape, Transform } from '@dcl/sdk/ecs'
+import {
+  Billboard,
+  EasingFunction,
+  engine,
+  Entity,
+  InputAction,
+  InputModifier,
+  inputSystem,
+  MeshCollider,
+  MeshRenderer,
+  pointerEventsSystem,
+  PointerEventType,
+  TextShape,
+  Transform,
+  Tween,
+  TweenLoop,
+  TweenSequence
+} from '@dcl/sdk/ecs'
 import { setupUi } from './ui'
-import { triggerSceneEmote } from '~system/RestrictedActions'
+import { triggerEmote } from '~system/RestrictedActions'
 
 let disableAll = false
 let disableWalk = false
@@ -13,18 +30,39 @@ let disableEmote = false
 let textShape: Entity
 
 function modeName() {
-  return `disableAll ${disableAll} | disableWalk ${disableWalk} | disableJog ${disableJog} | disableRun ${disableRun} | disableJump ${disableJump} | disableEmote ${disableEmote}`
+  let billBoardText = ''
+  switch (keyPressed) {
+    case InputAction.IA_FORWARD:
+      billBoardText = 'W'
+      break
+    case InputAction.IA_BACKWARD:
+      billBoardText = 'S'
+      break
+    case InputAction.IA_LEFT:
+      billBoardText = 'A'
+      break
+    case InputAction.IA_RIGHT:
+      billBoardText = 'D'
+      break
+    case InputAction.IA_JUMP:
+      billBoardText = 'Space'
+      break
+    default:
+      billBoardText = 'No key'
+      break
+  }
+
+  return billBoardText + ' pressed!'
 }
 
 interface Modes {
-  disableAllVal?: boolean,
-  disableWalkVal?: boolean,
-  disableJogVal?: boolean,
-  disableRunVal?: boolean,
-  disableJumpVal?: boolean,
+  disableAllVal?: boolean
+  disableWalkVal?: boolean
+  disableJogVal?: boolean
+  disableRunVal?: boolean
+  disableJumpVal?: boolean
   disableEmoteVal?: boolean
 }
-
 
 export function toggleModeValues({
   disableAllVal = undefined,
@@ -49,8 +87,8 @@ function updateInputModifier() {
 
   InputModifier.createOrReplace(engine.PlayerEntity, {
     mode: {
-      $case: "standard", standard:
-      {
+      $case: 'standard',
+      standard: {
         disableAll: disableAll,
         disableWalk: disableWalk,
         disableRun: disableRun,
@@ -66,7 +104,7 @@ function createTextBillboard(): Entity {
   const sign = engine.addEntity()
 
   Transform.create(sign, {
-    position: Vector3.create(8, 3, 8),
+    position: Vector3.create(8, 1.5, 8)
   })
 
   TextShape.create(sign, {
@@ -76,7 +114,7 @@ function createTextBillboard(): Entity {
     height: 2,
     width: 10,
     outlineWidth: 0.1,
-    outlineColor: { r: 0, g: 0, b: 1 },
+    outlineColor: { r: 0, g: 0, b: 1 }
   })
 
   Billboard.create(sign)
@@ -85,21 +123,40 @@ function createTextBillboard(): Entity {
 
 function createSceneLimits() {
   let box = engine.addEntity()
-  Transform.create(box, { position: Vector3.create(0, 0, 8), scale: Vector3.create(.1, .1, 16) })
+  Transform.create(box, { position: Vector3.create(0, 0, 8), scale: Vector3.create(0.1, 0.1, 16) })
   MeshRenderer.setBox(box)
 
   box = engine.addEntity()
-  Transform.create(box, { position: Vector3.create(16, 0, 8), scale: Vector3.create(.1, .1, 16) })
+  Transform.create(box, { position: Vector3.create(16, 0, 8), scale: Vector3.create(0.1, 0.1, 16) })
   MeshRenderer.setBox(box)
 
   box = engine.addEntity()
-  Transform.create(box, { position: Vector3.create(8, 0, 16), scale: Vector3.create(16, .1, .1) })
+  Transform.create(box, { position: Vector3.create(8, 0, 16), scale: Vector3.create(16, 0.1, 0.1) })
   MeshRenderer.setBox(box)
 
   box = engine.addEntity()
-  Transform.create(box, { position: Vector3.create(8, 0, 0), scale: Vector3.create(16, .1, .1) })
+  Transform.create(box, { position: Vector3.create(8, 0, 0), scale: Vector3.create(16, 0.1, 0.1) })
   MeshRenderer.setBox(box)
 }
+
+function createEmoteTrigger() {
+  const emoter1 = engine.addEntity()
+  Transform.create(emoter1, { position: Vector3.create(8, 0, 8) })
+  MeshRenderer.setBox(emoter1)
+  MeshCollider.setBox(emoter1)
+
+  pointerEventsSystem.onPointerDown(
+    {
+      entity: emoter1,
+      opts: { button: InputAction.IA_POINTER, hoverText: 'Dance!' }
+    },
+    () => {
+      triggerEmote({ predefinedEmote: 'robot' })
+    }
+  )
+}
+
+let keyPressed: InputAction | null
 
 export function main() {
   createSceneLimits()
@@ -109,22 +166,29 @@ export function main() {
   createEmoteTrigger()
 
   setupUi()
+
+  engine.addSystem(() => {
+    TextShape.getMutable(textShape).text = modeName()
+    const cmd = inputSystem.getInputCommand(InputAction.IA_ANY, PointerEventType.PET_DOWN)
+    if (cmd) {
+      keyPressed = cmd.button
+    }
+  })
+
+  const platform = engine.addEntity()
+  Transform.create(platform, {
+    position: Vector3.create(4, 1, 4)
+  })
+  MeshRenderer.setBox(platform)
+  MeshCollider.setBox(platform)
+
+  Tween.create(platform, {
+    mode: Tween.Mode.Move({
+      start: Vector3.create(1, 0, 1),
+      end: Vector3.create(1, 0, 15)
+    }),
+    duration: 5000,
+    easingFunction: EasingFunction.EF_LINEAR
+  })
+  TweenSequence.create(platform, { sequence: [], loop: TweenLoop.TL_YOYO })
 }
-
-function createEmoteTrigger() {
-  const emoter = engine.addEntity()
-  Transform.create(emoter, { position: Vector3.create(8, 0, 8) })
-  MeshRenderer.setBox(emoter)
-  MeshCollider.setBox(emoter)
-
-  pointerEventsSystem.onPointerDown(
-      {
-        entity: emoter,
-        opts: { button: InputAction.IA_POINTER, hoverText: 'Make snowball' },
-      },
-      () => {
-        triggerSceneEmote({ src: 'animations/Snowball_Throw.glb', loop: false })
-      }
-    )
-}
-
