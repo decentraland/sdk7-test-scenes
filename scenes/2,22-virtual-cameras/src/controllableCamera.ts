@@ -90,7 +90,7 @@ export function InstantiateControllableCamera() {
     MeshCollider.setBox(controllableCameraEntity)
     Material.setBasicMaterial(controllableCameraEntity, { diffuseColor: Color4.Green() })
     VirtualCamera.create(controllableCameraEntity, {
-        defaultTransition: { transitionMode: { $case: "time", time: 0 } }
+        defaultTransition: { transitionMode: VirtualCamera.Transition.Time(0) }
     })
     pointerEventsSystem.onPointerDown(
         {
