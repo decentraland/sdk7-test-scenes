@@ -49,6 +49,9 @@
       "path": "scenes/5,90-scene-bounds-check"
     },
     {
+      "path": "scenes/2,22-virtual-cameras"
+    },
+    {
       "path": "scenes/100,102-avatar-attach-test"
     },
     {
