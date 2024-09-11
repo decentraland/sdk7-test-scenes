@@ -112,11 +112,12 @@ export function InstantiateGlobalInputCameras() {
             const mainCamera = MainCamera.getMutableOrNull(engine.CameraEntity)
             if (!mainCamera) return
             
-            // const currentVCam = VirtualCamera.getMutableOrNull(mainCamera.virtualCameraEntity as Entity)
-            // if (currentVCam && currentVCam.lookAtEntity) {
-            //   currentVCam.lookAtEntity = undefined;
-            //   return
-            // }
+            // To test changing the LookAt of an active Virtual Cam.
+            /*const currentVCam = VirtualCamera.getMutableOrNull(mainCamera.virtualCameraEntity as Entity)
+            if (currentVCam && currentVCam.lookAtEntity) {
+              currentVCam.lookAtEntity = undefined;
+              return
+            }*/
             
             const visibility = VisibilityComponent.getMutableOrNull(virtualCamerasCollection[currentVirtualCameraIndex])
             if (visibility) {
