@@ -37,7 +37,7 @@ export function InstantiateGlobalInputCameras() {
         position: Vector3.create(8, 16, 8),
         rotation: Quaternion.fromEulerDegrees(89, 0, 0)
     }, {
-        defaultTransition: { transitionMode: { $case: "time", time: 0 } }
+        defaultTransition: { transitionMode: VirtualCamera.Transition.Time(0) }
     }, "1")
 
     const staticVirtualCamera2Pos = Vector3.create(0, 16, 15)
@@ -45,7 +45,7 @@ export function InstantiateGlobalInputCameras() {
         position: staticVirtualCamera2Pos,
         rotation: Quaternion.fromLookAt(staticVirtualCamera2Pos, centerOfScenePosition)
     }, {
-        defaultTransition: { transitionMode: { $case: "time", time: 2 } }
+        defaultTransition: { transitionMode: VirtualCamera.Transition.Time(2) }
     }, "2")
 
     const staticVirtualCamera3Pos = Vector3.create(15, 16, 0)
@@ -53,7 +53,7 @@ export function InstantiateGlobalInputCameras() {
         position: staticVirtualCamera3Pos,
         rotation: Quaternion.fromLookAt(staticVirtualCamera3Pos, centerOfScenePosition)
     }, {
-        defaultTransition: { transitionMode: { $case: "speed", speed: 20 } },
+        defaultTransition: { transitionMode: VirtualCamera.Transition.Speed(20) },
         lookAtEntity: engine.PlayerEntity
     }, "3")
 
@@ -61,8 +61,7 @@ export function InstantiateGlobalInputCameras() {
         position: Vector3.create(2, 16, 2),
         rotation: Quaternion.fromEulerDegrees(89, 0, 0)
     }, {
-        // defaultTransition: { transitionMode: { $case: "speed", speed: 10 } }, // 10 meters per second
-        defaultTransition: { transitionMode: { $case: "speed", speed: 0 } },
+        defaultTransition: { transitionMode: VirtualCamera.Transition.Speed(0) },
         lookAtEntity: sceneCenterEntity
     }, "4")    
     Tween.create(movingVirtualCamera, {
@@ -113,11 +112,12 @@ export function InstantiateGlobalInputCameras() {
             const mainCamera = MainCamera.getMutableOrNull(engine.CameraEntity)
             if (!mainCamera) return
             
-            // const currentVCam = VirtualCamera.getMutableOrNull(mainCamera.virtualCameraEntity as Entity)
-            // if (currentVCam && currentVCam.lookAtEntity) {
-            //   currentVCam.lookAtEntity = undefined;
-            //   return
-            // }
+            // To test changing the LookAt of an active Virtual Cam.
+            /*const currentVCam = VirtualCamera.getMutableOrNull(mainCamera.virtualCameraEntity as Entity)
+            if (currentVCam && currentVCam.lookAtEntity) {
+              currentVCam.lookAtEntity = undefined;
+              return
+            }*/
             
             const visibility = VisibilityComponent.getMutableOrNull(virtualCamerasCollection[currentVirtualCameraIndex])
             if (visibility) {

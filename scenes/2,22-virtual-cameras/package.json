@@ -11,8 +11,8 @@
   },
   "devDependencies": {
     "@dcl/asset-packs": "^1.20.0",
-    "@dcl/js-runtime": "7.5.7-10475279888.commit-6fa1fa3",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/camera-control-components/dcl-sdk-7.5.7-10568606923.commit-917522d.tgz"
+    "@dcl/js-runtime": "7.5.8-10777738407.commit-ecf90a0",
+    "@dcl/sdk": "^7.5.8-10777738407.commit-ecf90a0"
   },
   "engines": {
     "node": ">=16.0.0",
