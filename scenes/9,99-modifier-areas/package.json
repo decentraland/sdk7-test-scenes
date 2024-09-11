@@ -1,7 +1,7 @@
 {
-  "name": "virtual-cameras-test-scene",
+  "name": "modifier-areas-test-scene",
   "version": "1.0.0",
-  "description": "",
+  "description": "Modifier Areas Test Scene",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
