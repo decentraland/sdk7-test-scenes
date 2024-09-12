@@ -2,7 +2,7 @@ import { Vector3, Quaternion, Color4 } from '@dcl/sdk/math'
 import { engine, Transform, MeshRenderer, Material } from '@dcl/sdk/ecs'
 import { InstantiateGlobalInputCameras } from "./globalInputCameras";
 // import { InstantiateControllableCamera } from "./controllableCamera";
-import {InstantiateModifierAreas} from "./modifierAreas";
+import { InstantiateModifierAreas } from "./modifierAreas";
 
 // Environment setup
 const groundEntity = engine.addEntity()

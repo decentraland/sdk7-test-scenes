@@ -51,7 +51,7 @@ export function InstantiateControllableCamera() {
             const mainCamera = MainCamera.getMutableOrNull(engine.CameraEntity)
             if (!mainCamera) return
 
-            ToggleCharacterInput(true)
+            ToggleCharacterInput(false)
             
             controllableCameraIsActive = true
             mainCamera.virtualCameraEntity = controllableCameraEntity
@@ -71,7 +71,7 @@ export function InstantiateControllableCamera() {
         const cameraLeft = Vector3.rotate(cameraForward, Quaternion.fromEulerDegrees(0, -90, 0))
         
         if (inputSystem.isTriggered(InputAction.IA_JUMP, PointerEventType.PET_DOWN)) {
-            ToggleCharacterInput(false)
+            ToggleCharacterInput(true)
             controllableCameraIsActive = false
             mainCamera.virtualCameraEntity = 0
         } else if (inputSystem.isPressed(InputAction.IA_FORWARD)) {
