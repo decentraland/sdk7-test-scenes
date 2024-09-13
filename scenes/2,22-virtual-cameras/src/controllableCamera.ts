@@ -35,9 +35,7 @@ export function InstantiateControllableCamera() {
     MeshRenderer.setBox(controllableCameraEntity)
     MeshCollider.setBox(controllableCameraEntity)
     Material.setBasicMaterial(controllableCameraEntity, { diffuseColor: Color4.Green() })
-    VirtualCamera.create(controllableCameraEntity, {
-        defaultTransition: { transitionMode: VirtualCamera.Transition.Time(0) }
-    })
+    VirtualCamera.create(controllableCameraEntity)
     pointerEventsSystem.onPointerDown(
         {
             entity: controllableCameraEntity,
@@ -73,7 +71,7 @@ export function InstantiateControllableCamera() {
         if (inputSystem.isTriggered(InputAction.IA_JUMP, PointerEventType.PET_DOWN)) {
             ToggleCharacterInput(true)
             controllableCameraIsActive = false
-            mainCamera.virtualCameraEntity = 0
+            mainCamera.virtualCameraEntity = undefined
         } else if (inputSystem.isPressed(InputAction.IA_FORWARD)) {
             const delta = Vector3.scale(cameraForward, controllableCameraMovementSpeed * dt)
             cameraTransform.position = Vector3.add(cameraTransform.position, delta)

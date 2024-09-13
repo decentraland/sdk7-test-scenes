@@ -36,34 +36,29 @@ export function InstantiateGlobalInputCameras() {
     SpawnVirtualCamera({
         position: Vector3.create(8, 16, 8),
         rotation: Quaternion.fromEulerDegrees(89, 0, 0)
-    }, {
-        defaultTransition: { transitionMode: VirtualCamera.Transition.Time(0) }
     }, "1")
 
     const staticVirtualCamera2Pos = Vector3.create(0, 16, 15)
     SpawnVirtualCamera({
         position: staticVirtualCamera2Pos,
         rotation: Quaternion.fromLookAt(staticVirtualCamera2Pos, centerOfScenePosition)
-    }, {
+    }, "2", {
         defaultTransition: { transitionMode: VirtualCamera.Transition.Time(2) }
-    }, "2")
+    })
 
     const staticVirtualCamera3Pos = Vector3.create(15, 16, 0)
     SpawnVirtualCamera({
         position: staticVirtualCamera3Pos,
         rotation: Quaternion.fromLookAt(staticVirtualCamera3Pos, centerOfScenePosition)
-    }, {
+    }, "3", {
         defaultTransition: { transitionMode: VirtualCamera.Transition.Speed(20) },
         lookAtEntity: engine.PlayerEntity
-    }, "3")
+    })
 
     const movingVirtualCamera = SpawnVirtualCamera({
         position: Vector3.create(2, 16, 2),
         rotation: Quaternion.fromEulerDegrees(89, 0, 0)
-    }, {
-        defaultTransition: { transitionMode: VirtualCamera.Transition.Speed(0) },
-        lookAtEntity: sceneCenterEntity
-    }, "4")    
+    }, "4", { lookAtEntity: sceneCenterEntity })    
     Tween.create(movingVirtualCamera, {
         duration: 4000,
         easingFunction: EasingFunction.EF_LINEAR,
@@ -130,7 +125,7 @@ export function InstantiateGlobalInputCameras() {
                 currentVirtualCameraIndex = 0
 
             if (virtualCamerasCollection[currentVirtualCameraIndex] == engine.CameraEntity) {
-                mainCamera.virtualCameraEntity = 0
+                mainCamera.virtualCameraEntity = undefined
             } else {
                 mainCamera.virtualCameraEntity = virtualCamerasCollection[currentVirtualCameraIndex]
                 VisibilityComponent.getMutable(virtualCamerasCollection[currentVirtualCameraIndex]).visible = false
@@ -140,7 +135,7 @@ export function InstantiateGlobalInputCameras() {
     })
 }
 
-function SpawnVirtualCamera(transformProps:  Partial<TransformType>, camProps: PBVirtualCamera, camText: string ): Entity {
+function SpawnVirtualCamera(transformProps:  Partial<TransformType>, camText: string, camProps: PBVirtualCamera = {} ): Entity {
     const virtualCameraEntity = engine.addEntity()
     Transform.create(virtualCameraEntity, transformProps)
     MeshRenderer.setBox(virtualCameraEntity)
