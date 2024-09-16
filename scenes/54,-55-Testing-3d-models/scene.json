@@ -16,9 +16,9 @@
   "tags": [],
   "scene": {
     "parcels": [
-      "0,0"
+      "54,-55"
     ],
-    "base": "0,0"
+    "base": "54,-55"
   },
   "featureToggles": {},
   "name": "Testing-3d-models"
