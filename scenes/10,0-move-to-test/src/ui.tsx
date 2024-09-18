@@ -19,8 +19,9 @@ const playerPositions = [
   Vector3.create(2, 3.5, 6),
   Vector3.create(3, 4.5, 6),
   Vector3.create(4, 5.5, 6),
-  Vector3.create(3, 4.5, 6),
-  Vector3.create(2, 3.5, 6),
+  Vector3.create(4, 5.5, 8),
+  Vector3.create(3, 4.5, 8),
+  Vector3.create(2, 3.5, 8)
 ];
 
 let currentPositionIndex = 0;
@@ -30,6 +31,9 @@ createCube(1,2,6);
 createCube(2,3,6);
 createCube(3,4,6);
 createCube(4,5,6);
+createCube(4,5,8);
+createCube(3,4,8);
+createCube(2,3,8);
 }
 
 function Fetch() {
@@ -49,7 +53,7 @@ function Fetch() {
           fontSize={20}
           variant="primary"
           uiTransform={{ width: 300, height: 50 }}
-          onMouseDown={async () => {
+          onMouseDown={() => {
             movePlayerTo({ newRelativePosition: playerPositions[currentPositionIndex] });
             currentPositionIndex = (currentPositionIndex + 1) % playerPositions.length;}}
          />
