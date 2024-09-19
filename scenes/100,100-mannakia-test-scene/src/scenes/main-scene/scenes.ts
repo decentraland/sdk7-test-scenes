@@ -24,7 +24,7 @@ import {
 export type SceneItem = {
   name: string
   mainFn?: () => void
-  ui?: () => JSX.Element
+  ui?: () => JSX.Element | JSX.Element[]
   extended?: boolean
 }
 

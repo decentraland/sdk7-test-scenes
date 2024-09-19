@@ -3,8 +3,7 @@
   "description": "3D model tests",
   "version": "1.0.0",
   "devDependencies": {
-    "@dcl/js-runtime": "latest",
-    "@dcl/sdk": "latest"
+    "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09"
   },
   "scripts": {
     "build": "sdk-commands build",
