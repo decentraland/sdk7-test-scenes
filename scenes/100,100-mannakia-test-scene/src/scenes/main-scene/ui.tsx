@@ -14,7 +14,7 @@ function nullUi(): JSX.Element {
   return <UiEntity></UiEntity>
 }
 
-export function setupUi(element?: () => JSX.Element, extended?: boolean): void {
+export function setupUi(element?: () => JSX.Element | JSX.Element[], extended?: boolean): void {
   if (element !== undefined) {
     const uiComponent =
       extended === true

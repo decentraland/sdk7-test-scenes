@@ -6,7 +6,8 @@ import {
   IEngine,
   InputAction,
   PBPointerEventsResult,
-  PointerEventType
+  PointerEventType,
+  PointerEventsResult as _PointerEventsResult
 } from '@dcl/sdk/ecs'
 
 const InputCommands: InputAction[] = [
@@ -31,7 +32,7 @@ const InputStateUpdateSystemPriority = 1 << 20
  * @internal
  */
 export function createInputSystem(engine: IEngine) {
-  const PointerEventsResult = components.PointerEventsResult(engine)
+  const PointerEventsResult = engine.getComponent(_PointerEventsResult.componentId) as typeof _PointerEventsResult
   const globalState = {
     previousFrameMaxTimestamp: 0,
     currentFrameMaxTimestamp: 0,

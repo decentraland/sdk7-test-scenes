@@ -4,8 +4,7 @@
   "version": "1.0.0",
   "author": "",
   "dependencies": {
-    "@dcl/js-runtime": "latest",
-    "@dcl/sdk": "latest"
+    "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09"
   },
   "license": "Apache-2.0",
   "repository": "menduz/menduzlandia.git",

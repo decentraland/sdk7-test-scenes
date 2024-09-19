@@ -20,6 +20,6 @@
     "trailingComma": "none"
   },
   "dependencies": {
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/update/schemas/dcl-sdk-7.3.2-5589950025.commit-7453f93.tgz"
+    "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09"
   }
 }
