@@ -1,0 +1,15 @@
+{
+  "name": "testing-animation-blends",
+  "description": "Animation Blend tests",
+  "version": "1.0.0",
+  "devDependencies": {
+    "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09"
+  },
+  "scripts": {
+    "build": "sdk-commands build",
+    "deploy": "sdk-commands deploy",
+    "start": "sdk-commands start",
+    "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
+    "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
+  }
+}
