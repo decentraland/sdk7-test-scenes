@@ -3,8 +3,7 @@
   "description": "SDK7 Template scene",
   "version": "1.0.0",
   "dependencies": {
-    "@dcl/js-runtime": "7.4.0",
-    "@dcl/sdk": "^7.4.9"
+    "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09"
   },
   "engines": {
     "node": ">=16.0.0",
