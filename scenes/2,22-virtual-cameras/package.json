@@ -11,8 +11,8 @@
   },
   "devDependencies": {
     "@dcl/asset-packs": "^1.20.0",
-    "@dcl/js-runtime": "7.5.8-10777738407.commit-ecf90a0",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/virtual-cam-components-iteration/dcl-sdk-7.5.8-10852130949.commit-b33c544.tgz"
+    "@dcl/js-runtime": "latest",
+    "@dcl/sdk": "latest"
   },
   "engines": {
     "node": ">=16.0.0",
