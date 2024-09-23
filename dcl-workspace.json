@@ -67,6 +67,9 @@
       "path": "scenes/0,2-cube-wave-32x32"
     },
     {
+      "path": "scenes/0,1-input-modifier"
+    },
+    {
       "path": "scenes/0,0-cube-spawner"
     }
   ]
