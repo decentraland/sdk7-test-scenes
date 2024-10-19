@@ -1,5 +1,5 @@
 {
-  "name": "dcl-project-8.8",
+  "name": "dcl-project",
   "version": "1.0.0",
   "description": "SDK7 Template scene",
   "scripts": {
@@ -10,6 +10,7 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
+    "@dcl/asset-packs": "latest",
     "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09"
   },
   "engines": {

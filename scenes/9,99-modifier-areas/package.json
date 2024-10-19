@@ -1,7 +1,7 @@
 {
-  "name": "dcl-project-8.8",
+  "name": "modifier-areas-test-scene",
   "version": "1.0.0",
-  "description": "SDK7 Template scene",
+  "description": "Modifier Areas Test Scene",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
@@ -10,6 +10,7 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
+    "@dcl/asset-packs": "^1.20.0",
     "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09"
   },
   "engines": {

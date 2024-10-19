@@ -223,7 +223,7 @@ function AnimatorClip(props: { clip: string }): JSX.Element {
     </UiBox>
   )
 }
-export function MainSceneUi(): JSX.Element {
+export function MainSceneUi(): JSX.Element[] {
   return [
     <UiBox width={600} height={300} uiTransform={{ padding: 10 }}>
       <UiEntity>
@@ -231,11 +231,11 @@ export function MainSceneUi(): JSX.Element {
         <AnimatorClip clip="bite" />
       </UiEntity>
     </UiBox>,
-    
+
     <UiBox width={200} height={300} uiTransform={{ padding: 10 }}>
     <Button value='Spawn Teleporter' onMouseDown={() => {
       respawnTeleporter()
-    }} /> 
+    }} />
     <Button value='Remove Teleporter' onMouseDown={() => {
   if (teleporterEntity !== null) {
     sceneEntities.removeEntity(teleporterEntity)
@@ -260,7 +260,7 @@ function respawnTeleporter(): void {
   Transform.createOrReplace(newEntity, {
     position: Vector3.create(2, 0, 8)
   })
-    
+
   Animator.create(newEntity, {
       states:[
       {

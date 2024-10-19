@@ -1,7 +1,7 @@
 {
-  "name": "dcl-project",
+  "name": "virtual-cameras-test-scene",
   "version": "1.0.0",
-  "description": "SDK7 Template scene",
+  "description": "",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
@@ -11,8 +11,8 @@
   },
   "devDependencies": {
     "@dcl/asset-packs": "^1.20.0",
-    "@dcl/js-runtime": "7.5.7-10475279888.commit-6fa1fa3",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/camera-control-components/dcl-sdk-7.5.7-10568606923.commit-917522d.tgz"
+    "@dcl/js-runtime": "latest",
+    "@dcl/sdk": "latest"
   },
   "engines": {
     "node": ">=16.0.0",

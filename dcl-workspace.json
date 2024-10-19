@@ -1,6 +1,9 @@
 {
   "folders": [
     {
+      "path": "scenes/9,99-modifier-areas"
+    },
+    {
       "path": "scenes/80,-4-restricted-actions"
     },
     {
@@ -56,6 +59,9 @@
     },
     {
       "path": "scenes/100,100-mannakia-test-scene"
+    },
+    {
+      "path": "scenes/10,0-move-to-test"
     },
     {
       "path": "scenes/0,2-cube-wave-32x32"

@@ -18,16 +18,13 @@
   "author": "Decentraland",
   "license": "ISC",
   "dependencies": {
-    "@dcl-sdk/utils": "latest",
-    "@dcl/sdk": "^7.5.6",
-    "glob": "^7.1.6",
+    "@dcl/js-runtime": "^7.5.8-10926653489.commit-aec9f09",
+    "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09",
+    "glob": "^10.3.10",
     "syncpack": "^12.3.0"
   },
   "workspaces": [
     ".",
     "scenes/*"
-  ],
-  "devDependencies": {
-    "glob": "^10.3.10"
-  }
+  ]
 }
