@@ -52,6 +52,9 @@
       "path": "scenes/5,90-scene-bounds-check"
     },
     {
+      "path": "scenes/30,20-pointer-events-feedback"
+    },
+    {
       "path": "scenes/2,22-virtual-cameras"
     },
     {
