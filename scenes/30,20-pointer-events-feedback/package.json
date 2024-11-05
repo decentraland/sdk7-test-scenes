@@ -3,7 +3,7 @@
   "description": "ECS7 ",
   "version": "1.0.0",
   "dependencies": {
-    "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09"
+    "@dcl/sdk": "^7.6.5-11672040830.commit-680459b"
   },
   "scripts": {
     "build": "sdk-commands build --skip-install",
