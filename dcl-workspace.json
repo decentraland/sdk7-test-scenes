@@ -52,6 +52,9 @@
       "path": "scenes/5,90-scene-bounds-check"
     },
     {
+      "path": "scenes/4,20-avatar-shape"
+    },
+    {
       "path": "scenes/30,20-pointer-events-feedback"
     },
     {
