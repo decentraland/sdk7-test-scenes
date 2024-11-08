@@ -57,7 +57,7 @@ pointerEventsSystem.onPointerDown(
                 "urn:decentraland:matic:collections-v2:0x4334a820f556a54845a35f8aad5986aecdf07d43:0"
             ],
             id: "cthulhu-id",
-            name: "Cthulhu",
+            name: "", // to avoid displaying a name tag on the avatar
             hairColor: Color4.Red(),
             skinColor: Color4.Green(),
             emotes: []
