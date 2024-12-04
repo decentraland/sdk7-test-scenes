@@ -1,0 +1,1 @@
+This test scene shows an avatar shape that copies the main user avatar wearables and has a ~~~~clickable cube to sequentially trigger their emotes.[README.md](..%2F..%2FREADME.md)
