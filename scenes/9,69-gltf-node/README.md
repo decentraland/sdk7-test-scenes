@@ -1,0 +1,1 @@
+This test scene shows how to u~~~~se a GLTF Node component
