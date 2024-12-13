@@ -4,21 +4,24 @@ Animator, ColliderLayer } from '@dcl/sdk/ecs'
 
 // GLTF ENTITY
 const gltfEntity = engine.addEntity()
+
 Transform.create(gltfEntity, { position: Vector3.create(8, 3, 8), scale: Vector3.create(0.33, 0.33, 0.33) })
+// Transform.create(gltfEntity, { position: Vector3.create(8, 3, 8), scale: Vector3.create(0.1, 0.1, 0.1) }) // for gigantic space elevator
+
 GltfContainer.create(gltfEntity, {
   // src: 'models/shark.glb',
   src: 'models/parent_test.glb',
+  // src: 'models/space-elevator.glb',
 })
 Animator.create(gltfEntity, {
   states: [
     {
-      clip: 'sunAction',
+      clip: 'sunAction', // parent_test.glb
+      // clip: 'Action', // space-elevator.glb
       playing: false,
-      // loop: true,
     },
   ],
 })
-// Animator.stopAllAnimations(gltfNodeEntity)
 
 // GLTFNode setup cube
 const gltfNodeEntity = engine.addEntity()
@@ -34,9 +37,19 @@ pointerEventsSystem.onPointerDown(
     GltfNode.create(gltfNodeEntity, {
       // nodePath: 'Scene_root/shark_skeleton/Sphere.001/Sphere.001_primitive0', // BabylonJS sandbox
       // nodePath: 'Scene_root/shark_skeleton/Sphere/Sphere.001', // Unity (same for AB or RAW)
-      // nodePath: 'sun/earth/moon',
+      
+        // parent_test.glb
+        // nodePath: 'sun/earth/moon',
       nodePath: 'sun/earth',
-      gltfContainerEntity: gltfEntity
+        
+        // space-elevator.glb
+      // Blender: 'Scene/Scene/Armature/root/pod.upper.002/pivot.elavator.pod/elavator.pod.002.main/elavator.pod.004.main.003'
+      // Unity: 'Scene/Scene/Armature/root/pod.upper.002/pivot.elavator.pod/elavator.pod.002.main/elavator.pod.004.main_1'
+      // BabylonJS-Sandbox: 'Armature/root/pod.upper.002/pivot.elavator.pod/elavator.pod.002.main/elavator.pod.002.main_primitive0'      
+      // nodePath: 'Armature/root',
+      // nodePath: 'Armature/root/pod.upper.002/pivot.elavator.pod/elavator.pod.002.main/elavator.pod.004.main_1',
+      
+        gltfContainerEntity: gltfEntity
     })
 
     MeshCollider.setBox(gltfNodeEntity)
