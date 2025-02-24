@@ -73,6 +73,9 @@
       "path": "scenes/10,0-move-to-test"
     },
     {
+      "path": "scenes/0,4-dynamic-lights"
+    },
+    {
       "path": "scenes/0,2-cube-wave-32x32"
     },
     {
