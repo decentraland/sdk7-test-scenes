@@ -1,0 +1,26 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "scene-emotes",
+    "description": "A simple scene to play avatar emote animations triggered by the scene",
+    "navmapThumbnail": "images/scene-thumbnail.png",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "SDK",
+    "email": ""
+  },
+  "main": "bin/index.js",
+  "tags": [],
+  "scene": {
+    "parcels": [
+      "80,-1"
+    ],
+    "base": "80,-1"
+  },
+  "spawnPoints": [],
+  "featureToggles": {},
+  "name": "scene-emotes"
+}

@@ -1,7 +1,7 @@
 {
-  "name": "dcl-project",
+  "name": "dynamic-lights",
   "version": "1.0.0",
-  "description": "SDK7 Template scene",
+  "description": "dynamic-lights",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
