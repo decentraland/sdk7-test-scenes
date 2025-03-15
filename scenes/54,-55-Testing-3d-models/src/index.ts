@@ -1,5 +1,5 @@
 import { engine, GltfContainer, Transform } from '@dcl/sdk/ecs'
-import { Vector3 } from '@dcl/sdk/math'
+import { Vector3, Quaternion } from '@dcl/sdk/math'
 
 // export all the functions required to make the scene work
 export * from '@dcl/sdk'
@@ -84,3 +84,12 @@ Transform.create(avocado, {
   position: Vector3.create(32, 0, 32),
   scale: Vector3.create(1, 1, 1)
 })
+
+let externalDepsNPCRobot = engine.addEntity()
+
+Transform.create(externalDepsNPCRobot, {
+  position: Vector3.create(8, 0.5, 50),
+  // rotation: Quaternion.fromEulerDegrees(0, 180, 0),
+  scale: Vector3.create(2, 2, 2)
+})
+GltfContainer.create(externalDepsNPCRobot, { src: "models/external-deps/npc-robot/s0_NPC_Robot_Art_1__01.glb" })
