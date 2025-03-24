@@ -61,6 +61,9 @@
       "path": "scenes/4,20-avatar-shape"
     },
     {
+      "path": "scenes/4,19-avatar-shape-movement"
+    },
+    {
       "path": "scenes/30,20-pointer-events-feedback"
     },
     {
