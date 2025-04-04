@@ -67,6 +67,9 @@
       "path": "scenes/30,20-pointer-events-feedback"
     },
     {
+      "path": "scenes/3,33-gltf-container-update"
+    },
+    {
       "path": "scenes/2,22-virtual-cameras"
     },
     {
