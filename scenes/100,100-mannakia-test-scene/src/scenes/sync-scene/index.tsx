@@ -31,7 +31,7 @@ const stringMessages: Array<{ message: string; sender: string }> = []
 
 const binaryMessages: Array<{ message: Uint8Array; sender: string }> = []
 const binaryMessageBus = BinaryMessageBus((message) => {
-  sendBinary({ data: [message] })
+  sendBinary({ data: [message], peerData: [] })
     .then((response) => {
       binaryMessageBus.__processMessages(response.data)
     })
