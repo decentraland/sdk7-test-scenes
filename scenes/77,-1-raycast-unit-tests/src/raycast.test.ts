@@ -21,7 +21,9 @@ test('raycast: raycasting from an entity to global origin yields correct directi
   })
 
   // 2. Wait for the next frame to let the RaycastSystem to process the raycast
-  yield // wait for next frame
+  while(!RaycastResult.has(entity)) {
+    yield // wait for next frame
+  }
 
   const tickNumber = EngineInfo.getOrNull(engine.RootEntity)?.tickNumber || -1
 
@@ -52,8 +54,9 @@ test('raycast: raycasting from an entity to local direction origin yields correc
     timestamp: 4
   })
 
-  // wait for the next frame
-  yield
+  while(!RaycastResult.has(entity)) {
+    yield // wait for next frame
+  }
 
   const tickNumber = EngineInfo.getOrNull(engine.RootEntity)?.tickNumber || -1
 
@@ -87,8 +90,9 @@ test('raycast: raycasting from an entity to another entity works like globalTarg
     timestamp: 5
   })
 
-  // wait for the next frame
-  yield
+  while(!RaycastResult.has(entity)) {
+    yield // wait for next frame
+  }
 
   const tickNumber = EngineInfo.getOrNull(engine.RootEntity)?.tickNumber || -1
 
@@ -119,8 +123,9 @@ test('raycast: raycasting from an entity to local direction origin yields correc
     timestamp: 6
   })
 
-  // wait for the next frame
-  yield
+  while(!RaycastResult.has(entity)) {
+    yield // wait for next frame
+  }
 
   const tickNumber = EngineInfo.getOrNull(engine.RootEntity)?.tickNumber || -1
 
