@@ -1,7 +1,7 @@
 {
-  "name": "dcl-project",
+  "name": "primary-cursor-info",
   "version": "1.0.0",
-  "description": "SDK7 Template scene",
+  "description": "Primary cursor info",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
