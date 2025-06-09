@@ -82,6 +82,9 @@
       "path": "scenes/10,0-move-to-test"
     },
     {
+      "path": "scenes/0,6-ui-zindex-and-opacity"
+    },
+    {
       "path": "scenes/0,5-primary-cursor-info"
     },
     {

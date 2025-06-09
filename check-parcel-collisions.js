@@ -36,3 +36,6 @@ for (const [tile, arr] of parcels) {
 if (fail) {
   process.exit(1)
 }
+else{
+  console.log('✅ No collisions found')
+}
