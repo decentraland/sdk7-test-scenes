@@ -11,7 +11,7 @@
   },
   "devDependencies": {
     "@dcl/js-runtime": "latest",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/temp/experimental-z-index/dcl-sdk-7.8.10-15511586330.commit-9b9dc31.tgz"
+    "@dcl/sdk": "^7.8.10-15511586330.commit-9b9dc31"
   },
   "engines": {
     "node": ">=16.0.0",
