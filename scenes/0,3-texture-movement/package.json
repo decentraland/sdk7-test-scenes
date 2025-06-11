@@ -12,7 +12,7 @@
   "devDependencies": {
     "@dcl/asset-packs": "^1.20.0",
     "@dcl/js-runtime": "7.6.3",
-    "@dcl/sdk": "latest"
+    "@dcl/sdk": "^7.8.9"
   },
   "engines": {
     "node": ">=16.0.0",
