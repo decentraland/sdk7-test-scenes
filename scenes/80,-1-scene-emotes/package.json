@@ -6,8 +6,8 @@
     "@dcl-sdk/utils": "latest"
   },
   "devDependencies": {
-    "@dcl/sdk": "latest",
-    "@dcl/js-runtime": "7.7.5"
+    "@dcl/js-runtime": "7.7.5",
+    "@dcl/sdk": "^7.8.18"
   },
   "engines": {
     "node": ">=16.0.0",

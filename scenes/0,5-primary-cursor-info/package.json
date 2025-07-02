@@ -11,7 +11,7 @@
   },
   "devDependencies": {
     "@dcl/js-runtime": "7.8.7",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/4095-cursor-position-info/dcl-sdk-7.8.9-15143241122.commit-2131322.tgz"
+    "@dcl/sdk": "^7.8.18"
   },
   "engines": {
     "node": ">=16.0.0",

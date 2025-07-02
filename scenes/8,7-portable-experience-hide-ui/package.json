@@ -20,6 +20,6 @@
     "trailingComma": "none"
   },
   "dependencies": {
-    "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09"
+    "@dcl/sdk": "^7.8.18"
   }
 }
