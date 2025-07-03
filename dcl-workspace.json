@@ -1,7 +1,106 @@
 {
   "folders": [
     {
+      "path": "scenes/9,99-modifier-areas"
+    },
+    {
+      "path": "scenes/80,-4-restricted-actions"
+    },
+    {
+      "path": "scenes/80,-3-ui"
+    },
+    {
+      "path": "scenes/80,-2-main-crdt"
+    },
+    {
+      "path": "scenes/80,-1-scene-emotes"
+    },
+    {
+      "path": "scenes/8,9-portable-experience-disabled"
+    },
+    {
+      "path": "scenes/8,8-portable-experience"
+    },
+    {
+      "path": "scenes/8,7-portable-experience-hide-ui"
+    },
+    {
+      "path": "scenes/77,-5-tweens-moving-platforms"
+    },
+    {
+      "path": "scenes/77,-1-raycast-unit-tests"
+    },
+    {
+      "path": "scenes/76,-10-UiCanvasInformation"
+    },
+    {
+      "path": "scenes/73,-8-animator-tests-shark"
+    },
+    {
+      "path": "scenes/73,-2-dbmonster"
+    },
+    {
+      "path": "scenes/70,-9-sdk7-ui-backgrounds"
+    },
+    {
+      "path": "scenes/6,66-sdk-observables"
+    },
+    {
+      "path": "scenes/54,-55-Testing-3d-models"
+    },
+    {
+      "path": "scenes/52,-52-testing-gallery"
+    },
+    {
+      "path": "scenes/5,90-scene-bounds-check"
+    },
+    {
+      "path": "scenes/4,22-avatar-shape-scene-emotes"
+    },
+    {
+      "path": "scenes/4,21-avatar-shape-emotes"
+    },
+    {
+      "path": "scenes/4,20-avatar-shape"
+    },
+    {
+      "path": "scenes/4,19-avatar-shape-movement"
+    },
+    {
+      "path": "scenes/30,20-pointer-events-feedback"
+    },
+    {
+      "path": "scenes/3,33-gltf-container-update"
+    },
+    {
+      "path": "scenes/2,22-virtual-cameras"
+    },
+    {
+      "path": "scenes/100,102-avatar-attach-test"
+    },
+    {
+      "path": "scenes/100,100-mannakia-test-scene"
+    },
+    {
+      "path": "scenes/10,0-move-to-test"
+    },
+    {
+      "path": "scenes/0,6-ui-zindex-and-opacity"
+    },
+    {
+      "path": "scenes/0,5-primary-cursor-info"
+    },
+    {
       "path": "scenes/0,4-dynamic-lights"
+    },
+    {
+      "path": "scenes/0,3-texture-movement"
+    },
+    {
+      "path": "scenes/0,2-cube-wave-32x32"
+    },
+    {
+      "path": "scenes/0,1-input-modifier"
     },
     {
       "path": "scenes/0,0-cube-spawner"
