@@ -34,5 +34,16 @@ allFolders.forEach(ws => {
         stdio: 'inherit'
       });
     }
+    else {
+      // Install the SDK package and js-runtime version from environment variables
+      const sdkPackage = process.env.DCL_SDK_PACKAGE || '@dcl/sdk@latest';
+      const jsRuntimeVersion = process.env.DCL_JS_RUNTIME_VERSION || 'latest';
+      
+      console.log(`Installing ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion} in ${ws}`);
+      execSync(`npm install --save-dev ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion}`, {
+        cwd: ws,
+        stdio: 'inherit'
+      });
+    }
   }
 });

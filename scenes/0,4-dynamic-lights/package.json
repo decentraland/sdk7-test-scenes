@@ -14,6 +14,9 @@
     "@dcl/js-runtime": "latest",
     "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/dynamic-lights/dcl-sdk-7.7.3-13044313800.commit-e0cb45b.tgz"
   },
+  "overrideDependencies": {
+    "sdk@experimental": true
+  },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=6.0.0"

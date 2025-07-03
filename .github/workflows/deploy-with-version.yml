@@ -52,7 +52,10 @@ jobs:
           result-encoding: string
 
       - name: install sdk version
-        run: npm i ${{inputs.dcl-sdk-package}} @dcl/js-runtime@${{steps.extract_version.outputs.result}} --workspaces
+        run: node .github/workflows/install-sdk-version.js
+        env:
+          DCL_SDK_PACKAGE: ${{ inputs.dcl-sdk-package }}
+          DCL_JS_RUNTIME_VERSION: ${{ steps.extract_version.outputs.result }}
 
       - name: install dependencies
         run: npm i --workspaces
