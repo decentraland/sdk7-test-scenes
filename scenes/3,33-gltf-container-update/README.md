@@ -1,1 +1,0 @@
-~~~~This test scene shows how an already instantiated GltfContainer properties can be updated.

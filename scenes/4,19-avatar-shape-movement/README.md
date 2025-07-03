@@ -1,1 +1,0 @@
-This test scene shows avatar shapes interpolation when moved.~~~~
