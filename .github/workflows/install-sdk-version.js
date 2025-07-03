@@ -21,19 +21,22 @@ workspaces.forEach(entry => {
 });
 
 allFolders.forEach(ws => {
-  const sdkPackage = process.env.DCL_SDK_PACKAGE || '@dcl/sdk@latest';
+  const scenePkgPath = path.join(ws, 'package.json');
   const jsRuntimeVersion = process.env.DCL_JS_RUNTIME_VERSION || 'latest';
- 
-  if(sdkPackage == "experimental")
-  {
+  if (fs.existsSync(scenePkgPath)) {
+    const scenePkg = JSON.parse(fs.readFileSync(scenePkgPath, 'utf8'));
+    if (
+      scenePkg.devDependencies &&
+      scenePkg.devDependencies["@dcl/sdk"] == "experimental"
+    ) {
       console.log(`Installing @dcl/sdk@experimental in ${ws}`);
-
-      execSync('npm i @dcl/sdk@experimental @dcl/js-runtime@${jsRuntimeVersion} --workspaces', {
+      execSync(`npm i @dcl/sdk@experimental @dcl/js-runtime@${jsRuntimeVersion} --workspaces`, {
         cwd: ws,
         stdio: 'inherit'
       });
     }
     else {
+      const sdkPackage = process.env.DCL_SDK_PACKAGE || '@dcl/sdk@latest';
       console.log(`Installing ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion} in ${ws}`);
       execSync(`npm install --save-dev ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion} --workspaces`, {
         cwd: ws,
@@ -41,4 +44,5 @@ allFolders.forEach(ws => {
       });
     }
   }
+}
 );
