@@ -21,29 +21,24 @@ workspaces.forEach(entry => {
 });
 
 allFolders.forEach(ws => {
-  const scenePkgPath = path.join(ws, 'package.json');
-  if (fs.existsSync(scenePkgPath)) {
-    const scenePkg = JSON.parse(fs.readFileSync(scenePkgPath, 'utf8'));
-    if (
-      scenePkg.overrideDependencies &&
-      scenePkg.overrideDependencies["sdk@experimental"]
-    ) {
+  const sdkPackage = process.env.DCL_SDK_PACKAGE || '@dcl/sdk@latest';
+  const jsRuntimeVersion = process.env.DCL_JS_RUNTIME_VERSION || 'latest';
+ 
+  if(sdkPackage == "experimental")
+  {
       console.log(`Installing @dcl/sdk@experimental in ${ws}`);
-      execSync('npm install --save-dev @dcl/sdk@experimental', {
+
+      execSync('npm i @dcl/sdk@experimental @dcl/js-runtime@${jsRuntimeVersion} --workspaces', {
         cwd: ws,
         stdio: 'inherit'
       });
     }
     else {
-      // Install the SDK package and js-runtime version from environment variables
-      const sdkPackage = process.env.DCL_SDK_PACKAGE || '@dcl/sdk@latest';
-      const jsRuntimeVersion = process.env.DCL_JS_RUNTIME_VERSION || 'latest';
-      
       console.log(`Installing ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion} in ${ws}`);
-      execSync(`npm install --save-dev ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion}`, {
+      execSync(`npm install --save-dev ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion} --workspaces`, {
         cwd: ws,
         stdio: 'inherit'
       });
     }
   }
-});
+);
