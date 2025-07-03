@@ -23,10 +23,9 @@ workspaces.forEach(entry => {
 allFolders.forEach(ws => {
   const scenePkgPath = path.join(ws, 'package.json');
   const jsRuntimeVersion = process.env.DCL_JS_RUNTIME_VERSION || 'latest';
-  console.log(`TEMP LOG TO BE REMOVED: scenePkgPath: ${scenePkgPath} jsRuntimeVersion: ${jsRuntimeVersion}`);
+
   if (fs.existsSync(scenePkgPath)) {
     const scenePkg = JSON.parse(fs.readFileSync(scenePkgPath, 'utf8'));
-  console.log(`TEMP LOG TO BE REMOVED: scenePkg: ${JSON.stringify(scenePkg)}`);
 
     if (
       scenePkg.devDependencies &&
