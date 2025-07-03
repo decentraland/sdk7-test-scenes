@@ -33,7 +33,7 @@ allFolders.forEach(ws => {
       scenePkg.devDependencies["@dcl/sdk"] == "experimental"
     ) {
       console.log(`Installing @dcl/sdk@experimental in ${ws}`);
-      execSync(`npm i @dcl/sdk@experimental @dcl/js-runtime@${jsRuntimeVersion} --workspaces`, {
+      execSync(`npm i @dcl/sdk@experimental @dcl/js-runtime@${jsRuntimeVersion}`, {
         cwd: ws,
         stdio: 'inherit'
       });
@@ -41,7 +41,7 @@ allFolders.forEach(ws => {
     else {
       const sdkPackage = process.env.DCL_SDK_PACKAGE || '@dcl/sdk@latest';
       console.log(`Installing ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion} in ${ws}`);
-      execSync(`npm install --save-dev ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion} --workspaces`, {
+      execSync(`npm install --save-dev ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion}`, {
         cwd: ws,
         stdio: 'inherit'
       });
