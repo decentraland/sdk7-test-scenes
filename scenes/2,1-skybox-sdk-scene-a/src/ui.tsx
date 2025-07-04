@@ -63,7 +63,7 @@ function updateSkyboxTime(timeValue: number) {
   console.log(`useGlobalTime: ${useGlobalTime}`)
   if (!useGlobalTime) {
     SkyboxTime.createOrReplace(engine.RootEntity, {
-      fixedTimeOfDay: timeValue,
+      fixedTime: timeValue,
       transitionMode: useForwardTransition ? TransitionMode.TM_FORWARD : TransitionMode.TM_BACKWARD
     })
     console.log(`Updated skybox time to: ${timeValue} (${formatSecondsToTime(timeValue)})`)
