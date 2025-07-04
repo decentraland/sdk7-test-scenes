@@ -38,7 +38,7 @@ allFolders.forEach(ws => {
       });
     }
     else {
-      let hasSdkDefined = scenePkg.devDependencies && scenePkg.devDependencies["@dcl/sdk"] && scenePkg.devDependencies["@dcl/sdk"].contains("experimental");
+      let hasSdkDefined = scenePkg.devDependencies && scenePkg.devDependencies["@dcl/sdk"] && scenePkg.devDependencies["@dcl/sdk"].includes("experimental");
       console.log(`TEMP LOG TO BE REMOVED: Installing ${(hasSdkDefined? scenePkg.devDependencies["@dcl/sdk"] : "error")} in ${ws}`);
       
       let sdkPackage = process.env.DCL_SDK_PACKAGE || '@dcl/sdk@latest';
