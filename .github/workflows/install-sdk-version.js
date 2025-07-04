@@ -38,10 +38,10 @@ allFolders.forEach(ws => {
       });
     }
     else {
-      let hasSdkDefined = scenePkg.devDependencies && scenePkg.devDependencies["@dcl/sdk"];
-      console.log(`TEMP LOG TO BE REMOVED: Installing ${(hasSdkDefined? scenePkg.devDependencies["@dcl/sdk"] : "error")}`);
+      let hasSdkDefined = scenePkg.devDependencies && scenePkg.devDependencies["@dcl/sdk"];// && scenePkg.devDependencies["@dcl/sdk"].contains("experimental");
+      console.log(`TEMP LOG TO BE REMOVED: Installing ${(hasSdkDefined? scenePkg.devDependencies["@dcl/sdk"] : "error")} in ${ws}`);
       
-      const sdkPackage = process.env.DCL_SDK_PACKAGE || '@dcl/sdk@latest';
+      let sdkPackage = process.env.DCL_SDK_PACKAGE || '@dcl/sdk@latest';
       
       if(hasSdkDefined)
         sdkPackage = scenePkg.devDependencies["@dcl/sdk"]
