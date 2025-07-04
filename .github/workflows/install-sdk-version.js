@@ -38,6 +38,7 @@ allFolders.forEach(ws => {
       });
     }
     else {
+      console.log(`TEMP LOG TO BE REMOVED: Installing ${(scenePkg.devDependencies && scenePkg.devDependencies["@dcl/sdk"]? scenePkg.devDependencies["@dcl/sdk"] : "error")}`);
       const sdkPackage = process.env.DCL_SDK_PACKAGE || '@dcl/sdk@latest';
       console.log(`Installing ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion} in ${ws}`);
       execSync(`npm install --save-dev ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion}`, {
