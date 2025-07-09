@@ -10,7 +10,7 @@ jobs:
   push-or-pr:
     uses: ./.github/workflows/deploy-with-version.yml
     with:
-      dcl-sdk-package: '@dcl/sdk@next'
+      dcl-sdk-package: '@dcl/sdk@experimental'
     secrets:
       SDK_TEAM_S3_BUCKET: ${{ secrets.SDK_TEAM_S3_BUCKET }}
       SDK_TEAM_AWS_ID: ${{ secrets.SDK_TEAM_AWS_ID }}
