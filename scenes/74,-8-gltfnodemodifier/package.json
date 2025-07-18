@@ -1,0 +1,14 @@
+{
+  "name": "gltfnodemodifier",
+  "description": "ECS7 ",
+  "version": "1.0.0",
+  "dependencies": {
+    "@dcl/js-runtime": "7.8.21",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/experimental-gltf-modifiers/dcl-sdk-7.8.22-16326264855.commit-dd56445.tgz"
+  },
+  "scripts": {
+    "build": "sdk-commands build --skip-install",
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy"
+  }
+}
