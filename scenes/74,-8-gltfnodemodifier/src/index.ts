@@ -120,7 +120,7 @@ export function main() {
                 shark,
                 {
                     modifiers: [{
-                        path: 'Scene/Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_2',
+                        path: 'Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_2',
                         material: {
                             material: {
                                 $case: 'pbr', pbr: {
@@ -143,7 +143,7 @@ export function main() {
                 shark,
                 {
                     modifiers: [{
-                        path: 'Scene/Scene_root/shark_skeleton/Sphere/Sphere.001',
+                        path: 'Scene_root/shark_skeleton/Sphere/Sphere.001',
                         material: {
                             material: {
                                 $case: 'pbr', pbr: {
@@ -187,7 +187,7 @@ export function main() {
                 shark,
                 {
                     modifiers: [ {
-                        path: 'Scene/Scene_root/shark_skeleton/Sphere/Sphere.001',
+                        path: 'Scene_root/shark_skeleton/Sphere/Sphere.001',
                         material: {
                             material: {
                                 $case: 'pbr', pbr: {
@@ -200,7 +200,7 @@ export function main() {
                         }
                     },
                         {
-                            path: 'Scene/Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_1',
+                            path: 'Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_1',
                             material: {
                                 material: {
                                     $case: 'unlit', unlit: {
@@ -210,7 +210,7 @@ export function main() {
                             }
                         },
                         {
-                            path: 'Scene/Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_2',
+                            path: 'Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_2',
                             material: {
                                 material: {
                                     $case: 'pbr', pbr: {
@@ -220,7 +220,7 @@ export function main() {
                             }
                         },
                         {
-                            path: 'Scene/Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_3',
+                            path: 'Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_3',
                             material: {
                                 material: {
                                     $case: 'pbr', pbr: {
