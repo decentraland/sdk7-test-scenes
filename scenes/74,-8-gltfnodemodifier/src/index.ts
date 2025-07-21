@@ -178,11 +178,6 @@ export function main() {
         Vector3.create(12, 1, 7),
         "Change ALL nodes",
         () => {
-            const randomizedColor1 = Color4.fromHexString(getRandomHexColor())
-            const randomizedColor2 = Color4.fromHexString(getRandomHexColor())
-            const randomizedColor3 = Color4.fromHexString(getRandomHexColor())
-            const randomizedColor4 = Color4.fromHexString(getRandomHexColor())
-
             GltfNodeModifiers.createOrReplace(
                 shark,
                 {
@@ -193,8 +188,7 @@ export function main() {
                                 $case: 'pbr', pbr: {
                                     albedoColor: Color4.White(),
                                     emissiveIntensity: 100,
-                                    // emissiveColor: Color4.Red()
-                                    emissiveColor: randomizedColor1
+                                    emissiveColor: Color4.fromHexString(getRandomHexColor())
                                 }
                             }
                         }
@@ -204,7 +198,7 @@ export function main() {
                             material: {
                                 material: {
                                     $case: 'unlit', unlit: {
-                                        diffuseColor: randomizedColor2,
+                                        diffuseColor: Color4.fromHexString(getRandomHexColor()),
                                     }
                                 }
                             }
@@ -214,7 +208,7 @@ export function main() {
                             material: {
                                 material: {
                                     $case: 'pbr', pbr: {
-                                        albedoColor: randomizedColor3,
+                                        albedoColor: Color4.fromHexString(getRandomHexColor()),
                                     }
                                 }
                             }
@@ -224,7 +218,7 @@ export function main() {
                             material: {
                                 material: {
                                     $case: 'pbr', pbr: {
-                                        albedoColor: randomizedColor4,
+                                        albedoColor: Color4.fromHexString(getRandomHexColor()),
                                     }
                                 }
                             }
@@ -243,6 +237,91 @@ export function main() {
         }
     )
 
+    // --------------------------------------------------
+
+    const benceMeshes = engine.addEntity()
+    Transform.create(benceMeshes, {
+        position: Vector3.create(14.5, 1.5, 4),
+        rotation: Quaternion.fromEulerDegrees(0, 90, 0),
+        scale: Vector3.create(0.25, 0.25, 0.25),
+    })
+    GltfContainer.create(benceMeshes, { src: 'models/mesh_hier.glb' })
+    createClickableCube(
+        Vector3.create(13, 1, 2),
+        "Change BENCE nodes",
+        () => {
+            GltfNodeModifiers.createOrReplace(
+                benceMeshes,
+                {
+                    modifiers: [
+                        {
+                            path: 'cube_bence',
+                            material: {
+                                material: {
+                                    $case: 'pbr', pbr: {
+                                        albedoColor: Color4.fromHexString(getRandomHexColor()),
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            path: 'sphere_bence',
+                            material: {
+                                material: {
+                                    $case: 'pbr', pbr: {
+                                        albedoColor: Color4.fromHexString(getRandomHexColor()),
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            // path: 'sphere_bence/Icosphere.001_1',
+                            path: 'sphere_bence/---', // to fail and see the GLTF hierarchy in the scene console...
+                            material: {
+                                material: {
+                                    $case: 'pbr', pbr: {
+                                        albedoColor: Color4.fromHexString(getRandomHexColor()),
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            path: 'torues_bence',
+                            material: {
+                                material: {
+                                    $case: 'pbr', pbr: {
+                                        albedoColor: Color4.fromHexString(getRandomHexColor()),
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            path: 'torues_bence/torues_mid',
+                            material: {
+                                material: {
+                                    $case: 'pbr', pbr: {
+                                        albedoColor: Color4.fromHexString(getRandomHexColor()),
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            path: 'torues_bence/torues_mid/torues_small',
+                            material: {
+                                material: {
+                                    $case: 'pbr', pbr: {
+                                        albedoColor: Color4.fromHexString(getRandomHexColor()),
+                                    }
+                                }
+                            }
+                        },
+                    ]
+                }
+            )
+        }
+    ) 
+    
+    // --------------------------------------------------
 
     // Primitive Mesh
     const cube = engine.addEntity()
@@ -269,6 +348,31 @@ export function main() {
             }
         }
     )
+
+    // Material update on primitive mesh...
+    /*const cube2 = engine.addEntity()
+    Transform.create(cube2, {
+        position: Vector3.create(13.5, 1, 14.5),
+    })
+    MeshRenderer.setBox(cube2)
+    MeshCollider.setBox(cube2)
+    Material.setPbrMaterial(cube2, {
+        texture: Material.Texture.Video({ videoPlayerEntity: shark })
+    })
+    pointerEventsSystem.onPointerDown(
+        {
+            entity: cube2,
+            opts: {
+                button: InputAction.IA_POINTER,
+                hoverText: "TOGGLE CUBE Material!",
+            }},
+        () => {
+            const randomizedColor = Color4.fromHexString(getRandomHexColor())            
+            Material.setPbrMaterial(cube2, {
+                albedoColor: randomizedColor,
+            })
+        }
+    )*/
 }
 
 function createClickableCube(position: Vector3, hoverText: string, callback: EventSystemCallback) {
