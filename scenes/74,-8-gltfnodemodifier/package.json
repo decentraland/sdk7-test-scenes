@@ -3,8 +3,8 @@
   "description": "ECS7 ",
   "version": "1.0.0",
   "dependencies": {
-    "@dcl/js-runtime": "7.8.21",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/experimental-gltf-modifiers/dcl-sdk-7.8.22-16326264855.commit-dd56445.tgz"
+    "@dcl/js-runtime": "7.8.22-16446000492.commit-c18a4fd",
+    "@dcl/sdk": "^7.8.22-16446000492.commit-c18a4fd"
   },
   "scripts": {
     "build": "sdk-commands build --skip-install",

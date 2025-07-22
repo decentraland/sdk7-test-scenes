@@ -166,7 +166,7 @@ export function main() {
                 {
                     modifiers: [{
                         path: '',
-                        overrideShadows: false
+                        castShadows: false
                     }
                     ]
                 }
