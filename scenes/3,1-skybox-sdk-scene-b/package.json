@@ -1,0 +1,30 @@
+{
+  "name": "skybox-interactable-b",
+  "description": "SDK7 Template scene",
+  "version": "1.0.0",
+  "dependencies": {
+    "dcl-ui-toolkit": "^0.10.0"
+  },
+  "devDependencies": {
+    "@dcl/asset-packs": "latest",
+    "@dcl/js-runtime": "latest",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/experimental/control-day-night-cycle/dcl-sdk-7.8.19-16078956190.commit-f0d29ac.tgz"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  },
+  "scripts": {
+    "build": "sdk-commands build",
+    "deploy": "sdk-commands deploy",
+    "start": "sdk-commands start",
+    "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
+    "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
+  }
+}

@@ -12,7 +12,7 @@
   "devDependencies": {
     "@dcl/asset-packs": "latest",
     "@dcl/js-runtime": "latest",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/dynamic-lights/dcl-sdk-7.7.3-13044313800.commit-e0cb45b.tgz"
+    "@dcl/sdk": "experimental"
   },
   "engines": {
     "node": ">=16.0.0",
@@ -23,8 +23,5 @@
     "singleQuote": true,
     "printWidth": 120,
     "trailingComma": "none"
-  },
-  "dependencies": {
-    "@dcl/protocol": "https://sdk-team-cdn.decentraland.org/@dcl/protocol/branch//dcl-protocol-1.0.0-13043868109.commit-ba5dc44.tgz"
   }
 }
