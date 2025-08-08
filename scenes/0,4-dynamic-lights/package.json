@@ -11,7 +11,7 @@
   },
   "devDependencies": {
     "@dcl/asset-packs": "latest",
-    "@dcl/js-runtime": "latest",
+    "@dcl/js-runtime": "7.9.3-16616194522.commit-20ff207",
     "@dcl/sdk": "experimental"
   },
   "engines": {
