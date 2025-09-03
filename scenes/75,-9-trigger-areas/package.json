@@ -1,0 +1,13 @@
+{
+  "name": "trigger-areas",
+  "description": "ECS7 ",
+  "version": "1.0.0",
+  "dependencies": {
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/trigger-area-components/dcl-sdk-7.10.1-17412673762.commit-72cc7b1.tgz"
+  },
+  "scripts": {
+    "build": "sdk-commands build --skip-install",
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy"
+  }
+}
