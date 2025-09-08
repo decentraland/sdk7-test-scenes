@@ -14,11 +14,18 @@ Provides a simple environment for testing basic functionality during development
 3. npm run start
 
 ## Testing main branch
-- latest sdk version https://decentraland.org/play/?realm=sdk-team-cdn.decentraland.org/ipfs/sdk7-test-scenes-main-latest
-- next sdk version https://decentraland.org/play/?realm=sdk-team-cdn.decentraland.org/ipfs/sdk7-test-scenes-main-next
 
-In a Decentraland explorer execute:
-```bash
-/changerealm https://sdk-team-cdn.decentraland.org/ipfs/sdk7-test-scenes-main-latest
+In a Decentraland Explorer execute:
+
+- latest sdk version
 ```
-
+/goto https://sdk-team-cdn.decentraland.org/ipfs/sdk7-test-scenes-main-latest
+```
+- next sdk version
+```
+/goto https://sdk-team-cdn.decentraland.org/ipfs/sdk7-test-scenes-main-next
+```
+You can use command, to jump into specific location in that realm
+```
+/goto-local 72,-10
+```
