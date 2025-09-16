@@ -1,15 +1,14 @@
-import {
-    engine,
-    Transform,
-    MeshRenderer,
+import { engine,
     Material,
+    MeshRenderer,
+    Transform,
     TriggerArea,
-    TriggerAreaResult,
-    AvatarModifierArea,
-    AvatarModifierType
+    TriggerAreaMeshType,
+    ColliderLayer,
+    triggerAreaEventsSystem
 } from '@dcl/ecs'
 // } from '@dcl/sdk/ecs'
-import { Vector3, Color4, Quaternion } from '@dcl/sdk/math'
+import {Color4, Vector3} from '@dcl/sdk/math'
 
 export function main() {
     const triggerAreaEntity = engine.addEntity()
@@ -21,7 +20,68 @@ export function main() {
     Material.setPbrMaterial(triggerAreaEntity, {
         albedoColor: Color4.create(1, 1, 1, 0.5),
     })
-    TriggerArea.create(triggerAreaEntity)
+
+    TriggerArea.setSphere(triggerAreaEntity, ColliderLayer.CL_PLAYER)
+    // TriggerArea.setBox(triggerAreaEntity, ColliderLayer.CL_PLAYER)
+
+    triggerAreaEventsSystem.onTriggerEnter(triggerAreaEntity,
+        function (result) {
+            console.log(`pravs - DETECTED OnENTER...`)
+            console.log(`result.triggeredEntity: ${result.triggeredEntity}`)
+            console.log(`result.triggeredEntityPosition: (${result.triggeredEntityPosition!.x}, ${result.triggeredEntityPosition!.y}, ${result.triggeredEntityPosition!.z})`)
+            console.log(`result.triggeredEntityRotation: (${result.triggeredEntityRotation!.x}, ${result.triggeredEntityRotation!.y}, ${result.triggeredEntityRotation!.z}, ${result.triggeredEntityRotation!.w})`)
+            console.log(`result.eventType: ${result.eventType}`)
+            console.log(`result.timestamp: ${result.timestamp}`)
+            console.log(`result.trigger.entity: ${result.trigger!.entity}`)
+            console.log(`result.trigger.layer: ${result.trigger!.layer}`)
+            console.log(`result.trigger.position: (${result.trigger!.position!.x}, ${result.trigger!.position!.y}, ${result.trigger!.position!.z})`)
+            console.log(`result.trigger.rotation: (${result.trigger!.rotation!.x}, ${result.trigger!.rotation!.y}, ${result.trigger!.rotation!.z}, ${result.trigger!.rotation!.w})`)
+            console.log(`result.trigger.scale: (${result.trigger!.scale!.x}, ${result.trigger!.scale!.y}, ${result.trigger!.scale!.z})`)
+
+            // console.log(`pravs - TRIGGER IS Entity: ${result.trigger!.entity}`) // WHY IS result.trigger possibly undefined ???
+        })
+
+    triggerAreaEventsSystem.onTriggerStay(triggerAreaEntity,
+        function (result) {
+            console.log(`pravs - DETECTED OnSTAY...`)
+            console.log(`result.triggeredEntity: ${result.triggeredEntity}`)
+            console.log(`result.triggeredEntityPosition: (${result.triggeredEntityPosition!.x}, ${result.triggeredEntityPosition!.y}, ${result.triggeredEntityPosition!.z})`)
+            console.log(`result.triggeredEntityRotation: (${result.triggeredEntityRotation!.x}, ${result.triggeredEntityRotation!.y}, ${result.triggeredEntityRotation!.z}, ${result.triggeredEntityRotation!.w})`)
+            console.log(`result.eventType: ${result.eventType}`)
+            console.log(`result.timestamp: ${result.timestamp}`)
+            console.log(`result.trigger.entity: ${result.trigger!.entity}`)
+            console.log(`result.trigger.layer: ${result.trigger!.layer}`)
+            console.log(`result.trigger.position: (${result.trigger!.position!.x}, ${result.trigger!.position!.y}, ${result.trigger!.position!.z})`)
+            console.log(`result.trigger.rotation: (${result.trigger!.rotation!.x}, ${result.trigger!.rotation!.y}, ${result.trigger!.rotation!.z}, ${result.trigger!.rotation!.w})`)
+            console.log(`result.trigger.scale: (${result.trigger!.scale!.x}, ${result.trigger!.scale!.y}, ${result.trigger!.scale!.z})`)
+        })
+
+    triggerAreaEventsSystem.onTriggerExit(triggerAreaEntity,
+        function (result) {
+            console.log(`pravs - DETECTED OnEXIT...`)
+            console.log(`result.triggeredEntity: ${result.triggeredEntity}`)
+            console.log(`result.triggeredEntityPosition: (${result.triggeredEntityPosition!.x}, ${result.triggeredEntityPosition!.y}, ${result.triggeredEntityPosition!.z})`)
+            console.log(`result.triggeredEntityRotation: (${result.triggeredEntityRotation!.x}, ${result.triggeredEntityRotation!.y}, ${result.triggeredEntityRotation!.z}, ${result.triggeredEntityRotation!.w})`)
+            console.log(`result.eventType: ${result.eventType}`)
+            console.log(`result.timestamp: ${result.timestamp}`)
+            console.log(`result.trigger.entity: ${result.trigger!.entity}`)
+            console.log(`result.trigger.layer: ${result.trigger!.layer}`)
+            console.log(`result.trigger.position: (${result.trigger!.position!.x}, ${result.trigger!.position!.y}, ${result.trigger!.position!.z})`)
+            console.log(`result.trigger.rotation: (${result.trigger!.rotation!.x}, ${result.trigger!.rotation!.y}, ${result.trigger!.rotation!.z}, ${result.trigger!.rotation!.w})`)
+            console.log(`result.trigger.scale: (${result.trigger!.scale!.x}, ${result.trigger!.scale!.y}, ${result.trigger!.scale!.z})`)
+        })
+    
+    
+    
+      
+    //...................
+    
+    
+    
+    /*TriggerArea.create(triggerAreaEntity, {
+        mesh: TriggerAreaMeshType.TAMT_SPHERE,
+        collisionMask: ColliderLayer.CL_PLAYER
+    })
     console.log('pravs - put TriggerArea component on entity...')
     
     function resultSystem() {
@@ -34,7 +94,23 @@ export function main() {
             }
         }
     }
-    engine.addSystem(resultSystem)
+    engine.addSystem(resultSystem)*/
+    
+    //...................
+        
+    
+    
+    /*triggerEventsSystem.OnTriggerEnter(
+        {
+            entity: myTrigger,
+            opts: {
+                layer: Player
+            }
+        },
+        function (otherEntity) {
+            // Do whatever I want
+        }
+    )*/
     
     //...................
     /*const avatarModifierAreaEntity = engine.addEntity()
