@@ -1,0 +1,1 @@
+This test scene shows how to use the new TriggerArea and TriggerAreaResult components with the SDK.

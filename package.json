@@ -19,7 +19,7 @@
   "license": "ISC",
   "dependencies": {
     "@dcl/js-runtime": "^7.5.8-10926653489.commit-aec9f09",
-    "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09",
+    "@dcl/sdk": "experimental",
     "glob": "^10.3.10",
     "syncpack": "^12.3.0"
   },
