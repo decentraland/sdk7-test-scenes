@@ -1,0 +1,14 @@
+{
+  "name": "continuous-tween",
+  "description": "Continuous Tween",
+  "version": "1.0.0",
+  "dependencies": {
+    "@dcl-sdk/utils": "latest",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/tween-continuous-modes/dcl-sdk-7.10.5-18194661967.commit-eeaac7f.tgz"
+  },
+  "scripts": {
+    "build": "sdk-commands build --skip-install",
+    "deploy": "sdk-commands deploy",
+    "start": "sdk-commands start"
+  }
+}
