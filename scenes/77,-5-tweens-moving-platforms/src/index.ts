@@ -1,5 +1,5 @@
-import { EasingFunction, engine, Entity, GltfContainer, Transform, Tween, TweenLoop, TweenSequence } from '@dcl/sdk/ecs'
-import { Vector3 } from '@dcl/sdk/math'
+import { TextureMovementType, TextureWrapMode, Material, InputAction, MeshCollider, pointerEventsSystem, MeshRenderer, EasingFunction, engine, Entity, GltfContainer, Transform, Tween, TweenLoop, TweenSequence } from '@dcl/sdk/ecs'
+import { Vector2, Vector3, Quaternion } from '@dcl/sdk/math'
 import { createCoin } from './modules/coin'
 import * as utils from '@dcl-sdk/utils'
 import { setupUi } from './ui'
@@ -25,14 +25,10 @@ export function main() {
     position: Vector3.create(2, 1.5, 8)
   })
 
-  Tween.create(platform1, {
-    mode: Tween.Mode.Move({
-      start: Vector3.create(2, 1.5, 8),
-      end: Vector3.create(2, 1.5, 10)
-    }),
-    duration: 2000,
-    easingFunction: EasingFunction.EF_LINEAR
-  })
+  Tween.setMove(platform1,
+      Vector3.create(2, 1.5, 8),
+      Vector3.create(2, 1.5, 10),
+2000)
 
   TweenSequence.create(platform1, { sequence: [], loop: TweenLoop.TL_YOYO })
 
@@ -45,14 +41,10 @@ export function main() {
     position: Vector3.create(4, 1.5, 14)
   })
 
-  Tween.create(platform2, {
-    mode: Tween.Mode.Move({
-      start: Vector3.create(4, 1.5, 14),
-      end: Vector3.create(4, 4, 14)
-    }),
-    duration: 2000,
-    easingFunction: EasingFunction.EF_LINEAR
-  })
+  Tween.setMove(platform2,
+    Vector3.create(4, 1.5, 14),
+    Vector3.create(4, 4, 14),
+    2000)
 
   TweenSequence.create(platform2, { sequence: [], loop: TweenLoop.TL_YOYO })
 
@@ -108,15 +100,10 @@ export function main() {
   Transform.create(platform4, {
     position: Vector3.create(6.5, 7, 4)
   })
-
-  Tween.create(platform4, {
-    mode: Tween.Mode.Move({
-      start: Vector3.create(6.5, 7, 4),
-      end: Vector3.create(6.5, 7, 12)
-    }),
-    duration: 2000,
-    easingFunction: EasingFunction.EF_LINEAR
-  })
+    Tween.setMove(platform4, 
+      Vector3.create(6.5, 7, 4),
+      Vector3.create(6.5, 7, 12),
+    2000)
 
   TweenSequence.create(platform4, {
     sequence: [
@@ -147,6 +134,86 @@ export function main() {
     ],
     loop: TweenLoop.TL_RESTART
   })
+
+    //// Continuous Rotation
+    const continuousRotationEntity = engine.addEntity()
+    Transform.create(continuousRotationEntity, {
+        position: Vector3.create(4, 1, 8),
+        rotation: Quaternion.fromEulerDegrees(30, 55, 183)
+    })
+    MeshRenderer.setBox(continuousRotationEntity)
+    MeshCollider.setBox(continuousRotationEntity)
+    pointerEventsSystem.onPointerDown(
+        { entity: continuousRotationEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'toggle' } },
+        () => {
+            const comp = Tween.getMutableOrNull(continuousRotationEntity)
+            if (comp) {
+                comp.playing = !comp.playing
+                return
+            }
+
+            Tween.setRotateContinuous(continuousRotationEntity, Quaternion.fromEulerDegrees(0, 1, 0), 100)
+        }
+    )
+
+    //// Continuous Movement
+    const continuousMovementEntity = engine.addEntity()
+    Transform.create(continuousMovementEntity, {
+        position: Vector3.create(8, 1, 8),
+    })
+    MeshRenderer.setSphere(continuousMovementEntity)
+    MeshCollider.setSphere(continuousMovementEntity)
+    pointerEventsSystem.onPointerDown(
+        { entity: continuousMovementEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'toggle' } },
+        () => {
+            if (Tween.has(continuousMovementEntity)) {
+                return
+            }
+
+            Tween.setMoveContinuous(continuousMovementEntity, Vector3.create(0, 1, 0), 3)
+
+            const resetSystem = () => {
+                const mutableTransform = Transform.getMutable(continuousMovementEntity)
+                if (mutableTransform.position.y > 3) {
+                    Tween.deleteFrom(continuousMovementEntity)
+                    mutableTransform.position.y = 1
+                    engine.removeSystem(resetSystem)
+                }
+            }
+            engine.addSystem(resetSystem)
+        }
+    )
+
+    //// Continuous TextureMove
+    const continuousTexMoveEntity = engine.addEntity()
+    Transform.create(continuousTexMoveEntity, {
+        position: Vector3.create(12, 1, 8),
+        scale: Vector3.create(1, 3, 1)
+    })
+    MeshRenderer.setPlane(continuousTexMoveEntity)
+    MeshCollider.setPlane(continuousTexMoveEntity)
+    Material.setPbrMaterial(continuousTexMoveEntity, {
+        texture: Material.Texture.Common({
+            src: 'assets/tiles.png',
+            wrapMode: TextureWrapMode.TWM_REPEAT,
+            tiling: Vector2.One(),
+            offset: Vector2.Zero()
+        })
+    })
+    pointerEventsSystem.onPointerDown(
+        { entity: continuousTexMoveEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'toggle', showHighlight: false } },
+        () => {
+            if (Tween.has(continuousTexMoveEntity)) {
+                Tween.deleteFrom(continuousTexMoveEntity)
+                return
+            }
+
+            Tween.setTextureMoveContinuous(continuousTexMoveEntity, Vector2.create(0, 1), 0.5)
+        }
+    )
+  
+  
+  
 
   // Instantiate pickable coin
   createCoin('models/starCoin.glb', Vector3.create(9, 12.75, 8), Vector3.create(1.5, 3, 1.5), Vector3.create(0, 1, 0))
