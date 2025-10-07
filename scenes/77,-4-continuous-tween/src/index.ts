@@ -1,38 +1,37 @@
-import { TextureMovementType, TextureWrapMode, Material, InputAction, MeshCollider, pointerEventsSystem, MeshRenderer, EasingFunction, engine, Transform, Tween, TweenLoop, TweenSequence } from '@dcl/sdk/ecs'
+import { GltfContainer, TextureWrapMode, Material, InputAction, MeshCollider, pointerEventsSystem, MeshRenderer, engine, Transform, Tween } from '@dcl/sdk/ecs'
 import { Vector2, Vector3, Quaternion } from '@dcl/sdk/math'
 
 export function main() {
-  //// Continuous Rotation
-  const continuousRotationEntity = engine.addEntity()
-  Transform.create(continuousRotationEntity, {
-    position: Vector3.create(4, 1, 8),
-    // rotation: Quaternion.fromEulerDegrees(30, 55, 183)
-  })
-  MeshRenderer.setBox(continuousRotationEntity)
-  MeshCollider.setBox(continuousRotationEntity)
-  pointerEventsSystem.onPointerDown(
-      { entity: continuousRotationEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'toggle' } },
-      () => {
-        if (Tween.has(continuousRotationEntity)) {
-          Tween.deleteFrom(continuousRotationEntity)
-          return
-        }
-
-        Tween.create(continuousRotationEntity, {
-          mode: {
-            $case: 'rotateContinuous', rotateContinuous: {
-              // direction: Quaternion.fromEulerDegrees(-60, 80, 50),
-              direction: Quaternion.fromEulerDegrees(0, 1, 0),
-              speed: 100
+    //// Continuous Rotation 1
+    const continuousRotationEntity = engine.addEntity()
+    Transform.create(continuousRotationEntity, {
+        position: Vector3.create(4, 1, 8),
+        rotation: Quaternion.fromEulerDegrees(30, 55, 183)
+    })
+    MeshRenderer.setBox(continuousRotationEntity)
+    MeshCollider.setBox(continuousRotationEntity)
+    pointerEventsSystem.onPointerDown(
+        { entity: continuousRotationEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'toggle' } },
+        () => {
+            const comp = Tween.getMutableOrNull(continuousRotationEntity)
+            if (comp) {
+                comp.playing = !comp.playing
+                return
             }
-          },
-          duration: -1,
-          easingFunction: EasingFunction.EF_LINEAR
-        })     
-      }
-  )
-    
-  //// Continuous Movement
+
+            Tween.setRotateContinuous(continuousRotationEntity, Quaternion.fromEulerDegrees(0, 1, 0), 100)
+        }
+    )
+
+    //// Continuous Rotation 2
+    const rotatingCoin = engine.addEntity()
+    Transform.create(rotatingCoin, {
+        position: Vector3.create(8, 1, 4),
+    })
+    GltfContainer.create(rotatingCoin, { src: 'assets/starCoin.glb' })
+    Tween.setRotateContinuous(rotatingCoin, Quaternion.fromEulerDegrees(0, -1, 0), 100)
+
+    //// Continuous Movement
     const continuousMovementEntity = engine.addEntity()
     Transform.create(continuousMovementEntity, {
         position: Vector3.create(8, 1, 8),
@@ -45,18 +44,9 @@ export function main() {
             if (Tween.has(continuousMovementEntity)) {
                 return
             }
-    
-            Tween.create(continuousMovementEntity, {
-                mode: {
-                    $case: 'moveContinuous', moveContinuous: {
-                        direction: Vector3.create(0, 1, 0),
-                        speed: 3
-                    }
-                },
-                duration: -1,
-                easingFunction: EasingFunction.EF_LINEAR
-            })
-            
+
+            Tween.setMoveContinuous(continuousMovementEntity, Vector3.create(0, 1, 0), 3)
+
             const resetSystem = () => {
                 const mutableTransform = Transform.getMutable(continuousMovementEntity)
                 if (mutableTransform.position.y > 3) {
@@ -68,8 +58,8 @@ export function main() {
             engine.addSystem(resetSystem)
         }
     )
-  
-  //// Continuous TextureMove
+
+    //// Continuous TextureMove
     const continuousTexMoveEntity = engine.addEntity()
     Transform.create(continuousTexMoveEntity, {
         position: Vector3.create(12, 1, 8),
@@ -93,17 +83,7 @@ export function main() {
                 return
             }
 
-            Tween.create(continuousTexMoveEntity, {
-                mode: {
-                    $case: 'textureMoveContinuous', textureMoveContinuous: {
-                        direction: Vector2.create(0, 1),
-                        speed: 1,
-                        // movementType: TextureMovementType.TMT_OFFSET
-                    }
-                },
-                duration: -1,
-                easingFunction: EasingFunction.EF_LINEAR
-            })
+            Tween.setTextureMoveContinuous(continuousTexMoveEntity, Vector2.create(0, 1), 0.5)
         }
     )
 }
