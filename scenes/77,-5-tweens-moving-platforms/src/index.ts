@@ -1,4 +1,4 @@
-import { EasingFunction, engine, Entity, GltfContainer, Transform, Tween, TweenLoop, TweenSequence } from '@dcl/sdk/ecs'
+import { EasingFunction, engine, GltfContainer, Transform, Tween, TweenLoop, TweenSequence } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 import { createCoin } from './modules/coin'
 import * as utils from '@dcl-sdk/utils'
@@ -25,14 +25,10 @@ export function main() {
     position: Vector3.create(2, 1.5, 8)
   })
 
-  Tween.create(platform1, {
-    mode: Tween.Mode.Move({
-      start: Vector3.create(2, 1.5, 8),
-      end: Vector3.create(2, 1.5, 10)
-    }),
-    duration: 2000,
-    easingFunction: EasingFunction.EF_LINEAR
-  })
+  Tween.setMove(platform1,
+      Vector3.create(2, 1.5, 8),
+      Vector3.create(2, 1.5, 10),
+2000)
 
   TweenSequence.create(platform1, { sequence: [], loop: TweenLoop.TL_YOYO })
 
@@ -45,14 +41,10 @@ export function main() {
     position: Vector3.create(4, 1.5, 14)
   })
 
-  Tween.create(platform2, {
-    mode: Tween.Mode.Move({
-      start: Vector3.create(4, 1.5, 14),
-      end: Vector3.create(4, 4, 14)
-    }),
-    duration: 2000,
-    easingFunction: EasingFunction.EF_LINEAR
-  })
+  Tween.setMove(platform2,
+    Vector3.create(4, 1.5, 14),
+    Vector3.create(4, 4, 14),
+    2000)
 
   TweenSequence.create(platform2, { sequence: [], loop: TweenLoop.TL_YOYO })
 
@@ -108,15 +100,10 @@ export function main() {
   Transform.create(platform4, {
     position: Vector3.create(6.5, 7, 4)
   })
-
-  Tween.create(platform4, {
-    mode: Tween.Mode.Move({
-      start: Vector3.create(6.5, 7, 4),
-      end: Vector3.create(6.5, 7, 12)
-    }),
-    duration: 2000,
-    easingFunction: EasingFunction.EF_LINEAR
-  })
+    Tween.setMove(platform4, 
+      Vector3.create(6.5, 7, 4),
+      Vector3.create(6.5, 7, 12),
+    2000)
 
   TweenSequence.create(platform4, {
     sequence: [

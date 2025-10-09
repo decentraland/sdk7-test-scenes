@@ -1,6 +1,6 @@
 {
-  "name": "moving-platforms",
-  "description": "Moving Platforms",
+  "name": "continuous-tween",
+  "description": "Continuous Tween",
   "version": "1.0.0",
   "dependencies": {
     "@dcl-sdk/utils": "latest",
