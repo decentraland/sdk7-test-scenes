@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "dependencies": {
     "@dcl-sdk/utils": "latest",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/tween-continuous-modes/dcl-sdk-7.10.6-18323588114.commit-fe71685.tgz"
+    "@dcl/sdk": "^7.10.6-18360453790.commit-2ff55cb",
+    "@dcl/js-runtime": "7.10.6-18360453790.commit-2ff55cb"
   },
   "scripts": {
     "build": "sdk-commands build --skip-install",
