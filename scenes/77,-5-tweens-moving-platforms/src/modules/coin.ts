@@ -8,7 +8,7 @@ import {
     TriggerArea, triggerAreaEventsSystem,
     Tween
 } from '@dcl/sdk/ecs'
-import {Quaternion, Vector3} from '@dcl/sdk/math'
+import { Quaternion, Vector3 } from '@dcl/sdk/math'
 
 /**
  * Sound is a separated from the coin entity so that you can
@@ -18,15 +18,15 @@ const coinPickupSound = engine.addEntity()
 Transform.create(coinPickupSound)
 AudioSource.create(coinPickupSound, { audioClipUrl: 'sounds/coinPickup.mp3' })
 
-export function createCoin(model: string, position: Vector3, size: Vector3, centerOffset?: Vector3): Entity {
+export function createCoin(model: string, position: Vector3): Entity {
     const entity = engine.addEntity()
     GltfContainer.create(entity, { src: model })
     Transform.create(entity, { position })
 
     // Use Tween instead of animation
-    const anim = Animator.create(entity)
     Animator.stopAllAnimations(entity)
     Tween.setRotateContinuous(entity, Quaternion.fromEulerDegrees(0, -1, 0), 100)
+    
     TriggerArea.setSphere(entity)
     triggerAreaEventsSystem.onTriggerEnter(entity, () => {
         Transform.getMutable(coinPickupSound).position = Transform.get(engine.PlayerEntity).position

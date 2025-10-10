@@ -133,7 +133,7 @@ export function main() {
   })
 
   // Instantiate pickable coin
-  createCoin('models/starCoin.glb', Vector3.create(9, 12.75, 8), Vector3.create(1.5, 3, 1.5), Vector3.create(0, 1, 0))
+  createCoin('models/starCoin.glb', Vector3.create(9, 12.75, 8))
 
   // UI with GitHub link
   setupUi()
