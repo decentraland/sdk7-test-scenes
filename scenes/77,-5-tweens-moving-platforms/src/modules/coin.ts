@@ -1,4 +1,4 @@
-import { AudioSource, AvatarAttach, engine, Entity, GltfContainer, Transform } from '@dcl/sdk/ecs'
+import { AudioSource, engine, Entity, GltfContainer, Transform } from '@dcl/sdk/ecs'
 import { Color3, Vector3 } from '@dcl/sdk/math'
 import * as utils from '@dcl-sdk/utils'
 
@@ -30,5 +30,3 @@ export function createCoin(model: string, position: Vector3, size: Vector3, cent
 
   return entity
 }
-
-//utils.triggers.enableDebugDraw(true)
