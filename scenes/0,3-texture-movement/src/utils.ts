@@ -53,17 +53,14 @@ export function createCube(
 
   MeshCollider.setBox(boxEntity)
 
-  Tween.create(boxEntity, {
-    duration: tweenDuration,
-    easingFunction: easingFunction,
-    currentTime: 0,
-    playing: true,
-    mode: Tween.Mode.TextureMove({
-      start: textureMoveStart,
-      end: textureMoveTarget,
-      movementType: movementType
-    })
-  })
+  Tween.setTextureMove(
+      boxEntity,
+      textureMoveStart,
+      textureMoveTarget,
+      tweenDuration,
+      movementType,
+      easingFunction
+  )
 
   TweenSequence.create(boxEntity, { sequence: [], loop: sequenceLoop })
 }
@@ -156,87 +153,76 @@ export function createTilingPlane() {
     })
   })
 
-  Tween.create(plane, {
-    duration: 4000,
-    easingFunction: EasingFunction.EF_LINEAR,
-    currentTime: 0,
-    playing: true,
-    mode: Tween.Mode.TextureMove({
-      start: Vector2.create(1, 1),
-      end: Vector2.create(2, 2),
-      movementType: TextureMovementType.TMT_TILING
-    })
-  })
+  Tween.setTextureMove(
+      plane,
+      Vector2.create(1, 1),
+      Vector2.create(2, 2),
+      4000,
+      TextureMovementType.TMT_TILING
+  )
 
   TweenSequence.create(plane, { sequence: [], loop: TweenLoop.TL_YOYO })
 }
 
 
 export function createVerifyOtherTweens(){
+  const sign = engine.addEntity()
   
-const sign = engine.addEntity()
-
-Transform.create(sign, {
-	position: Vector3.create(8, 4, 10),
-})
-
-TextShape.create(sign, {
-  text: "Rotation, Move and Scale tweens\nto verify all tweens work",
-  fontSize: 8,
-  outlineWidth: .2,
-  outlineColor: Color4.Black()
-})
-
-Billboard.create(sign, {billboardMode: BillboardMode.BM_Y})
-
-const myEntity = engine.addEntity()
-Transform.create(myEntity, {
-	position: Vector3.create(2, 1.2, 10),
-})
-MeshRenderer.setBox(myEntity)
-
-Tween.create(myEntity, {
-	mode: Tween.Mode.Rotate({
-		start: Quaternion.fromEulerDegrees(0, 0, 0),
-		end: Quaternion.fromEulerDegrees(0, 170, 0),
-	}),
-	duration: 700,
-	easingFunction: EasingFunction.EF_LINEAR,
-})
-
-TweenSequence.create(myEntity, { sequence: [], loop: TweenLoop.TL_YOYO })
-
-const myEntity2 = engine.addEntity()
-Transform.create(myEntity2, {
-	position: Vector3.create(6, 1.2, 10),
-})
-MeshRenderer.setBox(myEntity2)
-
-Tween.create(myEntity2, {
-	mode: Tween.Mode.Move({
-		start: Vector3.create(6, 1.2, 10),
-		end: Vector3.create(7, 2, 11),
-	}),
-	duration: 700,
-	easingFunction: EasingFunction.EF_LINEAR,
-})
-
-TweenSequence.create(myEntity2, { sequence: [], loop: TweenLoop.TL_YOYO })
-
-const myEntity3 = engine.addEntity()
-Transform.create(myEntity3, {
-	position: Vector3.create(12, 1.2, 10),
-})
-MeshRenderer.setBox(myEntity3)
-
-Tween.create(myEntity3, {
-	mode: Tween.Mode.Scale({
-		start: Vector3.create(1, 1, 1),
-		end: Vector3.create(2, 3, 4),
-	}),
-	duration: 700,
-	easingFunction: EasingFunction.EF_LINEAR,
-})
-
-TweenSequence.create(myEntity3, { sequence: [], loop: TweenLoop.TL_YOYO })
+  Transform.create(sign, {
+      position: Vector3.create(8, 4, 10),
+  })
+  
+  TextShape.create(sign, {
+    text: "Rotation, Move and Scale tweens\nto verify all tweens work",
+    fontSize: 8,
+    outlineWidth: .2,
+    outlineColor: Color4.Black()
+  })
+  
+  Billboard.create(sign, {billboardMode: BillboardMode.BM_Y})
+  
+  const myEntity = engine.addEntity()
+  Transform.create(myEntity, {
+      position: Vector3.create(2, 1.2, 10),
+  })
+  MeshRenderer.setBox(myEntity)
+  
+  Tween.setRotate(
+      myEntity,
+      Quaternion.fromEulerDegrees(0, 0, 0),
+      Quaternion.fromEulerDegrees(0, 170, 0),
+      700
+  )
+  
+  TweenSequence.create(myEntity, { sequence: [], loop: TweenLoop.TL_YOYO })
+  
+  const myEntity2 = engine.addEntity()
+  Transform.create(myEntity2, {
+      position: Vector3.create(6, 1.2, 10),
+  })
+  MeshRenderer.setBox(myEntity2)
+  
+  Tween.setMove(
+      myEntity2,
+      Vector3.create(6, 1.2, 10),
+      Vector3.create(7, 2, 11),
+      700
+  )
+  
+  TweenSequence.create(myEntity2, { sequence: [], loop: TweenLoop.TL_YOYO })
+  
+  const myEntity3 = engine.addEntity()
+  Transform.create(myEntity3, {
+      position: Vector3.create(12, 1.2, 10),
+  })
+  MeshRenderer.setBox(myEntity3)
+  
+  Tween.setScale(
+      myEntity3,
+      Vector3.create(1, 1, 1),
+      Vector3.create(2, 3, 4),
+      700
+  )
+  
+  TweenSequence.create(myEntity3, { sequence: [], loop: TweenLoop.TL_YOYO })
 }
