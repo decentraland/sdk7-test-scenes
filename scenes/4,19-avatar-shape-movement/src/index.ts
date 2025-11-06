@@ -1,5 +1,5 @@
 import { Vector3, Color4, Quaternion } from '@dcl/sdk/math'
-import { engine, ColliderLayer, AvatarShape, Transform, MeshRenderer, MeshCollider, pointerEventsSystem, InputAction, Entity, Tween, EasingFunction, TweenSequence, TweenLoop } from '@dcl/sdk/ecs'
+import { engine, AvatarAttach, AvatarAnchorPointType, ColliderLayer, AvatarShape, Transform, MeshRenderer, MeshCollider, pointerEventsSystem, InputAction, Entity, Tween, EasingFunction, TweenSequence, TweenLoop } from '@dcl/sdk/ecs'
 
 const positionsToGo = [
     Vector3.create(1, 0.1, 1),
@@ -18,28 +18,7 @@ Transform.create(cubeButton, { position: Vector3.create(7, 1, 4), scale: Vector3
 pointerEventsSystem.onPointerDown(
     { entity: cubeButton, opts: { button: InputAction.IA_POINTER, hoverText: 'spawn avatars', maxDistance: 5 } },
     () => {
-        const avatarEntity1 = engine.addEntity()
-        Transform.create(avatarEntity1, {
-            position: Vector3.create(7, 0.1, 8),
-            rotation: Quaternion.fromEulerDegrees(0, 180, 0)
-        })
-        AvatarShape.create(avatarEntity1, {
-            wearables: [
-                "urn:decentraland:off-chain:base-avatars:eyebrows_00",
-                "urn:decentraland:off-chain:base-avatars:mouth_00",
-                "urn:decentraland:off-chain:base-avatars:eyes_00",
-                "urn:decentraland:off-chain:base-avatars:blue_tshirt",
-                "urn:decentraland:off-chain:base-avatars:brown_pants",
-                "urn:decentraland:off-chain:base-avatars:classic_shoes",
-                "urn:decentraland:off-chain:base-avatars:cornrows"
-            ],
-            id: "dagon-id",
-            name: "Dagon",
-            bodyShape: "urn:decentraland:off-chain:base-avatars:BaseMale",
-            hairColor: { "r": 0.9281997, "g": 0.997558951, "b": 0.715044141 },
-            skinColor: { "r": 0.78, "g": 0.53, "b": 0.26 },
-            emotes: []
-        })
+        const avatarEntity1 = CreateAvatarShape("dagon-id", "Dagon", Vector3.create(7, 0.1, 8))
 
         const ballEntity1 = engine.addEntity()
         MeshRenderer.setSphere(ballEntity1)
@@ -63,29 +42,7 @@ pointerEventsSystem.onPointerDown(
             }
         )
 
-        const avatarEntity2 = engine.addEntity()
-        Transform.create(avatarEntity2, {
-            position: positionsToGo[0],
-            rotation: Quaternion.fromEulerDegrees(0, 180, 0)
-        })
-        AvatarShape.create(avatarEntity2, {
-            wearables: [
-                "urn:decentraland:off-chain:base-avatars:eyebrows_00",
-                "urn:decentraland:off-chain:base-avatars:mouth_00",
-                "urn:decentraland:off-chain:base-avatars:eyes_00",
-                "urn:decentraland:off-chain:base-avatars:blue_tshirt",
-                "urn:decentraland:off-chain:base-avatars:brown_pants",
-                "urn:decentraland:off-chain:base-avatars:classic_shoes",
-                "urn:decentraland:off-chain:base-avatars:cornrows"
-            ],
-            id: "dagon-tween-sequence-id",
-            name: "Dagon (Sequence Tween)",
-            bodyShape: "urn:decentraland:off-chain:base-avatars:BaseMale",
-            hairColor: { "r": 0.1281997, "g": 0.597558951, "b": 0.315044141 },
-            skinColor: { "r": 0.58, "g": 0.33, "b": 0.16 },
-            emotes: []
-        })
-
+        const avatarEntity2 = CreateAvatarShape("dagon-tween-sequence-id", "Dagon (Sequence Tween)", positionsToGo[0])
         Tween.create(avatarEntity2, {
             mode: Tween.Mode.Move({
                 start: positionsToGo[0],
@@ -94,7 +51,6 @@ pointerEventsSystem.onPointerDown(
             duration: 6000,
             easingFunction: EasingFunction.EF_LINEAR,
         })
-
         TweenSequence.create(avatarEntity2, {
             sequence: [
                 {
@@ -125,29 +81,7 @@ pointerEventsSystem.onPointerDown(
             loop: TweenLoop.TL_RESTART,
         })
 
-        const avatarEntity3 = engine.addEntity()
-        Transform.create(avatarEntity3, {
-            position: Vector3.create(3, 0.1, 3),
-            rotation: Quaternion.fromEulerDegrees(0, 180, 0)
-        })
-        AvatarShape.create(avatarEntity3, {
-            wearables: [
-                "urn:decentraland:off-chain:base-avatars:eyebrows_00",
-                "urn:decentraland:off-chain:base-avatars:mouth_00",
-                "urn:decentraland:off-chain:base-avatars:eyes_00",
-                "urn:decentraland:off-chain:base-avatars:blue_tshirt",
-                "urn:decentraland:off-chain:base-avatars:brown_pants",
-                "urn:decentraland:off-chain:base-avatars:classic_shoes",
-                "urn:decentraland:off-chain:base-avatars:cornrows"
-            ],
-            id: "dagon-tween-id",
-            name: "Dagon (Normal Tween)",
-            bodyShape: "urn:decentraland:off-chain:base-avatars:BaseMale",
-            hairColor: { "r": 0.1281997, "g": 0.597558951, "b": 0.315044141 },
-            skinColor: { "r": 0.58, "g": 0.33, "b": 0.16 },
-            emotes: []
-        })
-
+        const avatarEntity3 = CreateAvatarShape("dagon-tween-id", "Dagon (Normal Tween)", Vector3.create(3, 0.1, 3))
         Tween.create(avatarEntity3, {
             mode: Tween.Mode.Move({
                 start: Vector3.create(3, 0.1, 3),
@@ -160,3 +94,40 @@ pointerEventsSystem.onPointerDown(
         engine.removeEntity(cubeButton)
     }
 )
+
+function CreateAvatarShape(avatarId: string, avatarName: string, position: Vector3) : Entity {
+    const avatarEntity1 = engine.addEntity()
+    Transform.create(avatarEntity1, {
+        position: position,
+        rotation: Quaternion.fromEulerDegrees(0, 180, 0)
+    })
+    AvatarShape.create(avatarEntity1, {
+        wearables: [
+            "urn:decentraland:off-chain:base-avatars:eyebrows_00",
+            "urn:decentraland:off-chain:base-avatars:mouth_00",
+            "urn:decentraland:off-chain:base-avatars:eyes_00",
+            "urn:decentraland:off-chain:base-avatars:blue_tshirt",
+            "urn:decentraland:off-chain:base-avatars:brown_pants",
+            "urn:decentraland:off-chain:base-avatars:classic_shoes",
+            "urn:decentraland:off-chain:base-avatars:cornrows"
+        ],
+        id: avatarId,
+        name: avatarName,
+        bodyShape: "urn:decentraland:off-chain:base-avatars:BaseMale",
+        hairColor: { "r": 0.9281997, "g": 0.997558951, "b": 0.715044141 },
+        skinColor: { "r": 0.78, "g": 0.53, "b": 0.26 },
+        emotes: []
+    })
+    const avatarAttach1 = engine.addEntity()
+    Transform.create(avatarAttach1, {
+        position: Vector3.create(4, 2, 4),
+        scale: Vector3.create(0.15,0.15,0.15)
+    })
+    MeshRenderer.setBox(avatarAttach1)
+    AvatarAttach.create(avatarAttach1, {
+        avatarId: avatarId,
+        anchorPointId: AvatarAnchorPointType.AAPT_LEFT_HAND
+    })
+    
+    return avatarEntity1
+}
