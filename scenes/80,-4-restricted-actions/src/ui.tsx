@@ -259,9 +259,10 @@ function RotateInPlaceExample() {
                 variant="primary"
                 uiTransform={{ width: 200, height: 60 }}
                 onMouseDown={() => {
-                    const avatarForward = Vector3.rotate(Vector3.Forward(), Transform.get(engine.PlayerEntity).rotation)
+                    const playerTransform = Transform.get(engine.PlayerEntity)
+                    const avatarForward = Vector3.rotate(Vector3.Forward(), playerTransform.rotation)
                     const leftWardsTarget = Vector3.rotate(avatarForward, Quaternion.fromEulerDegrees(0, -15, 0))
-                    movePlayerTo({ newRelativePosition: Vector3.create(0,0,0) , avatarTarget: { x: leftWardsTarget.x, y: leftWardsTarget.y, z: leftWardsTarget.z } })
+                    movePlayerTo({ newRelativePosition: playerTransform.position , avatarTarget: Vector3.add(playerTransform.position, leftWardsTarget) })
                 }}
             />
         </UiEntity>
@@ -276,9 +277,10 @@ function RotateInPlaceExample() {
                 variant="primary"
                 uiTransform={{ width: 200, height: 60 }}
                 onMouseDown={() => {
-                    const avatarForward = Vector3.rotate(Vector3.Forward(), Transform.get(engine.PlayerEntity).rotation)
+                    const playerTransform = Transform.get(engine.PlayerEntity)
+                    const avatarForward = Vector3.rotate(Vector3.Forward(), playerTransform.rotation)
                     const rightWardsTarget = Vector3.rotate(avatarForward, Quaternion.fromEulerDegrees(0, 15, 0))
-                    movePlayerTo({ newRelativePosition: Vector3.create(0,0,0) , avatarTarget: { x: rightWardsTarget.x, y: rightWardsTarget.y, z: rightWardsTarget.z } })
+                    movePlayerTo({ newRelativePosition: playerTransform.position , avatarTarget: Vector3.add(playerTransform.position, rightWardsTarget) })
                 }}
             />
         </UiEntity>
@@ -288,14 +290,16 @@ function RotateInPlaceExample() {
             }}
         >
             <Button
-                value="Rotate Camera Leftwards"
+                value="Teleport+Rotate+PlaySceneEmote"
                 fontSize={20}
                 variant="primary"
                 uiTransform={{ width: 200, height: 60 }}
                 onMouseDown={() => {
-                    const cameraForward = Vector3.rotate(Vector3.Forward(), Transform.get(engine.CameraEntity).rotation)
-                    const leftWardsTarget = Vector3.rotate(cameraForward, Quaternion.fromEulerDegrees(0, -15, 0))
-                    movePlayerTo({ newRelativePosition: Vector3.create(0,0,0) , cameraTarget: { x: leftWardsTarget.x, y: leftWardsTarget.y, z: leftWardsTarget.z } })
+                    const playerTransform = Transform.get(engine.PlayerEntity)
+                    const avatarForward = Vector3.rotate(Vector3.Forward(), playerTransform.rotation)
+                    const leftWardsTarget = Vector3.rotate(avatarForward, Quaternion.fromEulerDegrees(0, -15, 0))
+                    movePlayerTo({ newRelativePosition: Vector3.create(8, 0, 8) , avatarTarget: Vector3.add(playerTransform.position, leftWardsTarget) })
+                    triggerSceneEmote({ src: 'animations/Crafting_Snowball_emote.glb', loop: false })
                 }}
             />
         </UiEntity>
