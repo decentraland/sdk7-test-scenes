@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "dependencies": {
     "@dcl-sdk/utils": "latest",
-    "@dcl/js-runtime": "7.10.6-18360453790.commit-2ff55cb",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/tween-sequence-explorer-migration/dcl-sdk-7.10.7-18383505119.commit-b2e6ec3.tgz"
+    "@dcl/js-runtime": "7.13.0",
+    "@dcl/sdk": "^7.13.0"
   },
   "scripts": {
     "build": "sdk-commands build --skip-install",
