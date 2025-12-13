@@ -1,0 +1,14 @@
+{
+  "name": "gltf-node-test",
+  "description": "ECS7 ",
+  "version": "1.0.0",
+  "dependencies": {
+    "@dcl/js-runtime": "7.6.5",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/gltf-node/dcl-sdk-7.6.5-11617718168.commit-f15a3f4.tgz"
+  },
+  "scripts": {
+    "build": "sdk-commands build --skip-install",
+    "deploy": "sdk-commands deploy",
+    "start": "sdk-commands start"
+  }
+}
