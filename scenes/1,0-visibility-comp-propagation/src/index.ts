@@ -72,6 +72,5 @@ function ReparentEntity(target: Entity, newParent: Entity) {
   const entityTransform = Transform.getMutable(target)
   entityTransform.parent = newParent
   entityTransform.scale = Vector3.create(0.75, 0.75, 0.75)
-  // entityTransform.position = Vector3.create(0.5, -1, 0)
   entityTransform.position = Vector3.create(0, -1, 0)
 }
