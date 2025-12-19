@@ -10,8 +10,8 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/move-player-to-duration/@dcl/js-runtime/dcl-js-runtime-7.14.1-19969753352.commit-f9f8380.tgz",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/move-player-to-duration/dcl-sdk-7.14.1-19969753352.commit-f9f8380.tgz"
+    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/move-player-to-duration/dcl-sdk-7.15.3-20381335312.commit-72a8fca.tgz",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/move-player-to-duration/dcl-sdk-7.15.3-20381335312.commit-72a8fca.tgz"
   },
   "engines": {
     "node": ">=16.0.0",
