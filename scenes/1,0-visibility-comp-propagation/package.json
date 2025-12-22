@@ -10,8 +10,8 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "7.15.2",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/visibility-component-propagate-to-children/dcl-sdk-7.15.3-20175564629.commit-085568a.tgz"
+    "@dcl/js-runtime": "7.15.3-20441958958.commit-0dc5702",
+    "@dcl/sdk": "^7.15.3-20442422857.commit-bc61a50"
   },
   "engines": {
     "node": ">=16.0.0",
