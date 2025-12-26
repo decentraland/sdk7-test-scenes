@@ -82,6 +82,9 @@
       "path": "scenes/4,19-avatar-shape-movement"
     },
     {
+      "path": "scenes/31,20-pointer-lock-control"
+    },
+    {
       "path": "scenes/30,20-pointer-events-feedback"
     },
     {
