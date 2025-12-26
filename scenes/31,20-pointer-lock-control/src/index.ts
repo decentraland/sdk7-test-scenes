@@ -14,7 +14,7 @@ import {Vector3} from '@dcl/sdk/math';
 let lockPointerTimer = 0;
 
 export async function main() {
-    PointerLock.create(engine.CameraEntity, {isPointerLocked: false});
+    PointerLock.createOrReplace(engine.CameraEntity, {isPointerLocked: false});
     
     PointerLock.onChange(engine.CameraEntity, (pointerLock) => {
         if (!pointerLock) return;
