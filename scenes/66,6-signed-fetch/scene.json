@@ -1,0 +1,25 @@
+{
+	"ecs7": true,
+	"runtimeVersion": "7",
+	"display": {
+		"title": "Signed Fetch Test",
+		"description": "Signed Fetch Test",
+		"navmapThumbnail": "images/scene-thumbnail.png",
+		"favicon": "favicon_asset"
+	},
+	"owner": "",
+	"contact": {
+		"name": "SDK",
+		"email": ""
+	},
+	"main": "bin/index.js",
+	"tags": [],
+	"scene": {
+		"parcels": [
+			"66,6"
+		],
+		"base": "66,6"
+	},
+	"spawnPoints": [ ],
+	"featureToggles": {}
+}
