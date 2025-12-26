@@ -1,0 +1,63 @@
+import { Vector3 } from '@dcl/sdk/math'
+import {ColliderLayer, engine, InputAction, MeshCollider, MeshRenderer, pointerEventsSystem, Transform } from '@dcl/sdk/ecs'
+import { movePlayerTo } from '~system/RestrictedActions'
+
+export function main() {
+  // Spawn target cube
+  const targetPosCube = engine.addEntity()
+  Transform.create(targetPosCube, {
+    position: Vector3.create(10, 0.1, 10),
+    scale: Vector3.create(0.5, 0.5, 0.5)
+  })
+  MeshRenderer.setBox(targetPosCube)
+  MeshCollider.setBox(targetPosCube, ColliderLayer.CL_POINTER)
+
+  function activateCube() {
+    // InputModifier here to BLOCK input if wanted
+
+    movePlayerTo({
+      newRelativePosition: Transform.get(targetPosCube).position,
+      duration: 2
+    }).then((result) => {
+      Transform.getMutable(targetPosCube).position = GetRandomScenePosition()
+      console.log(`movePlayerTo() success ? ${result.success}`)
+      // Remove InputModifier here if used
+    })
+  }
+
+  pointerEventsSystem.onPointerDown({
+    entity: targetPosCube,
+    opts: {
+      hoverText: 'move there',
+      button: InputAction.IA_POINTER,
+      maxDistance: 100
+    }
+  }, activateCube)
+
+  // Obstacle in the middle of the scene to test passing through it
+  const obstacleEntity = engine.addEntity()
+  Transform.create(obstacleEntity, {
+    position: Vector3.create(8, 2, 8),
+    scale: Vector3.create(3, 3, 3)
+  })
+  MeshRenderer.setSphere(obstacleEntity)
+  MeshCollider.setSphere(obstacleEntity, ColliderLayer.CL_PHYSICS)
+
+  // for debugging out-of-scene global action call...
+  // let timer = 7
+  // engine.addSystem((dt) => {
+  //   timer -= dt
+  //   if (timer <= 0) {
+  //     activateCube()
+  //     timer = 7
+  //   }
+  // })
+}
+
+function GetRandomScenePosition() : Vector3 {
+  const y = 0.1
+  let x = 1 + Math.random() * 14
+  let z = 1 + Math.random() * 14
+
+  return Vector3.create(x, y, z)
+}
