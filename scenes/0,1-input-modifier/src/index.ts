@@ -82,6 +82,17 @@ export function toggleModeValues({
   updateInputModifier()
 }
 
+export function removeComponent() {
+  InputModifier.deleteFrom(engine.PlayerEntity)
+
+  disableAll = false
+  disableWalk = false
+  disableJog = false
+  disableRun = false
+  disableJump = false
+  disableEmote = false
+}
+
 function updateInputModifier() {
   TextShape.getMutable(textShape).text = modeName()
 
