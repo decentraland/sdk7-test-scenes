@@ -1,7 +1,7 @@
 {
-  "name": "input-modifier-test-scene",
+  "name": "signed-fetch",
   "version": "1.0.0",
-  "description": "",
+  "description": "Signed Fetch Test",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
@@ -10,9 +10,8 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/asset-packs": "^1.20.0",
-    "@dcl/js-runtime": "7.16.0",
-    "@dcl/sdk": "^7.16.0"
+    "@dcl/sdk": "latest",
+    "@dcl/js-runtime": "7.15.2"
   },
   "engines": {
     "node": ">=16.0.0",

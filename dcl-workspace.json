@@ -55,6 +55,9 @@
       "path": "scenes/70,-9-sdk7-ui-backgrounds"
     },
     {
+      "path": "scenes/66,6-signed-fetch"
+    },
+    {
       "path": "scenes/6,66-sdk-observables"
     },
     {
@@ -77,6 +80,9 @@
     },
     {
       "path": "scenes/4,19-avatar-shape-movement"
+    },
+    {
+      "path": "scenes/31,20-pointer-lock-control"
     },
     {
       "path": "scenes/30,20-pointer-events-feedback"
@@ -110,6 +116,9 @@
     },
     {
       "path": "scenes/10,0-move-to-test"
+    },
+    {
+      "path": "scenes/1,0-visibility-comp-propagation"
     },
     {
       "path": "scenes/0,6-ui-zindex-and-opacity"

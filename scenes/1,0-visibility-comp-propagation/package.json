@@ -1,7 +1,7 @@
 {
-  "name": "input-modifier-test-scene",
+  "name": "visibility-component-propagation",
   "version": "1.0.0",
-  "description": "",
+  "description": "Visibility Component Propagation",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
@@ -10,9 +10,8 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/asset-packs": "^1.20.0",
-    "@dcl/js-runtime": "7.16.0",
-    "@dcl/sdk": "^7.16.0"
+    "@dcl/js-runtime": "7.15.3-20441958958.commit-0dc5702",
+    "@dcl/sdk": "^7.15.3-20442422857.commit-bc61a50"
   },
   "engines": {
     "node": ">=16.0.0",
