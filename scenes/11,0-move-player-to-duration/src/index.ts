@@ -1,5 +1,5 @@
 import { Vector3 } from '@dcl/sdk/math'
-import {ColliderLayer, engine, InputAction, MeshCollider, MeshRenderer, pointerEventsSystem, Transform } from '@dcl/sdk/ecs'
+import {ColliderLayer, engine, InputAction, MeshCollider, MeshRenderer, pointerEventsSystem, Transform, InputModifier } from '@dcl/sdk/ecs'
 import { movePlayerTo } from '~system/RestrictedActions'
 
 export function main() {
@@ -14,14 +14,24 @@ export function main() {
 
   function activateCube() {
     // InputModifier here to BLOCK input if wanted
+    // InputModifier.createOrReplace(engine.PlayerEntity, {
+    //   mode: InputModifier.Mode.Standard({
+    //     disableAll: true,
+    //   }),
+    // })
 
     movePlayerTo({
       newRelativePosition: Transform.get(targetPosCube).position,
       duration: 2
     }).then((result) => {
+      // Randomize position of target cube
       Transform.getMutable(targetPosCube).position = GetRandomScenePosition()
+      
+      // Was movement interrupted? (can be interrupted by movement input, if InputModifier was not used)
       console.log(`movePlayerTo() success ? ${result.success}`)
+      
       // Remove InputModifier here if used
+      // InputModifier.deleteFrom(engine.PlayerEntity)
     })
   }
 
