@@ -3,10 +3,15 @@ import {ColliderLayer, engine, InputAction, MeshCollider, MeshRenderer, pointerE
 import { movePlayerTo } from '~system/RestrictedActions'
 
 export function main() {
+  InstantiateTargetCube(Vector3.create(10, 0.1, 10))
+  InstantiateTargetCube(Vector3.create(14, 0.1, 2))
+}
+
+function InstantiateTargetCube(position: Vector3) {
   // Spawn target cube
   const targetPosCube = engine.addEntity()
   Transform.create(targetPosCube, {
-    position: Vector3.create(10, 0.1, 10),
+    position,
     scale: Vector3.create(0.5, 0.5, 0.5)
   })
   MeshRenderer.setBox(targetPosCube)
@@ -14,11 +19,11 @@ export function main() {
 
   function activateCube() {
     // InputModifier here to BLOCK input if wanted
-    // InputModifier.createOrReplace(engine.PlayerEntity, {
-    //   mode: InputModifier.Mode.Standard({
-    //     disableAll: true,
-    //   }),
-    // })
+    InputModifier.createOrReplace(engine.PlayerEntity, {
+      mode: InputModifier.Mode.Standard({
+        disableAll: true,
+      }),
+    })
 
     movePlayerTo({
       newRelativePosition: Transform.get(targetPosCube).position,
@@ -26,12 +31,19 @@ export function main() {
     }).then((result) => {
       // Randomize position of target cube
       Transform.getMutable(targetPosCube).position = GetRandomScenePosition()
-      
+
       // Was movement interrupted? (can be interrupted by movement input, if InputModifier was not used)
       console.log(`movePlayerTo() success ? ${result.success}`)
-      
+
       // Remove InputModifier here if used
-      // InputModifier.deleteFrom(engine.PlayerEntity)
+      if (result.success) {
+        // InputModifier.deleteFrom(engine.PlayerEntity) // currently bugged in the Explorer
+        InputModifier.createOrReplace(engine.PlayerEntity, {
+          mode: InputModifier.Mode.Standard({
+            disableAll: false,
+          }),
+        })
+      }
     })
   }
 
