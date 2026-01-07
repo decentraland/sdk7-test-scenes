@@ -106,6 +106,9 @@
       "path": "scenes/2,0-skybox-scene-json"
     },
     {
+      "path": "scenes/11,0-move-player-to-duration"
+    },
+    {
       "path": "scenes/100,102-avatar-attach-test"
     },
     {
