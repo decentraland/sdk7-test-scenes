@@ -111,7 +111,7 @@ export function handleAudio(){
   
     
     let cube = createClickableCube(Vector3.add(basePosition, Vector3.create(4, 0, 0)), 'Play/Pause Video', (cube) => {
-      let video = VideoPlayer.create(videoScreen, {
+      let video = VideoPlayer.getOrCreateMutable(videoScreen, {
         src: videoPath,
         playing: false,
         loop: true,
@@ -134,7 +134,7 @@ export function handleAudio(){
     })
   
     let cube = createClickableCube(Vector3.add(basePosition, Vector3.create(6, 0, 0)), 'Spawn GLB', (cube) => {
-      GltfContainer.create(glbModel, {
+      GltfContainer.getOrCreateMutable(glbModel, {
         src: glbPath
       })
     })
