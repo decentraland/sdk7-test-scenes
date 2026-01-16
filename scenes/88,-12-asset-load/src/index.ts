@@ -46,7 +46,12 @@ function assetLoadingStateSystem(dt: number){
   }
   
   const values = Array.from(loadingState.values())
-  const lastValues = values.slice(lastLoadingStateLength - 1, values.length)
+  const lastValues = values.slice(lastLoadingStateLength)
+
+  console.log(`lastLoadingStateLength: ${lastLoadingStateLength} - loadingState.size: ${loadingState.size}`)
+
+  lastLoadingStateLength = loadingState.size
+
 
   lastValues.forEach(value => {
     console.log(`lastValue.currentState: ${value.currentState} - lastValue.asset: ${value.asset}`)
@@ -60,8 +65,6 @@ function assetLoadingStateSystem(dt: number){
       albedoColor: getLoadingColor(value.currentState)
     })
   })
-
-  lastLoadingStateLength = loadingState.size
 }
 
 function getCube(assetPath: string): Entity | null {
