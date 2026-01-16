@@ -15,6 +15,8 @@ let textureCube: Entity
 let videoCube: Entity
 let glbCube: Entity
 
+let lastLoadingStateLength = 0
+
 export function main() {
   assetLoadCube = createClickableCube(Vector3.add(basePosition, Vector3.create(3, 0, -4)), 'Preload Assets', (cube) => {
     AssetLoad.getOrCreateMutable(cube, {assets: [mp3Path, texturePath, videoPath, glbPath]})
@@ -36,20 +38,30 @@ export function main() {
 }
 
 function assetLoadingStateSystem(dt: number){
-  const loadingState = AssetLoadLoadingState.getOrNull(assetLoadCube)
 
-  if (!loadingState){
-    return
+  const loadingState = AssetLoadLoadingState.get(assetLoadCube)
+  
+  if (loadingState.size === 0 || loadingState.size === lastLoadingStateLength){
+      return
   }
+  
+  const values = Array.from(loadingState.values())
+  const lastValues = values.slice(lastLoadingStateLength - 1, values.length)
 
-  const cube = getCube(loadingState.asset)
-  if (!cube){
-    return
-  }
+  lastValues.forEach(value => {
+    console.log(`lastValue.currentState: ${value.currentState} - lastValue.asset: ${value.asset}`)
 
-  Material.setPbrMaterial(cube, {
-    albedoColor: getLoadingColor(loadingState.currentState)
+    const cube = getCube(value.asset)
+    if (!cube){
+      return
+    }
+  
+    Material.setPbrMaterial(cube, {
+      albedoColor: getLoadingColor(value.currentState)
+    })
   })
+
+  lastLoadingStateLength = loadingState.size
 }
 
 function getCube(assetPath: string): Entity | null {
