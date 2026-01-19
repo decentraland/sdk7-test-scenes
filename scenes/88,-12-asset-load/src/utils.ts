@@ -14,12 +14,14 @@ import {
     GltfContainer,
     LoadingState
   } from '@dcl/sdk/ecs'
-import { Vector3, Color4, Quaternion } from "@dcl/sdk/math"
+import { Vector3, Color4 } from "@dcl/sdk/math"
 
 const unloadedColor = Color4.create(1, 1, 1, 1);
 const loadedColor = Color4.create(0, 1, 0, 1);
 const loadingColor = Color4.create(1, 1, 0, 1);
 const loadingErrorColor = Color4.create(1, 0, 0, 1);
+const notFoundColor = Color4.create(0.96, 0.58, 0.26, 1);
+const unknownColor = Color4.create(0.5, 0.5, 0.5, 1);
 
 export const basePosition = Vector3.create(4, 1, 8);
 
@@ -36,8 +38,10 @@ export function getLoadingColor(loadingState: LoadingState): Color4 {
       return loadingColor
     case LoadingState.FINISHED_WITH_ERROR:
       return loadingErrorColor
+    case LoadingState.NOT_FOUND:
+      return notFoundColor
     default:
-      return unloadedColor
+      return unknownColor
   }
 }
 
