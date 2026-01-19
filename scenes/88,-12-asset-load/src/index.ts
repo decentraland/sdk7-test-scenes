@@ -1,12 +1,12 @@
 import {
   AssetLoad,
-  AssetLoadLoadingState,
-  engine,
   Entity,
+  LoadingState,
   Material,
+  assetLoadLoadingStateSystem
 } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
-import { createClickableCube, handleAudio, handleTexture, handleVideo, handleGLB, basePosition, mp3Path, texturePath, videoPath, glbPath, getLoadingColor } from './utils'
+import { createClickableCube, basePosition, mp3Path, texturePath, videoPath, glbPath, getLoadingColor, getAudioCube, getTextureCube, getVideoCube, getGLBCube, errorPath, getErrorCube } from './utils'
 
 
 let assetLoadCube: Entity
@@ -14,56 +14,47 @@ let audioCube: Entity
 let textureCube: Entity
 let videoCube: Entity
 let glbCube: Entity
-
-let lastLoadingStateLength = 0
+let errorCube: Entity
 
 export function main() {
+  let assetLoadCubeClicks = 0
   assetLoadCube = createClickableCube(Vector3.add(basePosition, Vector3.create(3, 0, -4)), 'Preload Assets', (cube) => {
-    AssetLoad.getOrCreateMutable(cube, {assets: [mp3Path, texturePath, videoPath, glbPath]})
+    assetLoadCubeClicks++
+
+    let assetLoad = AssetLoad.getOrCreateMutable(cube, {assets: [mp3Path, texturePath, videoPath, glbPath]})
+
+    // Add error path at 2nd click
+    if (assetLoadCubeClicks === 2) {
+      assetLoad.assets.push(errorPath)
+    }
   })
 
   // Audio Cube
-  audioCube = handleAudio()
+  audioCube = getAudioCube()
 
   // Text Cube
-  textureCube = handleTexture()
+  textureCube = getTextureCube()
 
   // Video Screen
-  videoCube = handleVideo()
+  videoCube = getVideoCube()
 
   // GLB Model
-  glbCube = handleGLB()
+  glbCube = getGLBCube()
 
-  engine.addSystem(assetLoadingStateSystem)
+  // Error Cube (path that does not exist)
+  errorCube = getErrorCube()
+
+  assetLoadLoadingStateSystem.registerAssetLoadLoadingStateEntity(assetLoadCube, handleAssetLoadStateChange)
 }
 
-function assetLoadingStateSystem(dt: number){
-
-  const loadingState = AssetLoadLoadingState.get(assetLoadCube)
-  
-  if (loadingState.size === 0 || loadingState.size === lastLoadingStateLength){
-      return
+function handleAssetLoadStateChange(assetLoadState: { asset: string; currentState: LoadingState }) {
+  const cube = getCube(assetLoadState.asset)
+  if (!cube) {
+    return
   }
-  
-  const values = Array.from(loadingState.values())
-  const lastValues = values.slice(lastLoadingStateLength)
 
-  console.log(`lastLoadingStateLength: ${lastLoadingStateLength} - loadingState.size: ${loadingState.size}`)
-
-  lastLoadingStateLength = loadingState.size
-
-
-  lastValues.forEach(value => {
-    console.log(`lastValue.currentState: ${value.currentState} - lastValue.asset: ${value.asset}`)
-
-    const cube = getCube(value.asset)
-    if (!cube){
-      return
-    }
-  
-    Material.setPbrMaterial(cube, {
-      albedoColor: getLoadingColor(value.currentState)
-    })
+  Material.setPbrMaterial(cube, {
+    albedoColor: getLoadingColor(assetLoadState.currentState)
   })
 }
 
@@ -77,6 +68,8 @@ function getCube(assetPath: string): Entity | null {
       return videoCube
     case glbPath:
       return glbCube
+    case errorPath:
+      return errorCube
   }
   return null
 }

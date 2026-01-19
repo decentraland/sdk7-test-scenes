@@ -29,6 +29,7 @@ export const mp3Path = 'assets/scene/Audio/Vexento.mp3';
 export const texturePath = 'assets/scene/Images/Logo.png';
 export const videoPath = 'assets/scene/Video/video-example.mp4';
 export const glbPath = 'assets/scene/Models/chicken.glb';
+export const errorPath = 'i-do-not-exist.glb';
 
 export function getLoadingColor(loadingState: LoadingState): Color4 {
   switch (loadingState) {
@@ -66,7 +67,7 @@ export function createClickableCube(
   return cube
 }
 
-export function handleAudio(){
+export function getAudioCube(){
     let cube = createClickableCube(basePosition, 'Play/Pause MP3', (cube) => {
       let audioSource = AudioSource.getOrCreateMutable(cube, {
         audioClipUrl: mp3Path,
@@ -78,7 +79,7 @@ export function handleAudio(){
     return cube
   }
   
-  export function handleTexture(){
+  export function getTextureCube(){
     const textureCube = engine.addEntity()
     Transform.create(textureCube, {
       position: Vector3.add(basePosition, Vector3.create(2, 1, 2)),
@@ -99,7 +100,7 @@ export function handleAudio(){
     return cube
   }
   
-  export function handleVideo(){
+  export function getVideoCube(){
     const videoScreen = engine.addEntity()
     Transform.create(videoScreen, {
       position: Vector3.add(basePosition, Vector3.create(4, 1, 2)),
@@ -129,7 +130,7 @@ export function handleAudio(){
     return cube
   }
   
-  export function handleGLB(){
+  export function getGLBCube(){
     const glbModel = engine.addEntity()
     
     Transform.create(glbModel, {
@@ -140,6 +141,23 @@ export function handleAudio(){
     let cube = createClickableCube(Vector3.add(basePosition, Vector3.create(6, 0, 0)), 'Spawn GLB', (cube) => {
       GltfContainer.getOrCreateMutable(glbModel, {
         src: glbPath
+      })
+    })
+  
+    return cube
+  }
+
+  export function getErrorCube(){
+    const glbModel = engine.addEntity()
+    
+    Transform.create(glbModel, {
+      position: Vector3.add(basePosition, Vector3.create(8, 1, 2)),
+      scale: Vector3.create(1, 1, 1)
+    })
+  
+    let cube = createClickableCube(Vector3.add(basePosition, Vector3.create(8, 0, 0)), 'Spawn Error GLB', (cube) => {
+      GltfContainer.getOrCreateMutable(glbModel, {
+        src: errorPath
       })
     })
   

@@ -14,7 +14,7 @@
   "devDependencies": {
     "@dcl/asset-packs": "latest",
     "@dcl/js-runtime": "7.14.0",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/asset-pre-load/dcl-sdk-7.17.1-21062416573.commit-463493e.tgz",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/asset-pre-load/dcl-sdk-7.17.1-21141535690.commit-dcc143e.tgz",
     "@eslint/js": "^9.39.1",
     "eslint": "^9.39.1",
     "typescript": "^5.9.3",
