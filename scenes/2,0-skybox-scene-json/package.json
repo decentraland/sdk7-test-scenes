@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "devDependencies": {
     "@dcl/asset-packs": "latest",
-    "@dcl/js-runtime": "latest",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/experimental/control-day-night-cycle/dcl-sdk-7.8.15-15880074149.commit-50e01e0.tgz"
+    "@dcl/js-runtime": "7.19.0",
+    "@dcl/sdk": "^7.19.0"
   },
   "engines": {
     "node": ">=16.0.0",
