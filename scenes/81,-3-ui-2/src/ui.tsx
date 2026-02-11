@@ -139,7 +139,7 @@ function Panel() {
                         }}
                         fontSize={16 * uiScaleFactor}
                         font="sans-serif"
-                        textAlign="top-left"
+                        textAlign="middle-left"
                         disabled={dropdown1Disabled}
                     />
                     <Button
@@ -172,7 +172,7 @@ function Panel() {
                         placeholderColor={Color4.Gray()}
                         fontSize={16 * uiScaleFactor}
                         font="sans-serif"
-                        textAlign="top-left"
+                        textAlign="middle-left"
                         disabled={input1Disabled}
                         uiTransform={{
                             width: 310 * uiScaleFactor,
@@ -419,7 +419,7 @@ function Panel() {
                         }}
                         fontSize={16 * uiScaleFactor}
                         font="monospace"
-                        textAlign="bottom-right"
+                        textAlign="middle-right"
                         disabled={dropdown3Disabled}
                     />
                     <Button
@@ -452,7 +452,7 @@ function Panel() {
                         placeholderColor={Color4.Gray()}
                         fontSize={16 * uiScaleFactor}
                         font="monospace"
-                        textAlign="bottom-right"
+                        textAlign="middle-right"
                         disabled={input3Disabled}
                         uiTransform={{
                             width: 310 * uiScaleFactor,
