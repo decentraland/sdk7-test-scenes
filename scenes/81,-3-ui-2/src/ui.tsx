@@ -6,21 +6,34 @@ const PANEL_WIDTH = 400
 
 // State management for each panel
 let selectedOption1 = 0
-let selectedOption1b = 0
-let inputValue1 = ''
-let inputValue1b = ''
+let inputText1 = ''       // captures typed text via onChange (not bound to value)
+let clearInput1 = false
 
-let selectedOption2 = 0
-let selectedOption2b = 0
-let inputValue2 = ''
-let inputValue2b = ''
+let selectedOption2 = 2
+let inputText2 = ''       // captures typed text via onChange (not bound to value)
+let clearInput2 = false
 
-let selectedOption3 = 0
-let selectedOption3b = 0
-let inputValue3 = ''
-let inputValue3b = ''
+let selectedOption3 = 4
+let inputText3 = ''       // captures typed text via onChange (not bound to value)
+let clearInput3 = false
 
-const dropdownOptions = ['Option 1', 'Option 2', 'Option 3', 'Option 4']
+// Disabled states for all interactive components
+// Panel 1
+let dropdown1Disabled = false
+let input1Disabled = false
+let button1Disabled = false
+
+// Panel 2
+let dropdown2Disabled = false
+let input2Disabled = false
+let button2Disabled = false
+
+// Panel 3
+let dropdown3Disabled = false
+let input3Disabled = false
+let button3Disabled = false
+
+const dropdownOptions = ['Option 1', 'Option 2', 'Option 3', 'Option 4', 'Option 5', 'Option 6']
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(Panel, { virtualWidth: 1920, virtualHeight: 1080 })
@@ -28,6 +41,17 @@ export function setupUi() {
 
 // Single Panel component containing all three panels
 function Panel() {
+  // Handle clearing for inputs: value is ' ' while clearing, '' otherwise (uncontrolled)
+    // const input1Value = clearInput1Frames ? '' : undefined
+  const input1Value = clearInput1 ? ' ' : ''
+  if (clearInput1) clearInput1 = !clearInput1
+
+  const input2Value = clearInput2 ? ' ' : ''
+  if (clearInput2) clearInput2 = !clearInput2
+
+  const input3Value = clearInput3 ? ' ' : ''
+  if (clearInput3) clearInput3 = !clearInput3
+
   return (
     <UiEntity
       uiTransform={{
@@ -66,31 +90,45 @@ function Panel() {
         <UiEntity
           uiTransform={{
             width: '90%',
-            height: 50,
-            margin: { bottom: 20 }
+            height: 40,
+            margin: { bottom: 20 },
+            flexDirection: 'row',
+            alignItems: 'center'
           }}
         >
-          <Label
-            value="Select Option:"
-            fontSize={16}
-            font="sans-serif"
-            uiTransform={{ 
-              width: '100%', 
-              height: 25,
-              margin: { bottom: 5 }
-            }}
-          />
-          <Dropdown
-            options={dropdownOptions}
-            selectedIndex={selectedOption1}
-            onChange={(index) => { selectedOption1 = index }}
+          <UiEntity
             uiTransform={{
-              width: '100%',
-              height: 40
+              width: 310,
+              height: 40,
+              flexDirection: 'column'
             }}
-            fontSize={16}
-            font="sans-serif"
-            textAlign="top-left"
+          >
+            <Dropdown
+              options={dropdownOptions}
+              selectedIndex={selectedOption1}
+              onChange={(index) => { selectedOption1 = index }}
+              uiTransform={{
+                width: '100%',
+                  // borderRadius: 10,
+                height: 40
+              }}
+              fontSize={16}
+              font="sans-serif"
+              textAlign="top-left"
+              disabled={dropdown1Disabled}
+            />
+          </UiEntity>
+          <Button
+            value="X"
+            variant="secondary"
+            fontSize={14}
+            uiTransform={{
+              width: 40,
+              height: 40,
+                // borderRadius: 10,
+              margin: { left: 10 }
+            }}
+            onMouseDown={() => { dropdown1Disabled = !dropdown1Disabled }}
           />
         </UiEntity>
 
@@ -98,135 +136,91 @@ function Panel() {
         <UiEntity
           uiTransform={{
             width: '90%',
-            height: 80,
-            margin: { bottom: 20 }
+            height: 40,
+            margin: { bottom: 20 },
+            flexDirection: 'row',
+            alignItems: 'center'
           }}
         >
-          <Label
-            value="Enter Text:"
-            fontSize={16}
-            font="sans-serif"
-            uiTransform={{ 
-              width: '100%', 
-              height: 25,
-              margin: { bottom: 5 }
-            }}
-          />
-          <Input
-            value={inputValue1}
-            onChange={(value) => { inputValue1 = value }}
-            placeholder="Type something..."
-            placeholderColor={Color4.Gray()}
-            fontSize={16}
-            font="sans-serif"
-            textAlign="top-left"
+          <UiEntity
             uiTransform={{
-              width: '100%',
-              height: 40
+              width: 310,
+              height: 40,
+              flexDirection: 'column'
             }}
+          >
+            <Input
+              value={input1Value}
+              onChange={(value) => { inputText1 = value }}
+              placeholder="Type something..."
+              placeholderColor={Color4.Gray()}
+              fontSize={16}
+              font="sans-serif"
+              textAlign="top-left"
+              disabled={input1Disabled}
+              uiTransform={{
+                width: '100%',
+                  // borderRadius: 10,
+                height: 40
+              }}
+            />
+          </UiEntity>
+          <Button
+            value="X"
+            variant="secondary"
+            fontSize={14}
+            uiTransform={{
+              width: 40,
+              height: 40,
+                // borderRadius: 10,
+              margin: { left: 10 }
+            }}
+            onMouseDown={() => { input1Disabled = !input1Disabled }}
           />
         </UiEntity>
 
-        <Button
-          value="Submit"
-          variant="primary"
-          fontSize={18}
-          font="sans-serif"
-          uiTransform={{ 
-            width: 200, 
-            height: 50,
-            margin: { bottom: 20 }
-          }}
-          onMouseDown={() => {
-            console.log('Panel 1 - Button clicked!')
-            console.log('Selected option:', dropdownOptions[selectedOption1])
-            console.log('Input value:', inputValue1)
-            inputValue1 = ''
-          }}
-        />
-
-        {/* Dropdown 2 */}
         <UiEntity
           uiTransform={{
             width: '90%',
             height: 50,
-            margin: { bottom: 20 }
+            margin: { bottom: 20 },
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
-          <Label
-            value="Select Option 2:"
-            fontSize={16}
+          <Button
+            value="Submit"
+            variant="primary"
+            fontSize={18}
             font="sans-serif"
+            disabled={button1Disabled}
             uiTransform={{ 
-              width: '100%', 
-              height: 25,
-              margin: { bottom: 5 }
+              width: 200,
+                // borderRadius: 10,
+              height: 50
+            }}
+            onMouseDown={() => {
+              console.log('Panel 1 - Button clicked!')
+              console.log('Selected option:', dropdownOptions[selectedOption1])
+              console.log('Input value:', inputText1)
+              inputText1 = ''
+                clearInput1 = true
             }}
           />
-          <Dropdown
-            options={dropdownOptions}
-            selectedIndex={selectedOption1b}
-            onChange={(index) => { selectedOption1b = index }}
+          <Button
+            value="X"
+            variant="secondary"
+            fontSize={14}
             uiTransform={{
-              width: '100%',
-              height: 40
+              width: 40,
+              height: 40,
+                // borderRadius: 10,
+              margin: { left: 10 }
             }}
-            fontSize={16}
-            font="sans-serif"
-            textAlign="top-left"
+            onMouseDown={() => { button1Disabled = !button1Disabled }}
           />
         </UiEntity>
-
-        {/* Input Field 2 */}
-        <UiEntity
-          uiTransform={{
-            width: '90%',
-            height: 80,
-            margin: { bottom: 20 }
-          }}
-        >
-          <Label
-            value="Enter Text 2:"
-            fontSize={16}
-            font="sans-serif"
-            uiTransform={{ 
-              width: '100%', 
-              height: 25,
-              margin: { bottom: 5 }
-            }}
-          />
-          <Input
-            value={inputValue1b}
-            onChange={(value) => { inputValue1b = value }}
-            placeholder="Type something..."
-            placeholderColor={Color4.Gray()}
-            fontSize={16}
-            font="sans-serif"
-            textAlign="top-left"
-            uiTransform={{
-              width: '100%',
-              height: 40
-            }}
-          />
-        </UiEntity>
-
-        <Button
-          value="Submit 2"
-          variant="primary"
-          fontSize={18}
-          font="sans-serif"
-          uiTransform={{ 
-            width: 200, 
-            height: 50,
-            margin: { bottom: 20 }
-          }}
-          onMouseDown={() => {
-            console.log('Panel 1 - Button 2 clicked!')
-            console.log('Selected option 2:', dropdownOptions[selectedOption1b])
-            console.log('Input value 2:', inputValue1b)
-            inputValue1b = ''
-          }}
-        />
       </UiEntity>
 
       {/* Panel 2 - Center */}
@@ -258,31 +252,43 @@ function Panel() {
             <UiEntity
                 uiTransform={{
                     width: '90%',
-                    height: 50,
-                    margin: { bottom: 20 }
+                    height: 40,
+                    margin: { bottom: 20 },
+                    flexDirection: 'row',
+                    alignItems: 'center'
                 }}
             >
-                <Label
-                    value="Select Option:"
-                    fontSize={16}
-                    font="serif"
+                <UiEntity
                     uiTransform={{
-                        width: '100%',
-                        height: 25,
-                        margin: { bottom: 5 }
+                        width: 310,
+                        height: 40,
+                        flexDirection: 'column'
                     }}
-                />
-                <Dropdown
-                    options={dropdownOptions}
-                    selectedIndex={selectedOption2}
-                    onChange={(index) => { selectedOption2 = index }}
+                >
+                    <Dropdown
+                        options={dropdownOptions}
+                        selectedIndex={selectedOption2}
+                        onChange={(index) => { selectedOption2 = index }}
+                        uiTransform={{
+                            width: '100%',
+                            height: 40
+                        }}
+                        fontSize={16}
+                        font="serif"
+                        textAlign="middle-center"
+                        disabled={dropdown2Disabled}
+                    />
+                </UiEntity>
+                <Button
+                    value="X"
+                    variant="secondary"
+                    fontSize={14}
                     uiTransform={{
-                        width: '100%',
-                        height: 40
+                        width: 40,
+                        height: 40,
+                        margin: { left: 10 }
                     }}
-                    fontSize={16}
-                    font="serif"
-                    textAlign="middle-center"
+                    onMouseDown={() => { dropdown2Disabled = !dropdown2Disabled }}
                 />
             </UiEntity>
 
@@ -290,135 +296,87 @@ function Panel() {
             <UiEntity
                 uiTransform={{
                     width: '90%',
-                    height: 80,
-                    margin: { bottom: 20 }
+                    height: 40,
+                    margin: { bottom: 20 },
+                    flexDirection: 'row',
+                    alignItems: 'center'
                 }}
             >
-                <Label
-                    value="Enter Text:"
-                    fontSize={16}
-                    font="serif"
+                <UiEntity
                     uiTransform={{
-                        width: '100%',
-                        height: 25,
-                        margin: { bottom: 5 }
+                        width: 310,
+                        height: 40,
+                        flexDirection: 'column'
                     }}
-                />
-                <Input
-                    value={inputValue2}
-                    onChange={(value) => { inputValue2 = value }}
-                    placeholder="Type something..."
-                    placeholderColor={Color4.Gray()}
-                    fontSize={16}
-                    font="serif"
-                    textAlign="middle-center"
+                >
+                    <Input
+                        value={input2Value}
+                        onChange={(value) => { inputText2 = value }}
+                        placeholder="Type something..."
+                        placeholderColor={Color4.Gray()}
+                        fontSize={16}
+                        font="serif"
+                        textAlign="middle-center"
+                        disabled={input2Disabled}
+                        uiTransform={{
+                            width: '100%',
+                            height: 40
+                        }}
+                    />
+                </UiEntity>
+                <Button
+                    value="X"
+                    variant="secondary"
+                    fontSize={14}
                     uiTransform={{
-                        width: '100%',
-                        height: 40
+                        width: 40,
+                        height: 40,
+                        margin: { left: 10 }
                     }}
+                    onMouseDown={() => { input2Disabled = !input2Disabled }}
                 />
             </UiEntity>
 
-            <Button
-                value="Submit"
-                variant="primary"
-                fontSize={18}
-                font="serif"
-                uiTransform={{
-                    width: 200,
-                    height: 50,
-                    margin: { bottom: 20 }
-                }}
-                onMouseDown={() => {
-                    console.log('Panel 2 - Button clicked!')
-                    console.log('Selected option:', dropdownOptions[selectedOption2])
-                    console.log('Input value:', inputValue2)
-                    inputValue2 = ''
-                }}
-            />
-
-            {/* Dropdown 2 */}
             <UiEntity
                 uiTransform={{
                     width: '90%',
                     height: 50,
-                    margin: { bottom: 20 }
+                    margin: { bottom: 20 },
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                 }}
             >
-                <Label
-                    value="Select Option 2:"
-                    fontSize={16}
+                <Button
+                    value="Submit"
+                    variant="primary"
+                    fontSize={18}
                     font="serif"
+                    disabled={button2Disabled}
                     uiTransform={{
-                        width: '100%',
-                        height: 25,
-                        margin: { bottom: 5 }
+                        width: 200,
+                        height: 50
+                    }}
+                    onMouseDown={() => {
+                        console.log('Panel 2 - Button clicked!')
+                        console.log('Selected option:', dropdownOptions[selectedOption2])
+                        console.log('Input value:', inputText2)
+                        inputText2 = ''
+                        clearInput2 = true
                     }}
                 />
-                <Dropdown
-                    options={dropdownOptions}
-                    selectedIndex={selectedOption2b}
-                    onChange={(index) => { selectedOption2b = index }}
+                <Button
+                    value="X"
+                    variant="secondary"
+                    fontSize={14}
                     uiTransform={{
-                        width: '100%',
-                        height: 40
+                        width: 40,
+                        height: 40,
+                        margin: { left: 10 }
                     }}
-                    fontSize={16}
-                    font="serif"
-                    textAlign="middle-center"
-                />
-            </UiEntity>
-
-            {/* Input Field 2 */}
-            <UiEntity
-                uiTransform={{
-                    width: '90%',
-                    height: 80,
-                    margin: { bottom: 20 }
-                }}
-            >
-                <Label
-                    value="Enter Text 2:"
-                    fontSize={16}
-                    font="serif"
-                    uiTransform={{
-                        width: '100%',
-                        height: 25,
-                        margin: { bottom: 5 }
-                    }}
-                />
-                <Input
-                    value={inputValue2b}
-                    onChange={(value) => { inputValue2b = value }}
-                    placeholder="Type something..."
-                    placeholderColor={Color4.Gray()}
-                    fontSize={16}
-                    font="serif"
-                    textAlign="middle-center"
-                    uiTransform={{
-                        width: '100%',
-                        height: 40
-                    }}
+                    onMouseDown={() => { button2Disabled = !button2Disabled }}
                 />
             </UiEntity>
-
-            <Button
-                value="Submit 2"
-                variant="primary"
-                fontSize={18}
-                font="serif"
-                uiTransform={{
-                    width: 200,
-                    height: 50,
-                    margin: { bottom: 20 }
-                }}
-                onMouseDown={() => {
-                    console.log('Panel 2 - Button 2 clicked!')
-                    console.log('Selected option 2:', dropdownOptions[selectedOption2b])
-                    console.log('Input value 2:', inputValue2b)
-                    inputValue2b = ''
-                }}
-            />
         </UiEntity>
 
       {/* Panel 3 - Right */}
@@ -450,31 +408,43 @@ function Panel() {
             <UiEntity
                 uiTransform={{
                     width: '90%',
-                    height: 50,
-                    margin: { bottom: 20 }
+                    height: 40,
+                    margin: { bottom: 20 },
+                    flexDirection: 'row',
+                    alignItems: 'center'
                 }}
             >
-                <Label
-                    value="Select Option:"
-                    fontSize={16}
-                    font="monospace"
+                <UiEntity
                     uiTransform={{
-                        width: '100%',
-                        height: 25,
-                        margin: { bottom: 5 }
+                        width: 310,
+                        height: 40,
+                        flexDirection: 'column'
                     }}
-                />
-                <Dropdown
-                    options={dropdownOptions}
-                    selectedIndex={selectedOption3}
-                    onChange={(index) => { selectedOption3 = index }}
+                >
+                    <Dropdown
+                        options={dropdownOptions}
+                        selectedIndex={selectedOption3}
+                        onChange={(index) => { selectedOption3 = index }}
+                        uiTransform={{
+                            width: '100%',
+                            height: 40
+                        }}
+                        fontSize={16}
+                        font="monospace"
+                        textAlign="bottom-right"
+                        disabled={dropdown3Disabled}
+                    />
+                </UiEntity>
+                <Button
+                    value="X"
+                    variant="secondary"
+                    fontSize={14}
                     uiTransform={{
-                        width: '100%',
-                        height: 40
+                        width: 40,
+                        height: 40,
+                        margin: { left: 10 }
                     }}
-                    fontSize={16}
-                    font="monospace"
-                    textAlign="bottom-right"
+                    onMouseDown={() => { dropdown3Disabled = !dropdown3Disabled }}
                 />
             </UiEntity>
 
@@ -482,135 +452,87 @@ function Panel() {
             <UiEntity
                 uiTransform={{
                     width: '90%',
-                    height: 80,
-                    margin: { bottom: 20 }
+                    height: 40,
+                    margin: { bottom: 20 },
+                    flexDirection: 'row',
+                    alignItems: 'center'
                 }}
             >
-                <Label
-                    value="Enter Text:"
-                    fontSize={16}
-                    font="monospace"
+                <UiEntity
                     uiTransform={{
-                        width: '100%',
-                        height: 25,
-                        margin: { bottom: 5 }
+                        width: 310,
+                        height: 40,
+                        flexDirection: 'column'
                     }}
-                />
-                <Input
-                    value={inputValue3}
-                    onChange={(value) => { inputValue3 = value }}
-                    placeholder="Type something..."
-                    placeholderColor={Color4.Gray()}
-                    fontSize={16}
-                    font="monospace"
-                    textAlign="bottom-right"
+                >
+                    <Input
+                        value={input3Value}
+                        onChange={(value) => { inputText3 = value }}
+                        placeholder="Type something..."
+                        placeholderColor={Color4.Gray()}
+                        fontSize={16}
+                        font="monospace"
+                        textAlign="bottom-right"
+                        disabled={input3Disabled}
+                        uiTransform={{
+                            width: '100%',
+                            height: 40
+                        }}
+                    />
+                </UiEntity>
+                <Button
+                    value="X"
+                    variant="secondary"
+                    fontSize={14}
                     uiTransform={{
-                        width: '100%',
-                        height: 40
+                        width: 40,
+                        height: 40,
+                        margin: { left: 10 }
                     }}
+                    onMouseDown={() => { input3Disabled = !input3Disabled }}
                 />
             </UiEntity>
 
-            <Button
-                value="Submit"
-                variant="primary"
-                fontSize={18}
-                font="monospace"
-                uiTransform={{
-                    width: 200,
-                    height: 50,
-                    margin: { bottom: 20 }
-                }}
-                onMouseDown={() => {
-                    console.log('Panel 3 - Button clicked!')
-                    console.log('Selected option:', dropdownOptions[selectedOption3])
-                    console.log('Input value:', inputValue3)
-                    inputValue3 = ''
-                }}
-            />
-
-            {/* Dropdown 2 */}
             <UiEntity
                 uiTransform={{
                     width: '90%',
                     height: 50,
-                    margin: { bottom: 20 }
+                    margin: { bottom: 20 },
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                 }}
             >
-                <Label
-                    value="Select Option 2:"
-                    fontSize={16}
+                <Button
+                    value="Submit"
+                    variant="primary"
+                    fontSize={18}
                     font="monospace"
+                    disabled={button3Disabled}
                     uiTransform={{
-                        width: '100%',
-                        height: 25,
-                        margin: { bottom: 5 }
+                        width: 200,
+                        height: 50
+                    }}
+                    onMouseDown={() => {
+                        console.log('Panel 3 - Button clicked!')
+                        console.log('Selected option:', dropdownOptions[selectedOption3])
+                        console.log('Input value:', inputText3)
+                        inputText3 = ''
+                        clearInput3 = true
                     }}
                 />
-                <Dropdown
-                    options={dropdownOptions}
-                    selectedIndex={selectedOption3b}
-                    onChange={(index) => { selectedOption3b = index }}
+                <Button
+                    value="X"
+                    variant="secondary"
+                    fontSize={14}
                     uiTransform={{
-                        width: '100%',
-                        height: 40
+                        width: 40,
+                        height: 40,
+                        margin: { left: 10 }
                     }}
-                    fontSize={16}
-                    font="monospace"
-                    textAlign="bottom-right"
-                />
-            </UiEntity>
-
-            {/* Input Field 2 */}
-            <UiEntity
-                uiTransform={{
-                    width: '90%',
-                    height: 80,
-                    margin: { bottom: 20 }
-                }}
-            >
-                <Label
-                    value="Enter Text 2:"
-                    fontSize={16}
-                    font="monospace"
-                    uiTransform={{
-                        width: '100%',
-                        height: 25,
-                        margin: { bottom: 5 }
-                    }}
-                />
-                <Input
-                    value={inputValue3b}
-                    onChange={(value) => { inputValue3b = value }}
-                    placeholder="Type something..."
-                    placeholderColor={Color4.Gray()}
-                    fontSize={16}
-                    font="monospace"
-                    textAlign="bottom-right"
-                    uiTransform={{
-                        width: '100%',
-                        height: 40
-                    }}
+                    onMouseDown={() => { button3Disabled = !button3Disabled }}
                 />
             </UiEntity>
-
-            <Button
-                value="Submit 2"
-                variant="primary"
-                fontSize={18}
-                font="monospace"
-                uiTransform={{
-                    width: 200,
-                    height: 50,
-                    margin: { bottom: 20 }
-                }}
-                onMouseDown={() => {
-                    console.log('Panel 3 - Button 2 clicked!')
-                    console.log('Selected option 2:', dropdownOptions[selectedOption3b])
-                    console.log('Input value 2:', inputValue3b)
-                    inputValue3b = ''
-                }}
-            />
         </UiEntity>
     </UiEntity>
   )
