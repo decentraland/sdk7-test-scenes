@@ -10,8 +10,8 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "7.20.0",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/sdk-ui-improve-default-styles/dcl-sdk-7.20.1-21908073768.commit-ece50f6.tgz"
+    "@dcl/js-runtime": "7.20.1-21908073768.commit-ece50f6",
+    "@dcl/sdk": "^7.20.1-21908073768.commit-ece50f6"
   },
   "engines": {
     "node": ">=16.0.0",
