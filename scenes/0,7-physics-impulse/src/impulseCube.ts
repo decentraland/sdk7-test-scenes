@@ -18,7 +18,7 @@ let timestamp = 0
  * A cube with a trigger area around it.
  * When the player enters the trigger, a single impulse at 45° is applied.
  */
-export function setupImpulseCube(position: Vector3) {
+export function setupImpulseCube(position: Vector3, magnitude: number = 20) {
     // Visible cube
     const cube = engine.addEntity()
     Transform.create(cube, {
@@ -53,8 +53,7 @@ export function setupImpulseCube(position: Vector3) {
         fontSize: 2
     })
 
-    // Impulse direction: 45° up, magnitude 20
-    const magnitude = 20
+    // Impulse direction: 45° up
     const angle = Math.PI / 4
     const direction = Vector3.create(
         0,

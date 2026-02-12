@@ -12,9 +12,11 @@ import {
     Tween,
     TweenSequence,
     TweenLoop,
-    EasingFunction
+    EasingFunction,
+    Entity
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
+import { rotateVectorByQuaternion } from './utils'
 
 // Bridge layout
 const BRIDGE_X = 24
@@ -24,19 +26,17 @@ const BRIDGE_Y = 1
 const BRIDGE_WIDTH = 1.5
 
 // Pendulum geometry
-const ARM_LENGTH = 2.5         // rod length from pivot to hammer center
-const HAMMER_SIZE = 1.2        // hammer cube side
-const HAMMER_DEPTH = 0.5       // hammer thickness along bridge (Z)
+const ARM_LENGTH = 4           // longer rod
+const HAMMER_SIZE = 1.2
+const HAMMER_DEPTH = 0.5
 const ROD_THICKNESS = 0.1
-const TRIGGER_THICKNESS = 0.2  // thin trigger on each side of hammer
-const SWING_ANGLE = 40         // degrees each way from vertical
-const PUSH_STRENGTH = 18
+const TRIGGER_THICKNESS = 0.2
+const SWING_ANGLE = 60         // wider swing
 
 /**
  * A narrow bridge with rotating hammer pendulums that knock the player off.
- * Each hammer is a rod+cube assembly rotating around a pivot above the bridge.
  */
-export function setupPendulumBridge() {
+export function setupPendulumBridge(pushStrength: number = 18) {
     const bridgeLength = BRIDGE_Z_END - BRIDGE_Z_START
 
     // --- Bridge platform ---
@@ -68,23 +68,21 @@ export function setupPendulumBridge() {
     for (let i = 0; i < pendulumCount; i++) {
         const z = BRIDGE_Z_START + spacing * (i + 1)
         const startsLeft = i % 2 === 0
-        const duration = 2000 + i * 300  // slightly different speeds
-        createPendulum(z, startsLeft, duration)
+        const duration = 2000 + i * 300
+        createPendulum(z, startsLeft, duration, pushStrength)
     }
 }
 
-function createPendulum(z: number, startsLeft: boolean, duration: number) {
+function createPendulum(z: number, startsLeft: boolean, duration: number, pushStrength: number) {
     let leftTimestamp = 0
     let rightTimestamp = 0
 
-    // Pivot above the bridge — this is the rotation center
     const pivotY = BRIDGE_Y + ARM_LENGTH + HAMMER_SIZE / 2 + 0.3
     const pivot = engine.addEntity()
     Transform.create(pivot, {
         position: Vector3.create(BRIDGE_X, pivotY, z)
     })
 
-    // Swing rotation around Z axis (pendulum plane is XY, perpendicular to bridge)
     const startAngle = startsLeft ? -SWING_ANGLE : SWING_ANGLE
     const endAngle = startsLeft ? SWING_ANGLE : -SWING_ANGLE
 
@@ -98,7 +96,7 @@ function createPendulum(z: number, startsLeft: boolean, duration: number) {
     })
     TweenSequence.create(pivot, { sequence: [], loop: TweenLoop.TL_YOYO })
 
-    // --- Rod (thin stick from pivot down to hammer) ---
+    // --- Rod ---
     const rod = engine.addEntity()
     Transform.create(rod, {
         parent: pivot,
@@ -110,7 +108,7 @@ function createPendulum(z: number, startsLeft: boolean, duration: number) {
         albedoColor: Color4.create(0.5, 0.5, 0.5, 1)
     })
 
-    // --- Hammer cube (at the bottom of the rod) ---
+    // --- Hammer ---
     const hammer = engine.addEntity()
     Transform.create(hammer, {
         parent: pivot,
@@ -123,46 +121,57 @@ function createPendulum(z: number, startsLeft: boolean, duration: number) {
         albedoColor: Color4.create(0.9, 0.15, 0.15, 0.9)
     })
 
-    // --- Trigger on left side (X-) of hammer → pushes LEFT ---
+    // --- Trigger faces ---
     const triggerOffsetX = HAMMER_SIZE / 2 + TRIGGER_THICKNESS / 2
-    const leftTrigger = engine.addEntity()
-    Transform.create(leftTrigger, {
+
+    // Local normals for each face (in pivot-local space)
+    const LEFT_LOCAL_NORMAL = Vector3.create(-1, 0, 0)
+    const RIGHT_LOCAL_NORMAL = Vector3.create(1, 0, 0)
+
+    createTriggerFace(pivot, Vector3.create(-triggerOffsetX, -ARM_LENGTH, 0), LEFT_LOCAL_NORMAL,
+        Color4.create(0.3, 0.3, 1, 0.4), pushStrength, () => leftTimestamp++)
+
+    createTriggerFace(pivot, Vector3.create(triggerOffsetX, -ARM_LENGTH, 0), RIGHT_LOCAL_NORMAL,
+        Color4.create(1, 0.3, 0.3, 0.4), pushStrength, () => rightTimestamp++)
+}
+
+/**
+ * Creates a thin trigger on a face of the hammer.
+ * On contact, reads the pivot's current rotation and applies impulse
+ * along the world-space normal of that face.
+ */
+function createTriggerFace(
+    pivot: Entity,
+    localPosition: Vector3,
+    localNormal: Vector3,
+    color: Color4,
+    pushStrength: number,
+    incrementTimestamp: () => number
+) {
+    const trigger = engine.addEntity()
+    Transform.create(trigger, {
         parent: pivot,
-        position: Vector3.create(-triggerOffsetX, -ARM_LENGTH, 0),
+        position: localPosition,
         scale: Vector3.create(TRIGGER_THICKNESS, HAMMER_SIZE, HAMMER_DEPTH)
     })
-    MeshRenderer.setBox(leftTrigger)
-    Material.setPbrMaterial(leftTrigger, {
-        albedoColor: Color4.create(0.3, 0.3, 1, 0.4)
-    })
-    TriggerArea.setBox(leftTrigger, ColliderLayer.CL_PLAYER)
+    MeshRenderer.setBox(trigger)
+    Material.setPbrMaterial(trigger, { albedoColor: color })
+    TriggerArea.setBox(trigger, ColliderLayer.CL_PLAYER)
 
-    triggerAreaEventsSystem.onTriggerEnter(leftTrigger, () => {
-        leftTimestamp++
+    triggerAreaEventsSystem.onTriggerEnter(trigger, () => {
+        const ts = incrementTimestamp()
+
+        // Read the pivot's current rotation and transform the local normal to world space
+        const pivotRotation = Transform.get(pivot).rotation
+        const worldNormal = rotateVectorByQuaternion(localNormal, pivotRotation)
+
         PhysicsImpulse.createOrReplace(engine.PlayerEntity, {
-            direction: Vector3.create(-PUSH_STRENGTH, 3, 0),
-            timestamp: leftTimestamp
-        })
-    })
-
-    // --- Trigger on right side (X+) of hammer → pushes RIGHT ---
-    const rightTrigger = engine.addEntity()
-    Transform.create(rightTrigger, {
-        parent: pivot,
-        position: Vector3.create(triggerOffsetX, -ARM_LENGTH, 0),
-        scale: Vector3.create(TRIGGER_THICKNESS, HAMMER_SIZE, HAMMER_DEPTH)
-    })
-    MeshRenderer.setBox(rightTrigger)
-    Material.setPbrMaterial(rightTrigger, {
-        albedoColor: Color4.create(1, 0.3, 0.3, 0.4)
-    })
-    TriggerArea.setBox(rightTrigger, ColliderLayer.CL_PLAYER)
-
-    triggerAreaEventsSystem.onTriggerEnter(rightTrigger, () => {
-        rightTimestamp++
-        PhysicsImpulse.createOrReplace(engine.PlayerEntity, {
-            direction: Vector3.create(PUSH_STRENGTH, 3, 0),
-            timestamp: rightTimestamp
+            direction: Vector3.create(
+                worldNormal.x * pushStrength,
+                worldNormal.y * pushStrength,
+                worldNormal.z * pushStrength
+            ),
+            timestamp: ts
         })
     })
 }
