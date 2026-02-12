@@ -8,7 +8,7 @@ export function main() {
     // === Parcel 0,7 (X: 0–16) ===
 
     // 1. Cube in the center — single impulse at 45° on enter
-    setupImpulseCube(Vector3.create(8, 0, 8), 20)
+    setupImpulseCube(Vector3.create(8, 0, 8), 10)
 
     // 2. Horizontal tunnel on the right — continuous forward impulse (Z+)
     setupImpulseTunnel({
@@ -22,12 +22,12 @@ export function main() {
     setupImpulseTunnel({
         position: Vector3.create(3, 5, 8),
         size: Vector3.create(2, 10, 2),
-        impulseDirection: Vector3.create(0, 5, 0),
+        impulseDirection: Vector3.create(0, 1, 0),
         label: 'Vertical tunnel\n(continuous upward)'
     })
 
     // 4. Repulsion cube — 4 side triggers + 1 top jump-pad, push along face normals
-    setupRepulsionCube(Vector3.create(8, 0, 13), 15)
+    setupRepulsionCube(Vector3.create(8, 0, 13), 10)
 
     // === Parcel 1,7 (X: 16–32) ===
 
