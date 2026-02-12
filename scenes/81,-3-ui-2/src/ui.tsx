@@ -124,7 +124,7 @@ function Panel() {
                     uiTransform={{
                         width: '90%',
                         height: 40 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        margin: { bottom: 10 * uiScaleFactor },
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}
@@ -152,6 +152,44 @@ function Panel() {
                             margin: { left: 10 * uiScaleFactor }
                         }}
                         onMouseDown={() => { dropdown1Disabled = !dropdown1Disabled }}
+                    />
+                </UiEntity>
+
+                {/* Dropdown Arrow Controls */}
+                <UiEntity
+                    uiTransform={{
+                        width: '90%',
+                        height: 30 * uiScaleFactor,
+                        margin: { bottom: 20 * uiScaleFactor },
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <Button
+                        value="<"
+                        variant="primary"
+                        fontSize={16 * uiScaleFactor}
+                        uiTransform={{
+                            width: 50 * uiScaleFactor,
+                            height: 30 * uiScaleFactor,
+                            margin: { right: 10 * uiScaleFactor }
+                        }}
+                        onMouseDown={() => {
+                            selectedOption1 = selectedOption1 > 0 ? selectedOption1 - 1 : dropdownOptions.length - 1
+                        }}
+                    />
+                    <Button
+                        value=">"
+                        variant="primary"
+                        fontSize={16 * uiScaleFactor}
+                        uiTransform={{
+                            width: 50 * uiScaleFactor,
+                            height: 30 * uiScaleFactor
+                        }}
+                        onMouseDown={() => {
+                            selectedOption1 = selectedOption1 < dropdownOptions.length - 1 ? selectedOption1 + 1 : 0
+                        }}
                     />
                 </UiEntity>
 
@@ -264,7 +302,7 @@ function Panel() {
                     uiTransform={{
                         width: '90%',
                         height: 40 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        margin: { bottom: 10 * uiScaleFactor },
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}
@@ -292,6 +330,44 @@ function Panel() {
                             margin: { left: 10 * uiScaleFactor }
                         }}
                         onMouseDown={() => { dropdown2Disabled = !dropdown2Disabled }}
+                    />
+                </UiEntity>
+
+                {/* Dropdown Arrow Controls */}
+                <UiEntity
+                    uiTransform={{
+                        width: '90%',
+                        height: 30 * uiScaleFactor,
+                        margin: { bottom: 20 * uiScaleFactor },
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <Button
+                        value="<"
+                        variant="primary"
+                        fontSize={16 * uiScaleFactor}
+                        uiTransform={{
+                            width: 50 * uiScaleFactor,
+                            height: 30 * uiScaleFactor,
+                            margin: { right: 10 * uiScaleFactor }
+                        }}
+                        onMouseDown={() => {
+                            selectedOption2 = selectedOption2 > 0 ? selectedOption2 - 1 : dropdownOptions.length - 1
+                        }}
+                    />
+                    <Button
+                        value=">"
+                        variant="primary"
+                        fontSize={16 * uiScaleFactor}
+                        uiTransform={{
+                            width: 50 * uiScaleFactor,
+                            height: 30 * uiScaleFactor
+                        }}
+                        onMouseDown={() => {
+                            selectedOption2 = selectedOption2 < dropdownOptions.length - 1 ? selectedOption2 + 1 : 0
+                        }}
                     />
                 </UiEntity>
 
@@ -404,7 +480,7 @@ function Panel() {
                     uiTransform={{
                         width: '90%',
                         height: 40 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        margin: { bottom: 10 * uiScaleFactor },
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}
@@ -432,6 +508,44 @@ function Panel() {
                             margin: { left: 10 * uiScaleFactor }
                         }}
                         onMouseDown={() => { dropdown3Disabled = !dropdown3Disabled }}
+                    />
+                </UiEntity>
+
+                {/* Dropdown Arrow Controls */}
+                <UiEntity
+                    uiTransform={{
+                        width: '90%',
+                        height: 30 * uiScaleFactor,
+                        margin: { bottom: 20 * uiScaleFactor },
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <Button
+                        value="<"
+                        variant="primary"
+                        fontSize={16 * uiScaleFactor}
+                        uiTransform={{
+                            width: 50 * uiScaleFactor,
+                            height: 30 * uiScaleFactor,
+                            margin: { right: 10 * uiScaleFactor }
+                        }}
+                        onMouseDown={() => {
+                            selectedOption3 = selectedOption3 > 0 ? selectedOption3 - 1 : dropdownOptions.length - 1
+                        }}
+                    />
+                    <Button
+                        value=">"
+                        variant="primary"
+                        fontSize={16 * uiScaleFactor}
+                        uiTransform={{
+                            width: 50 * uiScaleFactor,
+                            height: 30 * uiScaleFactor
+                        }}
+                        onMouseDown={() => {
+                            selectedOption3 = selectedOption3 < dropdownOptions.length - 1 ? selectedOption3 + 1 : 0
+                        }}
                     />
                 </UiEntity>
 
@@ -544,7 +658,7 @@ function Panel() {
                     uiTransform={{
                         width: '90%',
                         height: 40 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        margin: { bottom: 10 * uiScaleFactor },
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}
@@ -578,6 +692,44 @@ function Panel() {
                             margin: { left: 10 * uiScaleFactor }
                         }}
                         onMouseDown={() => { dropdown4Disabled = !dropdown4Disabled }}
+                    />
+                </UiEntity>
+
+                {/* Dropdown Arrow Controls */}
+                <UiEntity
+                    uiTransform={{
+                        width: '90%',
+                        height: 30 * uiScaleFactor,
+                        margin: { bottom: 20 * uiScaleFactor },
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <Button
+                        value="<"
+                        variant="primary"
+                        fontSize={16 * uiScaleFactor}
+                        uiTransform={{
+                            width: 50 * uiScaleFactor,
+                            height: 30 * uiScaleFactor,
+                            margin: { right: 10 * uiScaleFactor }
+                        }}
+                        onMouseDown={() => {
+                            selectedOption4 = selectedOption4 > 0 ? selectedOption4 - 1 : dropdownOptions.length - 1
+                        }}
+                    />
+                    <Button
+                        value=">"
+                        variant="primary"
+                        fontSize={16 * uiScaleFactor}
+                        uiTransform={{
+                            width: 50 * uiScaleFactor,
+                            height: 30 * uiScaleFactor
+                        }}
+                        onMouseDown={() => {
+                            selectedOption4 = selectedOption4 < dropdownOptions.length - 1 ? selectedOption4 + 1 : 0
+                        }}
                     />
                 </UiEntity>
 
