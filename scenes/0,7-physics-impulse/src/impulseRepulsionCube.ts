@@ -13,8 +13,6 @@ import {
 import { Color4, Vector3 } from '@dcl/sdk/math'
 
 const TRIGGER_THICKNESS = 0.3
-const IMPULSE_STRENGTH = 15
-
 interface FaceTrigger {
     offset: Vector3
     size: Vector3
@@ -27,7 +25,7 @@ interface FaceTrigger {
  * Each trigger pushes the player away along the face normal.
  * 4 horizontal sides + 1 top (jump-pad).
  */
-export function setupRepulsionCube(position: Vector3, cubeSize: number = 2) {
+export function setupRepulsionCube(position: Vector3, impulseStrength: number = 15, cubeSize: number = 2) {
     const half = cubeSize / 2
     const triggerOffset = half + TRIGGER_THICKNESS / 2
 
@@ -60,31 +58,31 @@ export function setupRepulsionCube(position: Vector3, cubeSize: number = 2) {
         {   // X+ (right)
             offset: Vector3.create(triggerOffset, 0, 0),
             size: Vector3.create(TRIGGER_THICKNESS, cubeSize, cubeSize),
-            direction: Vector3.create(IMPULSE_STRENGTH, 0, 0),
+            direction: Vector3.create(impulseStrength, 0, 0),
             color: Color4.create(1, 0.3, 0.3, 0.4)
         },
         {   // X- (left)
             offset: Vector3.create(-triggerOffset, 0, 0),
             size: Vector3.create(TRIGGER_THICKNESS, cubeSize, cubeSize),
-            direction: Vector3.create(-IMPULSE_STRENGTH, 0, 0),
+            direction: Vector3.create(-impulseStrength, 0, 0),
             color: Color4.create(0.3, 0.3, 1, 0.4)
         },
         {   // Z+ (forward)
             offset: Vector3.create(0, 0, triggerOffset),
             size: Vector3.create(cubeSize, cubeSize, TRIGGER_THICKNESS),
-            direction: Vector3.create(0, 0, IMPULSE_STRENGTH),
+            direction: Vector3.create(0, 0, impulseStrength),
             color: Color4.create(1, 0.3, 0.3, 0.4)
         },
         {   // Z- (back)
             offset: Vector3.create(0, 0, -triggerOffset),
             size: Vector3.create(cubeSize, cubeSize, TRIGGER_THICKNESS),
-            direction: Vector3.create(0, 0, -IMPULSE_STRENGTH),
+            direction: Vector3.create(0, 0, -impulseStrength),
             color: Color4.create(0.3, 0.3, 1, 0.4)
         },
         {   // Y+ (top — jump pad)
             offset: Vector3.create(0, triggerOffset, 0),
             size: Vector3.create(cubeSize, TRIGGER_THICKNESS, cubeSize),
-            direction: Vector3.create(0, IMPULSE_STRENGTH, 0),
+            direction: Vector3.create(0, impulseStrength, 0),
             color: Color4.create(0.3, 1, 0.3, 0.4)
         }
     ]
