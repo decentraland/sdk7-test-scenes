@@ -92,7 +92,7 @@ function createPendulum(z: number, startsLeft: boolean, duration: number, pushSt
             end: Quaternion.fromEulerDegrees(0, 0, endAngle)
         }),
         duration,
-        easingFunction: EasingFunction.EF_EASEINOUTSINE
+        easingFunction: EasingFunction.EF_EASEOUTSINE
     })
     TweenSequence.create(pivot, { sequence: [], loop: TweenLoop.TL_YOYO })
 
