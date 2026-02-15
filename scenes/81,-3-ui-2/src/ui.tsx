@@ -1,9 +1,8 @@
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Button, Dropdown, Input, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { uiScaleFactor } from "./index";
 
 // Panel configuration
-const PANEL_WIDTH = 400 * uiScaleFactor
+const PANEL_WIDTH = 400
 
 // State management for each panel
 let selectedOption1 = 0
@@ -21,6 +20,7 @@ let clearInput3 = false
 let selectedOption4 = 1
 let inputText4 = ''       // captures typed text via onChange (not bound to value)
 let clearInput4 = false
+
 
 // Disabled states for all interactive components
 // Panel 1
@@ -47,17 +47,17 @@ let button4Disabled = false
 const panel4Styles = {
     dropdown: {
         borderColor: Color4.create(0.5, 0.9, 0.6, 1),
-        borderRadius: 3 * uiScaleFactor,
+        borderRadius: 3,
         backgroundColor: Color4.create(0.7, 0.75, 0.8, 0.9)
     },
     input: {
         borderColor: Color4.create(1, 0.6, 0.75, 1),
-        borderRadius: 15 * uiScaleFactor,
+        borderRadius: 15,
         backgroundColor: Color4.create(0.85, 0.7, 0.8, 0.9)
     },
     button: {
         borderColor: Color4.create(0.6, 0.75, 1, 1),
-        borderRadius: 25 * uiScaleFactor,
+        borderRadius: 25,
         backgroundColor: Color4.create(0.75, 0.8, 0.85, 0.9)
     }
 }
@@ -65,25 +65,18 @@ const panel4Styles = {
 const dropdownOptions = ['Option 1', 'Option 2', 'Option 3', 'Option 4', 'Option 5', 'Option 6']
 
 export function setupUi() {
-    // Using VirtualScreen is broken for uiEntities that combine % and px...
-    // ReactEcsRenderer.setUiRenderer(Panel, { virtualWidth: 1920, virtualHeight: 1080 })
-    ReactEcsRenderer.setUiRenderer(Panel)
+    ReactEcsRenderer.setUiRenderer(() => [
+        Panel4(),
+        Panel3(),
+        Panel2(),
+        Panel1(),
+    ], { virtualWidth: 1920, virtualHeight: 1080 })
 }
 
-// Single Panel component containing all four panels
-function Panel() {
+function Panel1() {
     // Handle clearing for inputs: value is ' ' while clearing, '' otherwise (uncontrolled)
     const input1Value = clearInput1 ? ' ' : ''
     if (clearInput1) clearInput1 = !clearInput1
-
-    const input2Value = clearInput2 ? ' ' : ''
-    if (clearInput2) clearInput2 = !clearInput2
-
-    const input3Value = clearInput3 ? ' ' : ''
-    if (clearInput3) clearInput3 = !clearInput3
-
-    const input4Value = clearInput4 ? ' ' : ''
-    if (clearInput4) clearInput4 = !clearInput4
 
     return (
         <UiEntity
@@ -99,8 +92,8 @@ function Panel() {
                 uiTransform={{
                     width: PANEL_WIDTH,
                     height: '80%',
-                    margin: { top: '10%', left: 50 * uiScaleFactor },
-                    padding: 20 * uiScaleFactor,
+                    margin: { top: '30%', left: 50 },
+                    padding: 20,
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'flex-start'
@@ -110,12 +103,12 @@ function Panel() {
                 {/* Title */}
                 <Label
                     value="Control Panel 1"
-                    fontSize={24 * uiScaleFactor}
+                    fontSize={24}
                     font="sans-serif"
                     uiTransform={{
                         width: '100%',
-                        height: 40 * uiScaleFactor,
-                        margin: { bottom: 30 * uiScaleFactor }
+                        height: 40,
+                        margin: { bottom: 30 }
                     }}
                 />
 
@@ -123,8 +116,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 40 * uiScaleFactor,
-                        margin: { bottom: 10 * uiScaleFactor },
+                        height: 40,
+                        margin: { bottom: 10 },
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}
@@ -134,10 +127,10 @@ function Panel() {
                         selectedIndex={selectedOption1}
                         onChange={(index) => { selectedOption1 = index }}
                         uiTransform={{
-                            width: 310 * uiScaleFactor,
+                            width: 310,
                             height: '100%'
                         }}
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         font="sans-serif"
                         textAlign="middle-left"
                         disabled={dropdown1Disabled}
@@ -145,11 +138,11 @@ function Panel() {
                     <Button
                         value="X"
                         variant="secondary"
-                        fontSize={14 * uiScaleFactor}
+                        fontSize={14}
                         uiTransform={{
-                            width: 40 * uiScaleFactor,
-                            height: 40 * uiScaleFactor,
-                            margin: { left: 10 * uiScaleFactor }
+                            width: 40,
+                            height: 40,
+                            margin: { left: 10 }
                         }}
                         onMouseDown={() => { dropdown1Disabled = !dropdown1Disabled }}
                     />
@@ -159,8 +152,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 30 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        height: 30,
+                        margin: { bottom: 20 },
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -169,11 +162,11 @@ function Panel() {
                     <Button
                         value="<"
                         variant="primary"
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         uiTransform={{
-                            width: 50 * uiScaleFactor,
-                            height: 30 * uiScaleFactor,
-                            margin: { right: 10 * uiScaleFactor }
+                            width: 50,
+                            height: 30,
+                            margin: { right: 10 }
                         }}
                         onMouseDown={() => {
                             selectedOption1 = selectedOption1 > 0 ? selectedOption1 - 1 : dropdownOptions.length - 1
@@ -182,10 +175,10 @@ function Panel() {
                     <Button
                         value=">"
                         variant="primary"
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         uiTransform={{
-                            width: 50 * uiScaleFactor,
-                            height: 30 * uiScaleFactor
+                            width: 50,
+                            height: 30
                         }}
                         onMouseDown={() => {
                             selectedOption1 = selectedOption1 < dropdownOptions.length - 1 ? selectedOption1 + 1 : 0
@@ -197,8 +190,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 40 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        height: 40,
+                        margin: { bottom: 20 },
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}
@@ -208,23 +201,23 @@ function Panel() {
                         onChange={(value) => { inputText1 = value }}
                         placeholder="Type something..."
                         placeholderColor={Color4.Gray()}
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         font="sans-serif"
                         textAlign="middle-left"
                         disabled={input1Disabled}
                         uiTransform={{
-                            width: 310 * uiScaleFactor,
+                            width: 310,
                             height: '100%'
                         }}
                     />
                     <Button
                         value="X"
                         variant="secondary"
-                        fontSize={14 * uiScaleFactor}
+                        fontSize={14}
                         uiTransform={{
-                            width: 40 * uiScaleFactor,
-                            height: 40 * uiScaleFactor,
-                            margin: { left: 10 * uiScaleFactor }
+                            width: 40,
+                            height: 40,
+                            margin: { left: 10 }
                         }}
                         onMouseDown={() => { input1Disabled = !input1Disabled }}
                     />
@@ -233,8 +226,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 50 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        height: 50,
+                        margin: { bottom: 20 },
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -243,12 +236,12 @@ function Panel() {
                     <Button
                         value="Submit"
                         variant="primary"
-                        fontSize={18 * uiScaleFactor}
+                        fontSize={18}
                         font="sans-serif"
                         disabled={button1Disabled}
                         uiTransform={{
-                            width: 200 * uiScaleFactor,
-                            height: 50 * uiScaleFactor
+                            width: 200,
+                            height: 50
                         }}
                         onMouseDown={() => {
                             console.log('Panel 1 - Button clicked!')
@@ -261,24 +254,40 @@ function Panel() {
                     <Button
                         value="X"
                         variant="secondary"
-                        fontSize={14 * uiScaleFactor}
+                        fontSize={14}
                         uiTransform={{
-                            width: 40 * uiScaleFactor,
-                            height: 40 * uiScaleFactor,
-                            margin: { left: 10 * uiScaleFactor }
+                            width: 40,
+                            height: 40,
+                            margin: { left: 10 }
                         }}
                         onMouseDown={() => { button1Disabled = !button1Disabled }}
                     />
                 </UiEntity>
             </UiEntity>
+        </UiEntity>
+    )
+}
 
+function Panel2() {
+    const input2Value = clearInput2 ? ' ' : ''
+    if (clearInput2) clearInput2 = !clearInput2
+
+    return (
+        <UiEntity
+            uiTransform={{
+                width: '100%',
+                height: '100%',
+                flexDirection: 'row',
+                justifyContent: 'center'
+            }}
+        >
             {/* Panel 2 - Center */}
             <UiEntity
                 uiTransform={{
                     width: PANEL_WIDTH,
                     height: '80%',
-                    margin: { top: '10%', left: 50 * uiScaleFactor },
-                    padding: 20 * uiScaleFactor,
+                    margin: { top: '30%', left: 50 },
+                    padding: 20,
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'flex-start'
@@ -288,12 +297,12 @@ function Panel() {
                 {/* Title */}
                 <Label
                     value="Control Panel 2"
-                    fontSize={24 * uiScaleFactor}
+                    fontSize={24}
                     font="serif"
                     uiTransform={{
                         width: '100%',
-                        height: 40 * uiScaleFactor,
-                        margin: { bottom: 30 * uiScaleFactor }
+                        height: 40,
+                        margin: { bottom: 30 }
                     }}
                 />
 
@@ -301,8 +310,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 40 * uiScaleFactor,
-                        margin: { bottom: 10 * uiScaleFactor },
+                        height: 40,
+                        margin: { bottom: 10 },
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}
@@ -312,10 +321,10 @@ function Panel() {
                         selectedIndex={selectedOption2}
                         onChange={(index) => { selectedOption2 = index }}
                         uiTransform={{
-                            width: 310 * uiScaleFactor,
+                            width: 310,
                             height: '100%'
                         }}
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         font="serif"
                         textAlign="middle-center"
                         disabled={dropdown2Disabled}
@@ -323,11 +332,11 @@ function Panel() {
                     <Button
                         value="X"
                         variant="secondary"
-                        fontSize={14 * uiScaleFactor}
+                        fontSize={14}
                         uiTransform={{
-                            width: 40 * uiScaleFactor,
-                            height: 40 * uiScaleFactor,
-                            margin: { left: 10 * uiScaleFactor }
+                            width: 40,
+                            height: 40,
+                            margin: { left: 10 }
                         }}
                         onMouseDown={() => { dropdown2Disabled = !dropdown2Disabled }}
                     />
@@ -337,8 +346,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 30 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        height: 30,
+                        margin: { bottom: 20 },
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -347,11 +356,11 @@ function Panel() {
                     <Button
                         value="<"
                         variant="primary"
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         uiTransform={{
-                            width: 50 * uiScaleFactor,
-                            height: 30 * uiScaleFactor,
-                            margin: { right: 10 * uiScaleFactor }
+                            width: 50,
+                            height: 30,
+                            margin: { right: 10 }
                         }}
                         onMouseDown={() => {
                             selectedOption2 = selectedOption2 > 0 ? selectedOption2 - 1 : dropdownOptions.length - 1
@@ -360,10 +369,10 @@ function Panel() {
                     <Button
                         value=">"
                         variant="primary"
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         uiTransform={{
-                            width: 50 * uiScaleFactor,
-                            height: 30 * uiScaleFactor
+                            width: 50,
+                            height: 30
                         }}
                         onMouseDown={() => {
                             selectedOption2 = selectedOption2 < dropdownOptions.length - 1 ? selectedOption2 + 1 : 0
@@ -375,8 +384,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 40 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        height: 40,
+                        margin: { bottom: 20 },
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}
@@ -386,23 +395,23 @@ function Panel() {
                         onChange={(value) => { inputText2 = value }}
                         placeholder="Type something..."
                         placeholderColor={Color4.Gray()}
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         font="serif"
                         textAlign="middle-center"
                         disabled={input2Disabled}
                         uiTransform={{
-                            width: 310 * uiScaleFactor,
+                            width: 310,
                             height: '100%'
                         }}
                     />
                     <Button
                         value="X"
                         variant="secondary"
-                        fontSize={14 * uiScaleFactor}
+                        fontSize={14}
                         uiTransform={{
-                            width: 40 * uiScaleFactor,
-                            height: 40 * uiScaleFactor,
-                            margin: { left: 10 * uiScaleFactor }
+                            width: 40,
+                            height: 40,
+                            margin: { left: 10 }
                         }}
                         onMouseDown={() => { input2Disabled = !input2Disabled }}
                     />
@@ -411,8 +420,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 50 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        height: 50,
+                        margin: { bottom: 20 },
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -421,12 +430,12 @@ function Panel() {
                     <Button
                         value="Submit"
                         variant="primary"
-                        fontSize={18 * uiScaleFactor}
+                        fontSize={18}
                         font="serif"
                         disabled={button2Disabled}
                         uiTransform={{
-                            width: 200 * uiScaleFactor,
-                            height: 50 * uiScaleFactor
+                            width: 200,
+                            height: 50
                         }}
                         onMouseDown={() => {
                             console.log('Panel 2 - Button clicked!')
@@ -439,24 +448,40 @@ function Panel() {
                     <Button
                         value="X"
                         variant="secondary"
-                        fontSize={14 * uiScaleFactor}
+                        fontSize={14}
                         uiTransform={{
-                            width: 40 * uiScaleFactor,
-                            height: 40 * uiScaleFactor,
-                            margin: { left: 10 * uiScaleFactor }
+                            width: 40,
+                            height: 40,
+                            margin: { left: 10 }
                         }}
                         onMouseDown={() => { button2Disabled = !button2Disabled }}
                     />
                 </UiEntity>
             </UiEntity>
+        </UiEntity>
+    )
+}
 
+function Panel3() {
+    const input3Value = clearInput3 ? ' ' : ''
+    if (clearInput3) clearInput3 = !clearInput3
+
+    return (
+        <UiEntity
+            uiTransform={{
+                width: '100%',
+                height: '100%',
+                flexDirection: 'row',
+                justifyContent: 'center'
+            }}
+        >
             {/* Panel 3 - Right */}
             <UiEntity
                 uiTransform={{
                     width: PANEL_WIDTH,
                     height: '80%',
-                    margin: { top: '10%', left: 50 * uiScaleFactor },
-                    padding: 20 * uiScaleFactor,
+                    margin: { top: '30%', left: 50 },
+                    padding: 20,
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'flex-start'
@@ -466,12 +491,12 @@ function Panel() {
                 {/* Title */}
                 <Label
                     value="Control Panel 3"
-                    fontSize={24 * uiScaleFactor}
+                    fontSize={24}
                     font="monospace"
                     uiTransform={{
                         width: '100%',
-                        height: 40 * uiScaleFactor,
-                        margin: { bottom: 30 * uiScaleFactor }
+                        height: 40,
+                        margin: { bottom: 30 }
                     }}
                 />
 
@@ -479,8 +504,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 40 * uiScaleFactor,
-                        margin: { bottom: 10 * uiScaleFactor },
+                        height: 40,
+                        margin: { bottom: 10 },
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}
@@ -490,10 +515,10 @@ function Panel() {
                         selectedIndex={selectedOption3}
                         onChange={(index) => { selectedOption3 = index }}
                         uiTransform={{
-                            width: 310 * uiScaleFactor,
+                            width: 310,
                             height: '100%'
                         }}
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         font="monospace"
                         textAlign="middle-right"
                         disabled={dropdown3Disabled}
@@ -501,11 +526,11 @@ function Panel() {
                     <Button
                         value="X"
                         variant="secondary"
-                        fontSize={14 * uiScaleFactor}
+                        fontSize={14}
                         uiTransform={{
-                            width: 40 * uiScaleFactor,
-                            height: 40 * uiScaleFactor,
-                            margin: { left: 10 * uiScaleFactor }
+                            width: 40,
+                            height: 40,
+                            margin: { left: 10 }
                         }}
                         onMouseDown={() => { dropdown3Disabled = !dropdown3Disabled }}
                     />
@@ -515,8 +540,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 30 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        height: 30,
+                        margin: { bottom: 20 },
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -525,11 +550,11 @@ function Panel() {
                     <Button
                         value="<"
                         variant="primary"
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         uiTransform={{
-                            width: 50 * uiScaleFactor,
-                            height: 30 * uiScaleFactor,
-                            margin: { right: 10 * uiScaleFactor }
+                            width: 50,
+                            height: 30,
+                            margin: { right: 10 }
                         }}
                         onMouseDown={() => {
                             selectedOption3 = selectedOption3 > 0 ? selectedOption3 - 1 : dropdownOptions.length - 1
@@ -538,10 +563,10 @@ function Panel() {
                     <Button
                         value=">"
                         variant="primary"
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         uiTransform={{
-                            width: 50 * uiScaleFactor,
-                            height: 30 * uiScaleFactor
+                            width: 50,
+                            height: 30
                         }}
                         onMouseDown={() => {
                             selectedOption3 = selectedOption3 < dropdownOptions.length - 1 ? selectedOption3 + 1 : 0
@@ -553,8 +578,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 40 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        height: 40,
+                        margin: { bottom: 20 },
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}
@@ -564,23 +589,23 @@ function Panel() {
                         onChange={(value) => { inputText3 = value }}
                         placeholder="Type something..."
                         placeholderColor={Color4.Gray()}
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         font="monospace"
                         textAlign="middle-right"
                         disabled={input3Disabled}
                         uiTransform={{
-                            width: 310 * uiScaleFactor,
+                            width: 310,
                             height: '100%'
                         }}
                     />
                     <Button
                         value="X"
                         variant="secondary"
-                        fontSize={14 * uiScaleFactor}
+                        fontSize={14}
                         uiTransform={{
-                            width: 40 * uiScaleFactor,
-                            height: 40 * uiScaleFactor,
-                            margin: { left: 10 * uiScaleFactor }
+                            width: 40,
+                            height: 40,
+                            margin: { left: 10 }
                         }}
                         onMouseDown={() => { input3Disabled = !input3Disabled }}
                     />
@@ -589,8 +614,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 50 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        height: 50,
+                        margin: { bottom: 20 },
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -599,12 +624,12 @@ function Panel() {
                     <Button
                         value="Submit"
                         variant="primary"
-                        fontSize={18 * uiScaleFactor}
+                        fontSize={18}
                         font="monospace"
                         disabled={button3Disabled}
                         uiTransform={{
-                            width: 200 * uiScaleFactor,
-                            height: 50 * uiScaleFactor
+                            width: 200,
+                            height: 50
                         }}
                         onMouseDown={() => {
                             console.log('Panel 3 - Button clicked!')
@@ -617,24 +642,40 @@ function Panel() {
                     <Button
                         value="X"
                         variant="secondary"
-                        fontSize={14 * uiScaleFactor}
+                        fontSize={14}
                         uiTransform={{
-                            width: 40 * uiScaleFactor,
-                            height: 40 * uiScaleFactor,
-                            margin: { left: 10 * uiScaleFactor }
+                            width: 40,
+                            height: 40,
+                            margin: { left: 10 }
                         }}
                         onMouseDown={() => { button3Disabled = !button3Disabled }}
                     />
                 </UiEntity>
             </UiEntity>
+        </UiEntity>
+    )    
+}
 
+function Panel4() {
+    const input4Value = clearInput4 ? ' ' : ''
+    if (clearInput4) clearInput4 = !clearInput4
+
+    return (
+        <UiEntity
+            uiTransform={{
+                width: '100%',
+                height: '100%',
+                flexDirection: 'row',
+                justifyContent: 'center'
+            }}
+        >
             {/* Panel 4 - Right */}
             <UiEntity
                 uiTransform={{
                     width: PANEL_WIDTH,
                     height: '80%',
-                    margin: { top: '10%', left: 50 * uiScaleFactor },
-                    padding: 20 * uiScaleFactor,
+                    margin: { top: '30%', left: 50 },
+                    padding: 20,
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'flex-start'
@@ -644,12 +685,12 @@ function Panel() {
                 {/* Title */}
                 <Label
                     value="Control Panel 4"
-                    fontSize={24 * uiScaleFactor}
+                    fontSize={24}
                     font="sans-serif"
                     uiTransform={{
                         width: '100%',
-                        height: 40 * uiScaleFactor,
-                        margin: { bottom: 30 * uiScaleFactor }
+                        height: 40,
+                        margin: { bottom: 30 }
                     }}
                 />
 
@@ -657,8 +698,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 40 * uiScaleFactor,
-                        margin: { bottom: 10 * uiScaleFactor },
+                        height: 40,
+                        margin: { bottom: 10 },
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}
@@ -668,13 +709,13 @@ function Panel() {
                         selectedIndex={selectedOption4}
                         onChange={(index) => { selectedOption4 = index }}
                         uiTransform={{
-                            width: 310 * uiScaleFactor,
+                            width: 310,
                             height: '100%',
-                            borderWidth: 3 * uiScaleFactor,
+                            borderWidth: 3,
                             borderColor: panel4Styles.dropdown.borderColor,
                             borderRadius: panel4Styles.dropdown.borderRadius
                         }}
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         font="sans-serif"
                         textAlign="middle-center"
                         disabled={dropdown4Disabled}
@@ -685,11 +726,11 @@ function Panel() {
                     <Button
                         value="X"
                         variant="secondary"
-                        fontSize={14 * uiScaleFactor}
+                        fontSize={14}
                         uiTransform={{
-                            width: 40 * uiScaleFactor,
-                            height: 40 * uiScaleFactor,
-                            margin: { left: 10 * uiScaleFactor }
+                            width: 40,
+                            height: 40,
+                            margin: { left: 10 }
                         }}
                         onMouseDown={() => { dropdown4Disabled = !dropdown4Disabled }}
                     />
@@ -699,8 +740,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 30 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        height: 30,
+                        margin: { bottom: 20 },
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -709,11 +750,11 @@ function Panel() {
                     <Button
                         value="<"
                         variant="primary"
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         uiTransform={{
-                            width: 50 * uiScaleFactor,
-                            height: 30 * uiScaleFactor,
-                            margin: { right: 10 * uiScaleFactor }
+                            width: 50,
+                            height: 30,
+                            margin: { right: 10 }
                         }}
                         onMouseDown={() => {
                             selectedOption4 = selectedOption4 > 0 ? selectedOption4 - 1 : dropdownOptions.length - 1
@@ -722,10 +763,10 @@ function Panel() {
                     <Button
                         value=">"
                         variant="primary"
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         uiTransform={{
-                            width: 50 * uiScaleFactor,
-                            height: 30 * uiScaleFactor
+                            width: 50,
+                            height: 30
                         }}
                         onMouseDown={() => {
                             selectedOption4 = selectedOption4 < dropdownOptions.length - 1 ? selectedOption4 + 1 : 0
@@ -737,8 +778,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 40 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        height: 40,
+                        margin: { bottom: 20 },
                         flexDirection: 'row',
                         alignItems: 'center'
                     }}
@@ -748,14 +789,14 @@ function Panel() {
                         onChange={(value) => { inputText4 = value }}
                         placeholder="Type something..."
                         placeholderColor={Color4.Gray()}
-                        fontSize={16 * uiScaleFactor}
+                        fontSize={16}
                         font="sans-serif"
                         textAlign="middle-center"
                         disabled={input4Disabled}
                         uiTransform={{
-                            width: 310 * uiScaleFactor,
+                            width: 310,
                             height: '100%',
-                            borderWidth: 4 * uiScaleFactor,
+                            borderWidth: 4,
                             borderColor: panel4Styles.input.borderColor,
                             borderRadius: panel4Styles.input.borderRadius
                         }}
@@ -766,11 +807,11 @@ function Panel() {
                     <Button
                         value="X"
                         variant="secondary"
-                        fontSize={14 * uiScaleFactor}
+                        fontSize={14}
                         uiTransform={{
-                            width: 40 * uiScaleFactor,
-                            height: 40 * uiScaleFactor,
-                            margin: { left: 10 * uiScaleFactor }
+                            width: 40,
+                            height: 40,
+                            margin: { left: 10 }
                         }}
                         onMouseDown={() => { input4Disabled = !input4Disabled }}
                     />
@@ -779,8 +820,8 @@ function Panel() {
                 <UiEntity
                     uiTransform={{
                         width: '90%',
-                        height: 50 * uiScaleFactor,
-                        margin: { bottom: 20 * uiScaleFactor },
+                        height: 50,
+                        margin: { bottom: 20 },
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -789,13 +830,13 @@ function Panel() {
                     <Button
                         value="Submit"
                         variant="primary"
-                        fontSize={18 * uiScaleFactor}
+                        fontSize={18}
                         font="sans-serif"
                         disabled={button4Disabled}
                         uiTransform={{
-                            width: 200 * uiScaleFactor,
-                            height: 50 * uiScaleFactor,
-                            borderWidth: 5 * uiScaleFactor,
+                            width: 200,
+                            height: 50,
+                            borderWidth: 5,
                             borderColor: panel4Styles.button.borderColor,
                             borderRadius: panel4Styles.button.borderRadius
                         }}
@@ -803,9 +844,6 @@ function Panel() {
                             color: panel4Styles.button.backgroundColor
                         }}
                         onMouseDown={() => {
-                            console.log('Panel 4 - Button clicked!')
-                            console.log('Selected option:', dropdownOptions[selectedOption4])
-                            console.log('Input value:', inputText4)
                             inputText4 = ''
                             clearInput4 = true
                         }}
@@ -813,11 +851,11 @@ function Panel() {
                     <Button
                         value="X"
                         variant="secondary"
-                        fontSize={14 * uiScaleFactor}
+                        fontSize={14}
                         uiTransform={{
-                            width: 40 * uiScaleFactor,
-                            height: 40 * uiScaleFactor,
-                            margin: { left: 10 * uiScaleFactor }
+                            width: 40,
+                            height: 40,
+                            margin: { left: 10 }
                         }}
                         onMouseDown={() => { button4Disabled = !button4Disabled }}
                     />
