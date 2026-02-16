@@ -97,24 +97,24 @@ export function createMethodCube(method: Web3MethodDef, position: Vector3): Meth
   MeshCollider.setBox(cube)
   setCubeColor(cube, STATE_COLORS.idle)
 
-  // --- Result label (just above the cube) ---
-  const result = createBillboardLabel({
-    position: Vector3.create(position.x, position.y + 0.6, position.z),
-    text: 'Click to execute',
-    fontSize: 1.6,
-    textColor: Color4.Gray(),
-    bgColor: RESULT_BG_COLOR,
-    bgWidth: 1.8,
-    bgHeight: 0.25
-  })
-
-  // --- Name label (above the result) ---
+  // --- Name label (just above the cube) ---
   createBillboardLabel({
-    position: Vector3.create(position.x, position.y + 1.0, position.z),
+    position: Vector3.create(position.x, position.y + 0.6, position.z),
     text: method.name,
     fontSize: 1.6,
     textColor: Color4.create(0.8, 0.85, 1, 1),
     bgColor: NAME_BG_COLOR,
+    bgWidth: 1.8,
+    bgHeight: 0.25
+  })
+
+  // --- Result label (above the name) ---
+  const result = createBillboardLabel({
+    position: Vector3.create(position.x, position.y + 1.0, position.z),
+    text: 'Click to execute',
+    fontSize: 1.6,
+    textColor: Color4.Gray(),
+    bgColor: RESULT_BG_COLOR,
     bgWidth: 1.8,
     bgHeight: 0.25
   })

@@ -1,16 +1,17 @@
 import { Vector3 } from '@dcl/sdk/math'
-import { methods } from './methodRegistry'
+import { readSimpleMethods } from './methodRegistry'
 import { createMethodCube } from './cubeFactory'
 
 export function main() {
   console.log('[web3-operations] Scene started')
 
-  const startX = 2
+  // Non-parameterized read-only methods along the left border
+  const rowX = 2
   const startZ = 2
-  const spacingZ = 3
+  const spacingZ = 2.2
 
-  methods.forEach((method, index) => {
-    const position = Vector3.create(startX, 1.6, startZ + index * spacingZ)
+  readSimpleMethods.forEach((method, index) => {
+    const position = Vector3.create(rowX, 1.1, startZ + index * spacingZ)
     createMethodCube(method, position)
   })
 }
