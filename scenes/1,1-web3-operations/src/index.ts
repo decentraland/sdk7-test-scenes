@@ -12,6 +12,6 @@ export function main() {
 
   readSimpleMethods.forEach((method, index) => {
     const position = Vector3.create(rowX, 1.1, startZ + index * spacingZ)
-    createMethodCube(method, position)
+    createMethodCube(method, position, spacingZ)
   })
 }
