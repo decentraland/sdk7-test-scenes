@@ -14,12 +14,14 @@
   "main": "bin/index.js",
   "tags": ["web3", "testing"],
   "scene": {
-    "parcels": ["1,1"],
+    "parcels": [
+      "1,1"
+    ],
     "base": "1,1"
   },
   "spawnPoints": [
     {
-      "name": "spawn1",
+      "name": "center",
       "default": true,
       "position": {
         "x": [4, 12],
@@ -33,6 +35,6 @@
       }
     }
   ],
-  "requiredPermissions": [],
-  "featureToggles": {}
+  "featureToggles": {},
+  "name": "web3-operations"
 }

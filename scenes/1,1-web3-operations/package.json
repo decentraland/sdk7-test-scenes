@@ -10,8 +10,9 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/sdk": "latest",
-    "@dcl/js-runtime": "7.20.0"
+    "@dcl/js-runtime": "7.13.0",
+    "@dcl/sdk": "7.13.0",
+    "dcl-crypto-toolkit": "latest"
   },
   "dependencies": {},
   "engines": {
