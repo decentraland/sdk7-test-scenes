@@ -30,15 +30,26 @@ const STATE_COLORS: Record<CubeState, Color4> = {
 const NAME_BG_COLOR = Color4.create(0.08, 0.08, 0.15, 1)
 const RESULT_BG_COLOR = Color4.create(0.06, 0.06, 0.1, 1)
 
+// --- Approximate width per character at fontSize=1 ---
+const CHAR_WIDTH = 0.065
+const BG_PADDING_X = 0.15
+const BG_HEIGHT = 0.25
+
+function estimateBgWidth(text: string, fontSize: number): number {
+  return Math.max(text.length * CHAR_WIDTH * fontSize + BG_PADDING_X, 0.4)
+}
+
 // --- Entities that make up a method test cube ---
 export interface MethodCube {
   cube: Entity
   resultText: Entity
+  resultBg: Entity
+  resultFontSize: number
 }
 
 /**
  * Creates a billboard label: a dark background plane with text in front.
- * Both are children of an anchor entity that has Billboard rotation.
+ * bgWidth is auto-calculated from text length if not provided.
  */
 function createBillboardLabel(opts: {
   position: Vector3
@@ -46,18 +57,18 @@ function createBillboardLabel(opts: {
   fontSize: number
   textColor: Color4
   bgColor: Color4
-  bgWidth: number
-  bgHeight: number
 }): { anchor: Entity; text: Entity; bg: Entity } {
   const anchor = engine.addEntity()
   Transform.create(anchor, { position: opts.position })
   Billboard.create(anchor, { billboardMode: BillboardMode.BM_Y })
 
+  const bgWidth = estimateBgWidth(opts.text, opts.fontSize)
+
   const bg = engine.addEntity()
   Transform.create(bg, {
     parent: anchor,
     position: Vector3.create(0, 0, 0.02),
-    scale: Vector3.create(opts.bgWidth, opts.bgHeight, 1)
+    scale: Vector3.create(bgWidth, BG_HEIGHT, 1)
   })
   MeshRenderer.setPlane(bg)
   Material.setPbrMaterial(bg, {
@@ -97,29 +108,27 @@ export function createMethodCube(method: Web3MethodDef, position: Vector3): Meth
   MeshCollider.setBox(cube)
   setCubeColor(cube, STATE_COLORS.idle)
 
+  const fontSize = 1.6
+
   // --- Name label (just above the cube) ---
   createBillboardLabel({
     position: Vector3.create(position.x, position.y + 0.6, position.z),
     text: method.name,
-    fontSize: 1.6,
+    fontSize,
     textColor: Color4.create(0.8, 0.85, 1, 1),
-    bgColor: NAME_BG_COLOR,
-    bgWidth: 1.8,
-    bgHeight: 0.25
+    bgColor: NAME_BG_COLOR
   })
 
   // --- Result label (above the name) ---
   const result = createBillboardLabel({
     position: Vector3.create(position.x, position.y + 1.0, position.z),
     text: 'Click to execute',
-    fontSize: 1.6,
+    fontSize,
     textColor: Color4.Gray(),
-    bgColor: RESULT_BG_COLOR,
-    bgWidth: 1.8,
-    bgHeight: 0.25
+    bgColor: RESULT_BG_COLOR
   })
 
-  const mc: MethodCube = { cube, resultText: result.text }
+  const mc: MethodCube = { cube, resultText: result.text, resultBg: result.bg, resultFontSize: fontSize }
 
   // --- Click handler ---
   pointerEventsSystem.onPointerDown(
@@ -141,7 +150,7 @@ export function createMethodCube(method: Web3MethodDef, position: Vector3): Meth
 
 function executeMethod(method: Web3MethodDef, mc: MethodCube) {
   setCubeColor(mc.cube, STATE_COLORS.pending)
-  setResultText(mc.resultText, 'Requesting...', Color4.Yellow())
+  setResultText(mc, 'Requesting...', Color4.Yellow())
 
   executeTask(async () => {
     const t0 = Date.now()
@@ -152,14 +161,14 @@ function executeMethod(method: Web3MethodDef, mc: MethodCube) {
       console.log(`[web3] ${method.name} OK (${elapsed}ms): ${result}`)
 
       setCubeColor(mc.cube, STATE_COLORS.ready)
-      setResultText(mc.resultText, result, Color4.White())
+      setResultText(mc, result, Color4.White())
     } catch (err: any) {
       const elapsed = Date.now() - t0
       const msg = err?.message || String(err)
       console.error(`[web3] ${method.name} FAIL (${elapsed}ms): ${msg}`)
 
       setCubeColor(mc.cube, STATE_COLORS.error)
-      setResultText(mc.resultText, `Error: ${msg.slice(0, 50)}`, Color4.create(1, 0.4, 0.4, 1))
+      setResultText(mc, `Error: ${msg.slice(0, 50)}`, Color4.create(1, 0.4, 0.4, 1))
     }
   })
 }
@@ -174,8 +183,12 @@ function setCubeColor(entity: Entity, color: Color4) {
   })
 }
 
-function setResultText(entity: Entity, text: string, color: Color4) {
-  const shape = TextShape.getMutable(entity)
+function setResultText(mc: MethodCube, text: string, color: Color4) {
+  const shape = TextShape.getMutable(mc.resultText)
   shape.text = text
   shape.textColor = color
+
+  const newWidth = estimateBgWidth(text, mc.resultFontSize)
+  const bgTransform = Transform.getMutable(mc.resultBg)
+  bgTransform.scale = Vector3.create(newWidth, BG_HEIGHT, 1)
 }
