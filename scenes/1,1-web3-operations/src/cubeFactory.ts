@@ -259,14 +259,14 @@ function executeMethod(method: Web3MethodDef, mc: MethodCube) {
       console.log(`[web3] ${method.name} OK (${elapsed}ms): ${result}`)
 
       setCubeColor(mc.cube, STATE_COLORS.ready)
-      setResultText(mc, result, Color4.White())
+      setResultText(mc, result, Color4.create(0.3, 1, 0.4, 1))
     } catch (err: any) {
       const elapsed = Date.now() - t0
       const msg = err?.message || String(err)
       console.error(`[web3] ${method.name} FAIL (${elapsed}ms): ${msg}`)
 
       setCubeColor(mc.cube, STATE_COLORS.error)
-      setResultText(mc, `Error: ${msg.slice(0, 80)}`, Color4.create(1, 0.4, 0.4, 1))
+      setResultText(mc, `Error: ${msg.slice(0, 160)}`, Color4.create(1, 0.4, 0.4, 1), 1.1)
     }
   })
 }
@@ -281,17 +281,20 @@ function setCubeColor(entity: Entity, color: Color4) {
   })
 }
 
-function setResultText(mc: MethodCube, text: string, color: Color4) {
-  const maxChars = maxCharsForWidth(mc.resultFontSize, mc.maxResultWidth)
+function setResultText(mc: MethodCube, text: string, color: Color4, fontSizeOverride?: number) {
+  const fontSize = fontSizeOverride ?? mc.resultFontSize
+  const maxChars = maxCharsForWidth(fontSize, mc.maxResultWidth)
   const wrapped = wrapText(text, maxChars)
   const lines = countLines(wrapped)
 
   const shape = TextShape.getMutable(mc.resultText)
   shape.text = wrapped
   shape.textColor = color
+  shape.fontSize = fontSize
 
-  const newWidth = clampedBgWidth(text, mc.resultFontSize, mc.maxResultWidth)
-  const newHeight = bgHeightForLines(lines)
+  const newWidth = clampedBgWidth(text, fontSize, mc.maxResultWidth)
+  const lineH = BG_LINE_HEIGHT * (fontSize / mc.resultFontSize)
+  const newHeight = lineH * lines
   const bgTransform = Transform.getMutable(mc.resultBg)
   bgTransform.scale = Vector3.create(newWidth, newHeight, 1)
 

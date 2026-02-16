@@ -70,10 +70,7 @@ export const readSimpleMethods: Web3MethodDef[] = [
     type: 'read',
     execute: async () => {
       const result = await callRpc('web3_clientVersion')
-      const display = typeof result === 'string' && result.length > 30
-        ? result.slice(0, 30) + '...'
-        : String(result)
-      return display
+      return String(result)
     }
   }
 ]
