@@ -30,13 +30,48 @@ const STATE_COLORS: Record<CubeState, Color4> = {
 const NAME_BG_COLOR = Color4.create(0.08, 0.08, 0.15, 1)
 const RESULT_BG_COLOR = Color4.create(0.06, 0.06, 0.1, 1)
 
-// --- Approximate width per character at fontSize=1 ---
+// --- Label sizing constants ---
 const CHAR_WIDTH = 0.065
 const BG_PADDING_X = 0.15
-const BG_HEIGHT = 0.25
+const BG_LINE_HEIGHT = 0.25
+const MAX_BG_WIDTH = 2.0
 
-function estimateBgWidth(text: string, fontSize: number): number {
-  return Math.max(text.length * CHAR_WIDTH * fontSize + BG_PADDING_X, 0.4)
+function estimateTextWidth(text: string, fontSize: number): number {
+  return text.length * CHAR_WIDTH * fontSize + BG_PADDING_X
+}
+
+function clampedBgWidth(text: string, fontSize: number): number {
+  return Math.min(Math.max(estimateTextWidth(text, fontSize), 0.4), MAX_BG_WIDTH)
+}
+
+function maxCharsPerLine(fontSize: number): number {
+  return Math.floor((MAX_BG_WIDTH - BG_PADDING_X) / (CHAR_WIDTH * fontSize))
+}
+
+function wrapText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text
+
+  const lines: string[] = []
+  let remaining = text
+  while (remaining.length > 0) {
+    if (remaining.length <= maxChars) {
+      lines.push(remaining)
+      break
+    }
+    let breakAt = remaining.lastIndexOf(' ', maxChars)
+    if (breakAt <= 0) breakAt = maxChars
+    lines.push(remaining.slice(0, breakAt).trimEnd())
+    remaining = remaining.slice(breakAt).trimStart()
+  }
+  return lines.join('\n')
+}
+
+function countLines(text: string): number {
+  return text.split('\n').length
+}
+
+function bgHeightForLines(lines: number): number {
+  return BG_LINE_HEIGHT * lines
 }
 
 // --- Entities that make up a method test cube ---
@@ -44,12 +79,14 @@ export interface MethodCube {
   cube: Entity
   resultText: Entity
   resultBg: Entity
+  resultAnchor: Entity
   resultFontSize: number
+  resultBottomY: number
 }
 
 /**
  * Creates a billboard label: a dark background plane with text in front.
- * bgWidth is auto-calculated from text length if not provided.
+ * Long text is wrapped and bg auto-sizes both width and height.
  */
 function createBillboardLabel(opts: {
   position: Vector3
@@ -58,17 +95,22 @@ function createBillboardLabel(opts: {
   textColor: Color4
   bgColor: Color4
 }): { anchor: Entity; text: Entity; bg: Entity } {
+  const maxChars = maxCharsPerLine(opts.fontSize)
+  const wrapped = wrapText(opts.text, maxChars)
+  const lines = countLines(wrapped)
+
   const anchor = engine.addEntity()
   Transform.create(anchor, { position: opts.position })
   Billboard.create(anchor, { billboardMode: BillboardMode.BM_Y })
 
-  const bgWidth = estimateBgWidth(opts.text, opts.fontSize)
+  const bgWidth = clampedBgWidth(opts.text, opts.fontSize)
+  const bgHeight = bgHeightForLines(lines)
 
   const bg = engine.addEntity()
   Transform.create(bg, {
     parent: anchor,
     position: Vector3.create(0, 0, 0.02),
-    scale: Vector3.create(bgWidth, BG_HEIGHT, 1)
+    scale: Vector3.create(bgWidth, bgHeight, 1)
   })
   MeshRenderer.setPlane(bg)
   Material.setPbrMaterial(bg, {
@@ -83,7 +125,7 @@ function createBillboardLabel(opts: {
     position: Vector3.create(0, 0, 0)
   })
   TextShape.create(textEntity, {
-    text: opts.text,
+    text: wrapped,
     fontSize: opts.fontSize,
     textColor: opts.textColor,
     outlineWidth: 0.08,
@@ -98,7 +140,6 @@ function createBillboardLabel(opts: {
  * Creates a full method test cube: clickable box + name billboard + result billboard.
  */
 export function createMethodCube(method: Web3MethodDef, position: Vector3): MethodCube {
-  // --- Clickable cube ---
   const cube = engine.addEntity()
   Transform.create(cube, {
     position,
@@ -120,17 +161,24 @@ export function createMethodCube(method: Web3MethodDef, position: Vector3): Meth
   })
 
   // --- Result label (above the name) ---
+  const resultBottomY = position.y + 0.6 + BG_LINE_HEIGHT / 2 + 0.1
   const result = createBillboardLabel({
-    position: Vector3.create(position.x, position.y + 1.0, position.z),
+    position: Vector3.create(position.x, resultBottomY + BG_LINE_HEIGHT / 2, position.z),
     text: 'Click to execute',
     fontSize,
     textColor: Color4.Gray(),
     bgColor: RESULT_BG_COLOR
   })
 
-  const mc: MethodCube = { cube, resultText: result.text, resultBg: result.bg, resultFontSize: fontSize }
+  const mc: MethodCube = {
+    cube,
+    resultText: result.text,
+    resultBg: result.bg,
+    resultAnchor: result.anchor,
+    resultFontSize: fontSize,
+    resultBottomY
+  }
 
-  // --- Click handler ---
   pointerEventsSystem.onPointerDown(
     {
       entity: cube,
@@ -168,7 +216,7 @@ function executeMethod(method: Web3MethodDef, mc: MethodCube) {
       console.error(`[web3] ${method.name} FAIL (${elapsed}ms): ${msg}`)
 
       setCubeColor(mc.cube, STATE_COLORS.error)
-      setResultText(mc, `Error: ${msg.slice(0, 50)}`, Color4.create(1, 0.4, 0.4, 1))
+      setResultText(mc, `Error: ${msg.slice(0, 80)}`, Color4.create(1, 0.4, 0.4, 1))
     }
   })
 }
@@ -184,11 +232,20 @@ function setCubeColor(entity: Entity, color: Color4) {
 }
 
 function setResultText(mc: MethodCube, text: string, color: Color4) {
+  const maxChars = maxCharsPerLine(mc.resultFontSize)
+  const wrapped = wrapText(text, maxChars)
+  const lines = countLines(wrapped)
+
   const shape = TextShape.getMutable(mc.resultText)
-  shape.text = text
+  shape.text = wrapped
   shape.textColor = color
 
-  const newWidth = estimateBgWidth(text, mc.resultFontSize)
+  const newWidth = clampedBgWidth(text, mc.resultFontSize)
+  const newHeight = bgHeightForLines(lines)
   const bgTransform = Transform.getMutable(mc.resultBg)
-  bgTransform.scale = Vector3.create(newWidth, BG_HEIGHT, 1)
+  bgTransform.scale = Vector3.create(newWidth, newHeight, 1)
+
+  const anchorTransform = Transform.getMutable(mc.resultAnchor)
+  const anchorY = mc.resultBottomY + newHeight / 2
+  anchorTransform.position.y = anchorY
 }
