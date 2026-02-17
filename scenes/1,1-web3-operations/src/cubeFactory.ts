@@ -215,25 +215,27 @@ export function createMethodCube(
   const fontSize = 1.6
   const maxResultWidth = spacing
 
-  // --- Name label (just above the cube) — single line, no max width ---
+  // --- Name label (just above the cube) — single line, bg is darkened group color ---
   createBillboardLabel({
     position: Vector3.create(position.x, position.y + 0.6, position.z),
     text: method.name,
     fontSize,
     textColor: Color4.create(0.8, 0.85, 1, 1),
-    bgColor: NAME_BG_COLOR
+    bgColor: darken(idleColor, 0.6)
   })
 
-  // --- Result label (above the name) — wraps to fit maxResultWidth ---
+  // --- Result label (above the name) — hidden until first execution ---
   const resultBottomY = position.y + 0.6 + BG_LINE_HEIGHT / 2 + 0.1
   const result = createWrappedBillboardLabel({
     position: Vector3.create(position.x, resultBottomY + BG_LINE_HEIGHT / 2, position.z),
-    text: 'Click to execute',
+    text: '',
     fontSize,
     textColor: Color4.Gray(),
     bgColor: RESULT_BG_COLOR,
     maxWidth: maxResultWidth
   })
+  // Hide bg plane until there's a result
+  Transform.getMutable(result.bg).scale = Vector3.create(0, 0, 0)
 
   const mc: MethodCube = {
     cube,
@@ -327,12 +329,16 @@ export function setResultText(mc: MethodCube, text: string, color: Color4, fontS
 
 // --- Section header (supermarket-style sign) ---
 
-const HEADER_BG_COLOR = Color4.create(0.12, 0.12, 0.22, 1)
+function darken(c: Color4, factor: number): Color4 {
+  return Color4.create(c.r * factor, c.g * factor, c.b * factor, 1)
+}
 
 /**
  * Creates a large billboard header sign above a group of cubes.
  */
-export function createSectionHeader(text: string, position: Vector3) {
+export function createSectionHeader(text: string, position: Vector3, groupColor?: GroupColorKey) {
+  const bgColor = darken( GROUP_COLORS[groupColor ?? 'readSimple'], 0.75)
+
   const fontSize = 3
   const bgWidth = estimateBgWidth(text, fontSize)
   const bgHeight = 0.55
@@ -349,7 +355,7 @@ export function createSectionHeader(text: string, position: Vector3) {
   })
   MeshRenderer.setPlane(bg)
   Material.setPbrMaterial(bg, {
-    albedoColor: HEADER_BG_COLOR,
+    albedoColor: bgColor,
     metallic: 0,
     roughness: 1
   })

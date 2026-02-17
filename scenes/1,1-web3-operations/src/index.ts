@@ -55,7 +55,7 @@ export function main() {
 
   const simpleLastZ = startZ + (readSimpleMethods.length - 1) * spacingZ
   const simpleCenterZ = (startZ + simpleLastZ) / 2
-  createSectionHeader('Read-only (no params)', Vector3.create(simpleRowX, 4, simpleCenterZ))
+  createSectionHeader('Read-only (no params)', Vector3.create(simpleRowX, 4, simpleCenterZ), 'readSimple')
 
   // ---- Parameterized read-only methods on the opposite border (X=14) ----
   const paramRowX = 14
@@ -77,7 +77,7 @@ export function main() {
   if (paramCount > 0) {
     const paramLastZ = paramStartZ + (paramCount - 1) * paramSpacingZ
     const paramCenterZ = (paramStartZ + paramLastZ) / 2
-    createSectionHeader('Read-only (with params)', Vector3.create(paramRowX, 4, paramCenterZ))
+    createSectionHeader('Read-only (with params)', Vector3.create(paramRowX, 4, paramCenterZ), 'readParam')
   }
 
   // ---- Write methods along the top border (Z=14), compact and centered ----
@@ -98,7 +98,7 @@ export function main() {
   })
 
   if (writeCount > 0) {
-    createSectionHeader('Write methods', Vector3.create(8, 4, writeRowZ))
+    createSectionHeader('Write methods', Vector3.create(8, 4, writeRowZ), 'write')
   }
 
   // ---- Register trigger-area system ----
@@ -109,7 +109,7 @@ export function main() {
 // Trigger-area system — checks player proximity each frame
 // ---------------------------------------------------------------------------
 
-const TRIGGER_RADIUS = 4
+const TRIGGER_RADIUS = 2
 const TRIGGER_RADIUS_SQ = TRIGGER_RADIUS * TRIGGER_RADIUS
 
 function triggerAreaSystem() {
