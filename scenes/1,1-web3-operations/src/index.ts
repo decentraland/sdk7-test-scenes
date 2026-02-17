@@ -56,20 +56,24 @@ export function main() {
 
   // ---- Parameterized read-only methods on the opposite border (X=14) ----
   const paramRowX = 14
+  const paramCount = readParamMethods.length
+  const paramStartZ = 1.5
+  const paramEndZ = 14.5
+  const paramSpacingZ = paramCount > 1 ? (paramEndZ - paramStartZ) / (paramCount - 1) : spacingZ
 
   readParamMethods.forEach((method, index) => {
-    const position = Vector3.create(paramRowX, 1.1, startZ + index * spacingZ)
+    const position = Vector3.create(paramRowX, 1.1, paramStartZ + index * paramSpacingZ)
 
-    const mc = createMethodCube(method, position, spacingZ, (m, cube) => {
+    const mc = createMethodCube(method, position, paramSpacingZ, (m, cube) => {
       onParamCubeClick(m, cube)
     })
 
     paramCubes.push({ method, position, mc })
   })
 
-  if (readParamMethods.length > 0) {
-    const paramLastZ = startZ + (readParamMethods.length - 1) * spacingZ
-    const paramCenterZ = (startZ + paramLastZ) / 2
+  if (paramCount > 0) {
+    const paramLastZ = paramStartZ + (paramCount - 1) * paramSpacingZ
+    const paramCenterZ = (paramStartZ + paramLastZ) / 2
     createSectionHeader('Read-only (with params)', Vector3.create(paramRowX, 4, paramCenterZ))
   }
 
