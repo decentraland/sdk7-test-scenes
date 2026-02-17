@@ -301,3 +301,47 @@ function setResultText(mc: MethodCube, text: string, color: Color4, fontSizeOver
   const anchorTransform = Transform.getMutable(mc.resultAnchor)
   anchorTransform.position.y = mc.resultBottomY + newHeight / 2
 }
+
+// --- Section header (supermarket-style sign) ---
+
+const HEADER_BG_COLOR = Color4.create(0.12, 0.12, 0.22, 1)
+
+/**
+ * Creates a large billboard header sign above a group of cubes.
+ */
+export function createSectionHeader(text: string, position: Vector3) {
+  const fontSize = 3
+  const bgWidth = estimateBgWidth(text, fontSize)
+  const bgHeight = 0.55
+
+  const anchor = engine.addEntity()
+  Transform.create(anchor, { position })
+  Billboard.create(anchor, { billboardMode: BillboardMode.BM_Y })
+
+  const bg = engine.addEntity()
+  Transform.create(bg, {
+    parent: anchor,
+    position: Vector3.create(0, 0, 0.02),
+    scale: Vector3.create(bgWidth, bgHeight, 1)
+  })
+  MeshRenderer.setPlane(bg)
+  Material.setPbrMaterial(bg, {
+    albedoColor: HEADER_BG_COLOR,
+    metallic: 0,
+    roughness: 1
+  })
+
+  const textEntity = engine.addEntity()
+  Transform.create(textEntity, {
+    parent: anchor,
+    position: Vector3.create(0, 0, 0)
+  })
+  TextShape.create(textEntity, {
+    text,
+    fontSize,
+    textColor: Color4.White(),
+    outlineWidth: 0.1,
+    outlineColor: Color4.Black(),
+    textAlign: TextAlignMode.TAM_MIDDLE_CENTER
+  })
+}
