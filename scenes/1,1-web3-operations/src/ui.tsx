@@ -105,7 +105,7 @@ function doExecute() {
 }
 
 // ---------------------------------------------------------------------------
-// React-ECS UI component
+// React-ECS UI components
 // ---------------------------------------------------------------------------
 
 const PANEL_BG = Color4.create(0.08, 0.08, 0.14, 0.95)
@@ -113,6 +113,92 @@ const INPUT_BG = Color4.create(0.15, 0.15, 0.22, 1)
 const RESULT_BG = Color4.create(0.06, 0.06, 0.1, 1)
 const LABEL_COLOR = Color4.create(0.7, 0.7, 0.8, 1)
 const TITLE_COLOR = Color4.create(0.8, 0.85, 1, 1)
+
+// --- Colors matching GROUP_COLORS in cubeFactory ---
+const C_BLUE = Color4.fromHexString('#4a90e2')
+const C_PURPLE = Color4.fromHexString('#7e57c2')
+const C_BROWN = Color4.fromHexString('#8d6e63')
+const C_YELLOW = Color4.fromHexString('#f4b400')
+const C_RED = Color4.fromHexString('#ea4335')
+const C_DIM = Color4.create(0.6, 0.6, 0.65, 1)
+
+function ColorDot(props: { color: Color4 }) {
+  return (
+    <UiEntity
+      uiTransform={{ width: 12, height: 12, margin: { right: 6, top: 3 } }}
+      uiBackground={{ color: props.color }}
+    />
+  )
+}
+
+function LegendRow(props: { color: Color4; text: string }) {
+  return (
+    <UiEntity uiTransform={{ flexDirection: 'row', width: '100%', margin: { bottom: 2 } }}>
+      <ColorDot color={props.color} />
+      <Label value={props.text} fontSize={12} color={C_DIM} uiTransform={{ height: 16 }} />
+    </UiEntity>
+  )
+}
+
+function LegendPanel() {
+  return (
+    <UiEntity
+      uiTransform={{
+        width: 280,
+        positionType: 'absolute',
+        position: { left: 10, bottom: 10 },
+        flexDirection: 'column',
+        padding: 12
+      }}
+      uiBackground={{ color: PANEL_BG }}
+    >
+      <Label
+        value="Web3 Operations Test Scene"
+        fontSize={15}
+        color={TITLE_COLOR}
+        uiTransform={{ width: '100%', height: 22, margin: { bottom: 6 } }}
+      />
+
+      <Label
+        value="Cubes:"
+        fontSize={13}
+        color={Color4.White()}
+        uiTransform={{ width: '100%', height: 18, margin: { bottom: 2 } }}
+      />
+      <LegendRow color={C_BLUE} text="Read-only (no params)" />
+      <LegendRow color={C_PURPLE} text="Read-only (with params)" />
+      <LegendRow color={C_BROWN} text="Write (wallet prompt)" />
+
+      <Label
+        value="Status:"
+        fontSize={13}
+        color={Color4.White()}
+        uiTransform={{ width: '100%', height: 18, margin: { top: 6, bottom: 2 } }}
+      />
+      <LegendRow color={C_YELLOW} text="Pending..." />
+      <LegendRow color={C_RED} text="Error" />
+
+      <Label
+        value="Click cube [E] to execute."
+        fontSize={12}
+        color={C_DIM}
+        uiTransform={{ width: '100%', height: 16, margin: { top: 8 } }}
+      />
+      <Label
+        value="Walk close to purple/brown cubes"
+        fontSize={12}
+        color={C_DIM}
+        uiTransform={{ width: '100%', height: 16 }}
+      />
+      <Label
+        value="to edit params before executing."
+        fontSize={12}
+        color={C_DIM}
+        uiTransform={{ width: '100%', height: 16 }}
+      />
+    </UiEntity>
+  )
+}
 
 function MethodPanel(): ReactEcs.JSX.Element | null {
   if (!activeMethod) return null
@@ -221,6 +307,10 @@ function MethodPanel(): ReactEcs.JSX.Element | null {
 // Bootstrap — call once from main()
 // ---------------------------------------------------------------------------
 
+function UiRoot() {
+  return [LegendPanel(), MethodPanel()]
+}
+
 export function setupUi() {
-  ReactEcsRenderer.setUiRenderer(MethodPanel)
+  ReactEcsRenderer.setUiRenderer(UiRoot)
 }
