@@ -125,7 +125,7 @@ const C_DIM = Color4.create(0.6, 0.6, 0.65, 1)
 function ColorDot(props: { color: Color4 }) {
   return (
     <UiEntity
-      uiTransform={{ width: 12, height: 12, margin: { right: 6, top: 3 } }}
+      uiTransform={{ width: 14, height: 14, margin: { right: 8, top: 3 } }}
       uiBackground={{ color: props.color }}
     />
   )
@@ -133,9 +133,9 @@ function ColorDot(props: { color: Color4 }) {
 
 function LegendRow(props: { color: Color4; text: string }) {
   return (
-    <UiEntity uiTransform={{ flexDirection: 'row', width: '100%', margin: { bottom: 2 } }}>
+    <UiEntity uiTransform={{ flexDirection: 'row', width: '100%', margin: { bottom: 3 } }}>
       <ColorDot color={props.color} />
-      <Label value={props.text} fontSize={12} color={C_DIM} uiTransform={{ height: 16 }} />
+      <Label value={props.text} fontSize={14} color={C_DIM} uiTransform={{ height: 20 }} />
     </UiEntity>
   )
 }
@@ -144,26 +144,26 @@ function LegendPanel() {
   return (
     <UiEntity
       uiTransform={{
-        width: 280,
+        width: 340,
         positionType: 'absolute',
-        position: { left: 10, bottom: 10 },
+        position: { right: 10, bottom: 10 },
         flexDirection: 'column',
-        padding: 12
+        padding: 16
       }}
       uiBackground={{ color: PANEL_BG }}
     >
       <Label
         value="Web3 Operations Test Scene"
-        fontSize={15}
+        fontSize={18}
         color={TITLE_COLOR}
-        uiTransform={{ width: '100%', height: 22, margin: { bottom: 6 } }}
+        uiTransform={{ width: '100%', height: 26, margin: { bottom: 8 } }}
       />
 
       <Label
         value="Cubes:"
-        fontSize={13}
+        fontSize={15}
         color={Color4.White()}
-        uiTransform={{ width: '100%', height: 18, margin: { bottom: 2 } }}
+        uiTransform={{ width: '100%', height: 22, margin: { bottom: 4 } }}
       />
       <LegendRow color={C_BLUE} text="Read-only (no params)" />
       <LegendRow color={C_PURPLE} text="Read-only (with params)" />
@@ -171,30 +171,30 @@ function LegendPanel() {
 
       <Label
         value="Status:"
-        fontSize={13}
+        fontSize={15}
         color={Color4.White()}
-        uiTransform={{ width: '100%', height: 18, margin: { top: 6, bottom: 2 } }}
+        uiTransform={{ width: '100%', height: 22, margin: { top: 8, bottom: 4 } }}
       />
       <LegendRow color={C_YELLOW} text="Pending..." />
       <LegendRow color={C_RED} text="Error" />
 
       <Label
         value="Click cube [E] to execute."
-        fontSize={12}
+        fontSize={14}
         color={C_DIM}
-        uiTransform={{ width: '100%', height: 16, margin: { top: 8 } }}
+        uiTransform={{ width: '100%', height: 20, margin: { top: 10 } }}
       />
       <Label
         value="Walk close to purple/brown cubes"
-        fontSize={12}
+        fontSize={14}
         color={C_DIM}
-        uiTransform={{ width: '100%', height: 16 }}
+        uiTransform={{ width: '100%', height: 20 }}
       />
       <Label
         value="to edit params before executing."
-        fontSize={12}
+        fontSize={14}
         color={C_DIM}
-        uiTransform={{ width: '100%', height: 16 }}
+        uiTransform={{ width: '100%', height: 20 }}
       />
     </UiEntity>
   )
