@@ -1,6 +1,6 @@
-import { engine, executeTask, Transform } from '@dcl/sdk/ecs'
+import { engine, executeTask, SkyboxTime, Transform } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
-import { readSimpleMethods, readParamMethods, Web3MethodDef } from './methodRegistry'
+import { readSimpleMethods, readParamMethods, writeMethods, Web3MethodDef } from './methodRegistry'
 import {
   createMethodCube,
   createSectionHeader,
@@ -37,6 +37,9 @@ const paramCubes: ParamCubeRecord[] = []
 export function main() {
   console.log('[web3-operations] Scene started')
 
+  // ---- Fix time of day to 10:00 AM (bright daylight) ----
+  SkyboxTime.create(engine.RootEntity, { fixedTime: 36000 })
+
   // ---- Setup UI renderer (once) ----
   setupUi()
 
@@ -47,7 +50,7 @@ export function main() {
 
   readSimpleMethods.forEach((method, index) => {
     const position = Vector3.create(simpleRowX, 1.1, startZ + index * spacingZ)
-    createMethodCube(method, position, spacingZ)
+    createMethodCube(method, position, spacingZ, undefined, 'readSimple')
   })
 
   const simpleLastZ = startZ + (readSimpleMethods.length - 1) * spacingZ
@@ -66,7 +69,7 @@ export function main() {
 
     const mc = createMethodCube(method, position, paramSpacingZ, (m, cube) => {
       onParamCubeClick(m, cube)
-    })
+    }, 'readParam')
 
     paramCubes.push({ method, position, mc })
   })
@@ -75,6 +78,27 @@ export function main() {
     const paramLastZ = paramStartZ + (paramCount - 1) * paramSpacingZ
     const paramCenterZ = (paramStartZ + paramLastZ) / 2
     createSectionHeader('Read-only (with params)', Vector3.create(paramRowX, 4, paramCenterZ))
+  }
+
+  // ---- Write methods along the top border (Z=14), compact and centered ----
+  const writeRowZ = 14
+  const writeSpacingX = 2.2
+  const writeCount = writeMethods.length
+  const writeTotalWidth = (writeCount - 1) * writeSpacingX
+  const writeStartX = 8 - writeTotalWidth / 2
+
+  writeMethods.forEach((method, index) => {
+    const position = Vector3.create(writeStartX + index * writeSpacingX, 1.1, writeRowZ)
+
+    const mc = createMethodCube(method, position, writeSpacingX, (m, cube) => {
+      onParamCubeClick(m, cube)
+    }, 'write')
+
+    paramCubes.push({ method, position, mc })
+  })
+
+  if (writeCount > 0) {
+    createSectionHeader('Write methods', Vector3.create(8, 4, writeRowZ))
   }
 
   // ---- Register trigger-area system ----
@@ -124,7 +148,7 @@ function triggerAreaSystem() {
 /** Called when the UI panel Execute button returns a result. */
 function onUiExecuteResult(mc: MethodCube, success: boolean, result: string) {
   if (success) {
-    setCubeColor(mc.cube, STATE_COLORS.ready)
+    setCubeColor(mc.cube, mc.idleColor)
     setResultText(mc, result, Color4.create(0.3, 1, 0.4, 1))
   } else {
     setCubeColor(mc.cube, STATE_COLORS.error)
@@ -134,7 +158,6 @@ function onUiExecuteResult(mc: MethodCube, success: boolean, result: string) {
 
 /** Called when a parameterized cube is clicked directly. */
 function onParamCubeClick(method: Web3MethodDef, mc: MethodCube) {
-  // Gather params: use panel values if panel is open for this method, else defaults
   let params: Record<string, string> = {}
 
   if (getActiveMethodId() === method.id) {
@@ -159,7 +182,7 @@ function onParamCubeClick(method: Web3MethodDef, mc: MethodCube) {
       const elapsed = Date.now() - t0
       console.log(`[web3] ${method.name} OK (${elapsed}ms): ${result}`)
 
-      setCubeColor(mc.cube, STATE_COLORS.ready)
+      setCubeColor(mc.cube, mc.idleColor)
       setResultText(mc, result, Color4.create(0.3, 1, 0.4, 1))
       setUiResult(result, Color4.create(0.3, 1, 0.4, 1))
     } catch (err: any) {

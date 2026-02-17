@@ -17,14 +17,21 @@ import { Color4, Vector3 } from '@dcl/sdk/math'
 import { Web3MethodDef } from './methodRegistry'
 
 // --- State colors for the cube ---
-export type CubeState = 'idle' | 'pending' | 'ready' | 'error'
+export type CubeState = 'pending' | 'error'
 
 export const STATE_COLORS: Record<CubeState, Color4> = {
-  idle: Color4.fromHexString('#4a90e2'),
   pending: Color4.fromHexString('#f4b400'),
-  ready: Color4.fromHexString('#34a853'),
   error: Color4.fromHexString('#ea4335')
 }
+
+// --- Idle colors per group ---
+export const GROUP_COLORS = {
+  readSimple: Color4.fromHexString('#4a90e2'),   // blue
+  readParam:  Color4.fromHexString('#7e57c2'),   // purple
+  write:      Color4.fromHexString('#8d6e63')    // brown
+}
+
+export type GroupColorKey = keyof typeof GROUP_COLORS
 
 // --- Background colors for billboard labels ---
 const NAME_BG_COLOR = Color4.create(0.08, 0.08, 0.15, 1)
@@ -76,6 +83,7 @@ function bgHeightForLines(lines: number): number {
 // --- Entities that make up a method test cube ---
 export interface MethodCube {
   cube: Entity
+  idleColor: Color4
   resultText: Entity
   resultBg: Entity
   resultAnchor: Entity
@@ -190,8 +198,11 @@ export function createMethodCube(
   method: Web3MethodDef,
   position: Vector3,
   spacing: number,
-  onClickOverride?: (method: Web3MethodDef, mc: MethodCube) => void
+  onClickOverride?: (method: Web3MethodDef, mc: MethodCube) => void,
+  groupColor?: GroupColorKey
 ): MethodCube {
+  const idleColor = GROUP_COLORS[groupColor ?? 'readSimple']
+
   const cube = engine.addEntity()
   Transform.create(cube, {
     position,
@@ -199,7 +210,7 @@ export function createMethodCube(
   })
   MeshRenderer.setBox(cube)
   MeshCollider.setBox(cube)
-  setCubeColor(cube, STATE_COLORS.idle)
+  setCubeColor(cube, idleColor)
 
   const fontSize = 1.6
   const maxResultWidth = spacing
@@ -226,6 +237,7 @@ export function createMethodCube(
 
   const mc: MethodCube = {
     cube,
+    idleColor,
     resultText: result.text,
     resultBg: result.bg,
     resultAnchor: result.anchor,
@@ -269,7 +281,7 @@ export function executeMethod(method: Web3MethodDef, mc: MethodCube) {
       const elapsed = Date.now() - t0
       console.log(`[web3] ${method.name} OK (${elapsed}ms): ${result}`)
 
-      setCubeColor(mc.cube, STATE_COLORS.ready)
+      setCubeColor(mc.cube, mc.idleColor)
       setResultText(mc, result, Color4.create(0.3, 1, 0.4, 1))
     } catch (err: any) {
       const elapsed = Date.now() - t0

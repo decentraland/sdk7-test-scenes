@@ -248,3 +248,128 @@ export const readParamMethods: Web3MethodDef[] = [
     }
   }
 ]
+
+// --- Write methods ---
+
+const TEST_RECIPIENT = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+const SAMPLE_PERSONAL_MESSAGE = '0x48656c6c6f2c20446563656e7472616c616e6421' // "Hello, Decentraland!"
+
+const SAMPLE_TYPED_DATA = JSON.stringify({
+  types: {
+    EIP712Domain: [
+      { name: 'name', type: 'string' },
+      { name: 'version', type: 'string' },
+      { name: 'chainId', type: 'uint256' },
+      { name: 'verifyingContract', type: 'address' }
+    ],
+    Person: [
+      { name: 'name', type: 'string' },
+      { name: 'wallet', type: 'address' }
+    ],
+    Mail: [
+      { name: 'from', type: 'Person' },
+      { name: 'to', type: 'Person' },
+      { name: 'contents', type: 'string' }
+    ]
+  },
+  primaryType: 'Mail',
+  domain: {
+    name: 'Ether Mail',
+    version: '1',
+    chainId: 11155111,
+    verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC'
+  },
+  message: {
+    from: { name: 'Alice', wallet: '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826' },
+    to: { name: 'Bob', wallet: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB' },
+    contents: 'Hello, Bob!'
+  }
+})
+
+export const writeMethods: Web3MethodDef[] = [
+  // ---- 1. eth_requestAccounts ----
+  {
+    id: 'eth_requestAccounts',
+    name: 'eth_requestAccounts',
+    type: 'write',
+    execute: async () => {
+      const result = await callRpc('eth_requestAccounts')
+      const accounts = Array.isArray(result) ? result : [result]
+      return `Accounts: ${accounts.map((a: string) => shortenHex(a, 14)).join(', ')}`
+    }
+  },
+
+  // ---- 2. personal_sign ----
+  {
+    id: 'personal_sign',
+    name: 'personal_sign',
+    type: 'write',
+    params: [
+      {
+        name: 'message',
+        label: 'Message (hex)',
+        defaultValue: SAMPLE_PERSONAL_MESSAGE,
+        randomValues: [
+          SAMPLE_PERSONAL_MESSAGE,
+          '0x5369676e2074686973206d657373616765', // "Sign this message"
+          '0xdeadbeef'
+        ]
+      },
+      { name: 'address', label: 'Signer Address', defaultValue: () => getPlayerAddress() }
+    ],
+    execute: async (params) => {
+      const result = await callRpc('personal_sign', [params.message, params.address])
+      const sig = typeof result === 'string' ? result
+        : (result as any)?.result ?? JSON.stringify(result)
+      return `Sig: ${shortenHex(sig, 24)}`
+    }
+  },
+
+  // ---- 3. eth_signTypedData_v4 ----
+  {
+    id: 'eth_signTypedData_v4',
+    name: 'eth_signTypedData_v4',
+    type: 'write',
+    params: [
+      { name: 'address', label: 'Signer Address', defaultValue: () => getPlayerAddress() },
+      { name: 'typedData', label: 'Typed Data (JSON)', defaultValue: SAMPLE_TYPED_DATA }
+    ],
+    execute: async (params) => {
+      let data: any
+      try {
+        data = JSON.parse(params.typedData)
+      } catch {
+        throw new Error('Invalid JSON in typedData field')
+      }
+      const result = await callRpc('eth_signTypedData_v4', [params.address, data])
+      const sig = typeof result === 'string' ? result
+        : (result as any)?.result ?? JSON.stringify(result)
+      return `Sig: ${shortenHex(sig, 24)}`
+    }
+  },
+
+  // ---- 4. eth_sendTransaction ----
+  {
+    id: 'eth_sendTransaction',
+    name: 'eth_sendTransaction',
+    type: 'write',
+    params: [
+      { name: 'from', label: 'From', defaultValue: () => getPlayerAddress() },
+      { name: 'to', label: 'To', defaultValue: TEST_RECIPIENT, randomValues: KNOWN_CONTRACTS },
+      { name: 'value', label: 'Value (hex wei)', defaultValue: '0x0' },
+      { name: 'data', label: 'Data (hex)', defaultValue: '0x' }
+    ],
+    execute: async (params) => {
+      const txObj: Record<string, string> = {
+        from: params.from,
+        to: params.to,
+        data: params.data
+      }
+      if (params.value && params.value !== '0x0') {
+        txObj.value = params.value
+      }
+      const txHash = await callRpc('eth_sendTransaction', [txObj])
+      return `TX: ${shortenHex(txHash, 20)}`
+    }
+  }
+]
