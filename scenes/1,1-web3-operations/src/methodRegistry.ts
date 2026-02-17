@@ -19,6 +19,43 @@ export interface Web3MethodDef {
 // --- Non-parameterized read-only methods ---
 
 export const readSimpleMethods: Web3MethodDef[] = [
+  // Ordered: long-short alternating to avoid label overlap
+  {
+    id: 'eth_protocolVersion',
+    name: 'eth_protocolVersion',
+    type: 'read',
+    execute: async () => {
+      const result = await callRpc('eth_protocolVersion')
+      return `Protocol: ${result}`
+    }
+  },
+  {
+    id: 'eth_chainId',
+    name: 'eth_chainId',
+    type: 'read',
+    execute: async () => {
+      const result = await callRpc('eth_chainId')
+      return `Chain: ${quantityToDecimal(result)}`
+    }
+  },
+  {
+    id: 'web3_clientVersion',
+    name: 'web3_clientVersion',
+    type: 'read',
+    execute: async () => {
+      const result = await callRpc('web3_clientVersion')
+      return String(result)
+    }
+  },
+  {
+    id: 'net_version',
+    name: 'net_version',
+    type: 'read',
+    execute: async () => {
+      const result = await callRpc('net_version')
+      return `Network: ${result}`
+    }
+  },
   {
     id: 'eth_blockNumber',
     name: 'eth_blockNumber',
@@ -37,42 +74,6 @@ export const readSimpleMethods: Web3MethodDef[] = [
       const wei = toBigInt(result)
       const gwei = Number(wei) / 1e9
       return `${gwei.toFixed(2)} Gwei`
-    }
-  },
-  {
-    id: 'eth_chainId',
-    name: 'eth_chainId',
-    type: 'read',
-    execute: async () => {
-      const result = await callRpc('eth_chainId')
-      return `Chain: ${quantityToDecimal(result)}`
-    }
-  },
-  {
-    id: 'net_version',
-    name: 'net_version',
-    type: 'read',
-    execute: async () => {
-      const result = await callRpc('net_version')
-      return `Network: ${result}`
-    }
-  },
-  {
-    id: 'eth_protocolVersion',
-    name: 'eth_protocolVersion',
-    type: 'read',
-    execute: async () => {
-      const result = await callRpc('eth_protocolVersion')
-      return `Protocol: ${result}`
-    }
-  },
-  {
-    id: 'web3_clientVersion',
-    name: 'web3_clientVersion',
-    type: 'read',
-    execute: async () => {
-      const result = await callRpc('web3_clientVersion')
-      return String(result)
     }
   }
 ]
@@ -96,23 +97,21 @@ const ERC20_SELECTORS = [
 ]
 
 export const readParamMethods: Web3MethodDef[] = [
-  // ---- 1. eth_getBalance ----
+  // ---- eth_getTransactionCount (23) ----
   {
-    id: 'eth_getBalance',
-    name: 'eth_getBalance',
+    id: 'eth_getTransactionCount',
+    name: 'eth_getTransactionCount',
     type: 'read',
     params: [
       { name: 'address', label: 'Address', defaultValue: KNOWN_CONTRACTS[0], randomValues: KNOWN_CONTRACTS }
     ],
     execute: async (params) => {
-      const balance = await callRpc('eth_getBalance', [params.address, 'latest'])
-      const wei = toBigInt(balance)
-      const eth = Number(wei) / 1e18
-      return `${eth.toFixed(6)} ETH`
+      const count = await callRpc('eth_getTransactionCount', [params.address, 'latest'])
+      return `Nonce: ${quantityToDecimal(count)}`
     }
   },
 
-  // ---- 2. eth_call ----
+  // ---- eth_call (8) ----
   {
     id: 'eth_call',
     name: 'eth_call',
@@ -129,7 +128,7 @@ export const readParamMethods: Web3MethodDef[] = [
     }
   },
 
-  // ---- 3. eth_getStorageAt ----
+  // ---- eth_getStorageAt (16) ----
   {
     id: 'eth_getStorageAt',
     name: 'eth_getStorageAt',
@@ -145,57 +144,39 @@ export const readParamMethods: Web3MethodDef[] = [
     }
   },
 
-  // ---- 4. eth_getBlockByNumber ----
+  // ---- eth_getCode (11) ----
   {
-    id: 'eth_getBlockByNumber',
-    name: 'eth_getBlockByNumber',
+    id: 'eth_getCode',
+    name: 'eth_getCode',
     type: 'read',
     params: [
-      { name: 'block', label: 'Block (hex or tag)', defaultValue: 'latest', randomValues: ['latest', 'earliest', '0xF42400', '0x1312D00'] }
+      { name: 'address', label: 'Contract Address', defaultValue: KNOWN_CONTRACTS[0], randomValues: KNOWN_CONTRACTS }
     ],
     execute: async (params) => {
-      const block = await callRpc('eth_getBlockByNumber', [params.block, false])
-      if (!block) return 'Block not found'
-      const num = quantityToDecimal(block.number)
-      const txCount = block.transactions?.length ?? 0
-      const hash = shortenHex(block.hash, 18)
-      return `#${num} | ${txCount} txs | ${hash}`
+      const code = await callRpc('eth_getCode', [params.address, 'latest'])
+      if (!code || code === '0x') return 'No code (EOA or empty)'
+      const bytes = (code.length - 2) / 2
+      return `${code.slice(0, 20)}…${code.slice(-8)} (${bytes} bytes)`
     }
   },
 
-  // ---- 5. eth_getTransactionCount ----
+  // ---- eth_getBalance (14) ----
   {
-    id: 'eth_getTransactionCount',
-    name: 'eth_getTransactionCount',
+    id: 'eth_getBalance',
+    name: 'eth_getBalance',
     type: 'read',
     params: [
       { name: 'address', label: 'Address', defaultValue: KNOWN_CONTRACTS[0], randomValues: KNOWN_CONTRACTS }
     ],
     execute: async (params) => {
-      const count = await callRpc('eth_getTransactionCount', [params.address, 'latest'])
-      return `Nonce: ${quantityToDecimal(count)}`
+      const balance = await callRpc('eth_getBalance', [params.address, 'latest'])
+      const wei = toBigInt(balance)
+      const eth = Number(wei) / 1e18
+      return `${eth.toFixed(6)} ETH`
     }
   },
 
-  // ---- 6. eth_getTransactionReceipt ----
-  {
-    id: 'eth_getTransactionReceipt',
-    name: 'eth_getTransactionReceipt',
-    type: 'read',
-    params: [
-      { name: 'txHash', label: 'Transaction Hash', defaultValue: '0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060' }
-    ],
-    execute: async (params) => {
-      const receipt = await callRpc('eth_getTransactionReceipt', [params.txHash])
-      if (!receipt) return 'Receipt not found'
-      const status = receipt.status === '0x1' ? 'Success' : receipt.status === '0x0' ? 'Failed' : 'Pre-Byzantium'
-      const gas = quantityToDecimal(receipt.gasUsed)
-      const blk = quantityToDecimal(receipt.blockNumber)
-      return `${status} | Gas: ${gas} | Block #${blk}`
-    }
-  },
-
-  // ---- 7. eth_estimateGas ----
+  // ---- eth_estimateGas (15) ----
   {
     id: 'eth_estimateGas',
     name: 'eth_estimateGas',
@@ -213,23 +194,25 @@ export const readParamMethods: Web3MethodDef[] = [
     }
   },
 
-  // ---- 8. eth_getCode ----
+  // ---- eth_getBlockByNumber (20) ----
   {
-    id: 'eth_getCode',
-    name: 'eth_getCode',
+    id: 'eth_getBlockByNumber',
+    name: 'eth_getBlockByNumber',
     type: 'read',
     params: [
-      { name: 'address', label: 'Contract Address', defaultValue: KNOWN_CONTRACTS[0], randomValues: KNOWN_CONTRACTS }
+      { name: 'block', label: 'Block (hex or tag)', defaultValue: 'latest', randomValues: ['latest', 'earliest', '0xF42400', '0x1312D00'] }
     ],
     execute: async (params) => {
-      const code = await callRpc('eth_getCode', [params.address, 'latest'])
-      if (!code || code === '0x') return 'No code (EOA or empty)'
-      const bytes = (code.length - 2) / 2
-      return `${code.slice(0, 20)}…${code.slice(-8)} (${bytes} bytes)`
+      const block = await callRpc('eth_getBlockByNumber', [params.block, false])
+      if (!block) return 'Block not found'
+      const num = quantityToDecimal(block.number)
+      const txCount = block.transactions?.length ?? 0
+      const hash = shortenHex(block.hash, 18)
+      return `#${num} | ${txCount} txs | ${hash}`
     }
   },
 
-  // ---- 9. web3_sha3 ----
+  // ---- web3_sha3 (9) ----
   {
     id: 'web3_sha3',
     name: 'web3_sha3',
@@ -245,6 +228,24 @@ export const readParamMethods: Web3MethodDef[] = [
     execute: async (params) => {
       const hash = await callRpc('web3_sha3', [params.data])
       return String(hash)
+    }
+  },
+
+  // ---- eth_getTransactionReceipt (25) ----
+  {
+    id: 'eth_getTransactionReceipt',
+    name: 'eth_getTransactionReceipt',
+    type: 'read',
+    params: [
+      { name: 'txHash', label: 'Transaction Hash', defaultValue: '0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060' }
+    ],
+    execute: async (params) => {
+      const receipt = await callRpc('eth_getTransactionReceipt', [params.txHash])
+      if (!receipt) return 'Receipt not found'
+      const status = receipt.status === '0x1' ? 'Success' : receipt.status === '0x0' ? 'Failed' : 'Pre-Byzantium'
+      const gas = quantityToDecimal(receipt.gasUsed)
+      const blk = quantityToDecimal(receipt.blockNumber)
+      return `${status} | Gas: ${gas} | Block #${blk}`
     }
   }
 ]
@@ -287,19 +288,32 @@ const SAMPLE_TYPED_DATA = JSON.stringify({
 })
 
 export const writeMethods: Web3MethodDef[] = [
-  // ---- 1. eth_requestAccounts ----
+  // Ordered: long-short alternating to avoid label overlap
+
+  // ---- eth_signTypedData_v4 (20 chars) ----
   {
-    id: 'eth_requestAccounts',
-    name: 'eth_requestAccounts',
+    id: 'eth_signTypedData_v4',
+    name: 'eth_signTypedData_v4',
     type: 'write',
-    execute: async () => {
-      const result = await callRpc('eth_requestAccounts')
-      const accounts = Array.isArray(result) ? result : [result]
-      return `Accounts: ${accounts.map((a: string) => shortenHex(a, 14)).join(', ')}`
+    params: [
+      { name: 'address', label: 'Signer Address', defaultValue: () => getPlayerAddress() },
+      { name: 'typedData', label: 'Typed Data (JSON)', defaultValue: SAMPLE_TYPED_DATA }
+    ],
+    execute: async (params) => {
+      let data: any
+      try {
+        data = JSON.parse(params.typedData)
+      } catch {
+        throw new Error('Invalid JSON in typedData field')
+      }
+      const result = await callRpc('eth_signTypedData_v4', [params.address, data])
+      const sig = typeof result === 'string' ? result
+        : (result as any)?.result ?? JSON.stringify(result)
+      return `Sig: ${shortenHex(sig, 24)}`
     }
   },
 
-  // ---- 2. personal_sign ----
+  // ---- personal_sign (13 chars) ----
   {
     id: 'personal_sign',
     name: 'personal_sign',
@@ -325,30 +339,7 @@ export const writeMethods: Web3MethodDef[] = [
     }
   },
 
-  // ---- 3. eth_signTypedData_v4 ----
-  {
-    id: 'eth_signTypedData_v4',
-    name: 'eth_signTypedData_v4',
-    type: 'write',
-    params: [
-      { name: 'address', label: 'Signer Address', defaultValue: () => getPlayerAddress() },
-      { name: 'typedData', label: 'Typed Data (JSON)', defaultValue: SAMPLE_TYPED_DATA }
-    ],
-    execute: async (params) => {
-      let data: any
-      try {
-        data = JSON.parse(params.typedData)
-      } catch {
-        throw new Error('Invalid JSON in typedData field')
-      }
-      const result = await callRpc('eth_signTypedData_v4', [params.address, data])
-      const sig = typeof result === 'string' ? result
-        : (result as any)?.result ?? JSON.stringify(result)
-      return `Sig: ${shortenHex(sig, 24)}`
-    }
-  },
-
-  // ---- 4. eth_sendTransaction ----
+  // ---- eth_sendTransaction (19 chars) ----
   {
     id: 'eth_sendTransaction',
     name: 'eth_sendTransaction',
@@ -370,6 +361,18 @@ export const writeMethods: Web3MethodDef[] = [
       }
       const txHash = await callRpc('eth_sendTransaction', [txObj])
       return `TX: ${shortenHex(txHash, 20)}`
+    }
+  },
+
+  // ---- eth_requestAccounts (19 chars) ----
+  {
+    id: 'eth_requestAccounts',
+    name: 'eth_requestAccounts',
+    type: 'write',
+    execute: async () => {
+      const result = await callRpc('eth_requestAccounts')
+      const accounts = Array.isArray(result) ? result : [result]
+      return `Accounts: ${accounts.map((a: string) => shortenHex(a, 14)).join(', ')}`
     }
   }
 ]
