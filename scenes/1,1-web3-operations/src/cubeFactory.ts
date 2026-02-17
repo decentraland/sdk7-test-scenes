@@ -19,7 +19,7 @@ import { Web3MethodDef } from './methodRegistry'
 // --- State colors for the cube ---
 export type CubeState = 'idle' | 'pending' | 'ready' | 'error'
 
-const STATE_COLORS: Record<CubeState, Color4> = {
+export const STATE_COLORS: Record<CubeState, Color4> = {
   idle: Color4.fromHexString('#4a90e2'),
   pending: Color4.fromHexString('#f4b400'),
   ready: Color4.fromHexString('#34a853'),
@@ -186,7 +186,12 @@ function createWrappedBillboardLabel(opts: {
  * Creates a full method test cube: clickable box + name billboard + result billboard.
  * @param spacing — distance between cube centers (used to cap result label width)
  */
-export function createMethodCube(method: Web3MethodDef, position: Vector3, spacing: number): MethodCube {
+export function createMethodCube(
+  method: Web3MethodDef,
+  position: Vector3,
+  spacing: number,
+  onClickOverride?: (method: Web3MethodDef, mc: MethodCube) => void
+): MethodCube {
   const cube = engine.addEntity()
   Transform.create(cube, {
     position,
@@ -238,7 +243,13 @@ export function createMethodCube(method: Web3MethodDef, position: Vector3, spaci
         maxDistance: 10
       }
     },
-    () => executeMethod(method, mc)
+    () => {
+      if (onClickOverride) {
+        onClickOverride(method, mc)
+      } else {
+        executeMethod(method, mc)
+      }
+    }
   )
 
   return mc
@@ -246,7 +257,7 @@ export function createMethodCube(method: Web3MethodDef, position: Vector3, spaci
 
 // --- Execution logic ---
 
-function executeMethod(method: Web3MethodDef, mc: MethodCube) {
+export function executeMethod(method: Web3MethodDef, mc: MethodCube) {
   setCubeColor(mc.cube, STATE_COLORS.pending)
   setResultText(mc, 'Requesting...', Color4.Yellow())
 
@@ -273,7 +284,7 @@ function executeMethod(method: Web3MethodDef, mc: MethodCube) {
 
 // --- Helpers ---
 
-function setCubeColor(entity: Entity, color: Color4) {
+export function setCubeColor(entity: Entity, color: Color4) {
   Material.setPbrMaterial(entity, {
     albedoColor: color,
     metallic: 0.2,
@@ -281,7 +292,7 @@ function setCubeColor(entity: Entity, color: Color4) {
   })
 }
 
-function setResultText(mc: MethodCube, text: string, color: Color4, fontSizeOverride?: number) {
+export function setResultText(mc: MethodCube, text: string, color: Color4, fontSizeOverride?: number) {
   const fontSize = fontSizeOverride ?? mc.resultFontSize
   const maxChars = maxCharsForWidth(fontSize, mc.maxResultWidth)
   const wrapped = wrapText(text, maxChars)
