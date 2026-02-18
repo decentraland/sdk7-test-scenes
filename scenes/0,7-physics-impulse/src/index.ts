@@ -3,7 +3,7 @@ import { setupImpulseCube } from './impulseCube'
 import { setupImpulseTunnel } from './impulseTunnel'
 import { setupRepulsionCube } from './impulseRepulsionCube'
 import { setupPendulumBridge } from './impulsePendulumBridge'
-import { setupConfigurableZone } from './configurableZone'
+import { setupForceZone, setupImpulseZone } from './configurableZone'
 import { setupConfigurableTunnels } from './configurableTunnels'
 import { setupConfigUi } from './configUi'
 
@@ -45,8 +45,11 @@ export function main() {
     // Pendulum bridge — narrow walkway with swinging hammers
     setupPendulumBridge(18)
 
-    // === Parcel 0,8 (Z: 16–32) — Physics Configurator ===
+    // === Parcel 0,8 (Z: 16–32) — Force vs Impulse sandbox ===
 
-    // Configurable sandbox zone — enter to open UI, tweak force/impulse params
-    setupConfigurableZone(Vector3.create(8, 1.5, 24), Vector3.create(6, 3, 6))
+    // Left half: red Force zone (hold button to apply)
+    setupForceZone(Vector3.create(4, 2.5, 24), Vector3.create(7, 5, 14))
+
+    // Right half: blue Impulse zone (single fire)
+    setupImpulseZone(Vector3.create(12, 2.5, 24), Vector3.create(7, 5, 14))
 }

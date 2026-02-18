@@ -10,51 +10,60 @@ import {
     PhysicsForce
 } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
-import { showConfigPanel, hideConfigPanel } from './configUi'
+import { showForcePanel, hideForcePanel, showImpulsePanel, hideImpulsePanel } from './configUi'
 
-const ZONE_COLOR = Color4.create(0.2, 0.8, 0.6, 0.2)
-const ZONE_ACTIVE_COLOR = Color4.create(0.4, 1, 0.7, 0.25)
+const FORCE_ZONE_COLOR = Color4.create(0.8, 0.15, 0.1, 0.15)
+const IMPULSE_ZONE_COLOR = Color4.create(0.1, 0.3, 0.8, 0.15)
 
 /**
- * A trigger zone that opens the Physics Configurator UI panel
- * when the player enters, and closes it when they leave.
+ * Red zone — continuous force. UI appears with a hold-to-apply button.
  */
-export function setupConfigurableZone(position: Vector3, size: Vector3) {
+export function setupForceZone(position: Vector3, size: Vector3) {
     const zone = engine.addEntity()
     Transform.create(zone, { position, scale: size })
     MeshRenderer.setBox(zone)
-    Material.setPbrMaterial(zone, { albedoColor: ZONE_COLOR })
+    Material.setPbrMaterial(zone, { albedoColor: FORCE_ZONE_COLOR })
     TriggerArea.setBox(zone, ColliderLayer.CL_PLAYER)
 
-    // Label above zone
     const label = engine.addEntity()
     Transform.create(label, {
-        position: Vector3.create(
-            position.x,
-            position.y + size.y / 2 + 0.5,
-            position.z
-        )
+        position: Vector3.create(position.x, position.y + size.y / 2 + 0.5, position.z)
     })
-    TextShape.create(label, {
-        text: 'Physics Configurator\n(enter to configure)',
-        fontSize: 2
-    })
+    TextShape.create(label, { text: 'Force Zone\n(hold button to apply)', fontSize: 2 })
 
     triggerAreaEventsSystem.onTriggerEnter(zone, () => {
-        console.log('Entered configurator zone')
-        showConfigPanel()
-        Material.setPbrMaterial(zone, { albedoColor: ZONE_ACTIVE_COLOR })
+        showForcePanel()
     })
 
     triggerAreaEventsSystem.onTriggerExit(zone, () => {
-        console.log('Left configurator zone')
-        hideConfigPanel()
-
-        // Clean up any active force when leaving
+        hideForcePanel()
         if (PhysicsForce.getOrNull(engine.PlayerEntity)) {
             PhysicsForce.deleteFrom(engine.PlayerEntity)
         }
+    })
+}
 
-        Material.setPbrMaterial(zone, { albedoColor: ZONE_COLOR })
+/**
+ * Blue zone — single impulse. UI appears with direction/magnitude + Apply.
+ */
+export function setupImpulseZone(position: Vector3, size: Vector3) {
+    const zone = engine.addEntity()
+    Transform.create(zone, { position, scale: size })
+    MeshRenderer.setBox(zone)
+    Material.setPbrMaterial(zone, { albedoColor: IMPULSE_ZONE_COLOR })
+    TriggerArea.setBox(zone, ColliderLayer.CL_PLAYER)
+
+    const label = engine.addEntity()
+    Transform.create(label, {
+        position: Vector3.create(position.x, position.y + size.y / 2 + 0.5, position.z)
+    })
+    TextShape.create(label, { text: 'Impulse Zone\n(configure & fire)', fontSize: 2 })
+
+    triggerAreaEventsSystem.onTriggerEnter(zone, () => {
+        showImpulsePanel()
+    })
+
+    triggerAreaEventsSystem.onTriggerExit(zone, () => {
+        hideImpulsePanel()
     })
 }
