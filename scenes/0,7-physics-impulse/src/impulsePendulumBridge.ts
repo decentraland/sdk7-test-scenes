@@ -17,6 +17,7 @@ import {
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { rotateVectorByQuaternion } from './utils'
+import { getPendulumMag } from './configUi'
 
 // Bridge layout
 const BRIDGE_X = 24
@@ -36,7 +37,7 @@ const SWING_ANGLE = 60         // wider swing
 /**
  * A narrow bridge with rotating hammer pendulums that knock the player off.
  */
-export function setupPendulumBridge(pushStrength: number = 18) {
+export function setupPendulumBridge() {
     const bridgeLength = BRIDGE_Z_END - BRIDGE_Z_START
 
     // --- Bridge platform ---
@@ -69,11 +70,11 @@ export function setupPendulumBridge(pushStrength: number = 18) {
         const z = BRIDGE_Z_START + spacing * (i + 1)
         const startsLeft = i % 2 === 0
         const duration = 2000 + i * 300
-        createPendulum(z, startsLeft, duration, pushStrength)
+        createPendulum(z, startsLeft, duration)
     }
 }
 
-function createPendulum(z: number, startsLeft: boolean, duration: number, pushStrength: number) {
+function createPendulum(z: number, startsLeft: boolean, duration: number) {
     let leftTimestamp = 0
     let rightTimestamp = 0
 
@@ -129,10 +130,10 @@ function createPendulum(z: number, startsLeft: boolean, duration: number, pushSt
     const RIGHT_LOCAL_NORMAL = Vector3.create(1, 0, 0)
 
     createTriggerFace(pivot, Vector3.create(-triggerOffsetX, -ARM_LENGTH, 0), LEFT_LOCAL_NORMAL,
-        Color4.create(0.3, 0.3, 1, 0.4), pushStrength, () => leftTimestamp++)
+        Color4.create(0.3, 0.3, 1, 0.4), () => leftTimestamp++)
 
     createTriggerFace(pivot, Vector3.create(triggerOffsetX, -ARM_LENGTH, 0), RIGHT_LOCAL_NORMAL,
-        Color4.create(1, 0.3, 0.3, 0.4), pushStrength, () => rightTimestamp++)
+        Color4.create(1, 0.3, 0.3, 0.4), () => rightTimestamp++)
 }
 
 /**
@@ -145,7 +146,6 @@ function createTriggerFace(
     localPosition: Vector3,
     localNormal: Vector3,
     color: Color4,
-    pushStrength: number,
     incrementTimestamp: () => number
 ) {
     const trigger = engine.addEntity()
@@ -164,12 +164,13 @@ function createTriggerFace(
         // Read the pivot's current rotation and transform the local normal to world space
         const pivotRotation = Transform.get(pivot).rotation
         const worldNormal = rotateVectorByQuaternion(localNormal, pivotRotation)
+        const mag = getPendulumMag()
 
         PhysicsImpulse.createOrReplace(engine.PlayerEntity, {
             direction: Vector3.create(
-                worldNormal.x * pushStrength,
-                worldNormal.y * pushStrength,
-                worldNormal.z * pushStrength
+                worldNormal.x * mag,
+                worldNormal.y * mag,
+                worldNormal.z * mag
             ),
             timestamp: ts
         })

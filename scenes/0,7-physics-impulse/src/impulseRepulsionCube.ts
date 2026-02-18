@@ -10,26 +10,30 @@ import {
     triggerAreaEventsSystem,
     PhysicsImpulse
 } from '@dcl/sdk/ecs'
-import { Color4, Vector3 } from '@dcl/sdk/math'
+import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
+import { getRepulsionMag } from './configUi'
 
 const TRIGGER_THICKNESS = 0.3
-interface FaceTrigger {
+
+interface FaceDef {
     offset: Vector3
     size: Vector3
-    direction: Vector3
+    /** Unit-length normal — multiplied by dynamic magnitude at runtime */
+    normal: Vector3
     color: Color4
 }
+
+const LABEL_ROT = Quaternion.fromEulerDegrees(0, 180, 0)
 
 /**
  * A solid cube with thin trigger zones on each face.
  * Each trigger pushes the player away along the face normal.
- * 4 horizontal sides + 1 top (jump-pad).
+ * Magnitude is read dynamically from the UI state.
  */
-export function setupRepulsionCube(position: Vector3, impulseStrength: number = 15, cubeSize: number = 2) {
+export function setupRepulsionCube(position: Vector3, cubeSize: number = 2) {
     const half = cubeSize / 2
     const triggerOffset = half + TRIGGER_THICKNESS / 2
 
-    // Solid cube
     const cube = engine.addEntity()
     Transform.create(cube, {
         position: Vector3.create(position.x, position.y + half, position.z),
@@ -41,10 +45,10 @@ export function setupRepulsionCube(position: Vector3, impulseStrength: number = 
         albedoColor: Color4.create(0.6, 0.6, 0.6, 1)
     })
 
-    // Label
     const label = engine.addEntity()
     Transform.create(label, {
-        position: Vector3.create(position.x, position.y + cubeSize + 1, position.z)
+        position: Vector3.create(position.x, position.y + cubeSize + 1, position.z),
+        rotation: LABEL_ROT
     })
     TextShape.create(label, {
         text: 'Repulsion cube\n(push from each face)',
@@ -53,36 +57,35 @@ export function setupRepulsionCube(position: Vector3, impulseStrength: number = 
 
     const cubeCenter = Vector3.create(position.x, position.y + half, position.z)
 
-    // Define 5 face triggers: 4 horizontal + 1 top
-    const faces: FaceTrigger[] = [
-        {   // X+ (right)
+    const faces: FaceDef[] = [
+        {
             offset: Vector3.create(triggerOffset, 0, 0),
             size: Vector3.create(TRIGGER_THICKNESS, cubeSize, cubeSize),
-            direction: Vector3.create(impulseStrength, 0, 0),
+            normal: Vector3.create(1, 0, 0),
             color: Color4.create(1, 0.3, 0.3, 0.4)
         },
-        {   // X- (left)
+        {
             offset: Vector3.create(-triggerOffset, 0, 0),
             size: Vector3.create(TRIGGER_THICKNESS, cubeSize, cubeSize),
-            direction: Vector3.create(-impulseStrength, 0, 0),
+            normal: Vector3.create(-1, 0, 0),
             color: Color4.create(0.3, 0.3, 1, 0.4)
         },
-        {   // Z+ (forward)
+        {
             offset: Vector3.create(0, 0, triggerOffset),
             size: Vector3.create(cubeSize, cubeSize, TRIGGER_THICKNESS),
-            direction: Vector3.create(0, 0, impulseStrength),
+            normal: Vector3.create(0, 0, 1),
             color: Color4.create(1, 0.3, 0.3, 0.4)
         },
-        {   // Z- (back)
+        {
             offset: Vector3.create(0, 0, -triggerOffset),
             size: Vector3.create(cubeSize, cubeSize, TRIGGER_THICKNESS),
-            direction: Vector3.create(0, 0, -impulseStrength),
+            normal: Vector3.create(0, 0, -1),
             color: Color4.create(0.3, 0.3, 1, 0.4)
         },
-        {   // Y+ (top — jump pad)
+        {
             offset: Vector3.create(0, triggerOffset, 0),
             size: Vector3.create(cubeSize, TRIGGER_THICKNESS, cubeSize),
-            direction: Vector3.create(0, impulseStrength, 0),
+            normal: Vector3.create(0, 1, 0),
             color: Color4.create(0.3, 1, 0.3, 0.4)
         }
     ]
@@ -92,7 +95,7 @@ export function setupRepulsionCube(position: Vector3, impulseStrength: number = 
     }
 }
 
-function createFaceTrigger(cubeCenter: Vector3, face: FaceTrigger) {
+function createFaceTrigger(cubeCenter: Vector3, face: FaceDef) {
     let localTimestamp = 0
 
     const trigger = engine.addEntity()
@@ -109,9 +112,14 @@ function createFaceTrigger(cubeCenter: Vector3, face: FaceTrigger) {
     TriggerArea.setBox(trigger, ColliderLayer.CL_PLAYER)
 
     triggerAreaEventsSystem.onTriggerEnter(trigger, () => {
+        const mag = getRepulsionMag()
         localTimestamp++
         PhysicsImpulse.createOrReplace(engine.PlayerEntity, {
-            direction: face.direction,
+            direction: Vector3.create(
+                face.normal.x * mag,
+                face.normal.y * mag,
+                face.normal.z * mag
+            ),
             timestamp: localTimestamp
         })
         Material.setPbrMaterial(trigger, {

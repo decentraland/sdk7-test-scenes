@@ -10,16 +10,19 @@ import {
     triggerAreaEventsSystem,
     PhysicsImpulse
 } from '@dcl/sdk/ecs'
-import { Color4, Vector3 } from '@dcl/sdk/math'
+import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
+import { getCubeDir } from './configUi'
 
 let timestamp = 0
 
+const LABEL_ROT = Quaternion.fromEulerDegrees(0, 180, 0)
+
 /**
  * A cube with a trigger area around it.
- * When the player enters the trigger, a single impulse at 45° is applied.
+ * When the player enters the trigger, a single impulse is applied.
+ * Direction and magnitude are read dynamically from the UI state.
  */
-export function setupImpulseCube(position: Vector3, magnitude: number = 20) {
-    // Visible cube
+export function setupImpulseCube(position: Vector3) {
     const cube = engine.addEntity()
     Transform.create(cube, {
         position: Vector3.create(position.x, position.y + 0.5, position.z),
@@ -31,7 +34,6 @@ export function setupImpulseCube(position: Vector3, magnitude: number = 20) {
         albedoColor: Color4.create(0.2, 0.4, 0.9, 1)
     })
 
-    // Trigger area around the cube
     const trigger = engine.addEntity()
     Transform.create(trigger, {
         position: Vector3.create(position.x, position.y + 1.5, position.z),
@@ -43,29 +45,20 @@ export function setupImpulseCube(position: Vector3, magnitude: number = 20) {
     })
     TriggerArea.setBox(trigger, ColliderLayer.CL_PLAYER)
 
-    // Label
     const label = engine.addEntity()
     Transform.create(label, {
-        position: Vector3.create(position.x, position.y + 3.5, position.z)
+        position: Vector3.create(position.x, position.y + 3.5, position.z),
+        rotation: LABEL_ROT
     })
     TextShape.create(label, {
-        text: 'Step here\n(single impulse 45\u00B0)',
+        text: 'Impulse Cube\n(single impulse on enter)',
         fontSize: 2
     })
 
-    // Impulse direction: 45° up
-    const angle = Math.PI / 4
-    const direction = Vector3.create(
-        0,
-        Math.sin(angle) * magnitude,
-        Math.cos(angle) * magnitude
-    )
-
     triggerAreaEventsSystem.onTriggerEnter(trigger, () => {
-        console.log('Cube: single impulse at 45°')
         timestamp++
         PhysicsImpulse.createOrReplace(engine.PlayerEntity, {
-            direction,
+            direction: getCubeDir(),
             timestamp
         })
         Material.setPbrMaterial(trigger, {
