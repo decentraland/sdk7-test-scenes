@@ -1,61 +1,20 @@
 import { Vector3 } from '@dcl/sdk/math'
-import { Color4 } from '@dcl/sdk/math'
 import { setupImpulseCube } from './impulseCube'
 import { setupImpulseTunnel } from './impulseTunnel'
-import { setupForceTunnel } from './forceTunnel'
 import { setupRepulsionCube } from './impulseRepulsionCube'
 import { setupPendulumBridge } from './impulsePendulumBridge'
+import { setupConfigurableZone } from './configurableZone'
+import { setupConfigurableTunnels } from './configurableTunnels'
+import { setupConfigUi } from './configUi'
 
 export function main() {
+    // UI renderer (once, before everything else)
+    setupConfigUi()
+
     // === Parcel -1,7 (X: -16–0) — Force vs Impulse comparison ===
-
-    // Horizontal tunnels (along Z, side by side)
-    setupForceTunnel({
-        position: Vector3.create(-12, 1.5, 8),
-        size: Vector3.create(2, 3, 12),
-        forceDirection: Vector3.create(0, 0, 10),
-        label: 'Force forward\n(strength 10)',
-        color: Color4.create(0.1, 0.4, 0.8, 0.25)
-    })
-
-    setupForceTunnel({
-        position: Vector3.create(-8, 1.5, 8),
-        size: Vector3.create(2, 3, 12),
-        forceDirection: Vector3.create(0, 0, 25),
-        label: 'Force forward\n(strength 25)',
-        color: Color4.create(0.1, 0.2, 0.9, 0.25)
-    })
-
-    setupImpulseTunnel({
-        position: Vector3.create(-4, 1.5, 8),
-        size: Vector3.create(2, 3, 12),
-        impulseDirection: Vector3.create(0, 0, 10),
-        label: 'Impulse forward\n(for comparison)'
-    })
-
-    // Vertical tunnels (pipes going up, side by side)
-    setupForceTunnel({
-        position: Vector3.create(-12, 5, 2),
-        size: Vector3.create(2, 10, 2),
-        forceDirection: Vector3.create(0, 10, 0),
-        label: 'Force up\n(strength 10)',
-        color: Color4.create(0.1, 0.4, 0.8, 0.25)
-    })
-
-    setupForceTunnel({
-        position: Vector3.create(-8, 5, 2),
-        size: Vector3.create(2, 10, 2),
-        forceDirection: Vector3.create(0, 25, 0),
-        label: 'Force up\n(strength 25)',
-        color: Color4.create(0.1, 0.2, 0.9, 0.25)
-    })
-
-    setupImpulseTunnel({
-        position: Vector3.create(-4, 5, 2),
-        size: Vector3.create(2, 10, 2),
-        impulseDirection: Vector3.create(0, 10, 0),
-        label: 'Impulse up\n(for comparison)'
-    })
+    // 2 horizontal (Force + Impulse) + 2 vertical (Force + Impulse)
+    // Trigger zone around them opens the magnitude UI
+    setupConfigurableTunnels()
 
     // === Parcel 0,7 (X: 0–16) ===
 
@@ -85,4 +44,9 @@ export function main() {
 
     // Pendulum bridge — narrow walkway with swinging hammers
     setupPendulumBridge(18)
+
+    // === Parcel 0,8 (Z: 16–32) — Physics Configurator ===
+
+    // Configurable sandbox zone — enter to open UI, tweak force/impulse params
+    setupConfigurableZone(Vector3.create(8, 1.5, 24), Vector3.create(6, 3, 6))
 }
