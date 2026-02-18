@@ -47,7 +47,7 @@ export function setupForceTunnel(config: ForceTunnelConfig) {
     })
     TextShape.create(label, {
         text: config.label,
-        fontSize: 2
+        fontSize: 3
     })
 
     // On enter: apply force
