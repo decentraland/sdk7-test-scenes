@@ -1,0 +1,41 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Web3 Operations",
+    "description": "Test scene for web3 RPC methods (read and write)",
+    "navmapThumbnail": "images/scene-thumbnail.png"
+  },
+  "owner": "",
+  "creator": "0x31d4f4dd8615ec45bbb6330da69f60032aca219e",
+  "contact": {
+    "name": "SDK",
+    "email": ""
+  },
+  "main": "bin/index.js",
+  "tags": ["web3", "testing"],
+  "scene": {
+    "parcels": [
+      "1,1"
+    ],
+    "base": "1,1"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [7, 9],
+        "y": [0, 0],
+        "z": [1, 2]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1.5,
+        "z": 14
+      }
+    }
+  ],
+  "featureToggles": {},
+  "name": "web3-operations"
+}
