@@ -59,6 +59,33 @@ export function main() {
         }
     )
 
+    //// MoveRotateScaleContinuous
+    const moveRotateScaleContinuousEntity = engine.addEntity()
+    Transform.create(moveRotateScaleContinuousEntity, {
+        position: Vector3.create(12, 1, 4),
+    })
+    MeshRenderer.setBox(moveRotateScaleContinuousEntity)
+    MeshCollider.setBox(moveRotateScaleContinuousEntity)
+    pointerEventsSystem.onPointerDown(
+        { entity: moveRotateScaleContinuousEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'toggle' } },
+        () => {
+            const comp = Tween.getMutableOrNull(moveRotateScaleContinuousEntity)
+            if (comp) {
+                comp.playing = !comp.playing
+                return
+            }
+
+            Tween.setMoveRotateScaleContinuous(
+                moveRotateScaleContinuousEntity,
+                Vector3.create(0, 0.1, 0),
+                Quaternion.fromEulerDegrees(0, 5, 0),
+                // Vector3.Zero(),
+                Vector3.create(0.01, 0.01, 0.01),
+                5
+            )
+        }
+    )
+
     //// Continuous TextureMove
     const continuousTexMoveEntity = engine.addEntity()
     Transform.create(continuousTexMoveEntity, {
