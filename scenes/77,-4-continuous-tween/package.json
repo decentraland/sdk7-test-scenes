@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "dependencies": {
     "@dcl-sdk/utils": "latest",
-    "@dcl/sdk": "^7.10.6-18360453790.commit-2ff55cb",
-    "@dcl/js-runtime": "7.10.6-18360453790.commit-2ff55cb"
+    "@dcl/js-runtime": "7.19.0",
+    "@dcl/sdk": "^7.19.0"
   },
   "scripts": {
     "build": "sdk-commands build --skip-install",
