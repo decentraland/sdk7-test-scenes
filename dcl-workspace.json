@@ -10,6 +10,9 @@
       "path": "scenes/88,-10-audio-visualization"
     },
     {
+      "path": "scenes/81,-3-ui-2"
+    },
+    {
       "path": "scenes/80,-4-restricted-actions"
     },
     {
@@ -29,6 +32,9 @@
     },
     {
       "path": "scenes/8,7-portable-experience-hide-ui"
+    },
+    {
+      "path": "scenes/78,-4-tweens"
     },
     {
       "path": "scenes/77,-5-tweens-moving-platforms"

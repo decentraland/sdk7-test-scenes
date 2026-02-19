@@ -1,6 +1,6 @@
 {
-  "name": "continuous-tween",
-  "description": "Continuous Tween",
+  "name": "tweens",
+  "description": "All Tweens",
   "version": "1.0.0",
   "dependencies": {
     "@dcl-sdk/utils": "latest",
