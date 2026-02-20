@@ -124,6 +124,9 @@
       "path": "scenes/1,0-visibility-comp-propagation"
     },
     {
+      "path": "scenes/0,7-physics-impulse"
+    },
+    {
       "path": "scenes/0,6-ui-zindex-and-opacity"
     },
     {
