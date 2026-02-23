@@ -8,7 +8,7 @@ import {
     TextShape,
     TriggerArea,
     triggerAreaEventsSystem,
-    PhysicsImpulse,
+    Physics,
     Tween,
     TweenSequence,
     TweenLoop,
@@ -75,9 +75,6 @@ export function setupPendulumBridge() {
 }
 
 function createPendulum(z: number, startsLeft: boolean, duration: number) {
-    let leftTimestamp = 0
-    let rightTimestamp = 0
-
     const pivotY = BRIDGE_Y + ARM_LENGTH + HAMMER_SIZE / 2 + 0.3
     const pivot = engine.addEntity()
     Transform.create(pivot, {
@@ -130,10 +127,10 @@ function createPendulum(z: number, startsLeft: boolean, duration: number) {
     const RIGHT_LOCAL_NORMAL = Vector3.create(1, 0, 0)
 
     createTriggerFace(pivot, Vector3.create(-triggerOffsetX, -ARM_LENGTH, 0), LEFT_LOCAL_NORMAL,
-        Color4.create(0.3, 0.3, 1, 0.4), () => leftTimestamp++)
+        Color4.create(0.3, 0.3, 1, 0.4))
 
     createTriggerFace(pivot, Vector3.create(triggerOffsetX, -ARM_LENGTH, 0), RIGHT_LOCAL_NORMAL,
-        Color4.create(1, 0.3, 0.3, 0.4), () => rightTimestamp++)
+        Color4.create(1, 0.3, 0.3, 0.4))
 }
 
 /**
@@ -145,8 +142,7 @@ function createTriggerFace(
     pivot: Entity,
     localPosition: Vector3,
     localNormal: Vector3,
-    color: Color4,
-    incrementTimestamp: () => number
+    color: Color4
 ) {
     const trigger = engine.addEntity()
     Transform.create(trigger, {
@@ -159,20 +155,8 @@ function createTriggerFace(
     TriggerArea.setBox(trigger, ColliderLayer.CL_PLAYER)
 
     triggerAreaEventsSystem.onTriggerEnter(trigger, () => {
-        const ts = incrementTimestamp()
-
-        // Read the pivot's current rotation and transform the local normal to world space
         const pivotRotation = Transform.get(pivot).rotation
         const worldNormal = rotateVectorByQuaternion(localNormal, pivotRotation)
-        const mag = getPendulumMag()
-
-        PhysicsImpulse.createOrReplace(engine.PlayerEntity, {
-            direction: Vector3.create(
-                worldNormal.x * mag,
-                worldNormal.y * mag,
-                worldNormal.z * mag
-            ),
-            timestamp: ts
-        })
+        Physics.applyImpulseToPlayer(worldNormal, getPendulumMag())
     })
 }

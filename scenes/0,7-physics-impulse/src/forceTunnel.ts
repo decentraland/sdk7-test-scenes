@@ -7,7 +7,7 @@ import {
     TextShape,
     TriggerArea,
     triggerAreaEventsSystem,
-    PhysicsForce
+    Physics
 } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
 
@@ -50,19 +50,17 @@ export function setupForceTunnel(config: ForceTunnelConfig) {
         fontSize: 3
     })
 
-    // On enter: apply force
+    // On enter: apply force (tunnel entity is the source key in the registry)
     triggerAreaEventsSystem.onTriggerEnter(tunnel, () => {
         console.log(`Force tunnel "${config.label}": force applied`)
-        PhysicsForce.createOrReplace(engine.PlayerEntity, {
-            direction: config.forceDirection
-        })
+        Physics.applyForceToPlayer(tunnel, config.forceDirection)
         Material.setPbrMaterial(tunnel, { albedoColor: activeColor })
     })
 
     // On exit: remove force
     triggerAreaEventsSystem.onTriggerExit(tunnel, () => {
         console.log(`Force tunnel "${config.label}": force removed`)
-        PhysicsForce.deleteFrom(engine.PlayerEntity)
+        Physics.removeForceFromPlayer(tunnel)
         Material.setPbrMaterial(tunnel, { albedoColor: defaultColor })
     })
 }

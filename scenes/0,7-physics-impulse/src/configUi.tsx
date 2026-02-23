@@ -1,7 +1,9 @@
 import ReactEcs, { ReactEcsRenderer, UiEntity, Label, Button, Input } from '@dcl/sdk/react-ecs'
 import { Color4 } from '@dcl/sdk/math'
-import { engine, PhysicsForce, PhysicsImpulse } from '@dcl/sdk/ecs'
+import { engine, Physics } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
+
+const uiForceSource = engine.addEntity()
 
 // ---------------------------------------------------------------------------
 // Panel type
@@ -156,15 +158,7 @@ function applyTunnelMagnitudes() {
         tunnelStatus = 'Invalid number'; tunnelStatusColor = Color4.create(1, 0.4, 0.4, 1); return
     }
     horizontalMag = h; verticalMag = v
-    if (PhysicsForce.getOrNull(engine.PlayerEntity)) {
-        const dir = PhysicsForce.get(engine.PlayerEntity).direction
-        if (dir && dir.y !== 0) {
-            PhysicsForce.createOrReplace(engine.PlayerEntity, { direction: Vector3.create(0, v, 0) })
-        } else if (dir) {
-            PhysicsForce.createOrReplace(engine.PlayerEntity, { direction: Vector3.create(0, 0, h) })
-        }
-    }
-    tunnelStatus = `Applied: Horizontal=${h}, Vertical=${v}`
+    tunnelStatus = `Applied: Horizontal=${h}, Vertical=${v} (re-enter tunnel to feel change)`
     tunnelStatusColor = Color4.create(0.3, 1, 0.4, 1)
 }
 
@@ -382,7 +376,10 @@ let forceStatus = ''
 let forceStatusColor: Color4 = Color4.White()
 
 export function showForcePanel() { activePanel = 'forceConfig'; forceStatus = '' }
-export function hideForcePanel() { activePanel = 'none'; forceStatus = ''; forceHeld = false }
+export function hideForcePanel() {
+    activePanel = 'none'; forceStatus = ''
+    if (forceHeld) stopUiForce()
+}
 
 function computeForceDir(): Vector3 {
     const x = parseFloat(forceDirX) || 0
@@ -396,23 +393,21 @@ function computeForceDir(): Vector3 {
 
 function startForce() {
     const dir = computeForceDir()
-    PhysicsForce.createOrReplace(engine.PlayerEntity, { direction: dir })
+    Physics.applyForceToPlayer(uiForceSource, dir)
     forceHeld = true
     forceStatus = `Force ON: (${dir.x.toFixed(1)}, ${dir.y.toFixed(1)}, ${dir.z.toFixed(1)})`
     forceStatusColor = Color4.create(0.3, 1, 0.4, 1)
 }
 
 function startForceDir(dir: Vector3) {
-    PhysicsForce.createOrReplace(engine.PlayerEntity, { direction: dir })
+    Physics.applyForceToPlayer(uiForceSource, dir)
     forceHeld = true
     forceStatus = `Force ON: (${dir.x.toFixed(1)}, ${dir.y.toFixed(1)}, ${dir.z.toFixed(1)})`
     forceStatusColor = Color4.create(0.3, 1, 0.4, 1)
 }
 
-function stopForce() {
-    if (PhysicsForce.getOrNull(engine.PlayerEntity)) {
-        PhysicsForce.deleteFrom(engine.PlayerEntity)
-    }
+export function stopUiForce() {
+    Physics.removeForceFromPlayer(uiForceSource)
     forceHeld = false
     forceStatus = 'Force OFF'
     forceStatusColor = Color4.create(0.7, 0.7, 0.7, 1)
@@ -447,13 +442,13 @@ function ForceConfigPanel(): ReactEcs.JSX.Element {
                     ? { color: Color4.create(0.2, 0.8, 0.3, 1) }
                     : { color: Color4.create(0.7, 0.2, 0.15, 1) }}
                 onMouseDown={() => startForce()}
-                onMouseUp={() => stopForce()}
+                onMouseUp={() => stopUiForce()}
             />
 
             {DPadBlock({
                 getMag: () => parseFloat(forceMag) || 10,
                 onDir: (dir) => startForceDir(dir),
-                onRelease: () => stopForce()
+                onRelease: () => stopUiForce()
             })}
 
             {StatusBlock(forceStatus, forceStatusColor)}
@@ -469,7 +464,6 @@ let impDirX = '0'
 let impDirY = '1'
 let impDirZ = '0'
 let impMag = '10'
-let impTs = 0
 let impStatus = ''
 let impStatusColor: Color4 = Color4.White()
 
@@ -481,21 +475,21 @@ function fireImpulse() {
     const y = parseFloat(impDirY) || 0
     const z = parseFloat(impDirZ) || 0
     const mag = parseFloat(impMag) || 0
-    const len = Math.sqrt(x * x + y * y + z * z)
-    const dir = len === 0
-        ? Vector3.create(0, mag, 0)
-        : Vector3.create((x / len) * mag, (y / len) * mag, (z / len) * mag)
+    const direction = (x === 0 && y === 0 && z === 0)
+        ? Vector3.create(0, 1, 0)
+        : Vector3.create(x, y, z)
 
-    impTs++
-    PhysicsImpulse.createOrReplace(engine.PlayerEntity, { direction: dir, timestamp: impTs })
-    impStatus = `Impulse #${impTs}: (${dir.x.toFixed(1)}, ${dir.y.toFixed(1)}, ${dir.z.toFixed(1)})`
+    Physics.applyImpulseToPlayer(direction, mag)
+
+    const len = Math.sqrt(direction.x ** 2 + direction.y ** 2 + direction.z ** 2)
+    const scaled = Vector3.create(direction.x / len * mag, direction.y / len * mag, direction.z / len * mag)
+    impStatus = `Impulse: (${scaled.x.toFixed(1)}, ${scaled.y.toFixed(1)}, ${scaled.z.toFixed(1)})`
     impStatusColor = Color4.create(0.3, 0.8, 1, 1)
 }
 
 function fireImpulseDir(dir: Vector3) {
-    impTs++
-    PhysicsImpulse.createOrReplace(engine.PlayerEntity, { direction: dir, timestamp: impTs })
-    impStatus = `Impulse #${impTs}: (${dir.x.toFixed(1)}, ${dir.y.toFixed(1)}, ${dir.z.toFixed(1)})`
+    Physics.applyImpulseToPlayer(dir)
+    impStatus = `Impulse: (${dir.x.toFixed(1)}, ${dir.y.toFixed(1)}, ${dir.z.toFixed(1)})`
     impStatusColor = Color4.create(0.3, 0.8, 1, 1)
 }
 

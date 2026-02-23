@@ -7,7 +7,7 @@ import {
     TextShape,
     TriggerArea,
     triggerAreaEventsSystem,
-    PhysicsImpulse
+    Physics
 } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
 
@@ -23,9 +23,6 @@ export interface TunnelConfig {
  * While the player stays inside, a physics impulse is applied every frame.
  */
 export function setupImpulseTunnel(config: TunnelConfig) {
-    // Each tunnel gets its own timestamp counter via closure
-    let localTimestamp = 0
-
     const tunnel = engine.addEntity()
     Transform.create(tunnel, {
         position: config.position,
@@ -53,11 +50,7 @@ export function setupImpulseTunnel(config: TunnelConfig) {
 
     // Continuous impulse every frame while inside
     triggerAreaEventsSystem.onTriggerStay(tunnel, () => {
-        localTimestamp++
-        PhysicsImpulse.createOrReplace(engine.PlayerEntity, {
-            direction: config.impulseDirection,
-            timestamp: localTimestamp
-        })
+        Physics.applyImpulseToPlayer(config.impulseDirection)
     })
 
     // Visual feedback

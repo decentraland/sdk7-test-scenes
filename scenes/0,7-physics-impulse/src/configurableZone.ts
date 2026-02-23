@@ -6,11 +6,10 @@ import {
     Transform,
     TextShape,
     TriggerArea,
-    triggerAreaEventsSystem,
-    PhysicsForce
+    triggerAreaEventsSystem
 } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
-import { showForcePanel, hideForcePanel, showImpulsePanel, hideImpulsePanel } from './configUi'
+import { showForcePanel, hideForcePanel, showImpulsePanel, hideImpulsePanel, stopUiForce } from './configUi'
 
 const FORCE_ZONE_COLOR = Color4.create(0.8, 0.15, 0.1, 0.15)
 const IMPULSE_ZONE_COLOR = Color4.create(0.1, 0.3, 0.8, 0.15)
@@ -37,9 +36,7 @@ export function setupForceZone(position: Vector3, size: Vector3) {
 
     triggerAreaEventsSystem.onTriggerExit(zone, () => {
         hideForcePanel()
-        if (PhysicsForce.getOrNull(engine.PlayerEntity)) {
-            PhysicsForce.deleteFrom(engine.PlayerEntity)
-        }
+        stopUiForce()
     })
 }
 

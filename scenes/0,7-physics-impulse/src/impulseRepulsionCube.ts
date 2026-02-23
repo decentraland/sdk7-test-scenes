@@ -8,7 +8,7 @@ import {
     TextShape,
     TriggerArea,
     triggerAreaEventsSystem,
-    PhysicsImpulse
+    Physics
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { getRepulsionMag } from './configUi'
@@ -96,8 +96,6 @@ export function setupRepulsionCube(position: Vector3, cubeSize: number = 2) {
 }
 
 function createFaceTrigger(cubeCenter: Vector3, face: FaceDef) {
-    let localTimestamp = 0
-
     const trigger = engine.addEntity()
     Transform.create(trigger, {
         position: Vector3.create(
@@ -112,16 +110,7 @@ function createFaceTrigger(cubeCenter: Vector3, face: FaceDef) {
     TriggerArea.setBox(trigger, ColliderLayer.CL_PLAYER)
 
     triggerAreaEventsSystem.onTriggerEnter(trigger, () => {
-        const mag = getRepulsionMag()
-        localTimestamp++
-        PhysicsImpulse.createOrReplace(engine.PlayerEntity, {
-            direction: Vector3.create(
-                face.normal.x * mag,
-                face.normal.y * mag,
-                face.normal.z * mag
-            ),
-            timestamp: localTimestamp
-        })
+        Physics.applyImpulseToPlayer(face.normal, getRepulsionMag())
         Material.setPbrMaterial(trigger, {
             albedoColor: Color4.create(1, 1, 1, 0.5)
         })

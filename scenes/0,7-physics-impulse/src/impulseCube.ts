@@ -8,12 +8,10 @@ import {
     TextShape,
     TriggerArea,
     triggerAreaEventsSystem,
-    PhysicsImpulse
+    Physics
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { getCubeDir } from './configUi'
-
-let timestamp = 0
 
 const LABEL_ROT = Quaternion.fromEulerDegrees(0, 180, 0)
 
@@ -56,11 +54,7 @@ export function setupImpulseCube(position: Vector3) {
     })
 
     triggerAreaEventsSystem.onTriggerEnter(trigger, () => {
-        timestamp++
-        PhysicsImpulse.createOrReplace(engine.PlayerEntity, {
-            direction: getCubeDir(),
-            timestamp
-        })
+        Physics.applyImpulseToPlayer(getCubeDir())
         Material.setPbrMaterial(trigger, {
             albedoColor: Color4.create(0.2, 1, 0.2, 0.3)
         })

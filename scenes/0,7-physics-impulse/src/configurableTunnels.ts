@@ -1,5 +1,6 @@
 import {
     engine,
+    Entity,
     ColliderLayer,
     Material,
     MeshRenderer,
@@ -7,8 +8,7 @@ import {
     TextShape,
     TriggerArea,
     triggerAreaEventsSystem,
-    PhysicsForce,
-    PhysicsImpulse
+    Physics
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { showTunnelPanel, hideTunnelPanel, getHorizontalMag, getVerticalMag } from './configUi'
@@ -33,6 +33,8 @@ const IMPULSE_ACTIVE = Color4.create(1, 0.3, 0.2, 0.3)
 export function setupConfigurableTunnels() {
     const facingBack = Quaternion.fromEulerDegrees(0, 180, 0)
 
+    const forceTunnels: Entity[] = []
+
     // Left = Impulse (red), Right = Force (blue)
 
     // --- Horizontal Impulse tunnel (Z+) ---
@@ -43,11 +45,11 @@ export function setupConfigurableTunnels() {
     )
 
     // --- Horizontal Force tunnel (Z+) ---
-    createForceTunnel(
+    forceTunnels.push(createForceTunnel(
         Vector3.create(-6, 1.5, 8), Vector3.create(2, 3, 12),
         () => Vector3.create(0, 0, getHorizontalMag()),
         'Force forward', facingBack
-    )
+    ))
 
     // --- Vertical Impulse tunnel (Y+) ---
     createImpulseTunnel(
@@ -57,11 +59,11 @@ export function setupConfigurableTunnels() {
     )
 
     // --- Vertical Force tunnel (Y+) ---
-    createForceTunnel(
+    forceTunnels.push(createForceTunnel(
         Vector3.create(-6, 5, 2), Vector3.create(2, 10, 2),
         () => Vector3.create(0, getVerticalMag(), 0),
         'Force up', facingBack
-    )
+    ))
 
     // --- Invisible trigger zone around all tunnels — shows/hides UI ---
     const zone = engine.addEntity()
@@ -77,8 +79,8 @@ export function setupConfigurableTunnels() {
 
     triggerAreaEventsSystem.onTriggerExit(zone, () => {
         hideTunnelPanel()
-        if (PhysicsForce.getOrNull(engine.PlayerEntity)) {
-            PhysicsForce.deleteFrom(engine.PlayerEntity)
+        for (const t of forceTunnels) {
+            Physics.removeForceFromPlayer(t)
         }
     })
 }
@@ -91,7 +93,7 @@ function createForceTunnel(
     position: Vector3, size: Vector3,
     getDirection: () => Vector3, label: string,
     labelRotation: { x: number; y: number; z: number; w: number }
-) {
+): Entity {
     const tunnel = engine.addEntity()
     Transform.create(tunnel, { position, scale: size })
     MeshRenderer.setBox(tunnel)
@@ -106,14 +108,16 @@ function createForceTunnel(
     TextShape.create(labelEntity, { text: label, fontSize: 2 })
 
     triggerAreaEventsSystem.onTriggerEnter(tunnel, () => {
-        PhysicsForce.createOrReplace(engine.PlayerEntity, { direction: getDirection() })
+        Physics.applyForceToPlayer(tunnel, getDirection())
         Material.setPbrMaterial(tunnel, { albedoColor: FORCE_ACTIVE })
     })
 
     triggerAreaEventsSystem.onTriggerExit(tunnel, () => {
-        PhysicsForce.deleteFrom(engine.PlayerEntity)
+        Physics.removeForceFromPlayer(tunnel)
         Material.setPbrMaterial(tunnel, { albedoColor: FORCE_COLOR })
     })
+
+    return tunnel
 }
 
 function createImpulseTunnel(
@@ -121,8 +125,6 @@ function createImpulseTunnel(
     getDirection: () => Vector3, label: string,
     labelRotation: { x: number; y: number; z: number; w: number }
 ) {
-    let ts = 0
-
     const tunnel = engine.addEntity()
     Transform.create(tunnel, { position, scale: size })
     MeshRenderer.setBox(tunnel)
@@ -137,11 +139,7 @@ function createImpulseTunnel(
     TextShape.create(labelEntity, { text: label, fontSize: 2 })
 
     triggerAreaEventsSystem.onTriggerStay(tunnel, () => {
-        ts++
-        PhysicsImpulse.createOrReplace(engine.PlayerEntity, {
-            direction: getDirection(),
-            timestamp: ts
-        })
+        Physics.applyImpulseToPlayer(getDirection())
     })
 
     triggerAreaEventsSystem.onTriggerEnter(tunnel, () => {
