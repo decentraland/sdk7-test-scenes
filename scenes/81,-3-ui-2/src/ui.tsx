@@ -860,6 +860,69 @@ function Panel4() {
                         onMouseDown={() => { button4Disabled = !button4Disabled }}
                     />
                 </UiEntity>
+                <UiEntity 
+                          uiTransform={{
+                              display: 'flex',
+                              width: 230,
+                              height: 74,
+                              flexDirection: 'column',
+                              justifyContent: 'center',
+                              alignContent: 'center',
+                              alignSelf: 'center',
+                              position: { bottom: -0 }
+                          }}
+                          uiBackground={{
+                              color: Color4.White(),
+                              texture: { src: 'images/ok_button.png' },
+                              textureMode: 'stretch'
+                          }}
+                >
+                    <UiEntity 
+                              uiTransform={{
+                                  display: 'flex',
+                                  width: "100%",
+                                  height: 55,
+                                  positionType: 'absolute',
+                                  position: {
+                                      top: 5,
+                                      left: 10
+                                  }
+                              }}
+                              uiText={{
+                                  value: '<b>OK 1</b>',
+                                  textAlign: 'middle-center',
+                                  fontSize: 28
+                              }}
+                              onMouseDown={() => {
+                                  console.log(`'content-team-ui-ok-button' NON-UIBUTTON clicked!`)
+                              }}
+                    />
+                </UiEntity>
+                <Button
+                        uiTransform={{
+                            display: 'flex',
+                            width: 214,
+                            height: 74,
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            alignContent: 'center',
+                            alignItems: 'center',
+                            alignSelf: 'center',
+                            borderColor: Color4.create(0, 0, 0, 0)
+                        }}
+                        uiBackground={{
+                            color: Color4.White(),
+                            texture: { src: 'images/ok_button-trimmed.png' },
+                            textureMode: 'nine-slices'
+                        }}
+                        value={'<b>OK 2</b>'}
+                        textAlign={'middle-center'}
+                        fontSize={28}
+                        color={Color4.White()}
+                        onMouseDown={() => {
+                            console.log(`'content-team-ui-ok-button' UIBUTTON clicked!`)
+                        }}
+                />
             </UiEntity>
         </UiEntity>
     )
