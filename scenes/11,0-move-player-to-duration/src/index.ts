@@ -35,15 +35,8 @@ function InstantiateTargetCube(position: Vector3) {
       // Was movement interrupted? (can be interrupted by movement input, if InputModifier was not used)
       console.log(`movePlayerTo() success ? ${result.success}`)
 
-      // Remove InputModifier here if used
-      if (result.success) {
-        // InputModifier.deleteFrom(engine.PlayerEntity) // currently bugged in the Explorer
-        InputModifier.createOrReplace(engine.PlayerEntity, {
-          mode: InputModifier.Mode.Standard({
-            disableAll: false,
-          }),
-        })
-      }
+      // Remove InputModifier regardless of result success
+      InputModifier.deleteFrom(engine.PlayerEntity)
     })
   }
 

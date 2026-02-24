@@ -1,7 +1,7 @@
 {
-  "name": "move-to-duration",
+  "name": "ui-2",
   "version": "1.0.0",
-  "description": "move-to-duration",
+  "description": "",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
