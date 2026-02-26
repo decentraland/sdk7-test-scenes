@@ -73,11 +73,13 @@ export function setupConfigurableTunnels() {
     })
     TriggerArea.setBox(zone, ColliderLayer.CL_PLAYER)
 
-    triggerAreaEventsSystem.onTriggerEnter(zone, () => {
+    triggerAreaEventsSystem.onTriggerEnter(zone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         showTunnelPanel()
     })
 
-    triggerAreaEventsSystem.onTriggerExit(zone, () => {
+    triggerAreaEventsSystem.onTriggerExit(zone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         hideTunnelPanel()
         for (const t of forceTunnels) {
             Physics.removeForceFromPlayer(t)
@@ -107,12 +109,14 @@ function createForceTunnel(
     })
     TextShape.create(labelEntity, { text: label, fontSize: 2 })
 
-    triggerAreaEventsSystem.onTriggerEnter(tunnel, () => {
+    triggerAreaEventsSystem.onTriggerEnter(tunnel, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         Physics.applyForceToPlayer(tunnel, getDirection())
         Material.setPbrMaterial(tunnel, { albedoColor: FORCE_ACTIVE })
     })
 
-    triggerAreaEventsSystem.onTriggerExit(tunnel, () => {
+    triggerAreaEventsSystem.onTriggerExit(tunnel, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         Physics.removeForceFromPlayer(tunnel)
         Material.setPbrMaterial(tunnel, { albedoColor: FORCE_COLOR })
     })
@@ -138,15 +142,18 @@ function createImpulseTunnel(
     })
     TextShape.create(labelEntity, { text: label, fontSize: 2 })
 
-    triggerAreaEventsSystem.onTriggerStay(tunnel, () => {
+    triggerAreaEventsSystem.onTriggerStay(tunnel, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         Physics.applyImpulseToPlayer(getDirection())
     })
 
-    triggerAreaEventsSystem.onTriggerEnter(tunnel, () => {
+    triggerAreaEventsSystem.onTriggerEnter(tunnel, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         Material.setPbrMaterial(tunnel, { albedoColor: IMPULSE_ACTIVE })
     })
 
-    triggerAreaEventsSystem.onTriggerExit(tunnel, () => {
+    triggerAreaEventsSystem.onTriggerExit(tunnel, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         Material.setPbrMaterial(tunnel, { albedoColor: IMPULSE_COLOR })
     })
 }

@@ -32,8 +32,14 @@ export function main() {
         scale: Vector3.create(6, 6, 6)
     })
     TriggerArea.setBox(impulseCubeZone, ColliderLayer.CL_PLAYER)
-    triggerAreaEventsSystem.onTriggerEnter(impulseCubeZone, () => { showImpulseCubePanel() })
-    triggerAreaEventsSystem.onTriggerExit(impulseCubeZone, () => { hideImpulseCubePanel() })
+    triggerAreaEventsSystem.onTriggerEnter(impulseCubeZone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
+        showImpulseCubePanel()
+    })
+    triggerAreaEventsSystem.onTriggerExit(impulseCubeZone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
+        hideImpulseCubePanel()
+    })
 
     // Repulsion cube — push from each face (right side)
     setupRepulsionCube(Vector3.create(12, 0, 8))
@@ -44,8 +50,14 @@ export function main() {
         scale: Vector3.create(6, 6, 6)
     })
     TriggerArea.setBox(repulsionCubeZone, ColliderLayer.CL_PLAYER)
-    triggerAreaEventsSystem.onTriggerEnter(repulsionCubeZone, () => { showRepulsionCubePanel() })
-    triggerAreaEventsSystem.onTriggerExit(repulsionCubeZone, () => { hideRepulsionCubePanel() })
+    triggerAreaEventsSystem.onTriggerEnter(repulsionCubeZone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
+        showRepulsionCubePanel()
+    })
+    triggerAreaEventsSystem.onTriggerExit(repulsionCubeZone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
+        hideRepulsionCubePanel()
+    })
 
     // === Parcel 1,7 (X: 16–32) ===
 
@@ -58,8 +70,14 @@ export function main() {
         scale: Vector3.create(10, 8, 16)
     })
     TriggerArea.setBox(pendulumZone, ColliderLayer.CL_PLAYER)
-    triggerAreaEventsSystem.onTriggerEnter(pendulumZone, () => { showPendulumPanel() })
-    triggerAreaEventsSystem.onTriggerExit(pendulumZone, () => { hidePendulumPanel() })
+    triggerAreaEventsSystem.onTriggerEnter(pendulumZone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
+        showPendulumPanel()
+    })
+    triggerAreaEventsSystem.onTriggerExit(pendulumZone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
+        hidePendulumPanel()
+    })
 
     // === Parcel 0,8 (Z: 16–32) — Force vs Impulse sandbox ===
 

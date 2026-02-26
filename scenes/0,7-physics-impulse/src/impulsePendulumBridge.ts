@@ -154,7 +154,8 @@ function createTriggerFace(
     Material.setPbrMaterial(trigger, { albedoColor: color })
     TriggerArea.setBox(trigger, ColliderLayer.CL_PLAYER)
 
-    triggerAreaEventsSystem.onTriggerEnter(trigger, () => {
+    triggerAreaEventsSystem.onTriggerEnter(trigger, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         const pivotRotation = Transform.get(pivot).rotation
         const worldNormal = rotateVectorByQuaternion(localNormal, pivotRotation)
         Physics.applyImpulseToPlayer(worldNormal, getPendulumMag())

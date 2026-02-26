@@ -49,19 +49,22 @@ export function setupImpulseTunnel(config: TunnelConfig) {
     })
 
     // Continuous impulse every frame while inside
-    triggerAreaEventsSystem.onTriggerStay(tunnel, () => {
+    triggerAreaEventsSystem.onTriggerStay(tunnel, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         Physics.applyImpulseToPlayer(config.impulseDirection)
     })
 
     // Visual feedback
-    triggerAreaEventsSystem.onTriggerEnter(tunnel, () => {
+    triggerAreaEventsSystem.onTriggerEnter(tunnel, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         console.log(`Tunnel "${config.label}": impulse started`)
         Material.setPbrMaterial(tunnel, {
             albedoColor: Color4.create(0.2, 1, 0.2, 0.25)
         })
     })
 
-    triggerAreaEventsSystem.onTriggerExit(tunnel, () => {
+    triggerAreaEventsSystem.onTriggerExit(tunnel, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         console.log(`Tunnel "${config.label}": impulse stopped`)
         Material.setPbrMaterial(tunnel, {
             albedoColor: Color4.create(0.8, 0.5, 0.1, 0.25)

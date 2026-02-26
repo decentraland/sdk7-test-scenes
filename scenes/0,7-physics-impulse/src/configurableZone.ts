@@ -30,11 +30,13 @@ export function setupForceZone(position: Vector3, size: Vector3) {
     })
     TextShape.create(label, { text: 'Force Zone\n(hold button to apply)', fontSize: 2 })
 
-    triggerAreaEventsSystem.onTriggerEnter(zone, () => {
+    triggerAreaEventsSystem.onTriggerEnter(zone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         showForcePanel()
     })
 
-    triggerAreaEventsSystem.onTriggerExit(zone, () => {
+    triggerAreaEventsSystem.onTriggerExit(zone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         hideForcePanel()
         stopUiForce()
     })
@@ -56,11 +58,13 @@ export function setupImpulseZone(position: Vector3, size: Vector3) {
     })
     TextShape.create(label, { text: 'Impulse Zone\n(configure & fire)', fontSize: 2 })
 
-    triggerAreaEventsSystem.onTriggerEnter(zone, () => {
+    triggerAreaEventsSystem.onTriggerEnter(zone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         showImpulsePanel()
     })
 
-    triggerAreaEventsSystem.onTriggerExit(zone, () => {
+    triggerAreaEventsSystem.onTriggerExit(zone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         hideImpulsePanel()
     })
 }

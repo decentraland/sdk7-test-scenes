@@ -109,14 +109,16 @@ function createFaceTrigger(cubeCenter: Vector3, face: FaceDef) {
     Material.setPbrMaterial(trigger, { albedoColor: face.color })
     TriggerArea.setBox(trigger, ColliderLayer.CL_PLAYER)
 
-    triggerAreaEventsSystem.onTriggerEnter(trigger, () => {
+    triggerAreaEventsSystem.onTriggerEnter(trigger, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         Physics.applyImpulseToPlayer(face.normal, getRepulsionMag())
         Material.setPbrMaterial(trigger, {
             albedoColor: Color4.create(1, 1, 1, 0.5)
         })
     })
 
-    triggerAreaEventsSystem.onTriggerExit(trigger, () => {
+    triggerAreaEventsSystem.onTriggerExit(trigger, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         Material.setPbrMaterial(trigger, { albedoColor: face.color })
     })
 }

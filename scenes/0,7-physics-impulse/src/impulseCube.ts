@@ -53,14 +53,16 @@ export function setupImpulseCube(position: Vector3) {
         fontSize: 2
     })
 
-    triggerAreaEventsSystem.onTriggerEnter(trigger, () => {
+    triggerAreaEventsSystem.onTriggerEnter(trigger, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         Physics.applyImpulseToPlayer(getCubeDir())
         Material.setPbrMaterial(trigger, {
             albedoColor: Color4.create(0.2, 1, 0.2, 0.3)
         })
     })
 
-    triggerAreaEventsSystem.onTriggerExit(trigger, () => {
+    triggerAreaEventsSystem.onTriggerExit(trigger, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         Material.setPbrMaterial(trigger, {
             albedoColor: Color4.create(1, 0.2, 0.2, 0.3)
         })

@@ -51,14 +51,16 @@ export function setupForceTunnel(config: ForceTunnelConfig) {
     })
 
     // On enter: apply force (tunnel entity is the source key in the registry)
-    triggerAreaEventsSystem.onTriggerEnter(tunnel, () => {
+    triggerAreaEventsSystem.onTriggerEnter(tunnel, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         console.log(`Force tunnel "${config.label}": force applied`)
         Physics.applyForceToPlayer(tunnel, config.forceDirection)
         Material.setPbrMaterial(tunnel, { albedoColor: activeColor })
     })
 
     // On exit: remove force
-    triggerAreaEventsSystem.onTriggerExit(tunnel, () => {
+    triggerAreaEventsSystem.onTriggerExit(tunnel, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
         console.log(`Force tunnel "${config.label}": force removed`)
         Physics.removeForceFromPlayer(tunnel)
         Material.setPbrMaterial(tunnel, { albedoColor: defaultColor })
