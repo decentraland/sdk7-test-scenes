@@ -75,16 +75,12 @@ export function main() {
     pointerEventsSystem.onPointerDown(
         { entity: mrsEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'MoveRotateScale' } },
         () => {
-            Tween.setMoveRotateScale(
-                mrsEntity,
-                Vector3.create(14, 1, 2),
-                Vector3.create(14, 3, 2),
-                Quaternion.fromEulerDegrees(0, 0, 0),
-                Quaternion.fromEulerDegrees(0, 180, 90),
-                Vector3.One(),
-                Vector3.create(2, 0.5, 2),
-                2000
-            )
+            Tween.setMoveRotateScale(mrsEntity, {
+                position: { start: Vector3.create(14, 1, 2), end: Vector3.create(14, 3, 2) },
+                rotation: { start: Quaternion.fromEulerDegrees(0, 0, 0), end: Quaternion.fromEulerDegrees(0, 180, 90) },
+                scale: { start: Vector3.One(), end: Vector3.create(2, 0.5, 2) },
+                duration: 2000
+            })
         }
     )
 
@@ -161,13 +157,12 @@ export function main() {
                 comp.playing = !comp.playing
                 return
             }
-            Tween.setMoveRotateScaleContinuous(
-                mrsContEntity,
-                Vector3.create(0, 0.1, 0),
-                Quaternion.fromEulerDegrees(0, 5, 0),
-                Vector3.create(0.01, 0.01, 0.01),
-                5
-            )
+            Tween.setMoveRotateScaleContinuous(mrsContEntity, {
+                position: { direction: Vector3.create(0, 0.1, 0) },
+                rotation: { direction: Quaternion.fromEulerDegrees(0, 5, 0) },
+                scale: { direction: Vector3.create(0.01, 0.01, 0.01) },
+                speed: 5
+            })
         }
     )
 
@@ -203,28 +198,21 @@ export function main() {
                         duration: 1000,
                         easingFunction: EasingFunction.EF_EASEQUAD
                     },
-                    // Step 3: MoveRotateScale (descend + complete rotation, no scale change)
+                    // Step 3: MoveRotateScale (descend + complete rotation, scale omitted = unchanged)
                     {
                         mode: Tween.Mode.MoveRotateScale({
-                            positionStart: mixedHigh,
-                            positionEnd: mixedLow,
-                            rotationStart: Quaternion.fromEulerDegrees(0, 180, 0),
-                            rotationEnd: Quaternion.fromEulerDegrees(0, 360, 0),
-                            scaleStart: Vector3.One(),
-                            scaleEnd: Vector3.One()
+                            position: { start: mixedHigh, end: mixedLow },
+                            rotation: { start: Quaternion.fromEulerDegrees(0, 180, 0), end: Quaternion.fromEulerDegrees(0, 360, 0) }
                         }),
                         duration: 1500,
                         easingFunction: EasingFunction.EF_EASEQUAD
                     },
-                    // Step 4: MoveRotateScale (rise + tilt + squash)
+                    // Step 4: MoveRotateScale (rise + tilt + squash; all three axes)
                     {
                         mode: Tween.Mode.MoveRotateScale({
-                            positionStart: mixedLow,
-                            positionEnd: mixedHigh,
-                            rotationStart: Quaternion.fromEulerDegrees(0, 0, 0),
-                            rotationEnd: Quaternion.fromEulerDegrees(0, 0, 90),
-                            scaleStart: Vector3.One(),
-                            scaleEnd: Vector3.create(1.5, 0.5, 1.5)
+                            position: { start: mixedLow, end: mixedHigh },
+                            rotation: { start: Quaternion.fromEulerDegrees(0, 0, 0), end: Quaternion.fromEulerDegrees(0, 0, 90) },
+                            scale: { start: Vector3.One(), end: Vector3.create(1.5, 0.5, 1.5) }
                         }),
                         duration: 1500,
                         easingFunction: EasingFunction.EF_EASESINE
@@ -246,14 +234,7 @@ export function main() {
         () => {
             // Step 1: Move only (rise up)
             Tween.createOrReplace(seqMrsEntity, {
-                mode: Tween.Mode.MoveRotateScale({
-                    positionStart: mrsLow,
-                    positionEnd: mrsHigh,
-                    rotationStart: Quaternion.fromEulerDegrees(0, 0, 0),
-                    rotationEnd: Quaternion.fromEulerDegrees(0, 0, 0),
-                    scaleStart: Vector3.One(),
-                    scaleEnd: Vector3.One()
-                }),
+                mode: Tween.Mode.Move({ start: mrsLow, end: mrsHigh }),
                 duration: 1000,
                 easingFunction: EasingFunction.EF_EASEOUTQUAD,
                 playing: true
@@ -264,26 +245,18 @@ export function main() {
                 sequence: [
                     // Step 2: Rotate only (spin 180deg at top)
                     {
-                        mode: Tween.Mode.MoveRotateScale({
-                            positionStart: mrsHigh,
-                            positionEnd: mrsHigh,
-                            rotationStart: Quaternion.fromEulerDegrees(0, 0, 0),
-                            rotationEnd: Quaternion.fromEulerDegrees(0, 180, 0),
-                            scaleStart: Vector3.One(),
-                            scaleEnd: Vector3.One()
+                        mode: Tween.Mode.Rotate({
+                            start: Quaternion.fromEulerDegrees(0, 0, 0),
+                            end: Quaternion.fromEulerDegrees(0, 180, 0)
                         }),
                         duration: 1000,
                         easingFunction: EasingFunction.EF_EASEQUAD
                     },
-                    // Step 3: Move + Rotate (descend + finish rotation)
+                    // Step 3: Move + Rotate (descend + finish rotation; scale omitted = unchanged)
                     {
                         mode: Tween.Mode.MoveRotateScale({
-                            positionStart: mrsHigh,
-                            positionEnd: mrsLow,
-                            rotationStart: Quaternion.fromEulerDegrees(0, 180, 0),
-                            rotationEnd: Quaternion.fromEulerDegrees(0, 360, 0),
-                            scaleStart: Vector3.One(),
-                            scaleEnd: Vector3.One()
+                            position: { start: mrsHigh, end: mrsLow },
+                            rotation: { start: Quaternion.fromEulerDegrees(0, 180, 0), end: Quaternion.fromEulerDegrees(0, 360, 0) }
                         }),
                         duration: 1500,
                         easingFunction: EasingFunction.EF_EASEQUAD
@@ -291,12 +264,9 @@ export function main() {
                     // Step 4: Move + Rotate + Scale (rise + tilt + squash)
                     {
                         mode: Tween.Mode.MoveRotateScale({
-                            positionStart: mrsLow,
-                            positionEnd: mrsHigh,
-                            rotationStart: Quaternion.fromEulerDegrees(0, 0, 0),
-                            rotationEnd: Quaternion.fromEulerDegrees(0, 0, 90),
-                            scaleStart: Vector3.One(),
-                            scaleEnd: Vector3.create(1.5, 0.5, 1.5)
+                            position: { start: mrsLow, end: mrsHigh },
+                            rotation: { start: Quaternion.fromEulerDegrees(0, 0, 0), end: Quaternion.fromEulerDegrees(0, 0, 90) },
+                            scale: { start: Vector3.One(), end: Vector3.create(1.5, 0.5, 1.5) }
                         }),
                         duration: 1500,
                         easingFunction: EasingFunction.EF_EASESINE
