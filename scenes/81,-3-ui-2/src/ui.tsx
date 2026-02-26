@@ -263,6 +263,38 @@ function Panel1() {
                         onMouseDown={() => { button1Disabled = !button1Disabled }}
                     />
                 </UiEntity>
+
+                {/* overflow: scroll — scrollable list inside panel */}
+                <UiEntity
+                    uiTransform={{
+                        width: '90%',
+                        height: 95,
+                        margin: { top: 10, bottom: 10 },
+                        padding: 8,
+                        flexDirection: 'column',
+                        alignItems: 'stretch',
+                        overflow: 'scroll'
+                    }}
+                    uiBackground={{ color: Color4.create(0.15, 0.15, 0.2, 0.85) }}
+                >
+                    <Label
+                        value="Scroll area (overflow: scroll)"
+                        fontSize={12}
+                        font="sans-serif"
+                        color={Color4.create(0.8, 0.8, 0.9, 1)}
+                        uiTransform={{ width: '100%', height: 20, margin: { bottom: 6 } }}
+                    />
+                    {['Line A', 'Line B', 'Line C', 'Line D', 'Line E', 'Line F', 'Line G'].map((line, i) => (
+                        <Label
+                            key={i}
+                            value={line}
+                            fontSize={12}
+                            font="sans-serif"
+                            color={Color4.Gray()}
+                            uiTransform={{ width: '100%', height: 18 }}
+                        />
+                    ))}
+                </UiEntity>
             </UiEntity>
         </UiEntity>
     )
@@ -457,6 +489,25 @@ function Panel2() {
                         onMouseDown={() => { button2Disabled = !button2Disabled }}
                     />
                 </UiEntity>
+
+                {/* overflow: scroll */}
+                <UiEntity
+                    uiTransform={{
+                        width: '90%',
+                        height: 130,
+                        margin: { top: 10, bottom: 10 },
+                        padding: 8,
+                        flexDirection: 'column',
+                        alignItems: 'stretch',
+                        overflow: 'scroll'
+                    }}
+                    uiBackground={{ color: Color4.create(0.18, 0.2, 0.28, 0.85) }}
+                >
+                    <Label value="overflow: scroll" fontSize={12} font="serif" color={Color4.create(0.85, 0.85, 0.9, 1)} uiTransform={{ width: '100%', height: 18, margin: { bottom: 6 } }} />
+                    {['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5', 'Item 6', 'Item 7'].map((line, i) => (
+                        <Label key={i} value={line} fontSize={12} font="serif" color={Color4.Gray()} uiTransform={{ width: '100%', height: 16 }} />
+                    ))}
+                </UiEntity>
             </UiEntity>
         </UiEntity>
     )
@@ -650,6 +701,25 @@ function Panel3() {
                         }}
                         onMouseDown={() => { button3Disabled = !button3Disabled }}
                     />
+                </UiEntity>
+
+                {/* overflow: scroll */}
+                <UiEntity
+                    uiTransform={{
+                        width: '90%',
+                        height: 75,
+                        margin: { top: 10, bottom: 10 },
+                        padding: 8,
+                        flexDirection: 'column',
+                        alignItems: 'stretch',
+                        overflow: 'scroll'
+                    }}
+                    uiBackground={{ color: Color4.create(0.2, 0.18, 0.28, 0.85) }}
+                >
+                    <Label value="overflow: scroll" fontSize={12} font="monospace" color={Color4.create(0.85, 0.85, 0.9, 1)} uiTransform={{ width: '100%', height: 18, margin: { bottom: 6 } }} />
+                    {['Row A', 'Row B', 'Row C', 'Row D', 'Row E', 'Row F'].map((line, i) => (
+                        <Label key={i} value={line} fontSize={12} font="monospace" color={Color4.Gray()} uiTransform={{ width: '100%', height: 16 }} />
+                    ))}
                 </UiEntity>
             </UiEntity>
         </UiEntity>
@@ -859,6 +929,32 @@ function Panel4() {
                         }}
                         onMouseDown={() => { button4Disabled = !button4Disabled }}
                     />
+                </UiEntity>
+
+                {/* overflow: scroll */}
+                <UiEntity
+                    uiTransform={{
+                        width: '90%',
+                        height: 150,
+                        margin: { top: 10, bottom: 10 },
+                        padding: 8,
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        overflow: 'scroll'
+                    }}
+                    uiBackground={{ color: Color4.create(0.22, 0.2, 0.25, 0.9) }}
+                >
+                    <Label value="overflow: scroll" fontSize={12} font="sans-serif" color={Color4.White()} uiTransform={{ width: '100%', height: 18, margin: { bottom: 6 } }} />
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                        <Button
+                            key={n}
+                            value={`Option ${n}`}
+                            variant="secondary"
+                            fontSize={12}
+                            uiTransform={{ width: '85%', height: 28, margin: { bottom: 4 } }}
+                            onMouseDown={() => console.log(`Panel 4 scroll option ${n}`)}
+                        />
+                    ))}
                 </UiEntity>
                 <UiEntity 
                           uiTransform={{
