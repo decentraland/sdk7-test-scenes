@@ -1,0 +1,109 @@
+import {
+    engine,
+    ColliderLayer,
+    Material,
+    MeshRenderer,
+    Transform,
+    TriggerArea,
+    triggerAreaEventsSystem,
+    Physics,
+    Entity
+} from '@dcl/sdk/ecs'
+import { Color4, Vector3 } from '@dcl/sdk/math'
+
+const TRIGGER_THICKNESS = 0.3
+
+interface FaceDef {
+    /** Position offset relative to parent center */
+    localOffset: Vector3
+    /** Trigger box dimensions */
+    localSize: Vector3
+    /** Unit-length push direction in parent-local space */
+    localNormal: Vector3
+    /** Default semi-transparent color */
+    color: Color4
+}
+
+/**
+ * Builds the 5 standard face definitions for a box of given size.
+ * Faces: +X (red), -X (blue), +Z (red), -Z (blue), +Y (green).
+ * No bottom face — player stands on ground.
+ */
+function buildFaceDefs(boxSize: number): FaceDef[] {
+    const half = boxSize / 2
+    const off = half + TRIGGER_THICKNESS / 2
+
+    return [
+        {
+            localOffset: Vector3.create(off, 0, 0),
+            localSize: Vector3.create(TRIGGER_THICKNESS, boxSize, boxSize),
+            localNormal: Vector3.create(1, 0, 0),
+            color: Color4.create(1, 0.3, 0.3, 0.4)
+        },
+        {
+            localOffset: Vector3.create(-off, 0, 0),
+            localSize: Vector3.create(TRIGGER_THICKNESS, boxSize, boxSize),
+            localNormal: Vector3.create(-1, 0, 0),
+            color: Color4.create(0.3, 0.3, 1, 0.4)
+        },
+        {
+            localOffset: Vector3.create(0, 0, off),
+            localSize: Vector3.create(boxSize, boxSize, TRIGGER_THICKNESS),
+            localNormal: Vector3.create(0, 0, 1),
+            color: Color4.create(1, 0.3, 0.3, 0.4)
+        },
+        {
+            localOffset: Vector3.create(0, 0, -off),
+            localSize: Vector3.create(boxSize, boxSize, TRIGGER_THICKNESS),
+            localNormal: Vector3.create(0, 0, -1),
+            color: Color4.create(0.3, 0.3, 1, 0.4)
+        },
+        {
+            localOffset: Vector3.create(0, off, 0),
+            localSize: Vector3.create(boxSize, TRIGGER_THICKNESS, boxSize),
+            localNormal: Vector3.create(0, 1, 0),
+            color: Color4.create(0.3, 1, 0.3, 0.4)
+        }
+    ]
+}
+
+/**
+ * Creates 5 visible face-trigger boxes as **children** of `parent`.
+ *
+ * Each trigger uses `Transform.localToWorldDirection` to resolve the
+ * push direction through the full parent hierarchy — this is the key
+ * difference from the static repulsion cube which uses world-space normals.
+ */
+export function createChildFaceTriggers(
+    parent: Entity,
+    boxSize: number,
+    getMag: () => number
+) {
+    const faces = buildFaceDefs(boxSize)
+
+    for (const face of faces) {
+        const trigger = engine.addEntity()
+        Transform.create(trigger, {
+            parent,
+            position: face.localOffset,
+            scale: face.localSize
+        })
+        MeshRenderer.setBox(trigger)
+        Material.setPbrMaterial(trigger, { albedoColor: face.color })
+        TriggerArea.setBox(trigger, ColliderLayer.CL_PLAYER)
+
+        triggerAreaEventsSystem.onTriggerEnter(trigger, (result) => {
+            if (result.trigger?.entity !== engine.PlayerEntity) return
+            const worldDir = Transform.localToWorldDirection(trigger, face.localNormal)
+            Physics.applyImpulseToPlayer(worldDir, getMag())
+            Material.setPbrMaterial(trigger, {
+                albedoColor: Color4.create(1, 1, 1, 0.5)
+            })
+        })
+
+        triggerAreaEventsSystem.onTriggerExit(trigger, (result) => {
+            if (result.trigger?.entity !== engine.PlayerEntity) return
+            Material.setPbrMaterial(trigger, { albedoColor: face.color })
+        })
+    }
+}
