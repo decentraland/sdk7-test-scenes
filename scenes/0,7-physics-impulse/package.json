@@ -3,8 +3,8 @@
   "description": "SDK7 test scene for PhysicsImpulse component",
   "version": "1.0.0",
   "dependencies": {
-    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/physics-impulse/@dcl/js-runtime/dcl-js-runtime-7.20.4-22456690984.commit-47e8acb.tgz",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/physics-impulse/dcl-sdk-7.20.4-22456690984.commit-47e8acb.tgz"
+    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/physics-impulse/@dcl/js-runtime/dcl-js-runtime-7.20.4-22484576356.commit-14072e0.tgz",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/physics-impulse/dcl-sdk-7.20.4-22484576356.commit-14072e0.tgz"
   },
   "scripts": {
     "build": "sdk-commands build --skip-install",
