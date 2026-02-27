@@ -12,7 +12,6 @@ import {
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { createChildFaceTriggers } from './faceTriggers'
-import { getCarouselMag } from './configUi'
 
 // ---------------------------------------------------------------------------
 // Layout — parcel 1,8 (X: 16–32, Z: 16–32), center at (24, 0, 24)
@@ -21,21 +20,22 @@ const CENTER_X = 24
 const CENTER_Z = 24
 
 // Pole & disk
-const POLE_HEIGHT = 6
-const POLE_RADIUS = 0.3
-const DISK_RADIUS = 3.5
+const POLE_HEIGHT = 7            // real standard: 7–8m
+const POLE_RADIUS = 0.35
+const DISK_RADIUS = 3
 const DISK_HEIGHT = 0.15
 
 // Chains & seats
 const SEAT_COUNT = 6
-const CHAIN_LENGTH = 3
-const CHAIN_RADIUS = 0.05
-const SEAT_SIZE = 0.8
-const CHAIN_TILT_DEG = -25      // negative X = tilt outward from pole (like real ride photos)
+const CHAIN_LENGTH = 7
+const CHAIN_RADIUS = 0.04
+const SEAT_SIZE = 0.9
+const CAROUSEL_MAG = 12
+const CHAIN_TILT_DEG = -45      // steep outward angle (like real ride at full speed)
 
 // Disk rotation — full 360° split into 3×120° segments (quaternion-safe)
 const DISK_SEGMENT_DEG = 120
-const DISK_FULL_ROTATION_DURATION = 1250 // ms for full 360° — max speed
+const DISK_FULL_ROTATION_DURATION = 5000 // ms for full 360° (~12 rpm, real standard: 10–14 rpm)
 const DISK_SEGMENT_DURATION = Math.round(DISK_FULL_ROTATION_DURATION / 3)
 
 // Colors
@@ -163,5 +163,5 @@ function createChainSeat(diskPivot: ReturnType<typeof engine.addEntity>, index: 
     Material.setPbrMaterial(seat, { albedoColor: SEAT_COLOR })
 
     // Face triggers on the seat — resolved through the full hierarchy
-    createChildFaceTriggers(seat, SEAT_SIZE, getCarouselMag)
+    createChildFaceTriggers(seat, SEAT_SIZE, () => CAROUSEL_MAG)
 }

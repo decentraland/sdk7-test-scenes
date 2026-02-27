@@ -17,7 +17,6 @@ type ActivePanel =
     | 'pendulumConfig'
     | 'forceConfig'
     | 'impulseConfig'
-    | 'carouselConfig'
 
 let activePanel: ActivePanel = 'none'
 
@@ -365,55 +364,6 @@ function PendulumPanel(): ReactEcs.JSX.Element {
 }
 
 // =========================================================================
-// CAROUSEL PANEL (parcel 1,8)
-// =========================================================================
-
-let carouselMag = 12
-let carouselMagInput = '12'
-let carouselStatus = ''
-let carouselStatusColor: Color4 = Color4.White()
-
-export function getCarouselMag() { return carouselMag }
-
-export function showCarouselPanel() { activePanel = 'carouselConfig'; carouselStatus = '' }
-export function hideCarouselPanel() { activePanel = 'none'; carouselStatus = '' }
-
-function applyCarouselSettings() {
-    const m = parseFloat(carouselMagInput)
-    if (isNaN(m)) {
-        carouselStatus = 'Invalid number'; carouselStatusColor = Color4.create(1, 0.4, 0.4, 1); return
-    }
-    carouselMag = m
-    carouselStatus = `Magnitude=${m} (applied to all seats)`
-    carouselStatusColor = Color4.create(0.3, 1, 0.4, 1)
-}
-
-function CarouselPanel(): ReactEcs.JSX.Element {
-    return (
-        <UiEntity uiTransform={{
-            width: PANEL_W, positionType: 'absolute',
-            position: { right: 10, top: '15%' },
-            flexDirection: 'column', padding: 20,
-        }} uiBackground={{ color: PANEL_BG }}>
-
-            <Label value="Chain Carousel «Вихрь»" fontSize={22} color={TITLE_CLR}
-                uiTransform={{ width: '100%', height: 30, margin: { bottom: 4 } }} />
-            <Label value="Each seat pushes player from every face"
-                fontSize={14} color={DIM_CLR}
-                uiTransform={{ width: '100%', height: 20, margin: { bottom: 12 } }} />
-
-            {FieldBlock({ label: 'Impulse magnitude (all seats):', value: carouselMagInput, placeholder: '12', onChange: (v) => { carouselMagInput = v } })}
-
-            <Button value="Apply" variant="primary" fontSize={18}
-                uiTransform={{ width: '100%', height: 48, margin: { top: 4 } }}
-                onMouseDown={() => applyCarouselSettings()} />
-
-            {StatusBlock(carouselStatus, carouselStatusColor)}
-        </UiEntity>
-    )
-}
-
-// =========================================================================
 // FORCE CONFIG PANEL (parcel 0,8 — red zone)
 // =========================================================================
 
@@ -587,7 +537,6 @@ function UiRoot() {
     if (activePanel === 'impulseCubeConfig') return ImpulseCubePanel()
     if (activePanel === 'repulsionCubeConfig') return RepulsionCubePanel()
     if (activePanel === 'pendulumConfig') return PendulumPanel()
-    if (activePanel === 'carouselConfig') return CarouselPanel()
     if (activePanel === 'forceConfig') return ForceConfigPanel()
     if (activePanel === 'impulseConfig') return ImpulseConfigPanel()
     return null

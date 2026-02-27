@@ -25,9 +25,8 @@ interface FaceDef {
 }
 
 /**
- * Builds the 5 standard face definitions for a box of given size.
- * Faces: +X (red), -X (blue), +Z (red), -Z (blue), +Y (green).
- * No bottom face — player stands on ground.
+ * Builds 6 face trigger definitions for a box of given size.
+ * Faces: +X (red), -X (blue), +Z (red), -Z (blue), +Y (green), -Y (yellow).
  */
 function buildFaceDefs(boxSize: number): FaceDef[] {
     const half = boxSize / 2
@@ -63,6 +62,12 @@ function buildFaceDefs(boxSize: number): FaceDef[] {
             localSize: Vector3.create(boxSize, TRIGGER_THICKNESS, boxSize),
             localNormal: Vector3.create(0, 1, 0),
             color: Color4.create(0.3, 1, 0.3, 0.4)
+        },
+        {
+            localOffset: Vector3.create(0, -off, 0),
+            localSize: Vector3.create(boxSize, TRIGGER_THICKNESS, boxSize),
+            localNormal: Vector3.create(0, -1, 0),
+            color: Color4.create(1, 0.9, 0.2, 0.4)
         }
     ]
 }
