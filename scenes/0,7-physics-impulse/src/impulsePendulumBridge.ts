@@ -16,7 +16,6 @@ import {
     Entity
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import { rotateVectorByQuaternion } from './utils'
 import { getPendulumMag } from './configUi'
 
 // Bridge layout
@@ -156,8 +155,7 @@ function createTriggerFace(
 
     triggerAreaEventsSystem.onTriggerEnter(trigger, (result) => {
         if (result.trigger?.entity !== engine.PlayerEntity) return;
-        const pivotRotation = Transform.get(pivot).rotation
-        const worldNormal = rotateVectorByQuaternion(localNormal, pivotRotation)
+        const worldNormal = Transform.localToWorldDirection(pivot, localNormal)
         Physics.applyImpulseToPlayer(worldNormal, getPendulumMag())
     })
 }
