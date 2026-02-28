@@ -29,7 +29,7 @@ const ANCHOR_COOLDOWN_SEC = 0.35
 const GRAPPLE_MAGNITUDE = 14
 const GRAPPLE_RADIUS = 36
 
-const ANCHOR_ACTIVE_COLOR = Color4.create(1, 0.9, 0.2, 1)
+const ANCHOR_IDLE_ALPHA = 0.35
 
 const FIELD_COUNT = 320
 const FIELD_MIN_X = VOLUME_MIN_X + VOLUME_MARGIN
@@ -49,12 +49,6 @@ const COLOR_PALETTE: Color4[] = [
     Color4.create(0.8, 0.45, 1, 1),
     Color4.create(1, 0.45, 0.8, 1)
 ]
-
-type FlashItem = {
-    entity: Entity
-    idleColor: Color4
-    activeUntilSec: number
-}
 
 /**
  * "Grapple anchors" playground:
@@ -99,7 +93,6 @@ export function setupKnockbackGrappleAnchors() {
     })
 
     const anchorEntities: Entity[] = []
-    const flashing: FlashItem[] = []
     for (let i = 0; i < FIELD_COUNT; i++) {
         const position = Vector3.create(
             randomRange(i * 3 + 1, FIELD_MIN_X, FIELD_MAX_X),
@@ -107,15 +100,13 @@ export function setupKnockbackGrappleAnchors() {
             randomRange(i * 3 + 3, FIELD_MIN_Z, FIELD_MAX_Z)
         )
         const color = COLOR_PALETTE[Math.floor(randomRange(i * 7 + 11, 0, COLOR_PALETTE.length))]
-        const anchor = createAnchor(position, color, flashing)
+        const anchor = createAnchor(position, color, anchorEntities)
         anchorEntities.push(anchor)
     }
 
-    // One shared blink system for all anchors.
+    // Shared system for runtime scale updates.
     let lastScale = -1
     engine.addSystem(() => {
-        const now = Date.now() / 1000
-
         const currentScale = getGrappleAnchorScale()
         if (Math.abs(currentScale - lastScale) > 0.0001) {
             for (const anchor of anchorEntities) {
@@ -123,17 +114,10 @@ export function setupKnockbackGrappleAnchors() {
             }
             lastScale = currentScale
         }
-
-        for (const item of flashing) {
-            if (item.activeUntilSec !== 0 && now >= item.activeUntilSec) {
-                item.activeUntilSec = 0
-                Material.setPbrMaterial(item.entity, { albedoColor: item.idleColor })
-            }
-        }
     })
 }
 
-function createAnchor(position: Vector3, idleColor: Color4, flashing: FlashItem[]): Entity {
+function createAnchor(position: Vector3, baseColor: Color4, anchorEntities: Entity[]): Entity {
     const anchor = engine.addEntity()
     const scale = getGrappleAnchorScale()
     Transform.create(anchor, {
@@ -142,11 +126,11 @@ function createAnchor(position: Vector3, idleColor: Color4, flashing: FlashItem[
     })
     MeshRenderer.setSphere(anchor)
     MeshCollider.setSphere(anchor, ColliderLayer.CL_POINTER)
-    Material.setPbrMaterial(anchor, { albedoColor: idleColor })
+
+    const transparentColor = withAlpha(baseColor, ANCHOR_IDLE_ALPHA)
+    Material.setPbrMaterial(anchor, { albedoColor: transparentColor })
 
     let cooldownUntilSec = 0
-    const flashItem: FlashItem = { entity: anchor, idleColor, activeUntilSec: 0 }
-    flashing.push(flashItem)
 
     pointerEventsSystem.onPointerDown(
         {
@@ -162,10 +146,13 @@ function createAnchor(position: Vector3, idleColor: Color4, flashing: FlashItem[
             if (nowSec < cooldownUntilSec) return
 
             cooldownUntilSec = nowSec + ANCHOR_COOLDOWN_SEC
-            flashItem.activeUntilSec = nowSec + 0.12
-            Material.setPbrMaterial(anchor, { albedoColor: ANCHOR_ACTIVE_COLOR })
 
             Physics.applyKnockbackToPlayer(position, -GRAPPLE_MAGNITUDE, GRAPPLE_RADIUS)
+
+            // Remove clicked sphere completely: no render, no pointer interaction, no blocking.
+            const index = anchorEntities.indexOf(anchor)
+            if (index >= 0) anchorEntities.splice(index, 1)
+            engine.removeEntity(anchor)
         }
     )
 
@@ -179,4 +166,8 @@ function random01(seed: number): number {
 
 function randomRange(seed: number, min: number, max: number): number {
     return min + random01(seed) * (max - min)
+}
+
+function withAlpha(color: Color4, a: number): Color4 {
+    return Color4.create(color.r, color.g, color.b, a)
 }
