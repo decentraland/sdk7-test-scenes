@@ -437,6 +437,7 @@ function PendulumPanel(): ReactEcs.JSX.Element {
 let carouselMaxTiltDeg = 45
 let carouselSpeedRpm = 12
 let carouselVerticalPaused = false
+let carouselTiltFrozen = false
 let carouselMaxTiltInput = '45'
 let carouselSpeedInput = '12'
 let carouselStatus = ''
@@ -445,6 +446,7 @@ let carouselStatusColor: Color4 = Color4.White()
 export function getCarouselMaxTiltDeg() { return carouselMaxTiltDeg }
 export function getCarouselSpeedRpm() { return carouselSpeedRpm }
 export function isCarouselVerticalPaused() { return carouselVerticalPaused }
+export function isCarouselTiltFrozen() { return carouselTiltFrozen }
 
 export function showCarouselPanel() { activePanel = 'carouselConfig'; carouselStatus = '' }
 export function hideCarouselPanel() { activePanel = 'none'; carouselStatus = '' }
@@ -477,8 +479,15 @@ function toggleCarouselVerticalPause() {
     carouselStatusColor = Color4.create(0.3, 1, 0.4, 1)
 }
 
+function toggleCarouselTiltFreeze() {
+    carouselTiltFrozen = !carouselTiltFrozen
+    carouselStatus = carouselTiltFrozen ? 'Seat tilt frozen at current angle' : 'Seat tilt unfrozen'
+    carouselStatusColor = Color4.create(0.3, 1, 0.4, 1)
+}
+
 function CarouselPanel(): ReactEcs.JSX.Element {
     const pauseLabel = carouselVerticalPaused ? 'Resume vertical oscillation' : 'Pause vertical oscillation'
+    const freezeTiltLabel = carouselTiltFrozen ? 'Unfreeze seat tilt' : 'Freeze seat tilt'
 
     return (
         <UiEntity uiTransform={{
@@ -514,6 +523,10 @@ function CarouselPanel(): ReactEcs.JSX.Element {
             <Button value={pauseLabel} variant="secondary" fontSize={16}
                 uiTransform={{ width: '100%', height: 44, margin: { top: 8 } }}
                 onMouseDown={() => toggleCarouselVerticalPause()} />
+
+            <Button value={freezeTiltLabel} variant="secondary" fontSize={16}
+                uiTransform={{ width: '100%', height: 44, margin: { top: 6 } }}
+                onMouseDown={() => toggleCarouselTiltFreeze()} />
 
             {StatusBlock(carouselStatus, carouselStatusColor)}
         </UiEntity>

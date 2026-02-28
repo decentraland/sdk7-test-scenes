@@ -9,7 +9,7 @@ import {
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { createChildFaceTriggers } from './faceTriggers'
-import { getCarouselMaxTiltDeg, getCarouselSpeedRpm, isCarouselVerticalPaused } from './configUi'
+import { getCarouselMaxTiltDeg, getCarouselSpeedRpm, isCarouselTiltFrozen, isCarouselVerticalPaused } from './configUi'
 
 // ---------------------------------------------------------------------------
 // Layout — parcel 1,8 (X: 16–32, Z: 16–32), center at (24, 0, 24)
@@ -91,6 +91,8 @@ export function setupCarousel() {
 
     let yawDeg = 0
     let liftPhase = Math.PI / 2 // start at top (default behavior like before)
+    let frozenTiltDeg = -45
+    let lastTiltFrozen = false
 
     engine.addSystem((dt) => {
         const rpm = Math.max(0, getCarouselSpeedRpm())
@@ -103,7 +105,21 @@ export function setupCarousel() {
         const liftY = POLE_MIN_HEIGHT + (POLE_MAX_HEIGHT - POLE_MIN_HEIGHT) * liftT
 
         const maxTilt = clamp(getCarouselMaxTiltDeg(), 0, 89)
-        const tiltDeg = -90 + (90 - maxTilt) * liftT
+        const minTiltDeg = -90
+        const maxTiltDeg = -maxTilt
+        const dynamicTiltDeg = minTiltDeg + (90 - maxTilt) * liftT
+        const tiltFrozen = isCarouselTiltFrozen()
+        if (tiltFrozen) {
+            if (!lastTiltFrozen) {
+                // Freeze current value, but ensure it stays inside allowed tilt range.
+                frozenTiltDeg = clamp(dynamicTiltDeg, minTiltDeg, maxTiltDeg)
+            } else {
+                // If UI changes max tilt while frozen, keep clamped to updated range.
+                frozenTiltDeg = clamp(frozenTiltDeg, minTiltDeg, maxTiltDeg)
+            }
+        }
+        const tiltDeg = tiltFrozen ? frozenTiltDeg : dynamicTiltDeg
+        lastTiltFrozen = tiltFrozen
         const tiltRotation = Quaternion.fromEulerDegrees(tiltDeg, 0, 0)
 
         const pivot = Transform.getMutable(diskPivot)
