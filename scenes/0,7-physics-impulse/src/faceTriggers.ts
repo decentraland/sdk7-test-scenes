@@ -22,9 +22,16 @@ type TriggerVisual = {
 }
 
 const allChildFaceTriggers: TriggerVisual[] = []
-let cooldownUntilSec = 0
+let cooldownRemainingSec = 0
 let cooldownVisualApplied = false
 let cooldownSystemInitialized = false
+
+// Aggregator state: collects all trigger hits during frame, applies one impulse.
+let pendingDirX = 0
+let pendingDirY = 0
+let pendingDirZ = 0
+let pendingMagnitude = 0
+let hasPendingImpulse = false
 
 interface FaceDef {
     /** Position offset relative to parent center */
@@ -114,19 +121,21 @@ export function createChildFaceTriggers(
 
         triggerAreaEventsSystem.onTriggerEnter(trigger, (result) => {
             if (result.trigger?.entity !== engine.PlayerEntity) return
-            const nowSec = Date.now() / 1000
-            if (nowSec < cooldownUntilSec) return
+            if (cooldownRemainingSec > 0) return
 
             const worldDir = Transform.localToWorldDirection(trigger, face.localNormal)
-            Physics.applyImpulseToPlayer(worldDir, getMag())
-
-            cooldownUntilSec = nowSec + IMPULSE_COOLDOWN_SECONDS
-            applyCooldownVisual()
+            pendingDirX += worldDir.x
+            pendingDirY += worldDir.y
+            pendingDirZ += worldDir.z
+            if (!hasPendingImpulse) {
+                pendingMagnitude = getMag()
+                hasPendingImpulse = true
+            }
         })
 
         triggerAreaEventsSystem.onTriggerExit(trigger, (result) => {
             if (result.trigger?.entity !== engine.PlayerEntity) return
-            if (Date.now() / 1000 < cooldownUntilSec) return
+            if (cooldownRemainingSec > 0) return
             Material.setPbrMaterial(trigger, { albedoColor: face.color })
         })
     }
@@ -136,15 +145,39 @@ function ensureCooldownSystem() {
     if (cooldownSystemInitialized) return
     cooldownSystemInitialized = true
 
-    engine.addSystem(() => {
-        const nowSec = Date.now() / 1000
-        if (nowSec < cooldownUntilSec) {
+    engine.addSystem((dt) => {
+        if (cooldownRemainingSec > 0) {
+            cooldownRemainingSec = Math.max(0, cooldownRemainingSec - dt)
             if (!cooldownVisualApplied) applyCooldownVisual()
             return
         }
 
         if (cooldownVisualApplied) {
             restoreBaseVisuals()
+        }
+
+        if (hasPendingImpulse) {
+            const len = Math.sqrt(
+                pendingDirX * pendingDirX +
+                pendingDirY * pendingDirY +
+                pendingDirZ * pendingDirZ
+            )
+
+            const impulseDir = len > 0
+                ? Vector3.create(pendingDirX / len, pendingDirY / len, pendingDirZ / len)
+                : Vector3.create(0, 1, 0)
+
+            // Keep magnitude exactly like a single regular side hit.
+            Physics.applyImpulseToPlayer(impulseDir, pendingMagnitude)
+
+            pendingDirX = 0
+            pendingDirY = 0
+            pendingDirZ = 0
+            pendingMagnitude = 0
+            hasPendingImpulse = false
+
+            cooldownRemainingSec = IMPULSE_COOLDOWN_SECONDS
+            applyCooldownVisual()
         }
     })
 }
