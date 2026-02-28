@@ -6,6 +6,7 @@ import { setupImpulseCube } from './impulseCube'
 import { setupRepulsionCube } from './impulseRepulsionCube'
 import { setupPendulumBridge } from './impulsePendulumBridge'
 import { setupCarousel } from './carousel'
+import { setupKnockbackGrappleAnchors } from './knockbackGrappleAnchors'
 import { setupForceZone, setupImpulseZone } from './configurableZone'
 import { setupConfigurableTunnels } from './configurableTunnels'
 import {
@@ -107,4 +108,7 @@ export function main() {
 
     // Right half: blue Impulse zone (single fire)
     setupImpulseZone(Vector3.create(12, 2.5, 24), Vector3.create(7, 5, 14))
+
+    // === Parcel 2,8 (X: 32–48, Z: 16–32) — Knockback Grapple Anchors ===
+    setupKnockbackGrappleAnchors()
 }
