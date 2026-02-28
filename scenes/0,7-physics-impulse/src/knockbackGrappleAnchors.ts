@@ -13,8 +13,13 @@ import {
 } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
 
-const ARENA_CENTER = Vector3.create(40, 0, 24)
-const ARENA_RADIUS = 6
+const PARCEL_SIZE = 16
+const PARCELS_X = 2
+const PARCELS_Z = 2
+const VOLUME_MIN_X = 32
+const VOLUME_MIN_Z = 16
+const VOLUME_MIN_Y = 0
+const VOLUME_MARGIN = 1
 
 const ANCHOR_COOLDOWN_SEC = 0.35
 
@@ -24,14 +29,13 @@ const GRAPPLE_RADIUS = 36
 const ANCHOR_SCALE = 2
 const ANCHOR_ACTIVE_COLOR = Color4.create(1, 0.9, 0.2, 1)
 
-const FIELD_COUNT = 80
-const FIELD_MIN_X = 33
-const FIELD_MAX_X = 63
-const FIELD_MIN_Z = 17
-const FIELD_MAX_Z = 63
-const FIELD_MIN_Y = 1
-const FIELD_MAX_Y = 5
-const POLE_HEIGHT = FIELD_MAX_Y
+const FIELD_COUNT = 320
+const FIELD_MIN_X = VOLUME_MIN_X + VOLUME_MARGIN
+const FIELD_MAX_X = VOLUME_MIN_X + PARCEL_SIZE * PARCELS_X - VOLUME_MARGIN
+const FIELD_MIN_Z = VOLUME_MIN_Z + VOLUME_MARGIN
+const FIELD_MAX_Z = VOLUME_MIN_Z + PARCEL_SIZE * PARCELS_Z - VOLUME_MARGIN
+const FIELD_MIN_Y = VOLUME_MIN_Y + VOLUME_MARGIN
+const FIELD_MAX_Y = VOLUME_MIN_Y + PARCEL_SIZE - VOLUME_MARGIN
 
 const COLOR_PALETTE: Color4[] = [
     Color4.create(1, 0.35, 0.35, 1),
@@ -55,32 +59,18 @@ type FlashItem = {
  * player can click floating anchors to pull toward them using negative knockback.
  */
 export function setupKnockbackGrappleAnchors() {
-    // Arena floor
-    const floor = engine.addEntity()
-    Transform.create(floor, {
-        position: Vector3.create(ARENA_CENTER.x, 0.15, ARENA_CENTER.z),
-        scale: Vector3.create(ARENA_RADIUS * 2, 0.3, ARENA_RADIUS * 2)
-    })
-    MeshRenderer.setCylinder(floor)
-    MeshCollider.setCylinder(floor, ColliderLayer.CL_PHYSICS)
-    Material.setPbrMaterial(floor, { albedoColor: Color4.create(0.12, 0.14, 0.2, 1) })
-
-    // Central pole for visual grounding
-    const pole = engine.addEntity()
-    Transform.create(pole, {
-        position: Vector3.create(ARENA_CENTER.x, POLE_HEIGHT / 2, ARENA_CENTER.z),
-        scale: Vector3.create(0.35, POLE_HEIGHT, 0.35)
-    })
-    MeshRenderer.setCylinder(pole)
-    Material.setPbrMaterial(pole, { albedoColor: Color4.create(0.45, 0.45, 0.52, 1) })
-
     // Label
     const label = engine.addEntity()
+    const volumeCenter = Vector3.create(
+        VOLUME_MIN_X + (PARCEL_SIZE * PARCELS_X) / 2,
+        VOLUME_MIN_Y + PARCEL_SIZE + 1.8,
+        VOLUME_MIN_Z + (PARCEL_SIZE * PARCELS_Z) / 2
+    )
     Transform.create(label, {
-        position: Vector3.create(ARENA_CENTER.x, POLE_HEIGHT + 1.8, ARENA_CENTER.z)
+        position: volumeCenter
     })
     TextShape.create(label, {
-        text: 'Grapple Anchors\n(click anchor to pull yourself)',
+        text: 'Grapple Volume 32x32x16 (2x2 parcels)\n(click any sphere to pull yourself)',
         fontSize: 2
     })
 
