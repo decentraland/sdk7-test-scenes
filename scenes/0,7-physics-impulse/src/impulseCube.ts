@@ -63,10 +63,14 @@ export function setupImpulseCube(position: Vector3) {
         Physics.applyImpulseToPlayer(getCubeDir())
         if (isCubeGlobalCooldownEnabled()) {
             cooldownUntilSec = nowSec + getCubeGlobalCooldownSec()
+            Material.setPbrMaterial(trigger, {
+                albedoColor: Color4.create(0.2, 1, 0.2, 0.3)
+            })
+        } else {
+            Material.setPbrMaterial(trigger, {
+                albedoColor: Color4.create(1, 0.2, 0.2, 0.3)
+            })
         }
-        Material.setPbrMaterial(trigger, {
-            albedoColor: Color4.create(0.2, 1, 0.2, 0.3)
-        })
     })
 
     triggerAreaEventsSystem.onTriggerExit(trigger, (result) => {

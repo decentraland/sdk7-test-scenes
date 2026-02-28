@@ -14,6 +14,7 @@ import { Color4, Vector3 } from '@dcl/sdk/math'
 const TRIGGER_THICKNESS = 0.3
 const TRIGGER_OUTSET = 0.06
 const IMPULSE_COOLDOWN_SECONDS = 1
+const FACE_TRIGGER_COOLDOWN_ENABLED = false
 const COOLDOWN_COLOR = Color4.create(0.45, 0.45, 0.45, 0.25)
 
 type TriggerVisual = {
@@ -121,7 +122,7 @@ export function createChildFaceTriggers(
 
         triggerAreaEventsSystem.onTriggerEnter(trigger, (result) => {
             if (result.trigger?.entity !== engine.PlayerEntity) return
-            if (cooldownRemainingSec > 0) return
+            if (FACE_TRIGGER_COOLDOWN_ENABLED && cooldownRemainingSec > 0) return
 
             const worldDir = Transform.localToWorldDirection(trigger, face.localNormal)
             pendingDirX += worldDir.x
@@ -135,7 +136,7 @@ export function createChildFaceTriggers(
 
         triggerAreaEventsSystem.onTriggerExit(trigger, (result) => {
             if (result.trigger?.entity !== engine.PlayerEntity) return
-            if (cooldownRemainingSec > 0) return
+            if (FACE_TRIGGER_COOLDOWN_ENABLED && cooldownRemainingSec > 0) return
             Material.setPbrMaterial(trigger, { albedoColor: face.color })
         })
     }
@@ -146,13 +147,13 @@ function ensureCooldownSystem() {
     cooldownSystemInitialized = true
 
     engine.addSystem((dt) => {
-        if (cooldownRemainingSec > 0) {
+        if (FACE_TRIGGER_COOLDOWN_ENABLED && cooldownRemainingSec > 0) {
             cooldownRemainingSec = Math.max(0, cooldownRemainingSec - dt)
             if (!cooldownVisualApplied) applyCooldownVisual()
             return
         }
 
-        if (cooldownVisualApplied) {
+        if (FACE_TRIGGER_COOLDOWN_ENABLED && cooldownVisualApplied) {
             restoreBaseVisuals()
         }
 
@@ -176,8 +177,10 @@ function ensureCooldownSystem() {
             pendingMagnitude = 0
             hasPendingImpulse = false
 
-            cooldownRemainingSec = IMPULSE_COOLDOWN_SECONDS
-            applyCooldownVisual()
+            if (FACE_TRIGGER_COOLDOWN_ENABLED) {
+                cooldownRemainingSec = IMPULSE_COOLDOWN_SECONDS
+                applyCooldownVisual()
+            }
         }
     })
 }
