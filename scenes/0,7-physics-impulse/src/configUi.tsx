@@ -280,9 +280,11 @@ let globalCooldownStatus = ''
 let globalCooldownStatusColor: Color4 = Color4.White()
 let cubeGlobalCooldownSec = 0
 let cubeGlobalCooldownInput = '0'
+let cubeGlobalCooldownEnabled = false
 
 export function getRepulsionMag() { return repulsionMag }
 export function getCubeGlobalCooldownSec() { return cubeGlobalCooldownSec }
+export function isCubeGlobalCooldownEnabled() { return cubeGlobalCooldownEnabled }
 
 export function showRepulsionCubePanel() { activePanel = 'repulsionCubeConfig'; repulsionStatus = '' }
 export function hideRepulsionCubePanel() { activePanel = 'none'; repulsionStatus = '' }
@@ -340,7 +342,15 @@ function applyGlobalCooldowns() {
     globalCooldownStatusColor = Color4.create(0.3, 1, 0.4, 1)
 }
 
+function toggleGlobalCubeCooldown() {
+    cubeGlobalCooldownEnabled = !cubeGlobalCooldownEnabled
+    globalCooldownStatus = cubeGlobalCooldownEnabled ? 'Shared cooldown enabled' : 'Shared cooldown disabled'
+    globalCooldownStatusColor = Color4.create(0.3, 1, 0.4, 1)
+}
+
 function GlobalCooldownPanel(): ReactEcs.JSX.Element {
+    const toggleLabel = cubeGlobalCooldownEnabled ? 'Cooldown: ON' : 'Cooldown: OFF'
+
     return (
         <UiEntity uiTransform={{
             width: 420, positionType: 'absolute',
@@ -361,6 +371,10 @@ function GlobalCooldownPanel(): ReactEcs.JSX.Element {
             <Button value="Apply Cube Cooldowns" variant="secondary" fontSize={16}
                 uiTransform={{ width: '100%', height: 40, margin: { top: 4 } }}
                 onMouseDown={() => applyGlobalCooldowns()} />
+
+            <Button value={toggleLabel} variant="secondary" fontSize={16}
+                uiTransform={{ width: '100%', height: 38, margin: { top: 6 } }}
+                onMouseDown={() => toggleGlobalCubeCooldown()} />
 
             {StatusBlock(globalCooldownStatus, globalCooldownStatusColor)}
         </UiEntity>

@@ -11,7 +11,7 @@ import {
     Physics
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import { getCubeGlobalCooldownSec, getRepulsionMag } from './configUi'
+import { getCubeGlobalCooldownSec, getRepulsionMag, isCubeGlobalCooldownEnabled } from './configUi'
 
 const TRIGGER_THICKNESS = 0.3
 
@@ -95,8 +95,12 @@ export function setupRepulsionCube(position: Vector3, cubeSize: number = 2) {
         createFaceTrigger(
             cubeCenter,
             face,
-            () => (Date.now() / 1000) < cooldownUntilSec,
-            () => { cooldownUntilSec = (Date.now() / 1000) + getCubeGlobalCooldownSec() }
+            () => isCubeGlobalCooldownEnabled() && (Date.now() / 1000) < cooldownUntilSec,
+            () => {
+                if (isCubeGlobalCooldownEnabled()) {
+                    cooldownUntilSec = (Date.now() / 1000) + getCubeGlobalCooldownSec()
+                }
+            }
         )
     }
 }
@@ -125,9 +129,13 @@ function createFaceTrigger(
         if (isOnCooldown()) return
         Physics.applyImpulseToPlayer(face.normal, getRepulsionMag())
         startCooldown()
-        Material.setPbrMaterial(trigger, {
-            albedoColor: Color4.create(1, 1, 1, 0.5)
-        })
+        if (isCubeGlobalCooldownEnabled() && getCubeGlobalCooldownSec() > 0) {
+            Material.setPbrMaterial(trigger, {
+                albedoColor: Color4.create(1, 1, 1, 0.5)
+            })
+        } else {
+            Material.setPbrMaterial(trigger, { albedoColor: face.color })
+        }
     })
 
     triggerAreaEventsSystem.onTriggerExit(trigger, (result) => {

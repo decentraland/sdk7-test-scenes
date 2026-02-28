@@ -31,12 +31,16 @@ const SEAT_SIZE = 0.9
 const POLE_MIN_HEIGHT = SEAT_SIZE / 2 // lowest state: seats can skim the floor
 const CAROUSEL_MAG = 12
 const LIFT_PERIOD_SECONDS = 8
+const DIRECTION_MARKER_LENGTH = CHAIN_LENGTH
+const DIRECTION_MARKER_RADIUS = CHAIN_RADIUS
 
 // Colors
 const POLE_COLOR = Color4.create(0.5, 0.5, 0.55, 1)
 const DISK_COLOR = Color4.create(0.2, 0.5, 0.8, 1)
 const CHAIN_COLOR = Color4.create(0.6, 0.6, 0.6, 1)
 const SEAT_COLOR = Color4.create(0.9, 0.7, 0.15, 1)
+const MARKER_ATTACH_COLOR = Color4.create(0.9, 0.9, 0.9, 0.9)
+const MARKER_NORMAL_COLOR = Color4.create(0.2, 1, 0.95, 0.9)
 
 /**
  * Soviet-style chain carousel "Вихрь".
@@ -164,6 +168,43 @@ function createChainSeat(diskPivot: Entity, index: number, chainTilts: Entity[])
     MeshCollider.setBox(seat)
     Material.setPbrMaterial(seat, { albedoColor: SEAT_COLOR })
 
+    // Direction markers from seat center:
+    // 1) along attachment direction (+Y in seat-local space)
+    // 2) along outer face normal (+Z in seat-local space), which points upward when tilt reaches -90 deg
+    createSeatDirectionMarker(
+        seat,
+        Vector3.create(0, DIRECTION_MARKER_LENGTH / 2, 0),
+        Quaternion.fromEulerDegrees(0, 0, 0),
+        MARKER_ATTACH_COLOR
+    )
+    createSeatDirectionMarker(
+        seat,
+        Vector3.create(0, 0, DIRECTION_MARKER_LENGTH / 2),
+        Quaternion.fromEulerDegrees(90, 0, 0),
+        MARKER_NORMAL_COLOR
+    )
+
     // Face triggers on the seat — resolved through the full hierarchy
     createChildFaceTriggers(seat, SEAT_SIZE, () => CAROUSEL_MAG)
+}
+
+function createSeatDirectionMarker(
+    seat: Entity,
+    position: Vector3,
+    rotation: Quaternion,
+    color: Color4
+) {
+    const marker = engine.addEntity()
+    Transform.create(marker, {
+        parent: seat,
+        position,
+        rotation,
+        scale: Vector3.create(
+            DIRECTION_MARKER_RADIUS * 2,
+            DIRECTION_MARKER_LENGTH,
+            DIRECTION_MARKER_RADIUS * 2
+        )
+    })
+    MeshRenderer.setCylinder(marker)
+    Material.setPbrMaterial(marker, { albedoColor: color })
 }
