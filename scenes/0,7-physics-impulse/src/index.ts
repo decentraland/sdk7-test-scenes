@@ -12,7 +12,8 @@ import {
     setupConfigUi,
     showImpulseCubePanel, hideImpulseCubePanel,
     showRepulsionCubePanel, hideRepulsionCubePanel,
-    showPendulumPanel, hidePendulumPanel
+    showPendulumPanel, hidePendulumPanel,
+    showCarouselPanel, hideCarouselPanel
 } from './configUi'
 
 export function main() {
@@ -83,6 +84,21 @@ export function main() {
     // === Parcel 1,8 (X: 16–32, Z: 16–32) — Chain Carousel ===
 
     setupCarousel()
+
+    const carouselZone = engine.addEntity()
+    Transform.create(carouselZone, {
+        position: Vector3.create(24, 3, 24),
+        scale: Vector3.create(14, 8, 14)
+    })
+    TriggerArea.setBox(carouselZone, ColliderLayer.CL_PLAYER)
+    triggerAreaEventsSystem.onTriggerEnter(carouselZone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
+        showCarouselPanel()
+    })
+    triggerAreaEventsSystem.onTriggerExit(carouselZone, (result) => {
+        if (result.trigger?.entity !== engine.PlayerEntity) return;
+        hideCarouselPanel()
+    })
 
     // === Parcel 0,8 (Z: 16–32) — Force vs Impulse sandbox ===
 

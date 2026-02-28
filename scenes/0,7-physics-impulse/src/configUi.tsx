@@ -15,6 +15,7 @@ type ActivePanel =
     | 'impulseCubeConfig'
     | 'repulsionCubeConfig'
     | 'pendulumConfig'
+    | 'carouselConfig'
     | 'forceConfig'
     | 'impulseConfig'
 
@@ -35,6 +36,7 @@ const PLACEHOLDER_CLR = Color4.create(0.4, 0.4, 0.5, 1)
 
 const CLR_FORCE = Color4.create(0.4, 0.7, 1, 1)
 const CLR_IMPULSE = Color4.create(1, 0.3, 0.2, 1)
+const CLR_CAROUSEL = Color4.create(0.95, 0.75, 0.2, 1)
 
 // ---------------------------------------------------------------------------
 // Shared UI helpers (PR #51 style: label above input)
@@ -364,6 +366,96 @@ function PendulumPanel(): ReactEcs.JSX.Element {
 }
 
 // =========================================================================
+// CAROUSEL PANEL (parcel 1,8)
+// =========================================================================
+
+let carouselMaxTiltDeg = 45
+let carouselSpeedRpm = 12
+let carouselVerticalPaused = false
+let carouselMaxTiltInput = '45'
+let carouselSpeedInput = '12'
+let carouselStatus = ''
+let carouselStatusColor: Color4 = Color4.White()
+
+export function getCarouselMaxTiltDeg() { return carouselMaxTiltDeg }
+export function getCarouselSpeedRpm() { return carouselSpeedRpm }
+export function isCarouselVerticalPaused() { return carouselVerticalPaused }
+
+export function showCarouselPanel() { activePanel = 'carouselConfig'; carouselStatus = '' }
+export function hideCarouselPanel() { activePanel = 'none'; carouselStatus = '' }
+
+function clamp(value: number, min: number, max: number) {
+    if (value < min) return min
+    if (value > max) return max
+    return value
+}
+
+function applyCarouselSettings() {
+    const angle = parseFloat(carouselMaxTiltInput)
+    const speed = parseFloat(carouselSpeedInput)
+
+    if (isNaN(angle) || isNaN(speed)) {
+        carouselStatus = 'Invalid number'
+        carouselStatusColor = Color4.create(1, 0.4, 0.4, 1)
+        return
+    }
+
+    carouselMaxTiltDeg = clamp(angle, 0, 89)
+    carouselSpeedRpm = Math.max(0, speed)
+    carouselStatus = `Applied: max tilt=${carouselMaxTiltDeg.toFixed(1)} deg, speed=${carouselSpeedRpm.toFixed(1)} rpm`
+    carouselStatusColor = Color4.create(0.3, 1, 0.4, 1)
+}
+
+function toggleCarouselVerticalPause() {
+    carouselVerticalPaused = !carouselVerticalPaused
+    carouselStatus = carouselVerticalPaused ? 'Vertical oscillation paused' : 'Vertical oscillation resumed'
+    carouselStatusColor = Color4.create(0.3, 1, 0.4, 1)
+}
+
+function CarouselPanel(): ReactEcs.JSX.Element {
+    const pauseLabel = carouselVerticalPaused ? 'Resume vertical oscillation' : 'Pause vertical oscillation'
+
+    return (
+        <UiEntity uiTransform={{
+            width: PANEL_W, positionType: 'absolute',
+            position: { right: 10, top: '15%' },
+            flexDirection: 'column', padding: 20,
+        }} uiBackground={{ color: PANEL_BG }}>
+
+            <Label value="Carousel Config" fontSize={22} color={CLR_CAROUSEL}
+                uiTransform={{ width: '100%', height: 30, margin: { bottom: 4 } }} />
+            <Label value="Cylinder lifts up/down: bottom = chains horizontal on floor"
+                fontSize={14} color={DIM_CLR}
+                uiTransform={{ width: '100%', height: 36, margin: { bottom: 10 } }} textWrap="wrap" />
+
+            {FieldBlock({
+                label: 'Max seat angle at top (deg, 0-89):',
+                value: carouselMaxTiltInput,
+                placeholder: '45',
+                onChange: (v) => { carouselMaxTiltInput = v }
+            })}
+
+            {FieldBlock({
+                label: 'Rotation speed (rpm):',
+                value: carouselSpeedInput,
+                placeholder: '12',
+                onChange: (v) => { carouselSpeedInput = v }
+            })}
+
+            <Button value="Apply" variant="primary" fontSize={18}
+                uiTransform={{ width: '100%', height: 48, margin: { top: 4 } }}
+                onMouseDown={() => applyCarouselSettings()} />
+
+            <Button value={pauseLabel} variant="secondary" fontSize={16}
+                uiTransform={{ width: '100%', height: 44, margin: { top: 8 } }}
+                onMouseDown={() => toggleCarouselVerticalPause()} />
+
+            {StatusBlock(carouselStatus, carouselStatusColor)}
+        </UiEntity>
+    )
+}
+
+// =========================================================================
 // FORCE CONFIG PANEL (parcel 0,8 — red zone)
 // =========================================================================
 
@@ -537,6 +629,7 @@ function UiRoot() {
     if (activePanel === 'impulseCubeConfig') return ImpulseCubePanel()
     if (activePanel === 'repulsionCubeConfig') return RepulsionCubePanel()
     if (activePanel === 'pendulumConfig') return PendulumPanel()
+    if (activePanel === 'carouselConfig') return CarouselPanel()
     if (activePanel === 'forceConfig') return ForceConfigPanel()
     if (activePanel === 'impulseConfig') return ImpulseConfigPanel()
     return null

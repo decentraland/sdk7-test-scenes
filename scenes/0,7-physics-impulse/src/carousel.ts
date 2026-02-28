@@ -5,13 +5,11 @@ import {
     MeshRenderer,
     Transform,
     TextShape,
-    Tween,
-    TweenSequence,
-    TweenLoop,
-    EasingFunction
+    Entity
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { createChildFaceTriggers } from './faceTriggers'
+import { getCarouselMaxTiltDeg, getCarouselSpeedRpm, isCarouselVerticalPaused } from './configUi'
 
 // ---------------------------------------------------------------------------
 // Layout — parcel 1,8 (X: 16–32, Z: 16–32), center at (24, 0, 24)
@@ -20,9 +18,9 @@ const CENTER_X = 24
 const CENTER_Z = 24
 
 // Pole & disk
-const POLE_HEIGHT = 7            // real standard: 7–8m
+const POLE_MAX_HEIGHT = 7
 const POLE_RADIUS = 0.35
-const DISK_RADIUS = 3
+const DISK_RADIUS = 2.5 // slightly reduced to keep seats inside parcel bounds
 const DISK_HEIGHT = 0.15
 
 // Chains & seats
@@ -30,13 +28,9 @@ const SEAT_COUNT = 6
 const CHAIN_LENGTH = 7
 const CHAIN_RADIUS = 0.04
 const SEAT_SIZE = 0.9
+const POLE_MIN_HEIGHT = SEAT_SIZE / 2 // lowest state: seats can skim the floor
 const CAROUSEL_MAG = 12
-const CHAIN_TILT_DEG = -45      // steep outward angle (like real ride at full speed)
-
-// Disk rotation — full 360° split into 3×120° segments (quaternion-safe)
-const DISK_SEGMENT_DEG = 120
-const DISK_FULL_ROTATION_DURATION = 5000 // ms for full 360° (~12 rpm, real standard: 10–14 rpm)
-const DISK_SEGMENT_DURATION = Math.round(DISK_FULL_ROTATION_DURATION / 3)
+const LIFT_PERIOD_SECONDS = 8
 
 // Colors
 const POLE_COLOR = Color4.create(0.5, 0.5, 0.55, 1)
@@ -48,53 +42,23 @@ const SEAT_COLOR = Color4.create(0.9, 0.7, 0.15, 1)
  * Soviet-style chain carousel "Вихрь".
  *
  * Hierarchy for Transform.localToWorldDirection():
- *   pole (static) → diskPivot (Y rotation) → chainAnchor (Y offset) → chainTilt (static X tilt) → seat → triggers
+ *   movingPole → diskPivot (Y rotation + vertical motion) → chainAnchor → chainTilt → seat → triggers
  */
 export function setupCarousel() {
-    // --- Pole: static tall cylinder ---
-    const pole = engine.addEntity()
-    Transform.create(pole, {
-        position: Vector3.create(CENTER_X, POLE_HEIGHT / 2, CENTER_Z),
-        scale: Vector3.create(POLE_RADIUS * 2, POLE_HEIGHT, POLE_RADIUS * 2)
+    // --- Pole: telescopic visual, never goes below ground ---
+    const movingPole = engine.addEntity()
+    Transform.create(movingPole, {
+        position: Vector3.create(CENTER_X, POLE_MAX_HEIGHT / 2, CENTER_Z),
+        scale: Vector3.create(POLE_RADIUS * 2, POLE_MAX_HEIGHT, POLE_RADIUS * 2)
     })
-    MeshRenderer.setCylinder(pole)
-    MeshCollider.setCylinder(pole)
-    Material.setPbrMaterial(pole, { albedoColor: POLE_COLOR })
+    MeshRenderer.setCylinder(movingPole)
+    MeshCollider.setCylinder(movingPole)
+    Material.setPbrMaterial(movingPole, { albedoColor: POLE_COLOR })
 
-    // --- Disk visual: flat cylinder at top of pole ---
-    // Continuous constant-speed rotation: 3 segments of 120° = 360°, LINEAR, RESTART
+    // --- Disk pivot: runtime-animated (rotation speed + vertical motion) ---
     const diskPivot = engine.addEntity()
     Transform.create(diskPivot, {
-        position: Vector3.create(CENTER_X, POLE_HEIGHT, CENTER_Z)
-    })
-    Tween.create(diskPivot, {
-        mode: Tween.Mode.Rotate({
-            start: Quaternion.fromEulerDegrees(0, 0, 0),
-            end: Quaternion.fromEulerDegrees(0, -DISK_SEGMENT_DEG, 0)
-        }),
-        duration: DISK_SEGMENT_DURATION,
-        easingFunction: EasingFunction.EF_LINEAR
-    })
-    TweenSequence.create(diskPivot, {
-        sequence: [
-            {
-                mode: Tween.Mode.Rotate({
-                    start: Quaternion.fromEulerDegrees(0, -DISK_SEGMENT_DEG, 0),
-                    end: Quaternion.fromEulerDegrees(0, -DISK_SEGMENT_DEG * 2, 0)
-                }),
-                duration: DISK_SEGMENT_DURATION,
-                easingFunction: EasingFunction.EF_LINEAR
-            },
-            {
-                mode: Tween.Mode.Rotate({
-                    start: Quaternion.fromEulerDegrees(0, -DISK_SEGMENT_DEG * 2, 0),
-                    end: Quaternion.fromEulerDegrees(0, -359.9, 0)
-                }),
-                duration: DISK_SEGMENT_DURATION,
-                easingFunction: EasingFunction.EF_LINEAR
-            }
-        ],
-        loop: TweenLoop.TL_RESTART
+        position: Vector3.create(CENTER_X, POLE_MAX_HEIGHT, CENTER_Z)
     })
 
     const disk = engine.addEntity()
@@ -108,7 +72,7 @@ export function setupCarousel() {
     // --- Label ---
     const label = engine.addEntity()
     Transform.create(label, {
-        position: Vector3.create(CENTER_X, POLE_HEIGHT + 3, CENTER_Z)
+        position: Vector3.create(CENTER_X, POLE_MAX_HEIGHT + 3, CENTER_Z)
     })
     TextShape.create(label, {
         text: 'Chain Carousel «Вихрь»\n(each seat pushes from every face)',
@@ -116,12 +80,49 @@ export function setupCarousel() {
     })
 
     // --- Chains & seats ---
+    const chainTilts: Entity[] = []
     for (let i = 0; i < SEAT_COUNT; i++) {
-        createChainSeat(diskPivot, i)
+        createChainSeat(diskPivot, i, chainTilts)
     }
+
+    let yawDeg = 0
+    let liftPhase = Math.PI / 2 // start at top (default behavior like before)
+
+    engine.addSystem((dt) => {
+        const rpm = Math.max(0, getCarouselSpeedRpm())
+        yawDeg = (yawDeg - rpm * 6 * dt) % 360
+
+        if (!isCarouselVerticalPaused()) {
+            liftPhase += (Math.PI * 2 * dt) / LIFT_PERIOD_SECONDS
+        }
+        const liftT = (Math.sin(liftPhase) + 1) / 2
+        const liftY = POLE_MIN_HEIGHT + (POLE_MAX_HEIGHT - POLE_MIN_HEIGHT) * liftT
+
+        const maxTilt = clamp(getCarouselMaxTiltDeg(), 0, 89)
+        const tiltDeg = -90 + (90 - maxTilt) * liftT
+        const tiltRotation = Quaternion.fromEulerDegrees(tiltDeg, 0, 0)
+
+        const pivot = Transform.getMutable(diskPivot)
+        pivot.position = Vector3.create(CENTER_X, liftY, CENTER_Z)
+        pivot.rotation = Quaternion.fromEulerDegrees(0, yawDeg, 0)
+
+        const pole = Transform.getMutable(movingPole)
+        pole.position = Vector3.create(CENTER_X, liftY / 2, CENTER_Z)
+        pole.scale = Vector3.create(POLE_RADIUS * 2, Math.max(0.05, liftY), POLE_RADIUS * 2)
+
+        for (const chainTilt of chainTilts) {
+            Transform.getMutable(chainTilt).rotation = tiltRotation
+        }
+    })
 }
 
-function createChainSeat(diskPivot: ReturnType<typeof engine.addEntity>, index: number) {
+function clamp(value: number, min: number, max: number) {
+    if (value < min) return min
+    if (value > max) return max
+    return value
+}
+
+function createChainSeat(diskPivot: Entity, index: number, chainTilts: Entity[]) {
     const angle = (360 / SEAT_COUNT) * index
 
     // Anchor at disk edge, rotated around Y to distribute seats evenly
@@ -138,8 +139,9 @@ function createChainSeat(diskPivot: ReturnType<typeof engine.addEntity>, index: 
     Transform.create(chainTilt, {
         parent: chainAnchor,
         position: Vector3.create(0, 0, DISK_RADIUS),
-        rotation: Quaternion.fromEulerDegrees(CHAIN_TILT_DEG, 0, 0)
+        rotation: Quaternion.fromEulerDegrees(-getCarouselMaxTiltDeg(), 0, 0)
     })
+    chainTilts.push(chainTilt)
 
     // Chain visual: thin cylinder hanging down in tilted local space
     const chain = engine.addEntity()
