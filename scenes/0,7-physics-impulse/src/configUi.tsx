@@ -16,6 +16,7 @@ type ActivePanel =
     | 'repulsionCubeConfig'
     | 'pendulumConfig'
     | 'carouselConfig'
+    | 'grappleConfig'
     | 'forceConfig'
     | 'impulseConfig'
 
@@ -37,6 +38,7 @@ const PLACEHOLDER_CLR = Color4.create(0.4, 0.4, 0.5, 1)
 const CLR_FORCE = Color4.create(0.4, 0.7, 1, 1)
 const CLR_IMPULSE = Color4.create(1, 0.3, 0.2, 1)
 const CLR_CAROUSEL = Color4.create(0.95, 0.75, 0.2, 1)
+const CLR_GRAPPLE = Color4.create(0.3, 0.85, 1, 1)
 export const CAROUSEL_VERTICAL_NUDGE_STEP = 0.01
 export const CAROUSEL_TILT_NUDGE_DEG = 5
 
@@ -576,6 +578,62 @@ function CarouselPanel(): ReactEcs.JSX.Element {
 }
 
 // =========================================================================
+// GRAPPLE VOLUME PANEL (parcels 2,8 + 2,9 + 3,8 + 3,9)
+// =========================================================================
+
+let grappleAnchorScale = 2
+let grappleAnchorScaleInput = '2'
+let grappleStatus = ''
+let grappleStatusColor: Color4 = Color4.White()
+
+export function getGrappleAnchorScale() { return grappleAnchorScale }
+export function showGrapplePanel() { activePanel = 'grappleConfig'; grappleStatus = '' }
+export function hideGrapplePanel() { activePanel = 'none'; grappleStatus = '' }
+
+function applyGrappleSettings() {
+    const s = parseFloat(grappleAnchorScaleInput)
+    if (isNaN(s)) {
+        grappleStatus = 'Invalid number'
+        grappleStatusColor = Color4.create(1, 0.4, 0.4, 1)
+        return
+    }
+
+    grappleAnchorScale = clamp(s, 0.2, 8)
+    grappleStatus = `Applied sphere scale=${grappleAnchorScale.toFixed(2)}`
+    grappleStatusColor = Color4.create(0.3, 1, 0.4, 1)
+}
+
+function GrapplePanel(): ReactEcs.JSX.Element {
+    return (
+        <UiEntity uiTransform={{
+            width: PANEL_W, positionType: 'absolute',
+            position: { right: 10, top: '10%' },
+            flexDirection: 'column', padding: 20,
+        }} uiBackground={{ color: PANEL_BG }}>
+
+            <Label value="Grapple Volume" fontSize={22} color={CLR_GRAPPLE}
+                uiTransform={{ width: '100%', height: 30, margin: { bottom: 4 } }} />
+            <Label value="Runtime settings for random pull spheres"
+                fontSize={14} color={DIM_CLR}
+                uiTransform={{ width: '100%', height: 20, margin: { bottom: 12 } }} />
+
+            {FieldBlock({
+                label: 'Sphere scale (0.2..8):',
+                value: grappleAnchorScaleInput,
+                placeholder: '2',
+                onChange: (v) => { grappleAnchorScaleInput = v }
+            })}
+
+            <Button value="Apply" variant="primary" fontSize={18}
+                uiTransform={{ width: '100%', height: 48, margin: { top: 4 } }}
+                onMouseDown={() => applyGrappleSettings()} />
+
+            {StatusBlock(grappleStatus, grappleStatusColor)}
+        </UiEntity>
+    )
+}
+
+// =========================================================================
 // FORCE CONFIG PANEL (parcel 0,8 — red zone)
 // =========================================================================
 
@@ -751,6 +809,7 @@ function UiRoot() {
     else if (activePanel === 'repulsionCubeConfig') mainPanel = RepulsionCubePanel()
     else if (activePanel === 'pendulumConfig') mainPanel = PendulumPanel()
     else if (activePanel === 'carouselConfig') mainPanel = CarouselPanel()
+    else if (activePanel === 'grappleConfig') mainPanel = GrapplePanel()
     else if (activePanel === 'forceConfig') mainPanel = ForceConfigPanel()
     else if (activePanel === 'impulseConfig') mainPanel = ImpulseConfigPanel()
 
