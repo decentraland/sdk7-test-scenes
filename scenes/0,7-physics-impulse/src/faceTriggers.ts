@@ -12,6 +12,19 @@ import {
 import { Color4, Vector3 } from '@dcl/sdk/math'
 
 const TRIGGER_THICKNESS = 0.3
+const TRIGGER_OUTSET = 0.06
+const IMPULSE_COOLDOWN_SECONDS = 1
+const COOLDOWN_COLOR = Color4.create(0.45, 0.45, 0.45, 0.25)
+
+type TriggerVisual = {
+    entity: Entity
+    baseColor: Color4
+}
+
+const allChildFaceTriggers: TriggerVisual[] = []
+let cooldownUntilSec = 0
+let cooldownVisualApplied = false
+let cooldownSystemInitialized = false
 
 interface FaceDef {
     /** Position offset relative to parent center */
@@ -30,7 +43,7 @@ interface FaceDef {
  */
 function buildFaceDefs(boxSize: number): FaceDef[] {
     const half = boxSize / 2
-    const off = half + TRIGGER_THICKNESS / 2
+    const off = half + TRIGGER_THICKNESS / 2 + TRIGGER_OUTSET
 
     return [
         {
@@ -84,6 +97,7 @@ export function createChildFaceTriggers(
     boxSize: number,
     getMag: () => number
 ) {
+    ensureCooldownSystem()
     const faces = buildFaceDefs(boxSize)
 
     for (const face of faces) {
@@ -96,19 +110,55 @@ export function createChildFaceTriggers(
         MeshRenderer.setBox(trigger)
         Material.setPbrMaterial(trigger, { albedoColor: face.color })
         TriggerArea.setBox(trigger, ColliderLayer.CL_PLAYER)
+        allChildFaceTriggers.push({ entity: trigger, baseColor: face.color })
 
         triggerAreaEventsSystem.onTriggerEnter(trigger, (result) => {
             if (result.trigger?.entity !== engine.PlayerEntity) return
+            const nowSec = Date.now() / 1000
+            if (nowSec < cooldownUntilSec) return
+
             const worldDir = Transform.localToWorldDirection(trigger, face.localNormal)
             Physics.applyImpulseToPlayer(worldDir, getMag())
-            Material.setPbrMaterial(trigger, {
-                albedoColor: Color4.create(1, 1, 1, 0.5)
-            })
+
+            cooldownUntilSec = nowSec + IMPULSE_COOLDOWN_SECONDS
+            applyCooldownVisual()
         })
 
         triggerAreaEventsSystem.onTriggerExit(trigger, (result) => {
             if (result.trigger?.entity !== engine.PlayerEntity) return
+            if (Date.now() / 1000 < cooldownUntilSec) return
             Material.setPbrMaterial(trigger, { albedoColor: face.color })
         })
+    }
+}
+
+function ensureCooldownSystem() {
+    if (cooldownSystemInitialized) return
+    cooldownSystemInitialized = true
+
+    engine.addSystem(() => {
+        const nowSec = Date.now() / 1000
+        if (nowSec < cooldownUntilSec) {
+            if (!cooldownVisualApplied) applyCooldownVisual()
+            return
+        }
+
+        if (cooldownVisualApplied) {
+            restoreBaseVisuals()
+        }
+    })
+}
+
+function applyCooldownVisual() {
+    cooldownVisualApplied = true
+    for (const trigger of allChildFaceTriggers) {
+        Material.setPbrMaterial(trigger.entity, { albedoColor: COOLDOWN_COLOR })
+    }
+}
+
+function restoreBaseVisuals() {
+    cooldownVisualApplied = false
+    for (const trigger of allChildFaceTriggers) {
+        Material.setPbrMaterial(trigger.entity, { albedoColor: trigger.baseColor })
     }
 }
