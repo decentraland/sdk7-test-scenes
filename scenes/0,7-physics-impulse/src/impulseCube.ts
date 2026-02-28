@@ -11,7 +11,7 @@ import {
     Physics
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import { getCubeDir } from './configUi'
+import { getCubeDir, getCubeGlobalCooldownSec } from './configUi'
 
 const LABEL_ROT = Quaternion.fromEulerDegrees(0, 180, 0)
 
@@ -21,6 +21,8 @@ const LABEL_ROT = Quaternion.fromEulerDegrees(0, 180, 0)
  * Direction and magnitude are read dynamically from the UI state.
  */
 export function setupImpulseCube(position: Vector3) {
+    let cooldownUntilSec = 0
+
     const cube = engine.addEntity()
     Transform.create(cube, {
         position: Vector3.create(position.x, position.y + 0.5, position.z),
@@ -55,7 +57,11 @@ export function setupImpulseCube(position: Vector3) {
 
     triggerAreaEventsSystem.onTriggerEnter(trigger, (result) => {
         if (result.trigger?.entity !== engine.PlayerEntity) return;
+        const nowSec = Date.now() / 1000
+        if (nowSec < cooldownUntilSec) return
+
         Physics.applyImpulseToPlayer(getCubeDir())
+        cooldownUntilSec = nowSec + getCubeGlobalCooldownSec()
         Material.setPbrMaterial(trigger, {
             albedoColor: Color4.create(0.2, 1, 0.2, 0.3)
         })

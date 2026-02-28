@@ -276,7 +276,13 @@ let repulsionMagInput = '10'
 let repulsionStatus = ''
 let repulsionStatusColor: Color4 = Color4.White()
 
+let globalCooldownStatus = ''
+let globalCooldownStatusColor: Color4 = Color4.White()
+let cubeGlobalCooldownSec = 0
+let cubeGlobalCooldownInput = '0'
+
 export function getRepulsionMag() { return repulsionMag }
+export function getCubeGlobalCooldownSec() { return cubeGlobalCooldownSec }
 
 export function showRepulsionCubePanel() { activePanel = 'repulsionCubeConfig'; repulsionStatus = '' }
 export function hideRepulsionCubePanel() { activePanel = 'none'; repulsionStatus = '' }
@@ -312,6 +318,51 @@ function RepulsionCubePanel(): ReactEcs.JSX.Element {
                 onMouseDown={() => applyRepulsionSettings()} />
 
             {StatusBlock(repulsionStatus, repulsionStatusColor)}
+        </UiEntity>
+    )
+}
+
+// =========================================================================
+// GLOBAL COOLDOWN PANEL (always visible, bottom-right)
+// =========================================================================
+
+function applyGlobalCooldowns() {
+    const cooldown = parseFloat(cubeGlobalCooldownInput)
+
+    if (isNaN(cooldown)) {
+        globalCooldownStatus = 'Invalid number'
+        globalCooldownStatusColor = Color4.create(1, 0.4, 0.4, 1)
+        return
+    }
+
+    cubeGlobalCooldownSec = Math.max(0, cooldown)
+    globalCooldownStatus = `Applied shared cooldown=${cubeGlobalCooldownSec.toFixed(2)}s for both cubes`
+    globalCooldownStatusColor = Color4.create(0.3, 1, 0.4, 1)
+}
+
+function GlobalCooldownPanel(): ReactEcs.JSX.Element {
+    return (
+        <UiEntity uiTransform={{
+            width: 420, positionType: 'absolute',
+            position: { right: 10, bottom: '2%' },
+            flexDirection: 'column', padding: 14,
+        }} uiBackground={{ color: Color4.create(0.05, 0.05, 0.09, 0.9) }}>
+
+            <Label value="Global Cube Cooldown" fontSize={18} color={TITLE_CLR}
+                uiTransform={{ width: '100%', height: 26, margin: { bottom: 8 } }} />
+
+            {FieldBlock({
+                label: 'Shared cooldown for Impulse + Repulsion cubes (sec):',
+                value: cubeGlobalCooldownInput,
+                placeholder: '0',
+                onChange: (v) => { cubeGlobalCooldownInput = v }
+            })}
+
+            <Button value="Apply Cube Cooldowns" variant="secondary" fontSize={16}
+                uiTransform={{ width: '100%', height: 40, margin: { top: 4 } }}
+                onMouseDown={() => applyGlobalCooldowns()} />
+
+            {StatusBlock(globalCooldownStatus, globalCooldownStatusColor)}
         </UiEntity>
     )
 }
@@ -625,14 +676,21 @@ function ImpulseConfigPanel(): ReactEcs.JSX.Element {
 // =========================================================================
 
 function UiRoot() {
-    if (activePanel === 'tunnels') return TunnelPanel()
-    if (activePanel === 'impulseCubeConfig') return ImpulseCubePanel()
-    if (activePanel === 'repulsionCubeConfig') return RepulsionCubePanel()
-    if (activePanel === 'pendulumConfig') return PendulumPanel()
-    if (activePanel === 'carouselConfig') return CarouselPanel()
-    if (activePanel === 'forceConfig') return ForceConfigPanel()
-    if (activePanel === 'impulseConfig') return ImpulseConfigPanel()
-    return null
+    let mainPanel: ReactEcs.JSX.Element | null = null
+    if (activePanel === 'tunnels') mainPanel = TunnelPanel()
+    else if (activePanel === 'impulseCubeConfig') mainPanel = ImpulseCubePanel()
+    else if (activePanel === 'repulsionCubeConfig') mainPanel = RepulsionCubePanel()
+    else if (activePanel === 'pendulumConfig') mainPanel = PendulumPanel()
+    else if (activePanel === 'carouselConfig') mainPanel = CarouselPanel()
+    else if (activePanel === 'forceConfig') mainPanel = ForceConfigPanel()
+    else if (activePanel === 'impulseConfig') mainPanel = ImpulseConfigPanel()
+
+    return (
+        <UiEntity uiTransform={{ width: '100%', height: '100%' }}>
+            {mainPanel}
+            {activePanel === 'carouselConfig' ? GlobalCooldownPanel() : null}
+        </UiEntity>
+    )
 }
 
 export function setupConfigUi() {
