@@ -9,7 +9,14 @@ import {
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { createChildFaceTriggers } from './faceTriggers'
-import { getCarouselMaxTiltDeg, getCarouselSpeedRpm, isCarouselTiltFrozen, isCarouselVerticalPaused } from './configUi'
+import {
+    CAROUSEL_VERTICAL_NUDGE_STEP,
+    consumeCarouselVerticalNudgeSteps,
+    getCarouselMaxTiltDeg,
+    getCarouselSpeedRpm,
+    isCarouselTiltFrozen,
+    isCarouselVerticalPaused
+} from './configUi'
 
 // ---------------------------------------------------------------------------
 // Layout — parcel 1,8 (X: 16–32, Z: 16–32), center at (24, 0, 24)
@@ -101,7 +108,14 @@ export function setupCarousel() {
         if (!isCarouselVerticalPaused()) {
             liftPhase += (Math.PI * 2 * dt) / LIFT_PERIOD_SECONDS
         }
-        const liftT = (Math.sin(liftPhase) + 1) / 2
+        let liftT = (Math.sin(liftPhase) + 1) / 2
+        const nudgeSteps = consumeCarouselVerticalNudgeSteps()
+        if (nudgeSteps !== 0) {
+            liftT = clamp(liftT + nudgeSteps * CAROUSEL_VERTICAL_NUDGE_STEP, 0, 1)
+            // Keep phase consistent with manually nudged vertical position.
+            const sinValue = clamp(liftT * 2 - 1, -1, 1)
+            liftPhase = Math.asin(sinValue)
+        }
         const liftY = POLE_MIN_HEIGHT + (POLE_MAX_HEIGHT - POLE_MIN_HEIGHT) * liftT
 
         const maxTilt = clamp(getCarouselMaxTiltDeg(), 0, 89)

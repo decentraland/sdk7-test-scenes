@@ -37,6 +37,8 @@ const PLACEHOLDER_CLR = Color4.create(0.4, 0.4, 0.5, 1)
 const CLR_FORCE = Color4.create(0.4, 0.7, 1, 1)
 const CLR_IMPULSE = Color4.create(1, 0.3, 0.2, 1)
 const CLR_CAROUSEL = Color4.create(0.95, 0.75, 0.2, 1)
+export const CAROUSEL_VERTICAL_NUDGE_STEP = 0.01
+export const CAROUSEL_TILT_NUDGE_DEG = 5
 
 // ---------------------------------------------------------------------------
 // Shared UI helpers (PR #51 style: label above input)
@@ -438,6 +440,7 @@ let carouselMaxTiltDeg = 45
 let carouselSpeedRpm = 12
 let carouselVerticalPaused = false
 let carouselTiltFrozen = false
+let carouselVerticalNudgeSteps = 0
 let carouselMaxTiltInput = '45'
 let carouselSpeedInput = '12'
 let carouselStatus = ''
@@ -447,6 +450,11 @@ export function getCarouselMaxTiltDeg() { return carouselMaxTiltDeg }
 export function getCarouselSpeedRpm() { return carouselSpeedRpm }
 export function isCarouselVerticalPaused() { return carouselVerticalPaused }
 export function isCarouselTiltFrozen() { return carouselTiltFrozen }
+export function consumeCarouselVerticalNudgeSteps() {
+    const steps = carouselVerticalNudgeSteps
+    carouselVerticalNudgeSteps = 0
+    return steps
+}
 
 export function showCarouselPanel() { activePanel = 'carouselConfig'; carouselStatus = '' }
 export function hideCarouselPanel() { activePanel = 'none'; carouselStatus = '' }
@@ -482,6 +490,22 @@ function toggleCarouselVerticalPause() {
 function toggleCarouselTiltFreeze() {
     carouselTiltFrozen = !carouselTiltFrozen
     carouselStatus = carouselTiltFrozen ? 'Seat tilt frozen at current angle' : 'Seat tilt unfrozen'
+    carouselStatusColor = Color4.create(0.3, 1, 0.4, 1)
+}
+
+function nudgeCarouselVertical(step: number) {
+    carouselVerticalPaused = true
+    carouselVerticalNudgeSteps += step
+    carouselStatus = step > 0 ? 'Vertical nudge: Up' : 'Vertical nudge: Down'
+    carouselStatusColor = Color4.create(0.3, 1, 0.4, 1)
+}
+
+function nudgeCarouselTilt(stepDeg: number) {
+    // Manual tilt nudges should always have visible effect.
+    if (carouselTiltFrozen) carouselTiltFrozen = false
+    carouselMaxTiltDeg = clamp(carouselMaxTiltDeg + stepDeg, 0, 89)
+    carouselMaxTiltInput = carouselMaxTiltDeg.toFixed(0)
+    carouselStatus = `Max tilt adjusted: ${carouselMaxTiltDeg.toFixed(0)} deg`
     carouselStatusColor = Color4.create(0.3, 1, 0.4, 1)
 }
 
@@ -527,6 +551,24 @@ function CarouselPanel(): ReactEcs.JSX.Element {
             <Button value={freezeTiltLabel} variant="secondary" fontSize={16}
                 uiTransform={{ width: '100%', height: 44, margin: { top: 6 } }}
                 onMouseDown={() => toggleCarouselTiltFreeze()} />
+
+            <UiEntity uiTransform={{ flexDirection: 'row', width: '100%', margin: { top: 8 } }}>
+                <Button value="Down" variant="secondary" fontSize={16}
+                    uiTransform={{ flex: 1, height: 40, margin: { right: 4 } }}
+                    onMouseDown={() => nudgeCarouselVertical(-1)} />
+                <Button value="Up" variant="secondary" fontSize={16}
+                    uiTransform={{ flex: 1, height: 40 }}
+                    onMouseDown={() => nudgeCarouselVertical(1)} />
+            </UiEntity>
+
+            <UiEntity uiTransform={{ flexDirection: 'row', width: '100%', margin: { top: 6 } }}>
+                <Button value="Tilt -" variant="secondary" fontSize={16}
+                    uiTransform={{ flex: 1, height: 40, margin: { right: 4 } }}
+                    onMouseDown={() => nudgeCarouselTilt(-CAROUSEL_TILT_NUDGE_DEG)} />
+                <Button value="Tilt +" variant="secondary" fontSize={16}
+                    uiTransform={{ flex: 1, height: 40 }}
+                    onMouseDown={() => nudgeCarouselTilt(CAROUSEL_TILT_NUDGE_DEG)} />
+            </UiEntity>
 
             {StatusBlock(carouselStatus, carouselStatusColor)}
         </UiEntity>
