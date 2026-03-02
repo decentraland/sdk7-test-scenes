@@ -45,7 +45,13 @@ type SphereState = {
     radiusInput: string
 }
 
+export enum KnockbackLabApplyMode {
+    KNOCKBACK = 'knockback',
+    REPULSION = 'repulsion'
+}
+
 const spheres: SphereState[] = []
+let applyMode: KnockbackLabApplyMode = KnockbackLabApplyMode.KNOCKBACK
 export function setupKnockbackSphereLab(
     onPlayerEnterZone: () => void,
     onPlayerExitZone: () => void
@@ -67,6 +73,17 @@ export function getKnockbackLabSpheres(): readonly SphereState[] {
     return spheres
 }
 
+export function getKnockbackLabApplyMode() {
+    return applyMode
+}
+
+export function setKnockbackLabApplyMode(mode: KnockbackLabApplyMode) {
+    applyMode = mode
+    if (mode === KnockbackLabApplyMode.KNOCKBACK) {
+        clearAllRepulsionSources()
+    }
+}
+
 export function moveKnockbackLabSphere(index: number, delta: Vector3) {
     const sphere = spheres[index]
     if (!sphere) return
@@ -78,6 +95,12 @@ export function moveKnockbackLabSphere(index: number, delta: Vector3) {
         )
     )
     Transform.getMutable(sphere.root).position = sphere.position
+}
+
+function clearAllRepulsionSources() {
+    for (const sphere of spheres) {
+        Physics.removeForceFromPlayer(sphere.root)
+    }
 }
 
 export function updateKnockbackLabSphere(index: number, magnitude: number, radius: number) {
@@ -212,7 +235,20 @@ function createSphere(
             }
         },
         () => {
-            Physics.applyKnockbackToPlayer(sphereState.position, sphereState.magnitude, sphereState.radius, sphereState.falloff)
+            if (applyMode === KnockbackLabApplyMode.KNOCKBACK) {
+                Physics.applyKnockbackToPlayer(sphereState.position, sphereState.magnitude, sphereState.radius, sphereState.falloff)
+                return
+            }
+
+            // Keep only one active repulsion source to avoid stacking sticky forces.
+            clearAllRepulsionSources()
+            Physics.applyRepulsionForceToPlayer(
+                sphereState.root,
+                sphereState.position,
+                sphereState.magnitude,
+                sphereState.radius,
+                sphereState.falloff
+            )
         }
     )
 }

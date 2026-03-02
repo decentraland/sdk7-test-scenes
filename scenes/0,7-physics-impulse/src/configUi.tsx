@@ -3,10 +3,13 @@ import { Color4 } from '@dcl/sdk/math'
 import { engine, KnockbackFalloff, Physics } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 import {
+    getKnockbackLabApplyMode,
     cycleKnockbackLabSphereFalloff,
     getKnockbackLabMoveStep,
     getKnockbackLabSpheres,
+    KnockbackLabApplyMode,
     moveKnockbackLabSphere,
+    setKnockbackLabApplyMode,
     updateKnockbackLabSphere
 } from './knockbackSphereLab'
 
@@ -884,6 +887,19 @@ function cycleLabSphereFalloff(index: number) {
     knockbackLabStatusColor = Color4.create(0.3, 0.85, 1, 1)
 }
 
+function toggleLabApplyMode() {
+    const current = getKnockbackLabApplyMode()
+    const next = current === KnockbackLabApplyMode.KNOCKBACK
+        ? KnockbackLabApplyMode.REPULSION
+        : KnockbackLabApplyMode.KNOCKBACK
+
+    setKnockbackLabApplyMode(next)
+    knockbackLabStatus = next === KnockbackLabApplyMode.KNOCKBACK
+        ? 'Apply mode: Knockback impulse'
+        : 'Apply mode: Repulsion force'
+    knockbackLabStatusColor = Color4.create(0.3, 0.85, 1, 1)
+}
+
 function LabMoveButtons(index: number): ReactEcs.JSX.Element {
     const step = getKnockbackLabMoveStep()
 
@@ -918,6 +934,10 @@ function LabMoveButtons(index: number): ReactEcs.JSX.Element {
 function KnockbackLabPanel(): ReactEcs.JSX.Element {
     syncKnockbackLabInputBuffers()
     const spheres = getKnockbackLabSpheres()
+    const mode = getKnockbackLabApplyMode()
+    const modeLabel = mode === KnockbackLabApplyMode.KNOCKBACK
+        ? 'Mode: Knockback impulse'
+        : 'Mode: Repulsion force'
 
     return (
         <UiEntity uiTransform={{
@@ -928,9 +948,13 @@ function KnockbackLabPanel(): ReactEcs.JSX.Element {
 
             <Label value="Knockback Sphere Lab" fontSize={22} color={TITLE_CLR}
                 uiTransform={{ width: '100%', height: 30, margin: { bottom: 4 } }} />
-            <Label value="2x2 parcels (1,5 2,5 1,6 2,6): click core sphere to trigger knockback"
+            <Label value="2x2 parcels (1,5 2,5 1,6 2,6): click core sphere to apply selected mode"
                 fontSize={14} color={DIM_CLR}
                 uiTransform={{ width: '100%', height: 22, margin: { bottom: 12 } }} />
+
+            <Button value={modeLabel} variant="secondary" fontSize={16}
+                uiTransform={{ width: '100%', height: 40, margin: { bottom: 10 } }}
+                onMouseDown={() => toggleLabApplyMode()} />
 
             {spheres.map((sphere, i) => (
                 <UiEntity key={`lab-sphere-${i}`} uiTransform={{
