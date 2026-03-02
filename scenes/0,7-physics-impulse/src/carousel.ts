@@ -97,7 +97,7 @@ export function setupCarousel() {
     }
 
     let yawDeg = 0
-    let liftPhase = Math.PI / 2 // start at top (default behavior like before)
+    let liftPhase = 0 // start at mid-height. = Math.PI / 2 -  start at top
     let frozenTiltDeg = -45
     let lastTiltFrozen = false
 

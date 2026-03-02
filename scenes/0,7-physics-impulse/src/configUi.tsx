@@ -438,13 +438,13 @@ function PendulumPanel(): ReactEcs.JSX.Element {
 // CAROUSEL PANEL (parcel 1,8)
 // =========================================================================
 
-let carouselMaxTiltDeg = 45
-let carouselSpeedRpm = 12
-let carouselVerticalPaused = false
+let carouselMaxTiltDeg = 50
+let carouselSpeedRpm = 1
+let carouselVerticalPaused = true
 let carouselTiltFrozen = false
 let carouselVerticalNudgeSteps = 0
-let carouselMaxTiltInput = '45'
-let carouselSpeedInput = '12'
+let carouselMaxTiltInput = '50'
+let carouselSpeedInput = '1'
 let carouselStatus = ''
 let carouselStatusColor: Color4 = Color4.White()
 
