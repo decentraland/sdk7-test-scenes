@@ -12,6 +12,7 @@ import { createChildFaceTriggers } from './faceTriggers'
 import {
     CAROUSEL_VERTICAL_NUDGE_STEP,
     consumeCarouselVerticalNudgeSteps,
+    getCarouselImpulseMag,
     getCarouselMaxTiltDeg,
     getCarouselSpeedRpm,
     isCarouselTiltFrozen,
@@ -36,7 +37,6 @@ const CHAIN_LENGTH = 7
 const CHAIN_RADIUS = 0.04
 const SEAT_SIZE = 0.9
 const POLE_MIN_HEIGHT = SEAT_SIZE / 2 // lowest state: seats can skim the floor
-const CAROUSEL_MAG = 12
 const LIFT_PERIOD_SECONDS = 8
 const DIRECTION_MARKER_LENGTH = CHAIN_LENGTH
 const DIRECTION_MARKER_RADIUS = CHAIN_RADIUS
@@ -215,7 +215,7 @@ function createChainSeat(diskPivot: Entity, index: number, chainTilts: Entity[])
     )
 
     // Face triggers on the seat — resolved through the full hierarchy
-    createChildFaceTriggers(seat, SEAT_SIZE, () => CAROUSEL_MAG)
+    createChildFaceTriggers(seat, SEAT_SIZE, () => getCarouselImpulseMag())
 }
 
 function createSeatDirectionMarker(

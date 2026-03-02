@@ -440,16 +440,19 @@ function PendulumPanel(): ReactEcs.JSX.Element {
 
 let carouselMaxTiltDeg = 50
 let carouselSpeedRpm = 1
+let carouselImpulseMag = 12
 let carouselVerticalPaused = true
 let carouselTiltFrozen = false
 let carouselVerticalNudgeSteps = 0
 let carouselMaxTiltInput = '50'
 let carouselSpeedInput = '1'
+let carouselImpulseMagInput = '12'
 let carouselStatus = ''
 let carouselStatusColor: Color4 = Color4.White()
 
 export function getCarouselMaxTiltDeg() { return carouselMaxTiltDeg }
 export function getCarouselSpeedRpm() { return carouselSpeedRpm }
+export function getCarouselImpulseMag() { return carouselImpulseMag }
 export function isCarouselVerticalPaused() { return carouselVerticalPaused }
 export function isCarouselTiltFrozen() { return carouselTiltFrozen }
 export function consumeCarouselVerticalNudgeSteps() {
@@ -470,8 +473,9 @@ function clamp(value: number, min: number, max: number) {
 function applyCarouselSettings() {
     const angle = parseFloat(carouselMaxTiltInput)
     const speed = parseFloat(carouselSpeedInput)
+    const impulseMag = parseFloat(carouselImpulseMagInput)
 
-    if (isNaN(angle) || isNaN(speed)) {
+    if (isNaN(angle) || isNaN(speed) || isNaN(impulseMag)) {
         carouselStatus = 'Invalid number'
         carouselStatusColor = Color4.create(1, 0.4, 0.4, 1)
         return
@@ -479,7 +483,8 @@ function applyCarouselSettings() {
 
     carouselMaxTiltDeg = clamp(angle, 0, 89)
     carouselSpeedRpm = Math.max(0, speed)
-    carouselStatus = `Applied: max tilt=${carouselMaxTiltDeg.toFixed(1)} deg, speed=${carouselSpeedRpm.toFixed(1)} rpm`
+    carouselImpulseMag = Math.max(0, impulseMag)
+    carouselStatus = `Applied: max tilt=${carouselMaxTiltDeg.toFixed(1)} deg, speed=${carouselSpeedRpm.toFixed(1)} rpm, impulse=${carouselImpulseMag.toFixed(1)}`
     carouselStatusColor = Color4.create(0.3, 1, 0.4, 1)
 }
 
@@ -540,6 +545,13 @@ function CarouselPanel(): ReactEcs.JSX.Element {
                 value: carouselSpeedInput,
                 placeholder: '12',
                 onChange: (v) => { carouselSpeedInput = v }
+            })}
+
+            {FieldBlock({
+                label: 'Impulse magnitude (all seats):',
+                value: carouselImpulseMagInput,
+                placeholder: '12',
+                onChange: (v) => { carouselImpulseMagInput = v }
             })}
 
             <Button value="Apply" variant="primary" fontSize={18}
