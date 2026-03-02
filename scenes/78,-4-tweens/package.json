@@ -1,11 +1,11 @@
 {
-  "name": "continuous-tween",
-  "description": "Continuous Tween",
+  "name": "tweens",
+  "description": "All Tweens",
   "version": "1.0.0",
   "dependencies": {
     "@dcl-sdk/utils": "latest",
-    "@dcl/sdk": "^7.10.6-18360453790.commit-2ff55cb",
-    "@dcl/js-runtime": "7.10.6-18360453790.commit-2ff55cb"
+    "@dcl/js-runtime": "7.0.0",
+    "@dcl/sdk": "^7.20.4-22561917759.commit-d944d0d"
   },
   "scripts": {
     "build": "sdk-commands build --skip-install",

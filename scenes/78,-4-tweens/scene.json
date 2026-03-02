@@ -2,7 +2,7 @@
   "ecs7": true,
   "runtimeVersion": "7",
   "display": {
-    "title": "continuous-tween",
+    "title": "tweens",
     "favicon": "favicon_asset"
   },
   "contact": {
@@ -12,9 +12,9 @@
   "owner": "",
   "scene": {
     "parcels": [
-      "77,-4"
+      "78,-4"
     ],
-    "base": "77,-4"
+    "base": "78,-4"
   },
   "requiredPermissions": [],
   "main": "bin/game.js",
@@ -35,5 +35,5 @@
       }
     }
   ],
-  "name": "continuous-tween"
+  "name": "tweens"
 }
