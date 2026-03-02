@@ -38,13 +38,18 @@ allFolders.forEach(ws => {
       });
     }
     else {
-      let hasSdkDefined = scenePkg.devDependencies && scenePkg.devDependencies["@dcl/sdk"] && scenePkg.devDependencies["@dcl/sdk"].includes("experimental");
-      console.log(`TEMP LOG TO BE REMOVED: Installing ${(hasSdkDefined? scenePkg.devDependencies["@dcl/sdk"] : "error")} in ${ws}`);
-      
+      const sdkVersion = scenePkg.devDependencies && scenePkg.devDependencies["@dcl/sdk"];
+      const hasSdkDefined = sdkVersion && sdkVersion.includes("experimental");
+      const isPinned = sdkVersion && !sdkVersion.startsWith('^') && !sdkVersion.startsWith('~') && sdkVersion !== 'latest' && !sdkVersion.includes("experimental");
+
       let sdkPackage = process.env.DCL_SDK_PACKAGE || '@dcl/sdk@latest';
-      
+
       if(hasSdkDefined)
-        sdkPackage = scenePkg.devDependencies["@dcl/sdk"]
+        sdkPackage = sdkVersion
+      else if(isPinned) {
+        sdkPackage = `@dcl/sdk@${sdkVersion}`
+        console.log(`Respecting pinned version ${sdkVersion} in ${ws}`);
+      }
 
       console.log(`Installing ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion} in ${ws}`);
       execSync(`npm install --save-dev ${sdkPackage} @dcl/js-runtime@${jsRuntimeVersion}`, {
