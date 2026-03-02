@@ -10,6 +10,7 @@ import { setupKnockbackGrappleAnchors } from './knockbackGrappleAnchors'
 import { setupKnockbackSphereLab } from './knockbackSphereLab'
 import { setupForceZone, setupImpulseZone } from './configurableZone'
 import { setupConfigurableTunnels } from './configurableTunnels'
+import { setupForceDurationZone } from './forceDurationZone'
 import {
     setupConfigUi,
     showImpulseCubePanel, hideImpulseCubePanel,
@@ -113,6 +114,9 @@ export function main() {
 
     // === Parcel 2,8 (X: 32–48, Z: 16–32) — Knockback Grapple Anchors ===
     setupKnockbackGrappleAnchors()
+
+    // === Parcel 2,7 (X: 32–48, Z: 0–16) — Force For Duration sandbox ===
+    setupForceDurationZone(Vector3.create(40, 2.5, 8), Vector3.create(14, 5, 14))
 
     // === 2x2 parcels 1,5 + 2,5 + 1,6 + 2,6 (X: 16–48, Z: -32–0) — Knockback Sphere Lab ===
     setupKnockbackSphereLab(showKnockbackLabPanel, hideKnockbackLabPanel)

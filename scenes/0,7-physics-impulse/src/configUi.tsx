@@ -14,6 +14,7 @@ import {
 } from './knockbackSphereLab'
 
 const uiForceSource = engine.addEntity()
+const uiForceDurationSource = engine.addEntity()
 
 // ---------------------------------------------------------------------------
 // Panel type
@@ -29,6 +30,7 @@ type ActivePanel =
     | 'grappleConfig'
     | 'forceConfig'
     | 'impulseConfig'
+    | 'forceDurationConfig'
     | 'knockbackLabConfig'
 
 let activePanel: ActivePanel = 'none'
@@ -822,6 +824,89 @@ function ImpulseConfigPanel(): ReactEcs.JSX.Element {
 }
 
 // =========================================================================
+// FORCE FOR DURATION PANEL (parcel 2,7 — violet zone)
+// =========================================================================
+
+let forceDurationDirX = '0'
+let forceDurationDirY = '1'
+let forceDurationDirZ = '0'
+let forceDurationMagnitude = '10'
+let forceDurationSeconds = '2'
+let forceDurationStatus = ''
+let forceDurationStatusColor: Color4 = Color4.White()
+
+export function showForceDurationPanel() { activePanel = 'forceDurationConfig'; forceDurationStatus = '' }
+export function hideForceDurationPanel() { activePanel = 'none'; forceDurationStatus = '' }
+
+function startForceForDuration() {
+    const x = parseFloat(forceDurationDirX) || 0
+    const y = parseFloat(forceDurationDirY) || 0
+    const z = parseFloat(forceDurationDirZ) || 0
+    const magnitude = parseFloat(forceDurationMagnitude)
+    const duration = parseFloat(forceDurationSeconds)
+
+    if (isNaN(magnitude) || isNaN(duration) || duration < 0) {
+        forceDurationStatus = 'Invalid magnitude or duration'
+        forceDurationStatusColor = Color4.create(1, 0.4, 0.4, 1)
+        return
+    }
+
+    const direction = (x === 0 && y === 0 && z === 0)
+        ? Vector3.create(0, 1, 0)
+        : Vector3.create(x, y, z)
+
+    Physics.applyForceToPlayerForDuration(
+        uiForceDurationSource,
+        duration,
+        direction,
+        magnitude
+    )
+
+    const len = Math.sqrt(direction.x ** 2 + direction.y ** 2 + direction.z ** 2)
+    const normalized = len === 0
+        ? Vector3.create(0, 1, 0)
+        : Vector3.create(direction.x / len, direction.y / len, direction.z / len)
+    const scaled = Vector3.create(
+        normalized.x * magnitude,
+        normalized.y * magnitude,
+        normalized.z * magnitude
+    )
+    forceDurationStatus = `Started: ${duration.toFixed(2)}s, force=(${scaled.x.toFixed(1)}, ${scaled.y.toFixed(1)}, ${scaled.z.toFixed(1)})`
+    forceDurationStatusColor = Color4.create(0.3, 1, 0.4, 1)
+}
+
+function ForceDurationPanel(): ReactEcs.JSX.Element {
+    return (
+        <UiEntity uiTransform={{
+            width: PANEL_W, positionType: 'absolute',
+            position: { right: 10, top: '10%' },
+            flexDirection: 'column', padding: 20
+        }} uiBackground={{ color: PANEL_BG }}>
+
+            <Label value="Force For Duration" fontSize={22} color={Color4.create(0.78, 0.55, 1, 1)}
+                uiTransform={{ width: '100%', height: 30, margin: { bottom: 4 } }} />
+            <Label value="Applies force for N seconds, then auto-removes"
+                fontSize={14} color={DIM_CLR}
+                uiTransform={{ width: '100%', height: 20, margin: { bottom: 12 } }} />
+
+            {FieldBlock({ label: 'Direction X:', value: forceDurationDirX, placeholder: '0', onChange: (v) => { forceDurationDirX = v } })}
+            {FieldBlock({ label: 'Direction Y:', value: forceDurationDirY, placeholder: '1', onChange: (v) => { forceDurationDirY = v } })}
+            {FieldBlock({ label: 'Direction Z:', value: forceDurationDirZ, placeholder: '0', onChange: (v) => { forceDurationDirZ = v } })}
+            {FieldBlock({ label: 'Magnitude:', value: forceDurationMagnitude, placeholder: '10', onChange: (v) => { forceDurationMagnitude = v } })}
+            {FieldBlock({ label: 'Duration (sec):', value: forceDurationSeconds, placeholder: '2', onChange: (v) => { forceDurationSeconds = v } })}
+
+            {PresetButtons((x, y, z) => { forceDurationDirX = x; forceDurationDirY = y; forceDurationDirZ = z })}
+
+            <Button value="Start" variant="primary" fontSize={18}
+                uiTransform={{ width: '100%', height: 52, margin: { top: 4 } }}
+                onMouseDown={() => startForceForDuration()} />
+
+            {StatusBlock(forceDurationStatus, forceDurationStatusColor)}
+        </UiEntity>
+    )
+}
+
+// =========================================================================
 // KNOCKBACK LAB PANEL (2x2 parcels: 1,5 2,5 1,6 2,6)
 // =========================================================================
 
@@ -1013,6 +1098,7 @@ function UiRoot() {
     else if (activePanel === 'grappleConfig') mainPanel = GrapplePanel()
     else if (activePanel === 'forceConfig') mainPanel = ForceConfigPanel()
     else if (activePanel === 'impulseConfig') mainPanel = ImpulseConfigPanel()
+    else if (activePanel === 'forceDurationConfig') mainPanel = ForceDurationPanel()
     else if (activePanel === 'knockbackLabConfig') mainPanel = KnockbackLabPanel()
 
     return (
