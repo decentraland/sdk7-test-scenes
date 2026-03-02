@@ -1,7 +1,14 @@
 import ReactEcs, { ReactEcsRenderer, UiEntity, Label, Button, Input } from '@dcl/sdk/react-ecs'
 import { Color4 } from '@dcl/sdk/math'
-import { engine, Physics } from '@dcl/sdk/ecs'
+import { engine, KnockbackFalloff, Physics } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
+import {
+    cycleKnockbackLabSphereFalloff,
+    getKnockbackLabMoveStep,
+    getKnockbackLabSpheres,
+    moveKnockbackLabSphere,
+    updateKnockbackLabSphere
+} from './knockbackSphereLab'
 
 const uiForceSource = engine.addEntity()
 
@@ -19,6 +26,7 @@ type ActivePanel =
     | 'grappleConfig'
     | 'forceConfig'
     | 'impulseConfig'
+    | 'knockbackLabConfig'
 
 let activePanel: ActivePanel = 'none'
 
@@ -811,6 +819,163 @@ function ImpulseConfigPanel(): ReactEcs.JSX.Element {
 }
 
 // =========================================================================
+// KNOCKBACK LAB PANEL (2x2 parcels: 1,5 2,5 1,6 2,6)
+// =========================================================================
+
+let knockbackLabMagnitudeInputs: string[] = []
+let knockbackLabRadiusInputs: string[] = []
+let knockbackLabStatus = ''
+let knockbackLabStatusColor: Color4 = Color4.White()
+
+export function showKnockbackLabPanel() {
+    activePanel = 'knockbackLabConfig'
+    knockbackLabStatus = ''
+    syncKnockbackLabInputBuffers()
+}
+
+export function hideKnockbackLabPanel() {
+    if (activePanel === 'knockbackLabConfig') activePanel = 'none'
+    knockbackLabStatus = ''
+}
+
+function syncKnockbackLabInputBuffers() {
+    const spheres = getKnockbackLabSpheres()
+    if (knockbackLabMagnitudeInputs.length !== spheres.length) {
+        knockbackLabMagnitudeInputs = spheres.map((s) => s.magnitude.toString())
+    }
+    if (knockbackLabRadiusInputs.length !== spheres.length) {
+        knockbackLabRadiusInputs = spheres.map((s) => s.radius.toString())
+    }
+}
+
+function knockbackFalloffLabel(value: KnockbackFalloff): string {
+    if (value === KnockbackFalloff.LINEAR) return 'LINEAR'
+    if (value === KnockbackFalloff.INVERSE_SQUARE) return 'INVERSE_SQUARE'
+    return 'CONSTANT'
+}
+
+function moveLabSphere(index: number, delta: Vector3, label: string) {
+    moveKnockbackLabSphere(index, delta)
+    knockbackLabStatus = `Sphere ${index + 1}: moved ${label}`
+    knockbackLabStatusColor = Color4.create(0.3, 1, 0.4, 1)
+}
+
+function applyLabSphere(index: number) {
+    const spheres = getKnockbackLabSpheres()
+    const sphere = spheres[index]
+    if (!sphere) return
+
+    const magnitude = parseFloat(knockbackLabMagnitudeInputs[index] ?? `${sphere.magnitude}`)
+    const radius = parseFloat(knockbackLabRadiusInputs[index] ?? `${sphere.radius}`)
+    if (isNaN(magnitude) || isNaN(radius)) {
+        knockbackLabStatus = `Sphere ${index + 1}: invalid number`
+        knockbackLabStatusColor = Color4.create(1, 0.4, 0.4, 1)
+        return
+    }
+
+    updateKnockbackLabSphere(index, magnitude, radius)
+    knockbackLabStatus = `${sphere.name}: impulse=${magnitude.toFixed(2)}, radius=${Math.max(0.1, radius).toFixed(2)}`
+    knockbackLabStatusColor = Color4.create(0.3, 1, 0.4, 1)
+}
+
+function cycleLabSphereFalloff(index: number) {
+    const next = cycleKnockbackLabSphereFalloff(index)
+    knockbackLabStatus = `Sphere ${index + 1}: falloff=${knockbackFalloffLabel(next)}`
+    knockbackLabStatusColor = Color4.create(0.3, 0.85, 1, 1)
+}
+
+function LabMoveButtons(index: number): ReactEcs.JSX.Element {
+    const step = getKnockbackLabMoveStep()
+
+    return (
+        <UiEntity uiTransform={{ width: '100%', flexDirection: 'column', margin: { bottom: 6 } }}>
+            <UiEntity uiTransform={{ width: '100%', flexDirection: 'row', margin: { bottom: 4 } }}>
+                <Button value="Up" variant="secondary" fontSize={14}
+                    uiTransform={{ flex: 1, height: 34, margin: { right: 4 } }}
+                    onMouseDown={() => moveLabSphere(index, Vector3.create(0, step, 0), 'Up')} />
+                <Button value="Down" variant="secondary" fontSize={14}
+                    uiTransform={{ flex: 1, height: 34, margin: { right: 4 } }}
+                    onMouseDown={() => moveLabSphere(index, Vector3.create(0, -step, 0), 'Down')} />
+                <Button value="Forward" variant="secondary" fontSize={14}
+                    uiTransform={{ flex: 1, height: 34 }}
+                    onMouseDown={() => moveLabSphere(index, Vector3.create(0, 0, step), 'Forward')} />
+            </UiEntity>
+            <UiEntity uiTransform={{ width: '100%', flexDirection: 'row' }}>
+                <Button value="Left" variant="secondary" fontSize={14}
+                    uiTransform={{ flex: 1, height: 34, margin: { right: 4 } }}
+                    onMouseDown={() => moveLabSphere(index, Vector3.create(-step, 0, 0), 'Left')} />
+                <Button value="Right" variant="secondary" fontSize={14}
+                    uiTransform={{ flex: 1, height: 34, margin: { right: 4 } }}
+                    onMouseDown={() => moveLabSphere(index, Vector3.create(step, 0, 0), 'Right')} />
+                <Button value="Backward" variant="secondary" fontSize={14}
+                    uiTransform={{ flex: 1, height: 34 }}
+                    onMouseDown={() => moveLabSphere(index, Vector3.create(0, 0, -step), 'Backward')} />
+            </UiEntity>
+        </UiEntity>
+    )
+}
+
+function KnockbackLabPanel(): ReactEcs.JSX.Element {
+    syncKnockbackLabInputBuffers()
+    const spheres = getKnockbackLabSpheres()
+
+    return (
+        <UiEntity uiTransform={{
+            width: PANEL_W, positionType: 'absolute',
+            position: { right: 10, top: '6%' },
+            flexDirection: 'column', padding: 20
+        }} uiBackground={{ color: PANEL_BG }}>
+
+            <Label value="Knockback Sphere Lab" fontSize={22} color={TITLE_CLR}
+                uiTransform={{ width: '100%', height: 30, margin: { bottom: 4 } }} />
+            <Label value="2x2 parcels (1,5 2,5 1,6 2,6): click core sphere to trigger knockback"
+                fontSize={14} color={DIM_CLR}
+                uiTransform={{ width: '100%', height: 22, margin: { bottom: 12 } }} />
+
+            {spheres.map((sphere, i) => (
+                <UiEntity key={`lab-sphere-${i}`} uiTransform={{
+                    width: '100%', flexDirection: 'column',
+                    padding: 8, margin: { bottom: 8 }
+                }} uiBackground={{ color: Color4.create(0.1, 0.1, 0.16, 0.9) }}>
+                    <Label
+                        value={`${sphere.name} | Pos: ${sphere.position.x.toFixed(1)}, ${sphere.position.y.toFixed(1)}, ${sphere.position.z.toFixed(1)}`}
+                        fontSize={14}
+                        color={Color4.create(0.82, 0.88, 1, 1)}
+                        uiTransform={{ width: '100%', height: 22, margin: { bottom: 4 } }}
+                    />
+
+                    {LabMoveButtons(i)}
+
+                    {FieldBlock({
+                        label: 'Impulse (can be +/-):',
+                        value: knockbackLabMagnitudeInputs[i] ?? '',
+                        placeholder: `${sphere.magnitude}`,
+                        onChange: (v) => { knockbackLabMagnitudeInputs[i] = v }
+                    })}
+
+                    {FieldBlock({
+                        label: 'Radius:',
+                        value: knockbackLabRadiusInputs[i] ?? '',
+                        placeholder: `${sphere.radius}`,
+                        onChange: (v) => { knockbackLabRadiusInputs[i] = v }
+                    })}
+
+                    <Button value={`Falloff: ${knockbackFalloffLabel(sphere.falloff)}`} variant="secondary" fontSize={15}
+                        uiTransform={{ width: '100%', height: 38, margin: { bottom: 6 } }}
+                        onMouseDown={() => cycleLabSphereFalloff(i)} />
+
+                    <Button value="Apply sphere params" variant="primary" fontSize={16}
+                        uiTransform={{ width: '100%', height: 40 }}
+                        onMouseDown={() => applyLabSphere(i)} />
+                </UiEntity>
+            ))}
+
+            {StatusBlock(knockbackLabStatus, knockbackLabStatusColor)}
+        </UiEntity>
+    )
+}
+
+// =========================================================================
 // Root
 // =========================================================================
 
@@ -824,6 +989,7 @@ function UiRoot() {
     else if (activePanel === 'grappleConfig') mainPanel = GrapplePanel()
     else if (activePanel === 'forceConfig') mainPanel = ForceConfigPanel()
     else if (activePanel === 'impulseConfig') mainPanel = ImpulseConfigPanel()
+    else if (activePanel === 'knockbackLabConfig') mainPanel = KnockbackLabPanel()
 
     return (
         <UiEntity uiTransform={{ width: '100%', height: '100%' }}>

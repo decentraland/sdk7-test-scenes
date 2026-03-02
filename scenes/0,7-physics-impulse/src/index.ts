@@ -7,6 +7,7 @@ import { setupRepulsionCube } from './impulseRepulsionCube'
 import { setupPendulumBridge } from './impulsePendulumBridge'
 import { setupCarousel } from './carousel'
 import { setupKnockbackGrappleAnchors } from './knockbackGrappleAnchors'
+import { setupKnockbackSphereLab } from './knockbackSphereLab'
 import { setupForceZone, setupImpulseZone } from './configurableZone'
 import { setupConfigurableTunnels } from './configurableTunnels'
 import {
@@ -14,7 +15,8 @@ import {
     showImpulseCubePanel, hideImpulseCubePanel,
     showRepulsionCubePanel, hideRepulsionCubePanel,
     showPendulumPanel, hidePendulumPanel,
-    showCarouselPanel, hideCarouselPanel
+    showCarouselPanel, hideCarouselPanel,
+    showKnockbackLabPanel, hideKnockbackLabPanel
 } from './configUi'
 
 export function main() {
@@ -111,4 +113,7 @@ export function main() {
 
     // === Parcel 2,8 (X: 32–48, Z: 16–32) — Knockback Grapple Anchors ===
     setupKnockbackGrappleAnchors()
+
+    // === 2x2 parcels 1,5 + 2,5 + 1,6 + 2,6 (X: 16–48, Z: -32–0) — Knockback Sphere Lab ===
+    setupKnockbackSphereLab(showKnockbackLabPanel, hideKnockbackLabPanel)
 }
