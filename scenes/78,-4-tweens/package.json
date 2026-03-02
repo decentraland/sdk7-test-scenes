@@ -5,7 +5,7 @@
   "dependencies": {
     "@dcl-sdk/utils": "latest",
     "@dcl/js-runtime": "7.0.0",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/tween-transform-mode/dcl-sdk-7.20.4-22426507681.commit-1e32d4a.tgz"
+    "@dcl/sdk": "^7.20.4-22561917759.commit-d944d0d"
   },
   "scripts": {
     "build": "sdk-commands build --skip-install",
