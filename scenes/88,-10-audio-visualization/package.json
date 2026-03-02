@@ -14,7 +14,7 @@
   "devDependencies": {
     "@dcl/asset-packs": "latest",
     "@dcl/js-runtime": "7.14.0",
-    "@dcl/sdk": "^7.19.1-21595262606.commit-a6f1c20",
+    "@dcl/sdk": "^7.20.4-22561917759.commit-d944d0d",
     "@eslint/js": "^9.39.1",
     "eslint": "^9.39.1",
     "typescript": "^5.9.3",
