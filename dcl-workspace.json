@@ -97,6 +97,9 @@
       "path": "scenes/3,33-gltf-container-update"
     },
     {
+      "path": "scenes/3,2-proximity-interactions"
+    },
+    {
       "path": "scenes/3,1-skybox-sdk-scene-b"
     },
     {
