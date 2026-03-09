@@ -11,29 +11,22 @@ import {
     Physics
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import { getCubeGlobalCooldownSec, getRepulsionMag, isCubeGlobalCooldownEnabled } from './configUi'
 
 const TRIGGER_THICKNESS = 0.3
+const REPULSION_MAGNITUDE = 20
 
 interface FaceDef {
     offset: Vector3
     size: Vector3
-    /** Unit-length normal — multiplied by dynamic magnitude at runtime */
     normal: Vector3
     color: Color4
 }
 
 const LABEL_ROT = Quaternion.fromEulerDegrees(0, 180, 0)
 
-/**
- * A solid cube with thin trigger zones on each face.
- * Each trigger pushes the player away along the face normal.
- * Magnitude is read dynamically from the UI state.
- */
 export function setupRepulsionCube(position: Vector3, cubeSize: number = 2) {
     const half = cubeSize / 2
     const triggerOffset = half + TRIGGER_THICKNESS / 2
-    let cooldownUntilSec = 0
 
     const cube = engine.addEntity()
     Transform.create(cube, {
@@ -52,7 +45,7 @@ export function setupRepulsionCube(position: Vector3, cubeSize: number = 2) {
         rotation: LABEL_ROT
     })
     TextShape.create(label, {
-        text: 'Repulsion cube\n(push from each face)',
+        text: `Repulsion cube\n(magnitude=${REPULSION_MAGNITUDE})`,
         fontSize: 2
     })
 
@@ -92,25 +85,11 @@ export function setupRepulsionCube(position: Vector3, cubeSize: number = 2) {
     ]
 
     for (const face of faces) {
-        createFaceTrigger(
-            cubeCenter,
-            face,
-            () => isCubeGlobalCooldownEnabled() && (Date.now() / 1000) < cooldownUntilSec,
-            () => {
-                if (isCubeGlobalCooldownEnabled()) {
-                    cooldownUntilSec = (Date.now() / 1000) + getCubeGlobalCooldownSec()
-                }
-            }
-        )
+        createFaceTrigger(cubeCenter, face)
     }
 }
 
-function createFaceTrigger(
-    cubeCenter: Vector3,
-    face: FaceDef,
-    isOnCooldown: () => boolean,
-    startCooldown: () => void
-) {
+function createFaceTrigger(cubeCenter: Vector3, face: FaceDef) {
     const trigger = engine.addEntity()
     Transform.create(trigger, {
         position: Vector3.create(
@@ -126,20 +105,6 @@ function createFaceTrigger(
 
     triggerAreaEventsSystem.onTriggerEnter(trigger, (result) => {
         if (result.trigger?.entity !== engine.PlayerEntity) return;
-        if (isOnCooldown()) return
-        Physics.applyImpulseToPlayer(face.normal, getRepulsionMag())
-        startCooldown()
-        if (isCubeGlobalCooldownEnabled() && getCubeGlobalCooldownSec() > 0) {
-            Material.setPbrMaterial(trigger, {
-                albedoColor: Color4.create(1, 1, 1, 0.5)
-            })
-        } else {
-            Material.setPbrMaterial(trigger, { albedoColor: face.color })
-        }
-    })
-
-    triggerAreaEventsSystem.onTriggerExit(trigger, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        Material.setPbrMaterial(trigger, { albedoColor: face.color })
+        Physics.applyImpulseToPlayer(face.normal, REPULSION_MAGNITUDE)
     })
 }

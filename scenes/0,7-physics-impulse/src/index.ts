@@ -1,123 +1,21 @@
 import { Vector3 } from '@dcl/sdk/math'
-import {
-    engine, ColliderLayer, Transform, TriggerArea, triggerAreaEventsSystem
-} from '@dcl/sdk/ecs'
 import { setupImpulseCube } from './impulseCube'
 import { setupRepulsionCube } from './impulseRepulsionCube'
 import { setupPendulumBridge } from './impulsePendulumBridge'
 import { setupCarousel } from './carousel'
-import { setupKnockbackGrappleAnchors } from './knockbackGrappleAnchors'
-import { setupKnockbackSphereLab } from './knockbackSphereLab'
-import { setupForceZone, setupImpulseZone } from './configurableZone'
 import { setupConfigurableTunnels } from './configurableTunnels'
-import { setupForceDurationZone } from './forceDurationZone'
-import {
-    setupConfigUi,
-    showImpulseCubePanel, hideImpulseCubePanel,
-    showRepulsionCubePanel, hideRepulsionCubePanel,
-    showPendulumPanel, hidePendulumPanel,
-    showCarouselPanel, hideCarouselPanel,
-    showKnockbackLabPanel, hideKnockbackLabPanel
-} from './configUi'
 
 export function main() {
-    // UI renderer (once, before everything else)
-    setupConfigUi()
-
-    // === Parcel -1,7 (X: -16–0) — Force vs Impulse comparison ===
+    // === Parcel -1,7 (X: -16–0) — Force vs Impulse tunnels ===
     setupConfigurableTunnels()
 
     // === Parcel 0,7 (X: 0–16) ===
-
-    // Impulse cube — single impulse on enter (left side)
     setupImpulseCube(Vector3.create(4, 0, 8))
-
-    const impulseCubeZone = engine.addEntity()
-    Transform.create(impulseCubeZone, {
-        position: Vector3.create(4, 2, 8),
-        scale: Vector3.create(6, 6, 6)
-    })
-    TriggerArea.setBox(impulseCubeZone, ColliderLayer.CL_PLAYER)
-    triggerAreaEventsSystem.onTriggerEnter(impulseCubeZone, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        showImpulseCubePanel()
-    })
-    triggerAreaEventsSystem.onTriggerExit(impulseCubeZone, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        hideImpulseCubePanel()
-    })
-
-    // Repulsion cube — push from each face (right side)
     setupRepulsionCube(Vector3.create(12, 0, 8))
 
-    const repulsionCubeZone = engine.addEntity()
-    Transform.create(repulsionCubeZone, {
-        position: Vector3.create(12, 2, 8),
-        scale: Vector3.create(6, 6, 6)
-    })
-    TriggerArea.setBox(repulsionCubeZone, ColliderLayer.CL_PLAYER)
-    triggerAreaEventsSystem.onTriggerEnter(repulsionCubeZone, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        showRepulsionCubePanel()
-    })
-    triggerAreaEventsSystem.onTriggerExit(repulsionCubeZone, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        hideRepulsionCubePanel()
-    })
-
-    // === Parcel 1,7 (X: 16–32) ===
-
-    // Pendulum bridge — narrow walkway with swinging hammers
+    // === Parcel 1,7 (X: 16–32) — Pendulum bridge ===
     setupPendulumBridge()
 
-    const pendulumZone = engine.addEntity()
-    Transform.create(pendulumZone, {
-        position: Vector3.create(24, 3, 8),
-        scale: Vector3.create(10, 8, 16)
-    })
-    TriggerArea.setBox(pendulumZone, ColliderLayer.CL_PLAYER)
-    triggerAreaEventsSystem.onTriggerEnter(pendulumZone, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        showPendulumPanel()
-    })
-    triggerAreaEventsSystem.onTriggerExit(pendulumZone, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        hidePendulumPanel()
-    })
-
     // === Parcel 1,8 (X: 16–32, Z: 16–32) — Chain Carousel ===
-
     setupCarousel()
-
-    const carouselZone = engine.addEntity()
-    Transform.create(carouselZone, {
-        position: Vector3.create(24, 3, 24),
-        scale: Vector3.create(14, 8, 14)
-    })
-    TriggerArea.setBox(carouselZone, ColliderLayer.CL_PLAYER)
-    triggerAreaEventsSystem.onTriggerEnter(carouselZone, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        showCarouselPanel()
-    })
-    triggerAreaEventsSystem.onTriggerExit(carouselZone, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        hideCarouselPanel()
-    })
-
-    // === Parcel 0,8 (Z: 16–32) — Force vs Impulse sandbox ===
-
-    // Left half: red Force zone (hold button to apply)
-    setupForceZone(Vector3.create(4, 2.5, 24), Vector3.create(7, 5, 14))
-
-    // Right half: blue Impulse zone (single fire)
-    setupImpulseZone(Vector3.create(12, 2.5, 24), Vector3.create(7, 5, 14))
-
-    // === Parcel 2,8 (X: 32–48, Z: 16–32) — Knockback Grapple Anchors ===
-    setupKnockbackGrappleAnchors()
-
-    // === Parcel 2,7 (X: 32–48, Z: 0–16) — Force For Duration sandbox ===
-    setupForceDurationZone(Vector3.create(40, 2.5, 8), Vector3.create(14, 5, 14))
-
-    // === 2x2 parcels 1,5 + 2,5 + 1,6 + 2,6 (X: 16–48, Z: -32–0) — Knockback Sphere Lab ===
-    setupKnockbackSphereLab(showKnockbackLabPanel, hideKnockbackLabPanel)
 }

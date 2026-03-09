@@ -11,18 +11,12 @@ import {
     Physics
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import { getCubeDir, getCubeGlobalCooldownSec, isCubeGlobalCooldownEnabled } from './configUi'
 
+const IMPULSE_MAGNITUDE = 20
+const IMPULSE_DIRECTION = Vector3.create(0, 1, 1)
 const LABEL_ROT = Quaternion.fromEulerDegrees(0, 180, 0)
 
-/**
- * A cube with a trigger area around it.
- * When the player enters the trigger, a single impulse is applied.
- * Direction and magnitude are read dynamically from the UI state.
- */
 export function setupImpulseCube(position: Vector3) {
-    let cooldownUntilSec = 0
-
     const cube = engine.addEntity()
     Transform.create(cube, {
         position: Vector3.create(position.x, position.y + 0.5, position.z),
@@ -51,32 +45,12 @@ export function setupImpulseCube(position: Vector3) {
         rotation: LABEL_ROT
     })
     TextShape.create(label, {
-        text: 'Impulse Cube\n(single impulse on enter)',
+        text: `Impulse Cube\n(magnitude=${IMPULSE_MAGNITUDE})`,
         fontSize: 2
     })
 
     triggerAreaEventsSystem.onTriggerEnter(trigger, (result) => {
         if (result.trigger?.entity !== engine.PlayerEntity) return;
-        const nowSec = Date.now() / 1000
-        if (isCubeGlobalCooldownEnabled() && nowSec < cooldownUntilSec) return
-
-        Physics.applyImpulseToPlayer(getCubeDir())
-        if (isCubeGlobalCooldownEnabled()) {
-            cooldownUntilSec = nowSec + getCubeGlobalCooldownSec()
-            Material.setPbrMaterial(trigger, {
-                albedoColor: Color4.create(0.2, 1, 0.2, 0.3)
-            })
-        } else {
-            Material.setPbrMaterial(trigger, {
-                albedoColor: Color4.create(1, 0.2, 0.2, 0.3)
-            })
-        }
-    })
-
-    triggerAreaEventsSystem.onTriggerExit(trigger, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        Material.setPbrMaterial(trigger, {
-            albedoColor: Color4.create(1, 0.2, 0.2, 0.3)
-        })
+        Physics.applyImpulseToPlayer(IMPULSE_DIRECTION, IMPULSE_MAGNITUDE)
     })
 }

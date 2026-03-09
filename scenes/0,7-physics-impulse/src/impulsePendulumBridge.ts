@@ -16,30 +16,25 @@ import {
     Entity
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import { getPendulumMag } from './configUi'
 
-// Bridge layout
+const PENDULUM_MAGNITUDE = 20
+
 const BRIDGE_X = 24
 const BRIDGE_Z_START = 2
 const BRIDGE_Z_END = 14
 const BRIDGE_Y = 1
 const BRIDGE_WIDTH = 1.5
 
-// Pendulum geometry
-const ARM_LENGTH = 4           // longer rod
+const ARM_LENGTH = 4
 const HAMMER_SIZE = 1.2
 const HAMMER_DEPTH = 0.5
 const ROD_THICKNESS = 0.1
 const TRIGGER_THICKNESS = 0.2
-const SWING_ANGLE = 60         // wider swing
+const SWING_ANGLE = 60
 
-/**
- * A narrow bridge with rotating hammer pendulums that knock the player off.
- */
 export function setupPendulumBridge() {
     const bridgeLength = BRIDGE_Z_END - BRIDGE_Z_START
 
-    // --- Bridge platform ---
     const bridge = engine.addEntity()
     Transform.create(bridge, {
         position: Vector3.create(BRIDGE_X, BRIDGE_Y, (BRIDGE_Z_START + BRIDGE_Z_END) / 2),
@@ -51,17 +46,15 @@ export function setupPendulumBridge() {
         albedoColor: Color4.create(0.4, 0.35, 0.3, 1)
     })
 
-    // --- Label ---
     const label = engine.addEntity()
     Transform.create(label, {
         position: Vector3.create(BRIDGE_X, BRIDGE_Y + 3, BRIDGE_Z_START - 1)
     })
     TextShape.create(label, {
-        text: 'Pendulum bridge\n(don\'t get knocked off!)',
+        text: `Pendulum bridge\n(magnitude=${PENDULUM_MAGNITUDE})`,
         fontSize: 2
     })
 
-    // --- Pendulums ---
     const pendulumCount = 4
     const spacing = bridgeLength / (pendulumCount + 1)
 
@@ -93,7 +86,6 @@ function createPendulum(z: number, startsLeft: boolean, duration: number) {
     })
     TweenSequence.create(pivot, { sequence: [], loop: TweenLoop.TL_YOYO })
 
-    // --- Rod ---
     const rod = engine.addEntity()
     Transform.create(rod, {
         parent: pivot,
@@ -105,7 +97,6 @@ function createPendulum(z: number, startsLeft: boolean, duration: number) {
         albedoColor: Color4.create(0.5, 0.5, 0.5, 1)
     })
 
-    // --- Hammer ---
     const hammer = engine.addEntity()
     Transform.create(hammer, {
         parent: pivot,
@@ -118,10 +109,8 @@ function createPendulum(z: number, startsLeft: boolean, duration: number) {
         albedoColor: Color4.create(0.9, 0.15, 0.15, 0.9)
     })
 
-    // --- Trigger faces ---
     const triggerOffsetX = HAMMER_SIZE / 2 + TRIGGER_THICKNESS / 2
 
-    // Local normals for each face (in pivot-local space)
     const LEFT_LOCAL_NORMAL = Vector3.create(-1, 0, 0)
     const RIGHT_LOCAL_NORMAL = Vector3.create(1, 0, 0)
 
@@ -132,11 +121,6 @@ function createPendulum(z: number, startsLeft: boolean, duration: number) {
         Color4.create(1, 0.3, 0.3, 0.4))
 }
 
-/**
- * Creates a thin trigger on a face of the hammer.
- * On contact, reads the pivot's current rotation and applies impulse
- * along the world-space normal of that face.
- */
 function createTriggerFace(
     pivot: Entity,
     localPosition: Vector3,
@@ -156,6 +140,6 @@ function createTriggerFace(
     triggerAreaEventsSystem.onTriggerEnter(trigger, (result) => {
         if (result.trigger?.entity !== engine.PlayerEntity) return;
         const worldNormal = Transform.localToWorldDirection(pivot, localNormal)
-        Physics.applyImpulseToPlayer(worldNormal, getPendulumMag())
+        Physics.applyImpulseToPlayer(worldNormal, PENDULUM_MAGNITUDE)
     })
 }

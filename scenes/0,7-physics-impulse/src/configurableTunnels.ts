@@ -11,61 +11,44 @@ import {
     Physics
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import { showTunnelPanel, hideTunnelPanel, getHorizontalMag, getVerticalMag } from './configUi'
-
-// ---------------------------------------------------------------------------
-// Colors
-// ---------------------------------------------------------------------------
 
 const FORCE_COLOR = Color4.create(0.1, 0.4, 0.8, 0.25)
 const FORCE_ACTIVE = Color4.create(0.2, 0.7, 1, 0.3)
 const IMPULSE_COLOR = Color4.create(0.8, 0.15, 0.1, 0.25)
 const IMPULSE_ACTIVE = Color4.create(1, 0.3, 0.2, 0.3)
 
-// ---------------------------------------------------------------------------
-// Setup
-// ---------------------------------------------------------------------------
+const HORIZONTAL_MAG = 20
+const VERTICAL_MAG = 40
 
-/**
- * Creates 4 tunnels (Force+Impulse horizontal, Force+Impulse vertical)
- * with a surrounding trigger zone that opens the magnitude UI.
- */
 export function setupConfigurableTunnels() {
     const facingBack = Quaternion.fromEulerDegrees(0, 180, 0)
 
     const forceTunnels: Entity[] = []
 
-    // Left = Impulse (red), Right = Force (blue)
-
-    // --- Horizontal Impulse tunnel (Z+) ---
     createImpulseTunnel(
         Vector3.create(-10, 1.5, 8), Vector3.create(2, 3, 12),
-        () => Vector3.create(0, 0, getHorizontalMag()),
+        Vector3.create(0, 0, HORIZONTAL_MAG),
         'Impulse forward', facingBack
     )
 
-    // --- Horizontal Force tunnel (Z+) ---
     forceTunnels.push(createForceTunnel(
         Vector3.create(-6, 1.5, 8), Vector3.create(2, 3, 12),
-        () => Vector3.create(0, 0, getHorizontalMag()),
+        Vector3.create(0, 0, HORIZONTAL_MAG),
         'Force forward', facingBack
     ))
 
-    // --- Vertical Impulse tunnel (Y+) ---
     createImpulseTunnel(
         Vector3.create(-10, 5, 2), Vector3.create(2, 10, 2),
-        () => Vector3.create(0, getVerticalMag(), 0),
+        Vector3.create(0, VERTICAL_MAG, 0),
         'Impulse up', facingBack
     )
 
-    // --- Vertical Force tunnel (Y+) ---
     forceTunnels.push(createForceTunnel(
         Vector3.create(-6, 5, 2), Vector3.create(2, 10, 2),
-        () => Vector3.create(0, getVerticalMag(), 0),
+        Vector3.create(0, VERTICAL_MAG, 0),
         'Force up', facingBack
     ))
 
-    // --- Invisible trigger zone around all tunnels — shows/hides UI ---
     const zone = engine.addEntity()
     Transform.create(zone, {
         position: Vector3.create(-8, 3, 6),
@@ -73,27 +56,17 @@ export function setupConfigurableTunnels() {
     })
     TriggerArea.setBox(zone, ColliderLayer.CL_PLAYER)
 
-    triggerAreaEventsSystem.onTriggerEnter(zone, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        showTunnelPanel()
-    })
-
     triggerAreaEventsSystem.onTriggerExit(zone, (result) => {
         if (result.trigger?.entity !== engine.PlayerEntity) return;
-        hideTunnelPanel()
         for (const t of forceTunnels) {
             Physics.removeForceFromPlayer(t)
         }
     })
 }
 
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
-
 function createForceTunnel(
     position: Vector3, size: Vector3,
-    getDirection: () => Vector3, label: string,
+    direction: Vector3, label: string,
     labelRotation: { x: number; y: number; z: number; w: number }
 ): Entity {
     const tunnel = engine.addEntity()
@@ -111,7 +84,7 @@ function createForceTunnel(
 
     triggerAreaEventsSystem.onTriggerEnter(tunnel, (result) => {
         if (result.trigger?.entity !== engine.PlayerEntity) return;
-        Physics.applyForceToPlayer(tunnel, getDirection())
+        Physics.applyForceToPlayer(tunnel, direction)
         Material.setPbrMaterial(tunnel, { albedoColor: FORCE_ACTIVE })
     })
 
@@ -126,7 +99,7 @@ function createForceTunnel(
 
 function createImpulseTunnel(
     position: Vector3, size: Vector3,
-    getDirection: () => Vector3, label: string,
+    direction: Vector3, label: string,
     labelRotation: { x: number; y: number; z: number; w: number }
 ) {
     const tunnel = engine.addEntity()
@@ -144,7 +117,7 @@ function createImpulseTunnel(
 
     triggerAreaEventsSystem.onTriggerStay(tunnel, (result) => {
         if (result.trigger?.entity !== engine.PlayerEntity) return;
-        Physics.applyImpulseToPlayer(getDirection())
+        Physics.applyImpulseToPlayer(direction)
     })
 
     triggerAreaEventsSystem.onTriggerEnter(tunnel, (result) => {
