@@ -18,7 +18,7 @@ const IMPULSE_COLOR = Color4.create(0.8, 0.15, 0.1, 0.25)
 const IMPULSE_ACTIVE = Color4.create(1, 0.3, 0.2, 0.3)
 
 const HORIZONTAL_MAG = 20
-const VERTICAL_MAG = 40
+const VERTICAL_MAG = 50
 
 export function setupConfigurableTunnels() {
     const facingBack = Quaternion.fromEulerDegrees(0, 180, 0)
