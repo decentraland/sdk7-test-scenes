@@ -1,9 +1,13 @@
 import {
   engine,
+  Entity,
   Transform,
   MeshRenderer,
   MeshCollider,
-  Entity
+  TextShape,
+  Billboard,
+  Material,
+  MaterialTransparencyMode
 } from '@dcl/sdk/ecs'
 import {
   ParticleSystem,
@@ -13,30 +17,121 @@ import {
 import { Color4, Vector3, Quaternion } from '@dcl/sdk/math'
 import { setupUI } from './ui'
 
-// ─── Helper ──────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-function addGround() {
-  const ground = engine.addEntity()
-  Transform.create(ground, { position: Vector3.create(8, 0, 8), scale: Vector3.create(16, 0.1, 16) })
-  MeshRenderer.setBox(ground)
-  MeshCollider.setBox(ground)
+export type PsEntry = { entity: Entity; name: string }
+
+export const psEntries: PsEntry[] = []
+
+let currentPsEntry: PsEntry | undefined
+
+export function getCurrentPsEntry(): PsEntry | undefined {
+  return currentPsEntry
 }
 
-// ─── 1. Point emitter — fire ember (additive, warm-to-cool color) ─────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-function createFireEmber(): Entity {
+const PROXIMITY_DIST = 5
+const SHAPE_COLOR = Color4.create(0.4, 0.9, 1, 0.18)
+
+// ─── Shape Visualizers ────────────────────────────────────────────────────────
+
+function addPointVisualizer(parent: Entity): void {
+  const vizEntity = engine.addEntity()
+  Transform.create(vizEntity, {
+    parent,
+    position: Vector3.create(0, 0, 0),
+    scale: Vector3.create(0.15, 0.15, 0.15)
+  })
+  MeshRenderer.setSphere(vizEntity)
+  Material.setPbrMaterial(vizEntity, {
+    albedoColor: SHAPE_COLOR,
+    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND
+  })
+}
+
+function addSphereVisualizer(parent: Entity, radius: number): void {
+  const vizEntity = engine.addEntity()
+  const diameter = radius * 2
+  Transform.create(vizEntity, {
+    parent,
+    position: Vector3.create(0, 0, 0),
+    scale: Vector3.create(diameter, diameter, diameter)
+  })
+  MeshRenderer.setSphere(vizEntity)
+  Material.setPbrMaterial(vizEntity, {
+    albedoColor: SHAPE_COLOR,
+    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND
+  })
+}
+
+function addConeVisualizer(parent: Entity, radius: number): void {
+  const vizEntity = engine.addEntity()
+  Transform.create(vizEntity, {
+    parent,
+    position: Vector3.create(0, 0, 0),
+    scale: Vector3.create(radius * 2, 0.05, radius * 2)
+  })
+  MeshRenderer.setCylinder(vizEntity, radius, 0)
+  Material.setPbrMaterial(vizEntity, {
+    albedoColor: SHAPE_COLOR,
+    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND
+  })
+}
+
+function addBoxVisualizer(parent: Entity, sizeX: number, sizeY: number, sizeZ: number): void {
+  const vizEntity = engine.addEntity()
+  Transform.create(vizEntity, {
+    parent,
+    position: Vector3.create(0, 0, 0),
+    scale: Vector3.create(sizeX, sizeY, sizeZ)
+  })
+  MeshRenderer.setBox(vizEntity)
+  Material.setPbrMaterial(vizEntity, {
+    albedoColor: SHAPE_COLOR,
+    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND
+  })
+}
+
+// ─── Label Helper ─────────────────────────────────────────────────────────────
+
+function addLabel(parent: Entity, text: string, worldPos?: Vector3): void {
+  const label = engine.addEntity()
+  if (worldPos) {
+    Transform.create(label, { position: worldPos })
+  } else {
+    Transform.create(label, {
+      parent,
+      position: Vector3.create(0, 2.5, 0)
+    })
+  }
+  TextShape.create(label, { text, fontSize: 1.5 })
+  Billboard.create(label)
+}
+
+// ─── Register Helper ──────────────────────────────────────────────────────────
+
+function registerPs(entity: Entity, name: string): PsEntry {
+  const entry: PsEntry = { entity, name }
+  psEntries.push(entry)
+  return entry
+}
+
+// ─── 1. Fire Ember — Point, PSB_ADD, gravity=-0.3, warm orange/red ────────────
+
+function createFireEmber(): PsEntry {
   const entity = engine.addEntity()
-  Transform.create(entity, { position: Vector3.create(2, 0.5, 4) })
+  Transform.create(entity, { position: Vector3.create(6, 1, 6) })
 
   ParticleSystem.create(entity, {
     active: true,
-    rate: 30,
+    rate: 40,
     lifetime: 2,
     maxParticles: 200,
     initialSize: { start: 0.1, end: 0.3 },
     sizeOverTime: { start: 1.0, end: 0.0 },
     initialColor: { start: Color4.create(1, 0.6, 0.1, 1), end: Color4.create(1, 0.2, 0, 1) },
-    colorOverTime: { start: Color4.create(1, 0.6, 0.1, 1), end: Color4.create(0.2, 0, 0, 0) },
+    colorOverTime: { start: Color4.create(1, 0.5, 0.1, 1), end: Color4.create(0.2, 0, 0, 0) },
     initialVelocitySpeed: { start: 1.5, end: 2.5 },
     gravity: -0.3,
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
@@ -45,18 +140,21 @@ function createFireEmber(): Entity {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  return entity
+  addPointVisualizer(entity)
+  addLabel(entity, 'Fire Ember\nPoint | ADD')
+
+  return registerPs(entity, 'Fire Ember')
 }
 
-// ─── 2. Sphere emitter — magic aura (alpha, blue-to-white color) ──────────────
+// ─── 2. Magic Aura — Sphere r=0.8, PSB_ALPHA, blue-to-white, rotationOverTime ─
 
-function createMagicAura(): Entity {
+function createMagicAura(): PsEntry {
   const entity = engine.addEntity()
-  Transform.create(entity, { position: Vector3.create(6, 0.5, 4) })
+  Transform.create(entity, { position: Vector3.create(16, 1, 6) })
 
   ParticleSystem.create(entity, {
     active: true,
-    rate: 15,
+    rate: 20,
     lifetime: 3,
     maxParticles: 150,
     initialSize: { start: 0.2, end: 0.5 },
@@ -71,26 +169,29 @@ function createMagicAura(): Entity {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  return entity
+  addSphereVisualizer(entity, 0.8)
+  addLabel(entity, 'Magic Aura\nSphere | ALPHA')
+
+  return registerPs(entity, 'Magic Aura')
 }
 
-// ─── 3. Cone emitter — rain/snow (alpha, downward gravity) ────────────────────
+// ─── 3. Snowfall — Cone(angle=15, r=2), PSB_ALPHA, rotated 180° (downward), gravity=1.5
 
-function createSnowfall(): Entity {
+function createSnowfall(): PsEntry {
   const entity = engine.addEntity()
   Transform.create(entity, {
-    position: Vector3.create(10, 4, 4),
-    rotation: Quaternion.fromEulerDegrees(180, 0, 0)  // cone points downward
+    position: Vector3.create(26, 5, 6),
+    rotation: Quaternion.fromEulerDegrees(180, 0, 0)
   })
 
   ParticleSystem.create(entity, {
     active: true,
-    rate: 20,
+    rate: 30,
     lifetime: 4,
     maxParticles: 300,
-    initialSize: { start: 0.08, end: 0.15 },
+    initialSize: { start: 0.06, end: 0.14 },
     sizeOverTime: { start: 1.0, end: 0.8 },
-    initialColor: { start: Color4.create(0.9, 0.95, 1, 0.8), end: Color4.create(0.9, 0.95, 1, 0.8) },
+    initialColor: { start: Color4.create(0.9, 0.95, 1, 0.9), end: Color4.create(0.9, 0.95, 1, 0.9) },
     colorOverTime: { start: Color4.create(1, 1, 1, 0.8), end: Color4.create(1, 1, 1, 0) },
     initialVelocitySpeed: { start: 2, end: 3 },
     gravity: 1.5,
@@ -100,18 +201,22 @@ function createSnowfall(): Entity {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  return entity
+  addConeVisualizer(entity, 2)
+  // Label as separate world entity so it isn't flipped by the 180° parent rotation
+  addLabel(entity, 'Snowfall\nCone | ALPHA', Vector3.create(26, 7, 6))
+
+  return registerPs(entity, 'Snowfall')
 }
 
-// ─── 4. Box emitter — sprite sheet flame ──────────────────────────────────────
+// ─── 4. Sprite Flame — Box(0.5,0.1,0.5), PSB_ADD, spriteSheet tilesX=4,tilesY=4
 
-function createSpriteFlame(): Entity {
+function createSpriteFlame(): PsEntry {
   const entity = engine.addEntity()
-  Transform.create(entity, { position: Vector3.create(2, 0.5, 10) })
+  Transform.create(entity, { position: Vector3.create(6, 1, 14) })
 
   ParticleSystem.create(entity, {
     active: true,
-    rate: 12,
+    rate: 15,
     lifetime: 1.5,
     maxParticles: 60,
     initialSize: { start: 0.8, end: 1.2 },
@@ -126,18 +231,21 @@ function createSpriteFlame(): Entity {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  return entity
+  addBoxVisualizer(entity, 0.5, 0.1, 0.5)
+  addLabel(entity, 'Sprite Flame\nBox | ADD | Sheet')
+
+  return registerPs(entity, 'Sprite Flame')
 }
 
-// ─── 5. Sphere emitter — gravity fountain ─────────────────────────────────────
+// ─── 5. Gravity Fountain — Sphere r=0.1, PSB_ALPHA, fast upward, gravity=-2.5 ─
 
-function createGravityFountain(): Entity {
+function createGravityFountain(): PsEntry {
   const entity = engine.addEntity()
-  Transform.create(entity, { position: Vector3.create(6, 0.2, 10) })
+  Transform.create(entity, { position: Vector3.create(16, 1, 14) })
 
   ParticleSystem.create(entity, {
     active: true,
-    rate: 25,
+    rate: 30,
     lifetime: 3,
     maxParticles: 200,
     initialSize: { start: 0.15, end: 0.25 },
@@ -146,50 +254,283 @@ function createGravityFountain(): Entity {
     colorOverTime: { start: Color4.create(0.5, 0.9, 1, 1), end: Color4.create(0.1, 0.3, 0.8, 0) },
     initialVelocitySpeed: { start: 3, end: 5 },
     gravity: -2.5,
-    additionalForce: Vector3.create(0, 0, 0),
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
     billboard: true,
     shape: ParticleSystem.Shape.Sphere({ radius: 0.1 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  return entity
+  addSphereVisualizer(entity, 0.1)
+  addLabel(entity, 'Gravity Fountain\nSphere | ALPHA')
+
+  return registerPs(entity, 'Gravity Fountain')
 }
 
-// ─── 6. Lifecycle demo — controlled via UI ────────────────────────────────────
+// ─── 6. Bat Swarm — Sphere r=1.5, PSB_ALPHA, texture, spriteSheet 4×4 16frames ─
 
-export let controlEntity: Entity
-
-function createControlDemo(): Entity {
+function createBatSwarm(): PsEntry {
   const entity = engine.addEntity()
-  Transform.create(entity, { position: Vector3.create(10, 0.5, 10) })
+  Transform.create(entity, { position: Vector3.create(26, 1, 14) })
 
   ParticleSystem.create(entity, {
     active: true,
-    rate: 20,
-    lifetime: 2,
-    maxParticles: 100,
-    initialSize: { start: 0.2, end: 0.4 },
-    initialColor: { start: Color4.create(0.8, 0.4, 1, 1), end: Color4.create(0.4, 0.1, 0.8, 1) },
-    colorOverTime: { start: Color4.create(0.8, 0.4, 1, 1), end: Color4.create(0.4, 0.1, 0.8, 0) },
-    initialVelocitySpeed: { start: 1, end: 2 },
+    rate: 5,
+    lifetime: 4,
+    maxParticles: 40,
+    initialSize: { start: 0.6, end: 1.0 },
+    sizeOverTime: { start: 1.0, end: 0.8 },
+    initialColor: { start: Color4.create(1, 1, 1, 1), end: Color4.create(1, 1, 1, 1) },
+    colorOverTime: { start: Color4.create(1, 1, 1, 1), end: Color4.create(1, 1, 1, 0) },
+    initialVelocitySpeed: { start: 0.5, end: 1.5 },
+    rotationOverTime: { start: -15, end: 15 },
+    blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
+    billboard: true,
+    texture: { src: 'assets/32x32-bat-sprite.png' },
+    spriteSheet: { tilesX: 4, tilesY: 4, startFrame: 0, endFrame: 15, cyclesPerLifetime: 3 },
+    shape: ParticleSystem.Shape.Sphere({ radius: 1.5 }),
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+  })
+
+  addSphereVisualizer(entity, 1.5)
+  addLabel(entity, 'Bat Swarm\nSphere | ALPHA | Sheet')
+
+  return registerPs(entity, 'Bat Swarm')
+}
+
+// ─── 7. Smoke Haze — Sphere r=1.2, PSB_ALPHA, prewarm=true, slow, grey, large ─
+
+function createSmokeHaze(): PsEntry {
+  const entity = engine.addEntity()
+  Transform.create(entity, { position: Vector3.create(6, 1, 22) })
+
+  ParticleSystem.create(entity, {
+    active: true,
+    loop: true,
+    prewarm: true,
+    rate: 8,
+    lifetime: 6,
+    maxParticles: 80,
+    initialSize: { start: 0.5, end: 1.0 },
+    sizeOverTime: { start: 1.0, end: 1.5 },
+    initialColor: { start: Color4.create(0.6, 0.6, 0.6, 0.5), end: Color4.create(0.4, 0.4, 0.4, 0.5) },
+    colorOverTime: { start: Color4.create(0.5, 0.5, 0.5, 0.4), end: Color4.create(0.3, 0.3, 0.3, 0) },
+    initialVelocitySpeed: { start: 0.1, end: 0.3 },
+    blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
+    billboard: true,
+    shape: ParticleSystem.Shape.Sphere({ radius: 1.2 }),
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+  })
+
+  addSphereVisualizer(entity, 1.2)
+  addLabel(entity, 'Smoke Haze\nSphere | ALPHA | Prewarm')
+
+  return registerPs(entity, 'Smoke Haze')
+}
+
+// ─── 8. Lightning Sparks — Point, PSB_ADD, fast, limitVelocity, short life, cyan
+
+function createLightningSparks(): PsEntry {
+  const entity = engine.addEntity()
+  Transform.create(entity, { position: Vector3.create(16, 1, 22) })
+
+  ParticleSystem.create(entity, {
+    active: true,
+    rate: 80,
+    lifetime: 0.4,
+    maxParticles: 200,
+    initialSize: { start: 0.05, end: 0.12 },
+    sizeOverTime: { start: 1.0, end: 0.0 },
+    initialColor: { start: Color4.create(0.5, 1, 1, 1), end: Color4.create(0, 0.8, 1, 1) },
+    colorOverTime: { start: Color4.create(0.6, 1, 1, 1), end: Color4.create(0, 0.5, 0.8, 0) },
+    initialVelocitySpeed: { start: 6, end: 12 },
+    limitVelocity: { speed: 4, dampen: 0.9 },
+    blendMode: PBParticleSystem_BlendMode.PSB_ADD,
+    billboard: true,
+    shape: ParticleSystem.Shape.Point(),
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+  })
+
+  addPointVisualizer(entity)
+  addLabel(entity, 'Lightning Sparks\nPoint | ADD | LimitVel')
+
+  return registerPs(entity, 'Lightning Sparks')
+}
+
+// ─── 9. Heavy Rain — Box(6,0.1,6), PSB_ALPHA, rotated 180° (falling), limitVelocity
+
+function createHeavyRain(): PsEntry {
+  const entity = engine.addEntity()
+  Transform.create(entity, {
+    position: Vector3.create(26, 6, 22),
+    rotation: Quaternion.fromEulerDegrees(180, 0, 0)
+  })
+
+  ParticleSystem.create(entity, {
+    active: true,
+    rate: 100,
+    lifetime: 3,
+    maxParticles: 600,
+    initialSize: { start: 0.04, end: 0.07 },
+    sizeOverTime: { start: 1.0, end: 0.8 },
+    initialColor: { start: Color4.create(0.7, 0.8, 1, 0.7), end: Color4.create(0.6, 0.7, 0.9, 0.7) },
+    colorOverTime: { start: Color4.create(0.7, 0.8, 1, 0.6), end: Color4.create(0.5, 0.6, 0.8, 0) },
+    initialVelocitySpeed: { start: 4, end: 6 },
+    limitVelocity: { speed: 5, dampen: 1 },
+    gravity: 2,
+    blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
+    billboard: true,
+    shape: ParticleSystem.Shape.Box({ size: Vector3.create(6, 0.1, 6) }),
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+  })
+
+  addBoxVisualizer(entity, 6, 0.1, 6)
+  // Label as separate world entity so it isn't flipped by the 180° parent rotation
+  addLabel(entity, 'Heavy Rain\nBox | ALPHA | LimitVel', Vector3.create(26, 8, 22))
+
+  return registerPs(entity, 'Heavy Rain')
+}
+
+// ─── 10. One-Shot Burst — Sphere r=0.5, loop=false, prewarm=false, burst style ─
+
+function createOneShotBurst(): PsEntry {
+  const entity = engine.addEntity()
+  Transform.create(entity, { position: Vector3.create(6, 1, 30) })
+
+  ParticleSystem.create(entity, {
+    active: true,
+    loop: false,
+    prewarm: false,
+    rate: 0,
+    lifetime: 3,
+    maxParticles: 150,
+    initialSize: { start: 0.1, end: 0.25 },
+    sizeOverTime: { start: 1.0, end: 0.0 },
+    initialColor: { start: Color4.create(1, 0.8, 0.3, 1), end: Color4.create(1, 0.5, 0.1, 1) },
+    colorOverTime: { start: Color4.create(1, 0.7, 0.2, 1), end: Color4.create(1, 1, 1, 0) },
+    initialVelocitySpeed: { start: 2, end: 4 },
+    limitVelocity: { speed: 2, dampen: 0.6 },
+    blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
+    billboard: true,
+    shape: ParticleSystem.Shape.Sphere({ radius: 0.5 }),
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+  })
+
+  addSphereVisualizer(entity, 0.5)
+  addLabel(entity, 'One-Shot Burst\nSphere | ALPHA | No Loop')
+
+  return registerPs(entity, 'One-Shot Burst')
+}
+
+// ─── 11. Asteroid Trail — Cone(angle=10, r=0.1), PSB_ADD, fast, limitVelocity ─
+
+function createAsteroidTrail(): PsEntry {
+  const entity = engine.addEntity()
+  Transform.create(entity, { position: Vector3.create(16, 1, 30) })
+
+  ParticleSystem.create(entity, {
+    active: true,
+    rate: 50,
+    lifetime: 1.5,
+    maxParticles: 200,
+    initialSize: { start: 0.05, end: 0.15 },
+    sizeOverTime: { start: 1.0, end: 0.0 },
+    initialColor: { start: Color4.create(1, 0.7, 0.2, 1), end: Color4.create(0.8, 0.3, 0.1, 1) },
+    colorOverTime: { start: Color4.create(1, 0.6, 0.1, 1), end: Color4.create(0.2, 0, 0, 0) },
+    initialVelocitySpeed: { start: 5, end: 8 },
+    limitVelocity: { speed: 3, dampen: 0.5 },
+    gravity: -0.5,
+    blendMode: PBParticleSystem_BlendMode.PSB_ADD,
+    billboard: true,
+    shape: ParticleSystem.Shape.Cone({ angle: 10, radius: 0.1 }),
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+  })
+
+  addConeVisualizer(entity, 0.1)
+  addLabel(entity, 'Asteroid Trail\nCone | ADD | LimitVel')
+
+  return registerPs(entity, 'Asteroid Trail')
+}
+
+// ─── 12. Purple Swirl — Sphere r=0.3, PSB_ALPHA, purple, additionalForce, rotation
+
+function createPurpleSwirl(): PsEntry {
+  const entity = engine.addEntity()
+  Transform.create(entity, { position: Vector3.create(26, 1, 30) })
+
+  ParticleSystem.create(entity, {
+    active: true,
+    rate: 25,
+    lifetime: 4,
+    maxParticles: 150,
+    initialSize: { start: 0.15, end: 0.35 },
+    sizeOverTime: { start: 0.8, end: 1.2 },
+    initialColor: { start: Color4.create(0.6, 0.1, 1, 1), end: Color4.create(0.8, 0.3, 1, 1) },
+    colorOverTime: { start: Color4.create(0.7, 0.2, 1, 1), end: Color4.create(0.4, 0, 0.8, 0) },
+    initialVelocitySpeed: { start: 0.5, end: 1.5 },
+    rotationOverTime: { start: 0, end: 180 },
+    additionalForce: Vector3.create(0.5, 0, 0),
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
     billboard: true,
     shape: ParticleSystem.Shape.Sphere({ radius: 0.3 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  return entity
+  addSphereVisualizer(entity, 0.3)
+  addLabel(entity, 'Purple Swirl\nSphere | ALPHA | Force')
+
+  return registerPs(entity, 'Purple Swirl')
 }
+
+// ─── Ground ───────────────────────────────────────────────────────────────────
+
+function addGround(): void {
+  const ground = engine.addEntity()
+  Transform.create(ground, {
+    position: Vector3.create(16, 0, 16),
+    scale: Vector3.create(32, 0.1, 32)
+  })
+  MeshRenderer.setBox(ground)
+  MeshCollider.setBox(ground)
+}
+
+// ─── Proximity System ─────────────────────────────────────────────────────────
+
+engine.addSystem((_deltaTime: number) => {
+  const playerTransform = Transform.getOrNull(engine.PlayerEntity)
+  if (!playerTransform) return
+
+  const playerPos = playerTransform.position
+  let nearest: PsEntry | undefined
+  let nearestDist = PROXIMITY_DIST
+
+  for (const entry of psEntries) {
+    const transform = Transform.getOrNull(entry.entity)
+    if (!transform) continue
+    const dist = Vector3.distance(playerPos, transform.position)
+    if (dist < nearestDist) {
+      nearestDist = dist
+      nearest = entry
+    }
+  }
+
+  currentPsEntry = nearest
+})
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 addGround()
+
 createFireEmber()
 createMagicAura()
 createSnowfall()
 createSpriteFlame()
 createGravityFountain()
-controlEntity = createControlDemo()
+createBatSwarm()
+createSmokeHaze()
+createLightningSparks()
+createHeavyRain()
+createOneShotBurst()
+createAsteroidTrail()
+createPurpleSwirl()
 
 setupUI()
