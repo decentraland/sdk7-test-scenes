@@ -481,13 +481,138 @@ function createPurpleSwirl(): PsEntry {
   return registerPs(entity, 'Purple Swirl')
 }
 
+// ─── 13. Bee Swarm — Sphere r=1.0, PSB_ALPHA, bee spritesheet 1×20 ────────────
+
+function createBeeSwarm(): PsEntry {
+  const entity = engine.addEntity()
+  Transform.create(entity, { position: Vector3.create(6, 1.5, 38) })
+
+  ParticleSystem.create(entity, {
+    active: true,
+    rate: 8,
+    lifetime: 5,
+    maxParticles: 40,
+    initialSize: { start: 0.4, end: 0.6 },
+    sizeOverTime: { start: 1.0, end: 1.0 },
+    initialColor: { start: Color4.create(1, 1, 1, 1), end: Color4.create(1, 1, 1, 1) },
+    colorOverTime: { start: Color4.create(1, 1, 1, 1), end: Color4.create(1, 1, 1, 0) },
+    initialVelocitySpeed: { start: 0.3, end: 0.8 },
+    rotationOverTime: { start: -10, end: 10 },
+    blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
+    billboard: true,
+    texture: { src: 'assets/dcl-particles/bee.png' },
+    spriteSheet: { tilesX: 1, tilesY: 20, startFrame: 0, endFrame: 19, cyclesPerLifetime: 6 },
+    shape: ParticleSystem.Shape.Sphere({ radius: 1.0 }),
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+  })
+
+  addSphereVisualizer(entity, 1.0)
+  addLabel(entity, 'Bee Swarm\nSphere | ALPHA | Sheet 1x20')
+
+  return registerPs(entity, 'Bee Swarm')
+}
+
+// ─── 14. Toxic Pumpkin — Point, PSB_ALPHA, rottenpumpkin spritesheet 2×2 ──────
+
+function createToxicPumpkin(): PsEntry {
+  const entity = engine.addEntity()
+  Transform.create(entity, { position: Vector3.create(14, 1, 38) })
+
+  ParticleSystem.create(entity, {
+    active: true,
+    rate: 6,
+    lifetime: 3,
+    maxParticles: 30,
+    initialSize: { start: 0.6, end: 1.2 },
+    sizeOverTime: { start: 0.8, end: 1.5 },
+    initialColor: { start: Color4.create(0.4, 0.8, 0.2, 0.9), end: Color4.create(0.2, 0.6, 0.1, 0.9) },
+    colorOverTime: { start: Color4.create(0.3, 0.7, 0.2, 0.8), end: Color4.create(0.1, 0.4, 0.05, 0) },
+    initialVelocitySpeed: { start: 0.2, end: 0.5 },
+    gravity: -0.2,
+    blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
+    billboard: true,
+    texture: { src: 'assets/dcl-particles/rottenpumpkin.png' },
+    spriteSheet: { tilesX: 2, tilesY: 2, startFrame: 0, endFrame: 3, cyclesPerLifetime: 1 },
+    shape: ParticleSystem.Shape.Point(),
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+  })
+
+  addPointVisualizer(entity)
+  addLabel(entity, 'Toxic Pumpkin\nPoint | ALPHA | Sheet 2x2')
+
+  return registerPs(entity, 'Toxic Pumpkin')
+}
+
+// ─── 15. Campfire — Point, PSB_ADD, sprite_fire3 spritesheet 4×3 ─────────────
+
+function createCampfire(): PsEntry {
+  const entity = engine.addEntity()
+  Transform.create(entity, { position: Vector3.create(22, 1, 38) })
+
+  ParticleSystem.create(entity, {
+    active: true,
+    rate: 12,
+    lifetime: 1.8,
+    maxParticles: 40,
+    initialSize: { start: 0.8, end: 1.4 },
+    sizeOverTime: { start: 1.0, end: 0.3 },
+    initialColor: { start: Color4.create(1, 0.9, 0.7, 1), end: Color4.create(1, 0.7, 0.3, 1) },
+    colorOverTime: { start: Color4.create(1, 0.8, 0.5, 1), end: Color4.create(0.4, 0.1, 0, 0) },
+    initialVelocitySpeed: { start: 0.3, end: 0.8 },
+    gravity: -0.5,
+    blendMode: PBParticleSystem_BlendMode.PSB_ADD,
+    billboard: true,
+    texture: { src: 'assets/dcl-particles/sprite_fire3.png' },
+    spriteSheet: { tilesX: 4, tilesY: 3, startFrame: 0, endFrame: 11, cyclesPerLifetime: 2 },
+    shape: ParticleSystem.Shape.Point(),
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+  })
+
+  addPointVisualizer(entity)
+  addLabel(entity, 'Campfire\nPoint | ADD | Sheet 4x3')
+
+  return registerPs(entity, 'Campfire')
+}
+
+// ─── 16. Flame Wisps — Cone(angle=20, r=0.3), PSB_ADD, sprite_flame 4×3 ──────
+
+function createFlameWisps(): PsEntry {
+  const entity = engine.addEntity()
+  Transform.create(entity, { position: Vector3.create(30, 1, 38) })
+
+  ParticleSystem.create(entity, {
+    active: true,
+    rate: 10,
+    lifetime: 2,
+    maxParticles: 50,
+    initialSize: { start: 0.5, end: 1.0 },
+    sizeOverTime: { start: 1.0, end: 0.0 },
+    initialColor: { start: Color4.create(1, 0.8, 0.6, 0.9), end: Color4.create(1, 0.5, 0.2, 0.9) },
+    colorOverTime: { start: Color4.create(1, 0.7, 0.4, 0.8), end: Color4.create(0.8, 0.2, 0.05, 0) },
+    initialVelocitySpeed: { start: 0.5, end: 1.2 },
+    gravity: -0.4,
+    rotationOverTime: { start: -30, end: 30 },
+    blendMode: PBParticleSystem_BlendMode.PSB_ADD,
+    billboard: true,
+    texture: { src: 'assets/dcl-particles/sprite_flame.png' },
+    spriteSheet: { tilesX: 4, tilesY: 3, startFrame: 0, endFrame: 11, cyclesPerLifetime: 1 },
+    shape: ParticleSystem.Shape.Cone({ angle: 20, radius: 0.3 }),
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+  })
+
+  addConeVisualizer(entity, 0.3)
+  addLabel(entity, 'Flame Wisps\nCone | ADD | Sheet 4x3')
+
+  return registerPs(entity, 'Flame Wisps')
+}
+
 // ─── Ground ───────────────────────────────────────────────────────────────────
 
 function addGround(): void {
   const ground = engine.addEntity()
   Transform.create(ground, {
-    position: Vector3.create(16, 0, 16),
-    scale: Vector3.create(32, 0.1, 32)
+    position: Vector3.create(16, 0, 24),
+    scale: Vector3.create(32, 0.1, 48)
   })
   MeshRenderer.setBox(ground)
   MeshCollider.setBox(ground)
@@ -532,5 +657,9 @@ createHeavyRain()
 createOneShotBurst()
 createAsteroidTrail()
 createPurpleSwirl()
+createBeeSwarm()
+createToxicPumpkin()
+createCampfire()
+createFlameWisps()
 
 setupUI()
