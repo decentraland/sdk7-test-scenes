@@ -1,0 +1,36 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Particle System Showcase",
+    "description": "16 particle system examples demonstrating all PBParticleSystem features",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": [],
+  "scene": {
+    "parcels": ["0,7", "1,7", "0,8", "1,8", "0,9", "1,9"],
+    "base": "0,7"
+  },
+  "spawnPoints": [
+    {
+      "name": "Spawn Point 1",
+      "default": true,
+      "position": {
+        "x": [0, 3],
+        "y": [0, 0],
+        "z": [0, 3]
+      },
+      "cameraTarget": {
+        "x": 16,
+        "y": 1,
+        "z": 16
+      }
+    }
+  ]
+}
