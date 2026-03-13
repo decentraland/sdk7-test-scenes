@@ -19,7 +19,7 @@ import { setupUI } from './ui'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type PsEntry = { entity: Entity; name: string }
+export type PsEntry = { entity: Entity; name: string; vizEntity: Entity }
 
 export const psEntries: PsEntry[] = []
 
@@ -36,7 +36,38 @@ const SHAPE_COLOR = Color4.create(0.4, 0.9, 1, 0.18)
 
 // ─── Shape Visualizers ────────────────────────────────────────────────────────
 
-function addPointVisualizer(parent: Entity): void {
+function applyShapeToVisualizer(vizEntity: Entity, shape: NonNullable<ReturnType<typeof ParticleSystem.getOrNull>>['shape']): void {
+  const t = Transform.getMutable(vizEntity)
+  const shapeCase = shape?.$case ?? 'point'
+
+  switch (shapeCase) {
+    case 'point':
+      t.scale = Vector3.create(0.15, 0.15, 0.15)
+      MeshRenderer.setSphere(vizEntity)
+      break
+    case 'sphere': {
+      const radius = (shape?.$case === 'sphere' ? shape.sphere.radius : undefined) ?? 1
+      const diameter = radius * 2
+      t.scale = Vector3.create(diameter, diameter, diameter)
+      MeshRenderer.setSphere(vizEntity)
+      break
+    }
+    case 'cone': {
+      const radius = (shape?.$case === 'cone' ? shape.cone.radius : undefined) ?? 1
+      t.scale = Vector3.create(radius * 2, 0.05, radius * 2)
+      MeshRenderer.setCylinder(vizEntity, radius, 0)
+      break
+    }
+    case 'box': {
+      const size = (shape?.$case === 'box' ? shape.box.size : undefined) ?? Vector3.create(1, 1, 1)
+      t.scale = Vector3.create(size.x, size.y, size.z)
+      MeshRenderer.setBox(vizEntity)
+      break
+    }
+  }
+}
+
+function createVisualizer(parent: Entity, shape: NonNullable<ReturnType<typeof ParticleSystem.getOrNull>>['shape']): Entity {
   const vizEntity = engine.addEntity()
   Transform.create(vizEntity, {
     parent,
@@ -48,49 +79,8 @@ function addPointVisualizer(parent: Entity): void {
     albedoColor: SHAPE_COLOR,
     transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND
   })
-}
-
-function addSphereVisualizer(parent: Entity, radius: number): void {
-  const vizEntity = engine.addEntity()
-  const diameter = radius * 2
-  Transform.create(vizEntity, {
-    parent,
-    position: Vector3.create(0, 0, 0),
-    scale: Vector3.create(diameter, diameter, diameter)
-  })
-  MeshRenderer.setSphere(vizEntity)
-  Material.setPbrMaterial(vizEntity, {
-    albedoColor: SHAPE_COLOR,
-    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND
-  })
-}
-
-function addConeVisualizer(parent: Entity, radius: number): void {
-  const vizEntity = engine.addEntity()
-  Transform.create(vizEntity, {
-    parent,
-    position: Vector3.create(0, 0, 0),
-    scale: Vector3.create(radius * 2, 0.05, radius * 2)
-  })
-  MeshRenderer.setCylinder(vizEntity, radius, 0)
-  Material.setPbrMaterial(vizEntity, {
-    albedoColor: SHAPE_COLOR,
-    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND
-  })
-}
-
-function addBoxVisualizer(parent: Entity, sizeX: number, sizeY: number, sizeZ: number): void {
-  const vizEntity = engine.addEntity()
-  Transform.create(vizEntity, {
-    parent,
-    position: Vector3.create(0, 0, 0),
-    scale: Vector3.create(sizeX, sizeY, sizeZ)
-  })
-  MeshRenderer.setBox(vizEntity)
-  Material.setPbrMaterial(vizEntity, {
-    albedoColor: SHAPE_COLOR,
-    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND
-  })
+  applyShapeToVisualizer(vizEntity, shape)
+  return vizEntity
 }
 
 // ─── Label Helper ─────────────────────────────────────────────────────────────
@@ -111,8 +101,8 @@ function addLabel(parent: Entity, text: string, worldPos?: Vector3): void {
 
 // ─── Register Helper ──────────────────────────────────────────────────────────
 
-function registerPs(entity: Entity, name: string): PsEntry {
-  const entry: PsEntry = { entity, name }
+function registerPs(entity: Entity, name: string, vizEntity: Entity): PsEntry {
+  const entry: PsEntry = { entity, name, vizEntity }
   psEntries.push(entry)
   return entry
 }
@@ -140,10 +130,10 @@ function createFireEmber(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addPointVisualizer(entity)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
   addLabel(entity, 'Fire Ember\nPoint | ADD')
 
-  return registerPs(entity, 'Fire Ember')
+  return registerPs(entity, 'Fire Ember', viz)
 }
 
 // ─── 2. Magic Aura — Sphere r=0.8, PSB_ALPHA, blue-to-white, rotationOverTime ─
@@ -169,10 +159,10 @@ function createMagicAura(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addSphereVisualizer(entity, 0.8)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 0.8 }))
   addLabel(entity, 'Magic Aura\nSphere | ALPHA')
 
-  return registerPs(entity, 'Magic Aura')
+  return registerPs(entity, 'Magic Aura', viz)
 }
 
 // ─── 3. Snowfall — Cone(angle=15, r=2), PSB_ALPHA, rotated 180° (downward), gravity=1.5
@@ -201,11 +191,11 @@ function createSnowfall(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addConeVisualizer(entity, 2)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 15, radius: 2 }))
   // Label as separate world entity so it isn't flipped by the 180° parent rotation
   addLabel(entity, 'Snowfall\nCone | ALPHA', Vector3.create(26, 7, 6))
 
-  return registerPs(entity, 'Snowfall')
+  return registerPs(entity, 'Snowfall', viz)
 }
 
 // ─── 4. Sprite Flame — Box(0.5,0.1,0.5), PSB_ADD, spriteSheet tilesX=4,tilesY=4
@@ -231,10 +221,10 @@ function createSpriteFlame(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addBoxVisualizer(entity, 0.5, 0.1, 0.5)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Box({ size: Vector3.create(0.5, 0.1, 0.5) }))
   addLabel(entity, 'Sprite Flame\nBox | ADD | Sheet')
 
-  return registerPs(entity, 'Sprite Flame')
+  return registerPs(entity, 'Sprite Flame', viz)
 }
 
 // ─── 5. Gravity Fountain — Sphere r=0.1, PSB_ALPHA, fast upward, gravity=-2.5 ─
@@ -260,10 +250,10 @@ function createGravityFountain(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addSphereVisualizer(entity, 0.1)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 0.1 }))
   addLabel(entity, 'Gravity Fountain\nSphere | ALPHA')
 
-  return registerPs(entity, 'Gravity Fountain')
+  return registerPs(entity, 'Gravity Fountain', viz)
 }
 
 // ─── 6. Bat Swarm — Sphere r=1.5, PSB_ALPHA, texture, spriteSheet 4×4 16frames ─
@@ -291,10 +281,10 @@ function createBatSwarm(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addSphereVisualizer(entity, 1.5)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 1.5 }))
   addLabel(entity, 'Bat Swarm\nSphere | ALPHA | Sheet')
 
-  return registerPs(entity, 'Bat Swarm')
+  return registerPs(entity, 'Bat Swarm', viz)
 }
 
 // ─── 7. Smoke Haze — Sphere r=1.2, PSB_ALPHA, prewarm=true, slow, grey, large ─
@@ -321,10 +311,10 @@ function createSmokeHaze(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addSphereVisualizer(entity, 1.2)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 1.2 }))
   addLabel(entity, 'Smoke Haze\nSphere | ALPHA | Prewarm')
 
-  return registerPs(entity, 'Smoke Haze')
+  return registerPs(entity, 'Smoke Haze', viz)
 }
 
 // ─── 8. Lightning Sparks — Point, PSB_ADD, fast, limitVelocity, short life, cyan
@@ -350,10 +340,10 @@ function createLightningSparks(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addPointVisualizer(entity)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
   addLabel(entity, 'Lightning Sparks\nPoint | ADD | LimitVel')
 
-  return registerPs(entity, 'Lightning Sparks')
+  return registerPs(entity, 'Lightning Sparks', viz)
 }
 
 // ─── 9. Heavy Rain — Box(6,0.1,6), PSB_ALPHA, rotated 180° (falling), limitVelocity
@@ -383,11 +373,11 @@ function createHeavyRain(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addBoxVisualizer(entity, 6, 0.1, 6)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Box({ size: Vector3.create(6, 0.1, 6) }))
   // Label as separate world entity so it isn't flipped by the 180° parent rotation
   addLabel(entity, 'Heavy Rain\nBox | ALPHA | LimitVel', Vector3.create(26, 8, 22))
 
-  return registerPs(entity, 'Heavy Rain')
+  return registerPs(entity, 'Heavy Rain', viz)
 }
 
 // ─── 10. One-Shot Burst — Sphere r=0.5, loop=false, prewarm=false, burst style ─
@@ -415,10 +405,10 @@ function createOneShotBurst(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addSphereVisualizer(entity, 0.5)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 0.5 }))
   addLabel(entity, 'One-Shot Burst\nSphere | ALPHA | No Loop')
 
-  return registerPs(entity, 'One-Shot Burst')
+  return registerPs(entity, 'One-Shot Burst', viz)
 }
 
 // ─── 11. Asteroid Trail — Cone(angle=10, r=0.1), PSB_ADD, fast, limitVelocity ─
@@ -445,10 +435,10 @@ function createAsteroidTrail(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addConeVisualizer(entity, 0.1)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 10, radius: 0.1 }))
   addLabel(entity, 'Asteroid Trail\nCone | ADD | LimitVel')
 
-  return registerPs(entity, 'Asteroid Trail')
+  return registerPs(entity, 'Asteroid Trail', viz)
 }
 
 // ─── 12. Purple Swirl — Sphere r=0.3, PSB_ALPHA, purple, additionalForce, rotation
@@ -475,10 +465,10 @@ function createPurpleSwirl(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addSphereVisualizer(entity, 0.3)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 0.3 }))
   addLabel(entity, 'Purple Swirl\nSphere | ALPHA | Force')
 
-  return registerPs(entity, 'Purple Swirl')
+  return registerPs(entity, 'Purple Swirl', viz)
 }
 
 // ─── 13. Bee Swarm — Sphere r=1.0, PSB_ALPHA, bee spritesheet 1×20 ────────────
@@ -506,10 +496,10 @@ function createBeeSwarm(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addSphereVisualizer(entity, 1.0)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 1.0 }))
   addLabel(entity, 'Bee Swarm\nSphere | ALPHA | Sheet 1x20')
 
-  return registerPs(entity, 'Bee Swarm')
+  return registerPs(entity, 'Bee Swarm', viz)
 }
 
 // ─── 14. Toxic Pumpkin — Point, PSB_ALPHA, rottenpumpkin spritesheet 2×2 ──────
@@ -537,10 +527,10 @@ function createToxicPumpkin(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addPointVisualizer(entity)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
   addLabel(entity, 'Toxic Pumpkin\nPoint | ALPHA | Sheet 2x2')
 
-  return registerPs(entity, 'Toxic Pumpkin')
+  return registerPs(entity, 'Toxic Pumpkin', viz)
 }
 
 // ─── 15. Campfire — Point, PSB_ADD, sprite_fire3 spritesheet 4×3 ─────────────
@@ -568,10 +558,10 @@ function createCampfire(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addPointVisualizer(entity)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
   addLabel(entity, 'Campfire\nPoint | ADD | Sheet 4x3')
 
-  return registerPs(entity, 'Campfire')
+  return registerPs(entity, 'Campfire', viz)
 }
 
 // ─── 16. Flame Wisps — Cone(angle=20, r=0.3), PSB_ADD, sprite_flame 4×3 ──────
@@ -600,10 +590,10 @@ function createFlameWisps(): PsEntry {
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
-  addConeVisualizer(entity, 0.3)
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 20, radius: 0.3 }))
   addLabel(entity, 'Flame Wisps\nCone | ADD | Sheet 4x3')
 
-  return registerPs(entity, 'Flame Wisps')
+  return registerPs(entity, 'Flame Wisps', viz)
 }
 
 // ─── Ground ───────────────────────────────────────────────────────────────────
@@ -631,7 +621,9 @@ engine.addSystem((_deltaTime: number) => {
   for (const entry of psEntries) {
     const transform = Transform.getOrNull(entry.entity)
     if (!transform) continue
-    const dist = Vector3.distance(playerPos, transform.position)
+    const dx = playerPos.x - transform.position.x
+    const dz = playerPos.z - transform.position.z
+    const dist = Math.sqrt(dx * dx + dz * dz)
     if (dist < nearestDist) {
       nearestDist = dist
       nearest = entry
@@ -639,6 +631,39 @@ engine.addSystem((_deltaTime: number) => {
   }
 
   currentPsEntry = nearest
+})
+
+// ─── Shape Visualizer Sync System ────────────────────────────────────────────
+
+const lastShapeState = new Map<Entity, string>()
+
+function serializeShape(shape: NonNullable<ReturnType<typeof ParticleSystem.getOrNull>>['shape']): string {
+  if (!shape) return 'point'
+  switch (shape.$case) {
+    case 'point': return 'point'
+    case 'sphere': return `sphere:${shape.sphere.radius ?? 1}`
+    case 'cone': return `cone:${shape.cone.angle ?? 25}:${shape.cone.radius ?? 1}`
+    case 'box': {
+      const s = shape.box.size ?? Vector3.create(1, 1, 1)
+      return `box:${s.x}:${s.y}:${s.z}`
+    }
+    default: return 'point'
+  }
+}
+
+engine.addSystem(() => {
+  for (const entry of psEntries) {
+    const ps = ParticleSystem.getOrNull(entry.entity)
+    if (!ps) continue
+
+    const currentKey = serializeShape(ps.shape)
+    const prevKey = lastShapeState.get(entry.entity)
+
+    if (prevKey !== currentKey) {
+      lastShapeState.set(entry.entity, currentKey)
+      applyShapeToVisualizer(entry.vizEntity, ps.shape)
+    }
+  }
 })
 
 // ─── Main ─────────────────────────────────────────────────────────────────────

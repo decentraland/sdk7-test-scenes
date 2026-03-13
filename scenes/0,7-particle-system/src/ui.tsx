@@ -1,4 +1,4 @@
-import { engine, Entity, UiCanvasInformation } from '@dcl/sdk/ecs'
+import { engine, Entity, UiCanvasInformation, VisibilityComponent } from '@dcl/sdk/ecs'
 import {
   ParticleSystem,
   PBParticleSystem_BlendMode,
@@ -265,6 +265,7 @@ function UI(): ReactEcs.JSX.Element {
 
   // ─── Resolved values ─────────────────────────────────────────────────────
 
+  const vizVisible = VisibilityComponent.getOrNull(entry.vizEntity)?.visible ?? true
   const active = comp.active ?? true
   const loop = comp.loop ?? true
   const prewarm = comp.prewarm ?? false
@@ -348,6 +349,10 @@ function UI(): ReactEcs.JSX.Element {
   function onToggleBillboard() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (m) m.billboard = !(m.billboard ?? true)
+  }
+  function onToggleVizVisible() {
+    const current = VisibilityComponent.getOrNull(entry.vizEntity)?.visible ?? true
+    VisibilityComponent.createOrReplace(entry.vizEntity, { visible: !current })
   }
 
   // ─── Blend mode handlers ────────────────────────────────────────────────
@@ -773,6 +778,11 @@ function UI(): ReactEcs.JSX.Element {
         fontSize={scale * 15}
         uiTransform={{ margin: { bottom: scale * 6 }, alignSelf: 'center' }}
       />
+
+      <Divider scale={scale} />
+
+      {/* ── Visualizer ──────────────────────────────────────────────────── */}
+      <ToggleBtn label="Shape Viz" active={vizVisible} onToggle={onToggleVizVisible} scale={scale} />
 
       <Divider scale={scale} />
 
