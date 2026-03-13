@@ -77,7 +77,8 @@ function createVisualizer(parent: Entity, shape: NonNullable<ReturnType<typeof P
   MeshRenderer.setSphere(vizEntity)
   Material.setPbrMaterial(vizEntity, {
     albedoColor: SHAPE_COLOR,
-    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND
+    transparencyMode: MaterialTransparencyMode.MTM_ALPHA_BLEND,
+    castShadows: false
   })
   applyShapeToVisualizer(vizEntity, shape)
   return vizEntity
