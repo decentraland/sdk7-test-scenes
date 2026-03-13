@@ -7,6 +7,11 @@ import {
 import ReactEcs, { Button, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
 import { getCurrentPsEntry, PsEntry } from './index'
+// copyToClipboard exists in the Explorer runtime but isn't in the SDK type declarations yet
+declare module '~system/RestrictedActions' {
+  export function copyToClipboard(body: { text: string }): Promise<{}>
+}
+import { copyToClipboard } from '~system/RestrictedActions'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -245,6 +250,122 @@ function changeColor(
   range[which] = Color4.create(nr, ng, nb, na)
 }
 
+// ─── Serialization for copy-to-clipboard ─────────────────────────────────────
+
+function blendModeStr(mode: PBParticleSystem_BlendMode): string {
+  switch (mode) {
+    case PBParticleSystem_BlendMode.PSB_ALPHA: return 'PBParticleSystem_BlendMode.PSB_ALPHA'
+    case PBParticleSystem_BlendMode.PSB_ADD: return 'PBParticleSystem_BlendMode.PSB_ADD'
+    case PBParticleSystem_BlendMode.PSB_MULTIPLY: return 'PBParticleSystem_BlendMode.PSB_MULTIPLY'
+    default: return 'PBParticleSystem_BlendMode.PSB_ALPHA'
+  }
+}
+
+function serializeParticleSystem(entity: Entity): string {
+  const ps = ParticleSystem.getOrNull(entity)
+  if (!ps) return '// No ParticleSystem component found'
+
+  const lines: string[] = []
+  const ind = '  '
+
+  lines.push('ParticleSystem.create(entity, {')
+
+  // Basic properties
+  lines.push(`${ind}active: ${ps.active ?? true},`)
+  lines.push(`${ind}loop: ${ps.loop ?? true},`)
+  lines.push(`${ind}prewarm: ${ps.prewarm ?? false},`)
+  lines.push(`${ind}billboard: ${ps.billboard ?? true},`)
+  lines.push(`${ind}rate: ${ps.rate ?? 20},`)
+  lines.push(`${ind}lifetime: ${ps.lifetime ?? 2},`)
+  lines.push(`${ind}maxParticles: ${ps.maxParticles ?? 100},`)
+  lines.push(`${ind}gravity: ${ps.gravity ?? 0},`)
+  lines.push(`${ind}blendMode: ${blendModeStr(ps.blendMode ?? PBParticleSystem_BlendMode.PSB_ALPHA)},`)
+
+  // Shape
+  const shape = ps.shape
+  if (!shape || shape.$case === 'point') {
+    lines.push(`${ind}shape: ParticleSystem.Shape.Point(),`)
+  } else if (shape.$case === 'sphere') {
+    lines.push(`${ind}shape: ParticleSystem.Shape.Sphere({ radius: ${shape.sphere.radius ?? 1} }),`)
+  } else if (shape.$case === 'cone') {
+    lines.push(`${ind}shape: ParticleSystem.Shape.Cone({ angle: ${shape.cone.angle ?? 25}, radius: ${shape.cone.radius ?? 1} }),`)
+  } else if (shape.$case === 'box') {
+    const s = shape.box.size ?? { x: 1, y: 1, z: 1 }
+    lines.push(`${ind}shape: ParticleSystem.Shape.Box({ size: Vector3.create(${s.x}, ${s.y}, ${s.z}) }),`)
+  }
+
+  // Texture
+  if (ps.texture) {
+    lines.push(`${ind}texture: { src: '${ps.texture.src}' },`)
+  }
+
+  // Float ranges
+  const velSpeed = ps.initialVelocitySpeed
+  if (velSpeed) {
+    lines.push(`${ind}initialVelocitySpeed: { start: ${velSpeed.start}, end: ${velSpeed.end} },`)
+  }
+
+  const initSize = ps.initialSize
+  if (initSize) {
+    lines.push(`${ind}initialSize: { start: ${initSize.start}, end: ${initSize.end} },`)
+  }
+
+  const sot = ps.sizeOverTime
+  if (sot) {
+    lines.push(`${ind}sizeOverTime: { start: ${sot.start}, end: ${sot.end} },`)
+  }
+
+  const rot = ps.rotationOverTime
+  if (rot) {
+    lines.push(`${ind}rotationOverTime: { start: ${rot.start}, end: ${rot.end} },`)
+  }
+
+  // Color ranges
+  function fmtColor(c: { r: number; g: number; b: number; a: number }): string {
+    return `Color4.create(${c.r.toFixed(3)}, ${c.g.toFixed(3)}, ${c.b.toFixed(3)}, ${c.a.toFixed(3)})`
+  }
+
+  const ic = ps.initialColor
+  if (ic) {
+    const s = ic.start ?? { r: 1, g: 1, b: 1, a: 1 }
+    const e = ic.end ?? { r: 1, g: 1, b: 1, a: 1 }
+    lines.push(`${ind}initialColor: { start: ${fmtColor(s)}, end: ${fmtColor(e)} },`)
+  }
+
+  const cot = ps.colorOverTime
+  if (cot) {
+    const s = cot.start ?? { r: 1, g: 1, b: 1, a: 1 }
+    const e = cot.end ?? { r: 1, g: 1, b: 1, a: 0 }
+    lines.push(`${ind}colorOverTime: { start: ${fmtColor(s)}, end: ${fmtColor(e)} },`)
+  }
+
+  // Limit velocity
+  if (ps.limitVelocity) {
+    lines.push(`${ind}limitVelocity: { speed: ${ps.limitVelocity.speed}, dampen: ${ps.limitVelocity.dampen} },`)
+  }
+
+  // Additional force
+  if (ps.additionalForce) {
+    lines.push(`${ind}additionalForce: Vector3.create(${ps.additionalForce.x}, ${ps.additionalForce.y}, ${ps.additionalForce.z}),`)
+  }
+
+  // Sprite sheet
+  if (ps.spriteSheet) {
+    const ss = ps.spriteSheet
+    lines.push(`${ind}spriteSheet: {`)
+    lines.push(`${ind}${ind}tilesX: ${ss.tilesX},`)
+    lines.push(`${ind}${ind}tilesY: ${ss.tilesY},`)
+    lines.push(`${ind}${ind}startFrame: ${ss.startFrame},`)
+    lines.push(`${ind}${ind}endFrame: ${ss.endFrame},`)
+    lines.push(`${ind}${ind}cyclesPerLifetime: ${ss.cyclesPerLifetime ?? 1},`)
+    lines.push(`${ind}},`)
+  }
+
+  lines.push('})')
+
+  return lines.join('\n')
+}
+
 // ─── Main Panel ───────────────────────────────────────────────────────────────
 
 function UI(): ReactEcs.JSX.Element {
@@ -353,6 +474,10 @@ function UI(): ReactEcs.JSX.Element {
   function onToggleVizVisible() {
     const current = VisibilityComponent.getOrNull(entry.vizEntity)?.visible ?? true
     VisibilityComponent.createOrReplace(entry.vizEntity, { visible: !current })
+  }
+  function onCopyToClipboard() {
+    const code = serializeParticleSystem(entry.entity)
+    copyToClipboard({ text: code })
   }
 
   // ─── Blend mode handlers ────────────────────────────────────────────────
@@ -773,11 +898,20 @@ function UI(): ReactEcs.JSX.Element {
       uiBackground={{ color: panelBg }}
     >
       {/* Header */}
-      <Label
-        value={entry.name}
-        fontSize={scale * 15}
-        uiTransform={{ margin: { bottom: scale * 6 }, alignSelf: 'center' }}
-      />
+      <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', margin: { bottom: scale * 6 } }}>
+        <Label
+          value={entry.name}
+          fontSize={scale * 15}
+          uiTransform={{ margin: { right: scale * 8 } }}
+        />
+        <Button
+          value="Copy"
+          fontSize={scale * 10}
+          variant="secondary"
+          uiTransform={{ height: scale * 24 }}
+          onMouseDown={onCopyToClipboard}
+        />
+      </UiEntity>
 
       <Divider scale={scale} />
 
