@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/physics-impulse/@dcl/js-runtime/dcl-js-runtime-7.20.4-22484576356.commit-14072e0.tgz",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/physics-force-and-impulse/dcl-sdk-7.20.5-22864660371.commit-ef8c18f.tgz"
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/physics-force-and-impulse/dcl-sdk-7.21.1-23158348941.commit-4547b8f.tgz"
   },
   "scripts": {
     "build": "sdk-commands build --skip-install",

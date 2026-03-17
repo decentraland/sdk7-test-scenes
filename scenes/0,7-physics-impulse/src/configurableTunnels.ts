@@ -13,61 +13,51 @@ import {
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 
 const FORCE_COLOR = Color4.create(0.1, 0.4, 0.8, 0.25)
-const FORCE_ACTIVE = Color4.create(0.2, 0.7, 1, 0.3)
 const IMPULSE_COLOR = Color4.create(0.8, 0.15, 0.1, 0.25)
-const IMPULSE_ACTIVE = Color4.create(1, 0.3, 0.2, 0.3)
 
 const HORIZONTAL_MAG = 20
 const VERTICAL_MAG = 50
 
 export function setupConfigurableTunnels() {
-    const facingBack = Quaternion.fromEulerDegrees(0, 180, 0)
+    const labelRot = Quaternion.fromEulerDegrees(0, 180, 0)
 
-    const forceTunnels: Entity[] = []
-
+    // Horizontal impulse tunnel (red)
     createImpulseTunnel(
         Vector3.create(-10, 1.5, 8), Vector3.create(2, 3, 12),
-        Vector3.create(0, 0, HORIZONTAL_MAG),
-        'Impulse forward', facingBack
+        Vector3.create(0, 0, HORIZONTAL_MAG), 'Impulse forward', labelRot
     )
 
-    forceTunnels.push(createForceTunnel(
+    // Horizontal force tunnel (blue)
+    createForceTunnel(
         Vector3.create(-6, 1.5, 8), Vector3.create(2, 3, 12),
-        Vector3.create(0, 0, HORIZONTAL_MAG),
-        'Force forward', facingBack
-    ))
+        Vector3.create(0, 0, HORIZONTAL_MAG), 'Force forward', labelRot
+    )
 
+    // Vertical impulse tunnel (red)
     createImpulseTunnel(
         Vector3.create(-10, 5, 2), Vector3.create(2, 10, 2),
-        Vector3.create(0, VERTICAL_MAG, 0),
-        'Impulse up', facingBack
+        Vector3.create(0, VERTICAL_MAG, 0), 'Impulse up', labelRot
     )
 
-    forceTunnels.push(createForceTunnel(
+    // Vertical force tunnel (blue)
+    createForceTunnel(
         Vector3.create(-6, 5, 2), Vector3.create(2, 10, 2),
-        Vector3.create(0, VERTICAL_MAG, 0),
-        'Force up', facingBack
-    ))
+        Vector3.create(0, VERTICAL_MAG, 0), 'Force up', labelRot
+    )
+}
 
-    const zone = engine.addEntity()
-    Transform.create(zone, {
-        position: Vector3.create(-8, 3, 6),
-        scale: Vector3.create(12, 8, 14)
+function createLabel(position: Vector3, size: Vector3, text: string, rotation: Quaternion) {
+    const label = engine.addEntity()
+    Transform.create(label, {
+        position: Vector3.create(position.x, position.y + size.y / 2 + 0.5, position.z - size.z / 2),
+        rotation
     })
-    TriggerArea.setBox(zone, ColliderLayer.CL_PLAYER)
-
-    triggerAreaEventsSystem.onTriggerExit(zone, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        for (const t of forceTunnels) {
-            Physics.removeForceFromPlayer(t)
-        }
-    })
+    TextShape.create(label, { text, fontSize: 2 })
 }
 
 function createForceTunnel(
     position: Vector3, size: Vector3,
-    direction: Vector3, label: string,
-    labelRotation: { x: number; y: number; z: number; w: number }
+    direction: Vector3, label: string, labelRotation: Quaternion
 ): Entity {
     const tunnel = engine.addEntity()
     Transform.create(tunnel, { position, scale: size })
@@ -75,23 +65,16 @@ function createForceTunnel(
     Material.setPbrMaterial(tunnel, { albedoColor: FORCE_COLOR })
     TriggerArea.setBox(tunnel, ColliderLayer.CL_PLAYER)
 
-    const labelEntity = engine.addEntity()
-    Transform.create(labelEntity, {
-        position: Vector3.create(position.x, position.y + size.y / 2 + 0.5, position.z - size.z / 2),
-        rotation: labelRotation
-    })
-    TextShape.create(labelEntity, { text: label, fontSize: 2 })
+    createLabel(position, size, label, labelRotation)
 
     triggerAreaEventsSystem.onTriggerEnter(tunnel, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
+        if (result.trigger?.entity !== engine.PlayerEntity) return
         Physics.applyForceToPlayer(tunnel, direction)
-        Material.setPbrMaterial(tunnel, { albedoColor: FORCE_ACTIVE })
     })
 
     triggerAreaEventsSystem.onTriggerExit(tunnel, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
+        if (result.trigger?.entity !== engine.PlayerEntity) return
         Physics.removeForceFromPlayer(tunnel)
-        Material.setPbrMaterial(tunnel, { albedoColor: FORCE_COLOR })
     })
 
     return tunnel
@@ -99,8 +82,7 @@ function createForceTunnel(
 
 function createImpulseTunnel(
     position: Vector3, size: Vector3,
-    direction: Vector3, label: string,
-    labelRotation: { x: number; y: number; z: number; w: number }
+    direction: Vector3, label: string, labelRotation: Quaternion
 ) {
     const tunnel = engine.addEntity()
     Transform.create(tunnel, { position, scale: size })
@@ -108,25 +90,10 @@ function createImpulseTunnel(
     Material.setPbrMaterial(tunnel, { albedoColor: IMPULSE_COLOR })
     TriggerArea.setBox(tunnel, ColliderLayer.CL_PLAYER)
 
-    const labelEntity = engine.addEntity()
-    Transform.create(labelEntity, {
-        position: Vector3.create(position.x, position.y + size.y / 2 + 0.5, position.z - size.z / 2),
-        rotation: labelRotation
-    })
-    TextShape.create(labelEntity, { text: label, fontSize: 2 })
+    createLabel(position, size, label, labelRotation)
 
     triggerAreaEventsSystem.onTriggerStay(tunnel, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
+        if (result.trigger?.entity !== engine.PlayerEntity) return
         Physics.applyImpulseToPlayer(direction)
-    })
-
-    triggerAreaEventsSystem.onTriggerEnter(tunnel, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        Material.setPbrMaterial(tunnel, { albedoColor: IMPULSE_ACTIVE })
-    })
-
-    triggerAreaEventsSystem.onTriggerExit(tunnel, (result) => {
-        if (result.trigger?.entity !== engine.PlayerEntity) return;
-        Material.setPbrMaterial(tunnel, { albedoColor: IMPULSE_COLOR })
     })
 }
