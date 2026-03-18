@@ -52,7 +52,7 @@ jobs:
           node-version: 20
 
       - name: Install @dcl/sdk@experimental
-        run: npm install @dcl/sdk@experimental
+        run: npm install @dcl/sdk@experimental @dcl/js-runtime@experimental
 
       - name: Install npm packages
         run: npm install
