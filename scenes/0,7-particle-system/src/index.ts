@@ -7,12 +7,17 @@ import {
   TextShape,
   Billboard,
   Material,
-  MaterialTransparencyMode
+  MaterialTransparencyMode,
+  Tween,
+  TweenSequence,
+  EasingFunction,
+  TweenLoop
 } from '@dcl/sdk/ecs'
 import {
   ParticleSystem,
   PBParticleSystem_BlendMode,
-  PBParticleSystem_PlaybackState
+  PBParticleSystem_PlaybackState,
+  PBParticleSystem_SimulationSpace
 } from '@dcl/sdk/ecs'
 import { Color4, Vector3, Quaternion } from '@dcl/sdk/math'
 import { setupUI } from './ui'
@@ -96,7 +101,13 @@ function addLabel(parent: Entity, text: string, worldPos?: Vector3): void {
       position: Vector3.create(0, 2.5, 0)
     })
   }
-  TextShape.create(label, { text, fontSize: 1.5 })
+  TextShape.create(label, {
+    text,
+    fontSize: 1.5,
+    textColor: Color4.Yellow(),
+    outlineColor: Color4.create(0, 0, 0, 1),
+    outlineWidth: 0.35
+  })
   Billboard.create(label)
 }
 
@@ -217,7 +228,7 @@ function createSpriteFlame(): PsEntry {
     initialVelocitySpeed: { start: 0.5, end: 1.0 },
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
     billboard: true,
-    spriteSheet: { tilesX: 4, tilesY: 4, startFrame: 0, endFrame: 15, cyclesPerLifetime: 1 },
+    spriteSheet: { tilesX: 4, tilesY: 4, startFrame: 0, endFrame: 15, framesPerSecond: 16 },
     shape: ParticleSystem.Shape.Box({ size: Vector3.create(0.5, 0.1, 0.5) }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -277,7 +288,7 @@ function createBatSwarm(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
     billboard: true,
     texture: { src: 'assets/32x32-bat-sprite.png' },
-    spriteSheet: { tilesX: 4, tilesY: 4, startFrame: 0, endFrame: 15, cyclesPerLifetime: 3 },
+    spriteSheet: { tilesX: 4, tilesY: 4, startFrame: 0, endFrame: 15, framesPerSecond: 24 },
     shape: ParticleSystem.Shape.Sphere({ radius: 1.5 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -492,7 +503,7 @@ function createBeeSwarm(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
     billboard: true,
     texture: { src: 'assets/dcl-particles/bee.png' },
-    spriteSheet: { tilesX: 1, tilesY: 20, startFrame: 0, endFrame: 19, cyclesPerLifetime: 6 },
+    spriteSheet: { tilesX: 1, tilesY: 20, startFrame: 0, endFrame: 19, framesPerSecond: 30 },
     shape: ParticleSystem.Shape.Sphere({ radius: 1.0 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -523,7 +534,7 @@ function createToxicPumpkin(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
     billboard: true,
     texture: { src: 'assets/dcl-particles/rottenpumpkin.png' },
-    spriteSheet: { tilesX: 2, tilesY: 2, startFrame: 0, endFrame: 3, cyclesPerLifetime: 1 },
+    spriteSheet: { tilesX: 2, tilesY: 2, startFrame: 0, endFrame: 3, framesPerSecond: 8 },
     shape: ParticleSystem.Shape.Point(),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -554,7 +565,7 @@ function createCampfire(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
     billboard: true,
     texture: { src: 'assets/dcl-particles/sprite_fire3.png' },
-    spriteSheet: { tilesX: 4, tilesY: 3, startFrame: 0, endFrame: 11, cyclesPerLifetime: 2 },
+    spriteSheet: { tilesX: 4, tilesY: 3, startFrame: 0, endFrame: 11, framesPerSecond: 12 },
     shape: ParticleSystem.Shape.Point(),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -586,7 +597,7 @@ function createFlameWisps(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
     billboard: true,
     texture: { src: 'assets/dcl-particles/sprite_flame.png' },
-    spriteSheet: { tilesX: 4, tilesY: 3, startFrame: 0, endFrame: 11, cyclesPerLifetime: 1 },
+    spriteSheet: { tilesX: 4, tilesY: 3, startFrame: 0, endFrame: 11, framesPerSecond: 10 },
     shape: ParticleSystem.Shape.Cone({ angle: 20, radius: 0.3 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -595,6 +606,50 @@ function createFlameWisps(): PsEntry {
   addLabel(entity, 'Flame Wisps\nCone | ADD | Sheet 4x3')
 
   return registerPs(entity, 'Flame Wisps', viz)
+}
+
+// ─── 17. Moving Trail — Point, PSB_ADD, Tween YOYO, SimulationSpace demo ─────
+
+function createMovingTrail(): PsEntry {
+  const entity = engine.addEntity()
+  const posA = Vector3.create(6, 1, 44)
+  const posB = Vector3.create(26, 1, 44)
+  Transform.create(entity, { position: posA })
+
+  ParticleSystem.create(entity, {
+    active: true,
+    rate: 40,
+    lifetime: 2,
+    maxParticles: 200,
+    initialSize: { start: 0.1, end: 0.2 },
+    sizeOverTime: { start: 1.0, end: 0.0 },
+    initialColor: { start: Color4.create(0.2, 1, 0.5, 1), end: Color4.create(0.1, 0.8, 1, 1) },
+    colorOverTime: { start: Color4.create(0.3, 1, 0.7, 1), end: Color4.create(0, 0.3, 0.5, 0) },
+    initialVelocitySpeed: { start: 0.5, end: 1.5 },
+    blendMode: PBParticleSystem_BlendMode.PSB_ADD,
+    billboard: true,
+    shape: ParticleSystem.Shape.Point(),
+    simulationSpace: PBParticleSystem_SimulationSpace.PSS_LOCAL,
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+  })
+
+  Tween.create(entity, {
+    mode: Tween.Mode.Move({ start: posA, end: posB }),
+    duration: 3000,
+    easingFunction: EasingFunction.EF_LINEAR
+  })
+  TweenSequence.create(entity, {
+    sequence: [
+      { mode: Tween.Mode.Move({ start: posB, end: posA }), duration: 3000, easingFunction: EasingFunction.EF_LINEAR },
+      { mode: Tween.Mode.Move({ start: posA, end: posB }), duration: 3000, easingFunction: EasingFunction.EF_LINEAR }
+    ],
+    loop: TweenLoop.TL_RESTART
+  })
+
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
+  addLabel(entity, 'Moving Trail\nPoint | ADD | SimSpace')
+
+  return registerPs(entity, 'Moving Trail', viz)
 }
 
 // ─── Ground ───────────────────────────────────────────────────────────────────
@@ -687,5 +742,6 @@ createBeeSwarm()
 createToxicPumpkin()
 createCampfire()
 createFlameWisps()
+createMovingTrail()
 
 setupUI()
