@@ -1167,7 +1167,7 @@ function UI(): ReactEcs.JSX.Element {
       uiBackground={{ color: panelBg }}
     >
       {/* ── Header ───────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 1 }}>
         <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', margin: { bottom: scale * 6 } }}>
           <Label
             value={entry.name}
@@ -1186,7 +1186,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Playback ─────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 2 }}>
         <SectionLabel text="Playback" scale={scale} />
         <UiEntity uiTransform={{ flexDirection: 'row', margin: { bottom: scale * 4 } }}>
           <Button value="Play" fontSize={scale * 11} variant="primary"
@@ -1202,7 +1202,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Flags ────────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 3 }}>
         <SectionLabel text="Flags" scale={scale} />
         <UiEntity uiTransform={{ flexDirection: 'row', flexWrap: 'wrap', margin: { bottom: scale * 4 } }}>
           <ToggleBtn label="Active" active={active} onToggle={onToggleActive} scale={scale} />
@@ -1214,7 +1214,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Simulation Space ─────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 4 }}>
         <SectionLabel text="Simulation Space" scale={scale} />
         <UiEntity uiTransform={{ flexDirection: 'row', margin: { bottom: scale * 4 } }}>
           <Button value="Local" fontSize={scale * 11}
@@ -1228,7 +1228,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Blend Mode ───────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 5 }}>
         <SectionLabel text="Blend Mode" scale={scale} />
         <UiEntity uiTransform={{ flexDirection: 'row', margin: { bottom: scale * 4 } }}>
           <Button value="Alpha" fontSize={scale * 11}
@@ -1245,7 +1245,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Emitter Shape ────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 6 }}>
         <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 } }}>
           <SectionLabel text="Emitter Shape" scale={scale} />
           <ToggleBtn label="Shape Viz" active={vizVisible} onToggle={onToggleVizVisible} scale={scale} />
@@ -1280,7 +1280,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Emission ─────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 7 }}>
         <SectionLabel text="Emission" scale={scale} />
         <Row label="Rate (p/s)" value={rate} decimals={0} onDec={onDecRate} onInc={onIncRate} onSet={onSetRate} scale={scale} />
         <Row label="Lifetime (s)" value={lifetime} onDec={onDecLifetime} onInc={onIncLifetime} onSet={onSetLifetime} scale={scale} />
@@ -1289,14 +1289,14 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Motion ───────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 8 }}>
         <SectionLabel text="Motion" scale={scale} />
         <Row label="Gravity" value={gravity} onDec={onDecGravity} onInc={onIncGravity} onSet={onSetGravity} scale={scale} />
         <Divider scale={scale} />
       </UiEntity>
 
       {/* ── Velocity ─────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 9 }}>
         <SectionLabel text="Velocity" scale={scale} />
         <RangeRow label="Init Vel Speed" startVal={velStart} endVal={velEnd}
           onDecStart={onDecVelStart} onIncStart={onIncVelStart} onSetStart={onSetVelStart}
@@ -1305,7 +1305,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Size ─────────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 10 }}>
         <SectionLabel text="Size" scale={scale} />
         <RangeRow label="Init Size" startVal={sizeStart} endVal={sizeEnd} decimals={2}
           onDecStart={onDecSizeStart} onIncStart={onIncSizeStart} onSetStart={onSetSizeStart}
@@ -1317,7 +1317,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Rotation ─────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 11 }}>
         <SectionLabel text="Rotation" scale={scale} />
         <Row label="Euler X" value={eulerX} decimals={0} onDec={onDecEulerX} onInc={onIncEulerX} onSet={onSetEulerX} scale={scale} />
         <Row label="Euler Y" value={eulerY} decimals={0} onDec={onDecEulerY} onInc={onIncEulerY} onSet={onSetEulerY} scale={scale} />
@@ -1329,7 +1329,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Initial Color ────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 12 }}>
         <SectionLabel text="Initial Color" scale={scale} />
         <HexColorRow label="Start" color={icStart}
           onSetHex={icStartHex} onDecAlpha={icStartADec} onIncAlpha={icStartAInc} onSetAlpha={icStartASet} scale={scale} />
@@ -1339,7 +1339,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Color Over Time ──────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 13 }}>
         <SectionLabel text="Color Over Time" scale={scale} />
         <HexColorRow label="Start" color={cotStart}
           onSetHex={cotStartHex} onDecAlpha={cotStartADec} onIncAlpha={cotStartAInc} onSetAlpha={cotStartASet} scale={scale} />
@@ -1349,7 +1349,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Limit Velocity ───────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 14 }}>
         <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 } }}>
           <SectionLabel text="Limit Velocity" scale={scale} />
           <Button value={hasLimitVel ? 'ON' : 'OFF'} fontSize={scale * 10}
@@ -1362,7 +1362,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Additional Force ─────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 15 }}>
         <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 } }}>
           <SectionLabel text="Additional Force" scale={scale} />
           <Button value={hasAdditionalForce ? 'ON' : 'OFF'} fontSize={scale * 10}
@@ -1376,7 +1376,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Sprite Sheet ─────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%' }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 16 }}>
         <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 } }}>
           <SectionLabel text="Sprite Sheet" scale={scale} />
           <Button value={hasSpriteSheet ? 'ON' : 'OFF'} fontSize={scale * 10}
