@@ -43,5 +43,8 @@
     "origin": "creator-hub",
     "projectId": "147eaaa2-25cf-4726-9ba4-a05278cb95f6"
   },
-  "rating": "T"
+  "rating": "T",
+  "worldConfiguration": {
+    "name": "sdk7-test-scenes.dcl.eth"
+  }
 }

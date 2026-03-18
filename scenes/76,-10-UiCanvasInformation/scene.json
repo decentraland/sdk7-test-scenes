@@ -23,5 +23,8 @@
       "76,-10"
     ]
   },
-  "name": "UiCanvasInformation"
+  "name": "UiCanvasInformation",
+  "worldConfiguration": {
+    "name": "sdk7-test-scenes.dcl.eth"
+  }
 }

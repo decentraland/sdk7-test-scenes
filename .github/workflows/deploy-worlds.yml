@@ -1,0 +1,61 @@
+name: Deploy changed scenes to world
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  DCL_PRIVATE_KEY: ${{ secrets.DCL_PRIVATE_KEY }}
+
+jobs:
+  detect-changes:
+    name: Detect changed scenes
+    runs-on: ubuntu-latest
+    outputs:
+      scenes: ${{ steps.changes.outputs.scenes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Find changed scenes
+        id: changes
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD | grep '^scenes/' | cut -d'/' -f1-2 | sort -u)
+          JSON="[]"
+          for dir in $CHANGED; do
+            if [ -f "$dir/scene.json" ]; then
+              JSON=$(echo "$JSON" | jq --arg d "$dir" '. + [$d]')
+            fi
+          done
+          echo "scenes=$JSON" >> "$GITHUB_OUTPUT"
+          echo "Changed scenes: $JSON"
+
+  deploy:
+    name: Deploy ${{ matrix.scene }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.scenes != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        scene: ${{ fromJson(needs.detect-changes.outputs.scenes) }}
+      fail-fast: false
+    defaults:
+      run:
+        working-directory: ./${{ matrix.scene }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install npm packages
+        run: npm install
+
+      - name: Build scene
+        run: npm run build
+
+      - name: Deploy scene
+        run: npm run deploy -- --target-content=https://worlds-content-server.decentraland.zone

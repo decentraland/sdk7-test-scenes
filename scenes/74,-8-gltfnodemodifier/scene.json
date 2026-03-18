@@ -37,5 +37,8 @@
       "74,-8"
     ]
   },
-  "name": "gltfnodemodifier"
+  "name": "gltfnodemodifier",
+  "worldConfiguration": {
+    "name": "sdk7-test-scenes.dcl.eth"
+  }
 }

@@ -22,5 +22,8 @@
       "3,33"
     ]
   },
-  "name": "gltf-container-update-test"
+  "name": "gltf-container-update-test",
+  "worldConfiguration": {
+    "name": "sdk7-test-scenes.dcl.eth"
+  }
 }
