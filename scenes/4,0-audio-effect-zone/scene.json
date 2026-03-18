@@ -3,7 +3,7 @@
   "runtimeVersion": "7",
   "display": {
     "title": "Audio Effect Zone Test Scene",
-    "description": "AudioEffectZone Silence test",
+    "description": "AudioEffectZone — all 5 effect types",
     "navmapThumbnail": "images/scene-thumbnail.png",
     "favicon": "favicon_asset"
   },
@@ -16,7 +16,10 @@
   "tags": [],
   "scene": {
     "parcels": [
-      "4,0"
+      "4,0",
+      "5,0",
+      "4,1",
+      "5,1"
     ],
     "base": "4,0"
   },
