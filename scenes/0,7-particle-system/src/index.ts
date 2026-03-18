@@ -640,8 +640,7 @@ function createMovingTrail(): PsEntry {
   })
   TweenSequence.create(entity, {
     sequence: [
-      { mode: Tween.Mode.Move({ start: posB, end: posA }), duration: 3000, easingFunction: EasingFunction.EF_LINEAR },
-      { mode: Tween.Mode.Move({ start: posA, end: posB }), duration: 3000, easingFunction: EasingFunction.EF_LINEAR }
+      { mode: Tween.Mode.Move({ start: posB, end: posA }), duration: 3000, easingFunction: EasingFunction.EF_LINEAR }
     ],
     loop: TweenLoop.TL_RESTART
   })
