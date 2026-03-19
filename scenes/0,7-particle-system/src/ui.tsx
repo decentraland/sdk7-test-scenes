@@ -18,8 +18,8 @@ import { copyToClipboard } from '~system/RestrictedActions'
 
 let copiedAt = 0
 
-function fmt(num: number, decimals: number = 1): string {
-  return num.toFixed(decimals)
+function formatNumber(value: number, decimalPlaces: number = 1): string {
+  return value.toFixed(decimalPlaces)
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -53,6 +53,63 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
 const INPUT_BG = Color4.create(0.12, 0.12, 0.18, 1)
 const INPUT_COLOR = Color4.White()
 const INPUT_PH_COLOR = Color4.create(0.6, 0.6, 0.6, 1)
+const RESET_COLOR = Color4.create(0.35, 0.35, 0.4, 1)
+
+// ─── Original value snapshots ────────────────────────────────────────────────
+// Captured on first UI render per entity so we can reset individual properties.
+
+const originalSnapshots = new Map<Entity, Record<string, any>>()
+
+function getOriginal(entity: Entity): Record<string, any> {
+  if (!originalSnapshots.has(entity)) {
+    const ps = ParticleSystem.getOrNull(entity)
+    const t = Transform.getOrNull(entity)
+    const q = t?.rotation ?? Quaternion.Identity()
+    const euler = Quaternion.toEulerAngles(q)
+    originalSnapshots.set(entity, {
+      active: ps?.active,
+      loop: ps?.loop,
+      prewarm: ps?.prewarm,
+      billboard: ps?.billboard,
+      simulationSpace: ps?.simulationSpace,
+      rate: ps?.rate,
+      lifetime: ps?.lifetime,
+      maxParticles: ps?.maxParticles,
+      gravity: ps?.gravity,
+      blendMode: ps?.blendMode,
+      velSpeedStart: ps?.initialVelocitySpeed?.start,
+      velSpeedEnd: ps?.initialVelocitySpeed?.end,
+      sizeStart: ps?.initialSize?.start,
+      sizeEnd: ps?.initialSize?.end,
+      sotStart: ps?.sizeOverTime?.start,
+      sotEnd: ps?.sizeOverTime?.end,
+      rotStart: ps?.rotationOverTime?.start,
+      rotEnd: ps?.rotationOverTime?.end,
+      icStartR: ps?.initialColor?.start?.r, icStartG: ps?.initialColor?.start?.g,
+      icStartB: ps?.initialColor?.start?.b, icStartA: ps?.initialColor?.start?.a,
+      icEndR: ps?.initialColor?.end?.r, icEndG: ps?.initialColor?.end?.g,
+      icEndB: ps?.initialColor?.end?.b, icEndA: ps?.initialColor?.end?.a,
+      cotStartR: ps?.colorOverTime?.start?.r, cotStartG: ps?.colorOverTime?.start?.g,
+      cotStartB: ps?.colorOverTime?.start?.b, cotStartA: ps?.colorOverTime?.start?.a,
+      cotEndR: ps?.colorOverTime?.end?.r, cotEndG: ps?.colorOverTime?.end?.g,
+      cotEndB: ps?.colorOverTime?.end?.b, cotEndA: ps?.colorOverTime?.end?.a,
+      limitSpeed: ps?.limitVelocity?.speed,
+      limitDampen: ps?.limitVelocity?.dampen,
+      hasLimitVelocity: ps?.limitVelocity != null,
+      forceX: ps?.additionalForce?.x, forceY: ps?.additionalForce?.y, forceZ: ps?.additionalForce?.z,
+      hasAdditionalForce: ps?.additionalForce != null,
+      sheetTilesX: ps?.spriteSheet?.tilesX, sheetTilesY: ps?.spriteSheet?.tilesY,
+      sheetStartFrame: ps?.spriteSheet?.startFrame, sheetEndFrame: ps?.spriteSheet?.endFrame,
+      sheetFps: ps?.spriteSheet?.framesPerSecond,
+      hasSpriteSheet: ps?.spriteSheet != null,
+      shape: ps?.shape ? JSON.parse(JSON.stringify(ps.shape)) : undefined,
+      eulerX: euler.x * (180 / Math.PI),
+      eulerY: euler.y * (180 / Math.PI),
+      eulerZ: euler.z * (180 / Math.PI),
+    })
+  }
+  return originalSnapshots.get(entity)!
+}
 
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -64,10 +121,11 @@ function Row(props: {
   onDec: () => void
   onInc: () => void
   onSet: (v: number) => void
+  onReset?: () => void
   scale: number
 }): ReactEcs.JSX.Element {
-  const { label, value, decimals, onDec, onInc, onSet, scale } = props
-  const dp = decimals ?? 1
+  const { label, value, decimals, onDec, onInc, onSet, onReset, scale } = props
+  const decPlaces = decimals ?? 1
   return (
     <UiEntity
       uiTransform={{
@@ -77,7 +135,7 @@ function Row(props: {
       }}
     >
       <Label
-        value={label}
+        value={`${label}  ${formatNumber(value, decPlaces)}`}
         fontSize={scale * 10}
         uiTransform={{ width: scale * 140, margin: { right: scale * 4 } }}
       />
@@ -89,7 +147,7 @@ function Row(props: {
       />
       <Input
         value=""
-        placeholder={fmt(value, dp)}
+        placeholder="..."
         onChange={(v) => { const n = parseFloat(v); if (!isNaN(n)) onSet(n) }}
         fontSize={scale * 10}
         font="monospace"
@@ -105,6 +163,15 @@ function Row(props: {
         uiTransform={{ width: scale * 24, height: scale * 22 }}
         onMouseDown={onInc}
       />
+      {onReset && (
+        <Button
+          value="R"
+          fontSize={scale * 9}
+          uiTransform={{ width: scale * 20, height: scale * 20, margin: { left: scale * 4 } }}
+          uiBackground={{ color: RESET_COLOR }}
+          onMouseDown={onReset}
+        />
+      )}
     </UiEntity>
   )
 }
@@ -120,10 +187,11 @@ function RangeRow(props: {
   onDecEnd: () => void
   onIncEnd: () => void
   onSetEnd: (v: number) => void
+  onReset?: () => void
   scale: number
 }): ReactEcs.JSX.Element {
-  const { label, startVal, endVal, decimals, onDecStart, onIncStart, onSetStart, onDecEnd, onIncEnd, onSetEnd, scale } = props
-  const dp = decimals ?? 1
+  const { label, startVal, endVal, decimals, onDecStart, onIncStart, onSetStart, onDecEnd, onIncEnd, onSetEnd, onReset, scale } = props
+  const decPlaces = decimals ?? 1
   return (
     <UiEntity
       uiTransform={{
@@ -133,7 +201,7 @@ function RangeRow(props: {
       }}
     >
       <Label
-        value={label}
+        value={`${label}  ${formatNumber(startVal, decPlaces)} > ${formatNumber(endVal, decPlaces)}`}
         fontSize={scale * 10}
         uiTransform={{ width: scale * 120, margin: { right: scale * 4 } }}
       />
@@ -145,7 +213,7 @@ function RangeRow(props: {
       />
       <Input
         value=""
-        placeholder={fmt(startVal, dp)}
+        placeholder="..."
         onChange={(v) => { const n = parseFloat(v); if (!isNaN(n)) onSetStart(n) }}
         fontSize={scale * 10}
         font="monospace"
@@ -174,7 +242,7 @@ function RangeRow(props: {
       />
       <Input
         value=""
-        placeholder={fmt(endVal, dp)}
+        placeholder="..."
         onChange={(v) => { const n = parseFloat(v); if (!isNaN(n)) onSetEnd(n) }}
         fontSize={scale * 10}
         font="monospace"
@@ -190,6 +258,15 @@ function RangeRow(props: {
         uiTransform={{ width: scale * 24, height: scale * 22 }}
         onMouseDown={onIncEnd}
       />
+      {onReset && (
+        <Button
+          value="R"
+          fontSize={scale * 9}
+          uiTransform={{ width: scale * 20, height: scale * 20, margin: { left: scale * 4 } }}
+          uiBackground={{ color: RESET_COLOR }}
+          onMouseDown={onReset}
+        />
+      )}
     </UiEntity>
   )
 }
@@ -201,9 +278,10 @@ function HexColorRow(props: {
   onDecAlpha: () => void
   onIncAlpha: () => void
   onSetAlpha: (v: number) => void
+  onReset?: () => void
   scale: number
 }): ReactEcs.JSX.Element {
-  const { label, color, onSetHex, onDecAlpha, onIncAlpha, onSetAlpha, scale } = props
+  const { label, color, onSetHex, onDecAlpha, onIncAlpha, onSetAlpha, onReset, scale } = props
   const hex = colorToHex(color)
   return (
     <UiEntity
@@ -213,10 +291,10 @@ function HexColorRow(props: {
         margin: { bottom: scale * 2 }
       }}
     >
-      <Label value={label} fontSize={scale * 10} uiTransform={{ width: scale * 50, margin: { right: scale * 4 } }} />
+      <Label value={`${label} ${hex}`} fontSize={scale * 10} uiTransform={{ width: scale * 50, margin: { right: scale * 4 } }} />
       <Input
         value=""
-        placeholder={hex}
+        placeholder="#RRGGBB"
         onChange={(v) => { onSetHex(v) }}
         fontSize={scale * 10}
         font="monospace"
@@ -230,13 +308,13 @@ function HexColorRow(props: {
         uiTransform={{ width: scale * 18, height: scale * 18, margin: { right: scale * 6 } }}
         uiBackground={{ color: Color4.create(color.r, color.g, color.b, 1) }}
       />
-      <Label value="A" fontSize={scale * 10} uiTransform={{ width: scale * 14, margin: { right: scale * 2 } }} />
+      <Label value={`A ${formatNumber(color.a, 2)}`} fontSize={scale * 10} uiTransform={{ width: scale * 40, margin: { right: scale * 2 } }} />
       <Button value="-" fontSize={scale * 11}
         uiTransform={{ width: scale * 22, height: scale * 20, margin: { right: scale * 2 } }}
         onMouseDown={onDecAlpha} />
       <Input
         value=""
-        placeholder={fmt(color.a, 2)}
+        placeholder="0-1"
         onChange={(v) => { const n = parseFloat(v); if (!isNaN(n)) onSetAlpha(clamp(n, 0, 1)) }}
         fontSize={scale * 10}
         font="monospace"
@@ -249,6 +327,12 @@ function HexColorRow(props: {
       <Button value="+" fontSize={scale * 11}
         uiTransform={{ width: scale * 22, height: scale * 20 }}
         onMouseDown={onIncAlpha} />
+      {onReset && (
+        <Button value="R" fontSize={scale * 9}
+          uiTransform={{ width: scale * 20, height: scale * 20, margin: { left: scale * 4 } }}
+          uiBackground={{ color: RESET_COLOR }}
+          onMouseDown={onReset} />
+      )}
     </UiEntity>
   )
 }
@@ -482,6 +566,9 @@ function UI(): ReactEcs.JSX.Element {
   if (!comp) {
     return (<UiEntity uiTransform={{ display: 'none' }} />)
   }
+
+  // ─── Original snapshot (captured once per entity) ───────────────────────
+  const orig = getOriginal(entry.entity)
 
   // ─── Resolved values ─────────────────────────────────────────────────────
 
@@ -802,23 +889,23 @@ function UI(): ReactEcs.JSX.Element {
 
   // ─── Color handlers (hex + alpha) ─────────────────────────────────────
 
-  const ent = entry.entity
-  function icStartHex(hex: string) { setColorHex(ent, 'initialColor', 'start', hex) }
-  function icEndHex(hex: string) { setColorHex(ent, 'initialColor', 'end', hex) }
-  function cotStartHex(hex: string) { setColorHex(ent, 'colorOverTime', 'start', hex) }
-  function cotEndHex(hex: string) { setColorHex(ent, 'colorOverTime', 'end', hex) }
-  function icStartADec() { changeColorAlpha(ent, 'initialColor', 'start', -0.05) }
-  function icStartAInc() { changeColorAlpha(ent, 'initialColor', 'start', 0.05) }
-  function icStartASet(v: number) { setColorAlpha(ent, 'initialColor', 'start', v) }
-  function icEndADec() { changeColorAlpha(ent, 'initialColor', 'end', -0.05) }
-  function icEndAInc() { changeColorAlpha(ent, 'initialColor', 'end', 0.05) }
-  function icEndASet(v: number) { setColorAlpha(ent, 'initialColor', 'end', v) }
-  function cotStartADec() { changeColorAlpha(ent, 'colorOverTime', 'start', -0.05) }
-  function cotStartAInc() { changeColorAlpha(ent, 'colorOverTime', 'start', 0.05) }
-  function cotStartASet(v: number) { setColorAlpha(ent, 'colorOverTime', 'start', v) }
-  function cotEndADec() { changeColorAlpha(ent, 'colorOverTime', 'end', -0.05) }
-  function cotEndAInc() { changeColorAlpha(ent, 'colorOverTime', 'end', 0.05) }
-  function cotEndASet(v: number) { setColorAlpha(ent, 'colorOverTime', 'end', v) }
+  const entityId = entry.entity
+  function icStartHex(hex: string) { setColorHex(entityId, 'initialColor', 'start', hex) }
+  function icEndHex(hex: string) { setColorHex(entityId, 'initialColor', 'end', hex) }
+  function cotStartHex(hex: string) { setColorHex(entityId, 'colorOverTime', 'start', hex) }
+  function cotEndHex(hex: string) { setColorHex(entityId, 'colorOverTime', 'end', hex) }
+  function icStartADec() { changeColorAlpha(entityId, 'initialColor', 'start', -0.05) }
+  function icStartAInc() { changeColorAlpha(entityId, 'initialColor', 'start', 0.05) }
+  function icStartASet(v: number) { setColorAlpha(entityId, 'initialColor', 'start', v) }
+  function icEndADec() { changeColorAlpha(entityId, 'initialColor', 'end', -0.05) }
+  function icEndAInc() { changeColorAlpha(entityId, 'initialColor', 'end', 0.05) }
+  function icEndASet(v: number) { setColorAlpha(entityId, 'initialColor', 'end', v) }
+  function cotStartADec() { changeColorAlpha(entityId, 'colorOverTime', 'start', -0.05) }
+  function cotStartAInc() { changeColorAlpha(entityId, 'colorOverTime', 'start', 0.05) }
+  function cotStartASet(v: number) { setColorAlpha(entityId, 'colorOverTime', 'start', v) }
+  function cotEndADec() { changeColorAlpha(entityId, 'colorOverTime', 'end', -0.05) }
+  function cotEndAInc() { changeColorAlpha(entityId, 'colorOverTime', 'end', 0.05) }
+  function cotEndASet(v: number) { setColorAlpha(entityId, 'colorOverTime', 'end', v) }
 
   // ─── LimitVelocity handlers ─────────────────────────────────────────────
 
@@ -1282,16 +1369,16 @@ function UI(): ReactEcs.JSX.Element {
       {/* ── Emission ─────────────────────────────────────────────────────── */}
       <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 7 }}>
         <SectionLabel text="Emission" scale={scale} />
-        <Row label="Rate (p/s)" value={rate} decimals={0} onDec={onDecRate} onInc={onIncRate} onSet={onSetRate} scale={scale} />
-        <Row label="Lifetime (s)" value={lifetime} onDec={onDecLifetime} onInc={onIncLifetime} onSet={onSetLifetime} scale={scale} />
-        <Row label="Max Particles" value={maxParticles} decimals={0} onDec={onDecMaxParticles} onInc={onIncMaxParticles} onSet={onSetMaxParticles} scale={scale} />
+        <Row label="Rate (p/s)" value={rate} decimals={0} onDec={onDecRate} onInc={onIncRate} onSet={onSetRate} onReset={() => onSetRate(orig.rate ?? 20)} scale={scale} />
+        <Row label="Lifetime (s)" value={lifetime} onDec={onDecLifetime} onInc={onIncLifetime} onSet={onSetLifetime} onReset={() => onSetLifetime(orig.lifetime ?? 5)} scale={scale} />
+        <Row label="Max Particles" value={maxParticles} decimals={0} onDec={onDecMaxParticles} onInc={onIncMaxParticles} onSet={onSetMaxParticles} onReset={() => onSetMaxParticles(orig.maxParticles ?? 1000)} scale={scale} />
         <Divider scale={scale} />
       </UiEntity>
 
       {/* ── Motion ───────────────────────────────────────────────────────── */}
       <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 8 }}>
         <SectionLabel text="Motion" scale={scale} />
-        <Row label="Gravity" value={gravity} onDec={onDecGravity} onInc={onIncGravity} onSet={onSetGravity} scale={scale} />
+        <Row label="Gravity" value={gravity} onDec={onDecGravity} onInc={onIncGravity} onSet={onSetGravity} onReset={() => onSetGravity(orig.gravity ?? 0)} scale={scale} />
         <Divider scale={scale} />
       </UiEntity>
 
@@ -1300,7 +1387,8 @@ function UI(): ReactEcs.JSX.Element {
         <SectionLabel text="Velocity" scale={scale} />
         <RangeRow label="Init Vel Speed" startVal={velStart} endVal={velEnd}
           onDecStart={onDecVelStart} onIncStart={onIncVelStart} onSetStart={onSetVelStart}
-          onDecEnd={onDecVelEnd} onIncEnd={onIncVelEnd} onSetEnd={onSetVelEnd} scale={scale} />
+          onDecEnd={onDecVelEnd} onIncEnd={onIncVelEnd} onSetEnd={onSetVelEnd}
+          onReset={() => { onSetVelStart(orig.velSpeedStart ?? 1); onSetVelEnd(orig.velSpeedEnd ?? 2) }} scale={scale} />
         <Divider scale={scale} />
       </UiEntity>
 
@@ -1309,22 +1397,25 @@ function UI(): ReactEcs.JSX.Element {
         <SectionLabel text="Size" scale={scale} />
         <RangeRow label="Init Size" startVal={sizeStart} endVal={sizeEnd} decimals={2}
           onDecStart={onDecSizeStart} onIncStart={onIncSizeStart} onSetStart={onSetSizeStart}
-          onDecEnd={onDecSizeEnd} onIncEnd={onIncSizeEnd} onSetEnd={onSetSizeEnd} scale={scale} />
+          onDecEnd={onDecSizeEnd} onIncEnd={onIncSizeEnd} onSetEnd={onSetSizeEnd}
+          onReset={() => { onSetSizeStart(orig.sizeStart ?? 0.2); onSetSizeEnd(orig.sizeEnd ?? 0.4) }} scale={scale} />
         <RangeRow label="Size Over Time" startVal={sotStart} endVal={sotEnd}
           onDecStart={onDecSotStart} onIncStart={onIncSotStart} onSetStart={onSetSotStart}
-          onDecEnd={onDecSotEnd} onIncEnd={onIncSotEnd} onSetEnd={onSetSotEnd} scale={scale} />
+          onDecEnd={onDecSotEnd} onIncEnd={onIncSotEnd} onSetEnd={onSetSotEnd}
+          onReset={() => { onSetSotStart(orig.sotStart ?? 1); onSetSotEnd(orig.sotEnd ?? 0) }} scale={scale} />
         <Divider scale={scale} />
       </UiEntity>
 
       {/* ── Rotation ─────────────────────────────────────────────────────── */}
       <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 11 }}>
         <SectionLabel text="Rotation" scale={scale} />
-        <Row label="Euler X" value={eulerX} decimals={0} onDec={onDecEulerX} onInc={onIncEulerX} onSet={onSetEulerX} scale={scale} />
-        <Row label="Euler Y" value={eulerY} decimals={0} onDec={onDecEulerY} onInc={onIncEulerY} onSet={onSetEulerY} scale={scale} />
-        <Row label="Euler Z" value={eulerZ} decimals={0} onDec={onDecEulerZ} onInc={onIncEulerZ} onSet={onSetEulerZ} scale={scale} />
+        <Row label="Euler X" value={eulerX} decimals={0} onDec={onDecEulerX} onInc={onIncEulerX} onSet={onSetEulerX} onReset={() => setEuler(orig.eulerX ?? 0, orig.eulerY ?? 0, orig.eulerZ ?? 0)} scale={scale} />
+        <Row label="Euler Y" value={eulerY} decimals={0} onDec={onDecEulerY} onInc={onIncEulerY} onSet={onSetEulerY} onReset={() => setEuler(orig.eulerX ?? 0, orig.eulerY ?? 0, orig.eulerZ ?? 0)} scale={scale} />
+        <Row label="Euler Z" value={eulerZ} decimals={0} onDec={onDecEulerZ} onInc={onIncEulerZ} onSet={onSetEulerZ} onReset={() => setEuler(orig.eulerX ?? 0, orig.eulerY ?? 0, orig.eulerZ ?? 0)} scale={scale} />
         <RangeRow label="Rot Over Time" startVal={rotStart} endVal={rotEnd} decimals={0}
           onDecStart={onDecRotStart} onIncStart={onIncRotStart} onSetStart={onSetRotStart}
-          onDecEnd={onDecRotEnd} onIncEnd={onIncRotEnd} onSetEnd={onSetRotEnd} scale={scale} />
+          onDecEnd={onDecRotEnd} onIncEnd={onIncRotEnd} onSetEnd={onSetRotEnd}
+          onReset={() => { onSetRotStart(orig.rotStart ?? 0); onSetRotEnd(orig.rotEnd ?? 0) }} scale={scale} />
         <Divider scale={scale} />
       </UiEntity>
 
@@ -1332,9 +1423,11 @@ function UI(): ReactEcs.JSX.Element {
       <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 12 }}>
         <SectionLabel text="Initial Color" scale={scale} />
         <HexColorRow label="Start" color={icStart}
-          onSetHex={icStartHex} onDecAlpha={icStartADec} onIncAlpha={icStartAInc} onSetAlpha={icStartASet} scale={scale} />
+          onSetHex={icStartHex} onDecAlpha={icStartADec} onIncAlpha={icStartAInc} onSetAlpha={icStartASet}
+          onReset={() => { icStartHex(colorToHex({ r: orig.icStartR ?? 1, g: orig.icStartG ?? 1, b: orig.icStartB ?? 1 })); icStartASet(orig.icStartA ?? 1) }} scale={scale} />
         <HexColorRow label="End" color={icEnd}
-          onSetHex={icEndHex} onDecAlpha={icEndADec} onIncAlpha={icEndAInc} onSetAlpha={icEndASet} scale={scale} />
+          onSetHex={icEndHex} onDecAlpha={icEndADec} onIncAlpha={icEndAInc} onSetAlpha={icEndASet}
+          onReset={() => { icEndHex(colorToHex({ r: orig.icEndR ?? 1, g: orig.icEndG ?? 1, b: orig.icEndB ?? 1 })); icEndASet(orig.icEndA ?? 1) }} scale={scale} />
         <Divider scale={scale} />
       </UiEntity>
 
@@ -1342,9 +1435,11 @@ function UI(): ReactEcs.JSX.Element {
       <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 13 }}>
         <SectionLabel text="Color Over Time" scale={scale} />
         <HexColorRow label="Start" color={cotStart}
-          onSetHex={cotStartHex} onDecAlpha={cotStartADec} onIncAlpha={cotStartAInc} onSetAlpha={cotStartASet} scale={scale} />
+          onSetHex={cotStartHex} onDecAlpha={cotStartADec} onIncAlpha={cotStartAInc} onSetAlpha={cotStartASet}
+          onReset={() => { cotStartHex(colorToHex({ r: orig.cotStartR ?? 1, g: orig.cotStartG ?? 1, b: orig.cotStartB ?? 1 })); cotStartASet(orig.cotStartA ?? 1) }} scale={scale} />
         <HexColorRow label="End" color={cotEnd}
-          onSetHex={cotEndHex} onDecAlpha={cotEndADec} onIncAlpha={cotEndAInc} onSetAlpha={cotEndASet} scale={scale} />
+          onSetHex={cotEndHex} onDecAlpha={cotEndADec} onIncAlpha={cotEndAInc} onSetAlpha={cotEndASet}
+          onReset={() => { cotEndHex(colorToHex({ r: orig.cotEndR ?? 1, g: orig.cotEndG ?? 1, b: orig.cotEndB ?? 1 })); cotEndASet(orig.cotEndA ?? 0) }} scale={scale} />
         <Divider scale={scale} />
       </UiEntity>
 
@@ -1356,8 +1451,8 @@ function UI(): ReactEcs.JSX.Element {
             variant={hasLimitVel ? 'primary' : 'secondary'}
             uiTransform={{ height: scale * 22, margin: { left: scale * 6 } }} onMouseDown={onToggleLimitVel} />
         </UiEntity>
-        <Row label="Max Speed" value={limitSpeed} onDec={onDecLimitSpeed} onInc={onIncLimitSpeed} onSet={onSetLimitSpeed} scale={scale} />
-        <Row label="Dampen" value={limitDampen} decimals={2} onDec={onDecLimitDampen} onInc={onIncLimitDampen} onSet={onSetLimitDampen} scale={scale} />
+        <Row label="Max Speed" value={limitSpeed} onDec={onDecLimitSpeed} onInc={onIncLimitSpeed} onSet={onSetLimitSpeed} onReset={() => onSetLimitSpeed(orig.limitSpeed ?? 3)} scale={scale} />
+        <Row label="Dampen" value={limitDampen} decimals={2} onDec={onDecLimitDampen} onInc={onIncLimitDampen} onSet={onSetLimitDampen} onReset={() => onSetLimitDampen(orig.limitDampen ?? 1)} scale={scale} />
         <Divider scale={scale} />
       </UiEntity>
 
@@ -1369,9 +1464,9 @@ function UI(): ReactEcs.JSX.Element {
             variant={hasAdditionalForce ? 'primary' : 'secondary'}
             uiTransform={{ height: scale * 22, margin: { left: scale * 6 } }} onMouseDown={onToggleAdditionalForce} />
         </UiEntity>
-        <Row label="Force X" value={forceX} onDec={onDecForceX} onInc={onIncForceX} onSet={onSetForceX} scale={scale} />
-        <Row label="Force Y" value={forceY} onDec={onDecForceY} onInc={onIncForceY} onSet={onSetForceY} scale={scale} />
-        <Row label="Force Z" value={forceZ} onDec={onDecForceZ} onInc={onIncForceZ} onSet={onSetForceZ} scale={scale} />
+        <Row label="Force X" value={forceX} onDec={onDecForceX} onInc={onIncForceX} onSet={onSetForceX} onReset={() => onSetForceX(orig.forceX ?? 0)} scale={scale} />
+        <Row label="Force Y" value={forceY} onDec={onDecForceY} onInc={onIncForceY} onSet={onSetForceY} onReset={() => onSetForceY(orig.forceY ?? 0)} scale={scale} />
+        <Row label="Force Z" value={forceZ} onDec={onDecForceZ} onInc={onIncForceZ} onSet={onSetForceZ} onReset={() => onSetForceZ(orig.forceZ ?? 0)} scale={scale} />
         <Divider scale={scale} />
       </UiEntity>
 
@@ -1383,11 +1478,11 @@ function UI(): ReactEcs.JSX.Element {
             variant={hasSpriteSheet ? 'primary' : 'secondary'}
             uiTransform={{ height: scale * 22, margin: { left: scale * 6 } }} onMouseDown={onToggleSpriteSheet} />
         </UiEntity>
-        <Row label="Tiles X" value={sheetTilesX} decimals={0} onDec={onDecTilesX} onInc={onIncTilesX} onSet={onSetTilesX} scale={scale} />
-        <Row label="Tiles Y" value={sheetTilesY} decimals={0} onDec={onDecTilesY} onInc={onIncTilesY} onSet={onSetTilesY} scale={scale} />
-        <Row label="Start Frame" value={sheetStartFrame} decimals={0} onDec={onDecStartFrame} onInc={onIncStartFrame} onSet={onSetStartFrame} scale={scale} />
-        <Row label="End Frame" value={sheetEndFrame} decimals={0} onDec={onDecEndFrame} onInc={onIncEndFrame} onSet={onSetEndFrame} scale={scale} />
-        <Row label="FPS" value={sheetFps} decimals={0} onDec={onDecFps} onInc={onIncFps} onSet={onSetFps} scale={scale} />
+        <Row label="Tiles X" value={sheetTilesX} decimals={0} onDec={onDecTilesX} onInc={onIncTilesX} onSet={onSetTilesX} onReset={() => onSetTilesX(orig.sheetTilesX ?? 2)} scale={scale} />
+        <Row label="Tiles Y" value={sheetTilesY} decimals={0} onDec={onDecTilesY} onInc={onIncTilesY} onSet={onSetTilesY} onReset={() => onSetTilesY(orig.sheetTilesY ?? 2)} scale={scale} />
+        <Row label="Start Frame" value={sheetStartFrame} decimals={0} onDec={onDecStartFrame} onInc={onIncStartFrame} onSet={onSetStartFrame} onReset={() => onSetStartFrame(orig.sheetStartFrame ?? 0)} scale={scale} />
+        <Row label="End Frame" value={sheetEndFrame} decimals={0} onDec={onDecEndFrame} onInc={onIncEndFrame} onSet={onSetEndFrame} onReset={() => onSetEndFrame(orig.sheetEndFrame ?? 3)} scale={scale} />
+        <Row label="FPS" value={sheetFps} decimals={0} onDec={onDecFps} onInc={onIncFps} onSet={onSetFps} onReset={() => onSetFps(orig.sheetFps ?? 30)} scale={scale} />
       </UiEntity>
 
       {/* Bottom spacer */}
