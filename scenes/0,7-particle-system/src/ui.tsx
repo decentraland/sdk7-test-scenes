@@ -1,4 +1,4 @@
-import { engine, Entity, Transform, UiCanvasInformation, VisibilityComponent } from '@dcl/sdk/ecs'
+import { engine, Entity, UiCanvasInformation, VisibilityComponent } from '@dcl/sdk/ecs'
 import {
   ParticleSystem,
   PBParticleSystem_BlendMode,
@@ -6,7 +6,7 @@ import {
   PBParticleSystem_SimulationSpace
 } from '@dcl/sdk/ecs'
 import ReactEcs, { Button, Input, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
+import { Color4, Vector3 } from '@dcl/sdk/math'
 import { getCurrentPsEntry, PsEntry } from './index'
 // copyToClipboard exists in the Explorer runtime but isn't in the SDK type declarations yet
 declare module '~system/RestrictedActions' {
@@ -63,14 +63,11 @@ const originalSnapshots = new Map<Entity, Record<string, any>>()
 function getOriginal(entity: Entity): Record<string, any> {
   if (!originalSnapshots.has(entity)) {
     const ps = ParticleSystem.getOrNull(entity)
-    const t = Transform.getOrNull(entity)
-    const q = t?.rotation ?? Quaternion.Identity()
-    const euler = Quaternion.toEulerAngles(q)
     originalSnapshots.set(entity, {
       active: ps?.active,
       loop: ps?.loop,
       prewarm: ps?.prewarm,
-      billboard: ps?.billboard,
+      faceTravelDirection: ps?.faceTravelDirection,
       simulationSpace: ps?.simulationSpace,
       rate: ps?.rate,
       lifetime: ps?.lifetime,
@@ -83,6 +80,8 @@ function getOriginal(entity: Entity): Record<string, any> {
       sizeEnd: ps?.initialSize?.end,
       sotStart: ps?.sizeOverTime?.start,
       sotEnd: ps?.sizeOverTime?.end,
+      initRotStart: ps?.initialRotation?.start,
+      initRotEnd: ps?.initialRotation?.end,
       rotStart: ps?.rotationOverTime?.start,
       rotEnd: ps?.rotationOverTime?.end,
       icStartR: ps?.initialColor?.start?.r, icStartG: ps?.initialColor?.start?.g,
@@ -103,9 +102,6 @@ function getOriginal(entity: Entity): Record<string, any> {
       sheetFps: ps?.spriteSheet?.framesPerSecond,
       hasSpriteSheet: ps?.spriteSheet != null,
       shape: ps?.shape ? JSON.parse(JSON.stringify(ps.shape)) : undefined,
-      eulerX: euler.x * (180 / Math.PI),
-      eulerY: euler.y * (180 / Math.PI),
-      eulerZ: euler.z * (180 / Math.PI),
     })
   }
   return originalSnapshots.get(entity)!
@@ -449,7 +445,7 @@ function serializeParticleSystem(entity: Entity): string {
   lines.push(`${ind}active: ${ps.active ?? true},`)
   lines.push(`${ind}loop: ${ps.loop ?? true},`)
   lines.push(`${ind}prewarm: ${ps.prewarm ?? false},`)
-  lines.push(`${ind}billboard: ${ps.billboard ?? true},`)
+  lines.push(`${ind}faceTravelDirection: ${ps.faceTravelDirection ?? false},`)
   lines.push(`${ind}rate: ${ps.rate ?? 20},`)
   lines.push(`${ind}lifetime: ${ps.lifetime ?? 2},`)
   lines.push(`${ind}maxParticles: ${ps.maxParticles ?? 100},`)
@@ -576,7 +572,7 @@ function UI(): ReactEcs.JSX.Element {
   const active = comp.active ?? true
   const loop = comp.loop ?? true
   const prewarm = comp.prewarm ?? false
-  const billboard = comp.billboard ?? true
+  const faceTravelDirection = comp.faceTravelDirection ?? false
   const simSpaceWorld = (comp.simulationSpace ?? PBParticleSystem_SimulationSpace.PSS_LOCAL) === PBParticleSystem_SimulationSpace.PSS_WORLD
   const rate = comp.rate ?? 20
   const lifetime = comp.lifetime ?? 2
@@ -590,6 +586,8 @@ function UI(): ReactEcs.JSX.Element {
   const sizeEnd = comp.initialSize?.end ?? 0.4
   const sotStart = comp.sizeOverTime?.start ?? 1.0
   const sotEnd = comp.sizeOverTime?.end ?? 0.0
+  const initRotStart = comp.initialRotation?.start ?? 0
+  const initRotEnd = comp.initialRotation?.end ?? 0
   const rotStart = comp.rotationOverTime?.start ?? 0
   const rotEnd = comp.rotationOverTime?.end ?? 0
 
@@ -620,14 +618,6 @@ function UI(): ReactEcs.JSX.Element {
   const boxSizeX = (comp.shape?.$case === 'box' ? comp.shape.box.size?.x : undefined) ?? 1
   const boxSizeY = (comp.shape?.$case === 'box' ? comp.shape.box.size?.y : undefined) ?? 1
   const boxSizeZ = (comp.shape?.$case === 'box' ? comp.shape.box.size?.z : undefined) ?? 1
-
-  // Entity transform euler angles
-  const tform = Transform.getOrNull(entry.entity)
-  const quat = tform?.rotation ?? Quaternion.Identity()
-  const euler = Quaternion.toEulerAngles(quat)
-  const eulerX = Math.round(euler.x * (180 / Math.PI) * 10) / 10
-  const eulerY = Math.round(euler.y * (180 / Math.PI) * 10) / 10
-  const eulerZ = Math.round(euler.z * (180 / Math.PI) * 10) / 10
 
   // ─── Playback handlers ──────────────────────────────────────────────────
 
@@ -662,9 +652,9 @@ function UI(): ReactEcs.JSX.Element {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (m) m.prewarm = !(m.prewarm ?? false)
   }
-  function onToggleBillboard() {
+  function onToggleFaceTravelDirection() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
-    if (m) m.billboard = !(m.billboard ?? true)
+    if (m) m.faceTravelDirection = !(m.faceTravelDirection ?? false)
   }
   function onToggleSimSpace() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
@@ -1221,21 +1211,39 @@ function UI(): ReactEcs.JSX.Element {
     m.shape = ParticleSystem.Shape.Box({ size: Vector3.create(s.x, s.y, clamp(v, 0.1, 50)) })
   }
 
-  // ─── Euler angle handlers ──────────────────────────────────────────────
+  // ─── Initial Rotation handlers ─────────────────────────────────────────
 
-  function setEuler(x: number, y: number, z: number) {
-    const t = Transform.getMutableOrNull(entry.entity)
-    if (t) t.rotation = Quaternion.fromEulerDegrees(x, y, z)
+  function ensureInitRot(m: any) { if (!m.initialRotation) m.initialRotation = { start: 0, end: 0 } }
+  function onDecInitRotStart() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureInitRot(m)
+    m.initialRotation!.start = clamp(m.initialRotation!.start - 5, -360, 360)
   }
-  function onDecEulerX() { setEuler(eulerX - 5, eulerY, eulerZ) }
-  function onIncEulerX() { setEuler(eulerX + 5, eulerY, eulerZ) }
-  function onSetEulerX(v: number) { setEuler(v, eulerY, eulerZ) }
-  function onDecEulerY() { setEuler(eulerX, eulerY - 5, eulerZ) }
-  function onIncEulerY() { setEuler(eulerX, eulerY + 5, eulerZ) }
-  function onSetEulerY(v: number) { setEuler(eulerX, v, eulerZ) }
-  function onDecEulerZ() { setEuler(eulerX, eulerY, eulerZ - 5) }
-  function onIncEulerZ() { setEuler(eulerX, eulerY, eulerZ + 5) }
-  function onSetEulerZ(v: number) { setEuler(eulerX, eulerY, v) }
+  function onIncInitRotStart() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureInitRot(m)
+    m.initialRotation!.start = clamp(m.initialRotation!.start + 5, -360, 360)
+  }
+  function onSetInitRotStart(v: number) {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureInitRot(m)
+    m.initialRotation!.start = clamp(v, -360, 360)
+  }
+  function onDecInitRotEnd() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureInitRot(m)
+    m.initialRotation!.end = clamp(m.initialRotation!.end - 5, -360, 360)
+  }
+  function onIncInitRotEnd() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureInitRot(m)
+    m.initialRotation!.end = clamp(m.initialRotation!.end + 5, -360, 360)
+  }
+  function onSetInitRotEnd(v: number) {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureInitRot(m)
+    m.initialRotation!.end = clamp(v, -360, 360)
+  }
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
@@ -1295,7 +1303,7 @@ function UI(): ReactEcs.JSX.Element {
           <ToggleBtn label="Active" active={active} onToggle={onToggleActive} scale={scale} />
           <ToggleBtn label="Loop" active={loop} onToggle={onToggleLoop} scale={scale} />
           <ToggleBtn label="Prewarm" active={prewarm} onToggle={onTogglePrewarm} scale={scale} />
-          <ToggleBtn label="Billboard" active={billboard} onToggle={onToggleBillboard} scale={scale} />
+          <ToggleBtn label="FaceDir" active={faceTravelDirection} onToggle={onToggleFaceTravelDirection} scale={scale} />
         </UiEntity>
         <Divider scale={scale} />
       </UiEntity>
@@ -1409,9 +1417,10 @@ function UI(): ReactEcs.JSX.Element {
       {/* ── Rotation ─────────────────────────────────────────────────────── */}
       <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 11 }}>
         <SectionLabel text="Rotation" scale={scale} />
-        <Row label="Euler X" value={eulerX} decimals={0} onDec={onDecEulerX} onInc={onIncEulerX} onSet={onSetEulerX} onReset={() => setEuler(orig.eulerX ?? 0, orig.eulerY ?? 0, orig.eulerZ ?? 0)} scale={scale} />
-        <Row label="Euler Y" value={eulerY} decimals={0} onDec={onDecEulerY} onInc={onIncEulerY} onSet={onSetEulerY} onReset={() => setEuler(orig.eulerX ?? 0, orig.eulerY ?? 0, orig.eulerZ ?? 0)} scale={scale} />
-        <Row label="Euler Z" value={eulerZ} decimals={0} onDec={onDecEulerZ} onInc={onIncEulerZ} onSet={onSetEulerZ} onReset={() => setEuler(orig.eulerX ?? 0, orig.eulerY ?? 0, orig.eulerZ ?? 0)} scale={scale} />
+        <RangeRow label="Init Rotation" startVal={initRotStart} endVal={initRotEnd} decimals={0}
+          onDecStart={onDecInitRotStart} onIncStart={onIncInitRotStart} onSetStart={onSetInitRotStart}
+          onDecEnd={onDecInitRotEnd} onIncEnd={onIncInitRotEnd} onSetEnd={onSetInitRotEnd}
+          onReset={() => { onSetInitRotStart(orig.initRotStart ?? 0); onSetInitRotEnd(orig.initRotEnd ?? 0) }} scale={scale} />
         <RangeRow label="Rot Over Time" startVal={rotStart} endVal={rotEnd} decimals={0}
           onDecStart={onDecRotStart} onIncStart={onIncRotStart} onSetStart={onSetRotStart}
           onDecEnd={onDecRotEnd} onIncEnd={onIncRotEnd} onSetEnd={onSetRotEnd}

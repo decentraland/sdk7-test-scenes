@@ -137,7 +137,7 @@ function createFireEmber(): PsEntry {
     initialVelocitySpeed: { start: 1.5, end: 2.5 },
     gravity: -0.3,
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
-    billboard: true,
+
     shape: ParticleSystem.Shape.Point(),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -166,7 +166,7 @@ function createMagicAura(): PsEntry {
     initialVelocitySpeed: { start: 0.5, end: 1.0 },
     rotationOverTime: { start: 0, end: 90 },
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
-    billboard: true,
+
     shape: ParticleSystem.Shape.Sphere({ radius: 0.8 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -198,7 +198,7 @@ function createSnowfall(): PsEntry {
     initialVelocitySpeed: { start: 2, end: 3 },
     gravity: 1.5,
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
-    billboard: true,
+
     shape: ParticleSystem.Shape.Cone({ angle: 15, radius: 2 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -227,7 +227,7 @@ function createSpriteFlame(): PsEntry {
     colorOverTime: { start: Color4.create(1, 0.7, 0.3, 1), end: Color4.create(0.5, 0, 0, 0) },
     initialVelocitySpeed: { start: 0.5, end: 1.0 },
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
-    billboard: true,
+
     spriteSheet: { tilesX: 4, tilesY: 4, startFrame: 0, endFrame: 15, framesPerSecond: 16 },
     shape: ParticleSystem.Shape.Box({ size: Vector3.create(0.5, 0.1, 0.5) }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
@@ -257,7 +257,7 @@ function createGravityFountain(): PsEntry {
     initialVelocitySpeed: { start: 3, end: 5 },
     gravity: -2.5,
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
-    billboard: true,
+
     shape: ParticleSystem.Shape.Sphere({ radius: 0.1 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -286,7 +286,7 @@ function createBatSwarm(): PsEntry {
     initialVelocitySpeed: { start: 0.5, end: 1.5 },
     rotationOverTime: { start: -15, end: 15 },
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
-    billboard: true,
+
     texture: { src: 'assets/32x32-bat-sprite.png' },
     spriteSheet: { tilesX: 4, tilesY: 4, startFrame: 0, endFrame: 15, framesPerSecond: 24 },
     shape: ParticleSystem.Shape.Sphere({ radius: 1.5 }),
@@ -318,7 +318,7 @@ function createSmokeHaze(): PsEntry {
     colorOverTime: { start: Color4.create(0.5, 0.5, 0.5, 0.4), end: Color4.create(0.3, 0.3, 0.3, 0) },
     initialVelocitySpeed: { start: 0.1, end: 0.3 },
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
-    billboard: true,
+
     shape: ParticleSystem.Shape.Sphere({ radius: 1.2 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -347,7 +347,7 @@ function createLightningSparks(): PsEntry {
     initialVelocitySpeed: { start: 6, end: 12 },
     limitVelocity: { speed: 4, dampen: 0.9 },
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
-    billboard: true,
+
     shape: ParticleSystem.Shape.Point(),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -380,7 +380,7 @@ function createHeavyRain(): PsEntry {
     limitVelocity: { speed: 5, dampen: 1 },
     gravity: 2,
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
-    billboard: true,
+
     shape: ParticleSystem.Shape.Box({ size: Vector3.create(6, 0.1, 6) }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -412,7 +412,7 @@ function createOneShotBurst(): PsEntry {
     initialVelocitySpeed: { start: 2, end: 4 },
     limitVelocity: { speed: 2, dampen: 0.6 },
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
-    billboard: true,
+
     shape: ParticleSystem.Shape.Sphere({ radius: 0.5 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -442,13 +442,14 @@ function createAsteroidTrail(): PsEntry {
     limitVelocity: { speed: 3, dampen: 0.5 },
     gravity: -0.5,
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
-    billboard: true,
+    faceTravelDirection: true,
+
     shape: ParticleSystem.Shape.Cone({ angle: 10, radius: 0.1 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 10, radius: 0.1 }))
-  addLabel(entity, 'Asteroid Trail\nCone | ADD | LimitVel')
+  addLabel(entity, 'Asteroid Trail\nCone | ADD | LimitVel | FaceDir')
 
   return registerPs(entity, 'Asteroid Trail', viz)
 }
@@ -472,7 +473,7 @@ function createPurpleSwirl(): PsEntry {
     rotationOverTime: { start: 0, end: 180 },
     additionalForce: Vector3.create(0.5, 0, 0),
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
-    billboard: true,
+
     shape: ParticleSystem.Shape.Sphere({ radius: 0.3 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
   })
@@ -501,7 +502,7 @@ function createBeeSwarm(): PsEntry {
     initialVelocitySpeed: { start: 0.3, end: 0.8 },
     rotationOverTime: { start: -10, end: 10 },
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
-    billboard: true,
+
     texture: { src: 'assets/dcl-particles/bee.png' },
     spriteSheet: { tilesX: 1, tilesY: 20, startFrame: 0, endFrame: 19, framesPerSecond: 30 },
     shape: ParticleSystem.Shape.Sphere({ radius: 1.0 }),
@@ -532,7 +533,7 @@ function createToxicPumpkin(): PsEntry {
     initialVelocitySpeed: { start: 0.2, end: 0.5 },
     gravity: -0.2,
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
-    billboard: true,
+
     texture: { src: 'assets/dcl-particles/rottenpumpkin.png' },
     spriteSheet: { tilesX: 2, tilesY: 2, startFrame: 0, endFrame: 3, framesPerSecond: 8 },
     shape: ParticleSystem.Shape.Point(),
@@ -563,7 +564,7 @@ function createCampfire(): PsEntry {
     initialVelocitySpeed: { start: 0.3, end: 0.8 },
     gravity: -0.5,
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
-    billboard: true,
+
     texture: { src: 'assets/dcl-particles/sprite_fire3.png' },
     spriteSheet: { tilesX: 4, tilesY: 3, startFrame: 0, endFrame: 11, framesPerSecond: 12 },
     shape: ParticleSystem.Shape.Point(),
@@ -595,7 +596,7 @@ function createFlameWisps(): PsEntry {
     gravity: -0.4,
     rotationOverTime: { start: -30, end: 30 },
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
-    billboard: true,
+
     texture: { src: 'assets/dcl-particles/sprite_flame.png' },
     spriteSheet: { tilesX: 4, tilesY: 3, startFrame: 0, endFrame: 11, framesPerSecond: 10 },
     shape: ParticleSystem.Shape.Cone({ angle: 20, radius: 0.3 }),
@@ -627,7 +628,7 @@ function createMovingTrail(): PsEntry {
     colorOverTime: { start: Color4.create(0.3, 1, 0.7, 1), end: Color4.create(0, 0.3, 0.5, 0) },
     initialVelocitySpeed: { start: 0.5, end: 1.5 },
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
-    billboard: true,
+
     shape: ParticleSystem.Shape.Point(),
     simulationSpace: PBParticleSystem_SimulationSpace.PSS_LOCAL,
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
