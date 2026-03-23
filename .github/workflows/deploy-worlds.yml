@@ -30,7 +30,7 @@ jobs:
       - name: Find changed scenes
         id: changes
         run: |
-          if [ "${{ inputs.deploy_all }}" = "true" ]; then
+          if [ "${{ inputs.deploy_all }}" = "true" ] || [ "${{ github.ref_name }}" = "chore/multi-scene-world-deploy" ]; then
             echo "Deploy all scenes enabled"
             CANDIDATES=$(find scenes -maxdepth 1 -mindepth 1 -type d | sort)
           else
