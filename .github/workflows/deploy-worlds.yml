@@ -39,7 +39,7 @@ jobs:
           JSON="[]"
           for dir in $CANDIDATES; do
             if [ -f "$dir/scene.json" ]; then
-              JSON=$(echo "$JSON" | jq --arg d "$dir" '. + [$d]')
+              JSON=$(echo "$JSON" | jq -c --arg d "$dir" '. + [$d]')
             fi
           done
           echo "scenes=$JSON" >> "$GITHUB_OUTPUT"
