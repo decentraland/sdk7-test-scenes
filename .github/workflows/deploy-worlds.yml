@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 env:
   DCL_PRIVATE_KEY: ${{ secrets.DCL_PRIVATE_KEY }}

@@ -54,6 +54,6 @@
   },
   "name": "json scene",
   "worldConfiguration": {
-    "name": "sdk7-test-scenes.dcl.eth"
+    "name": "sdk7testscenes.dcl.eth"
   }
 }
