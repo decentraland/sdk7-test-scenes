@@ -6,6 +6,11 @@ on:
       - main
       - chore/multi-scene-world-deploy
   workflow_dispatch:
+    inputs:
+      deploy_all:
+        description: 'Deploy all scenes'
+        type: boolean
+        default: true
 
 env:
   DCL_PRIVATE_KEY: ${{ secrets.DCL_PRIVATE_KEY }}
@@ -16,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       scenes: ${{ steps.changes.outputs.scenes }}
+      has_scenes: ${{ steps.changes.outputs.has_scenes }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,20 +30,26 @@ jobs:
       - name: Find changed scenes
         id: changes
         run: |
-          CHANGED=$(git diff --name-only HEAD~1 HEAD | grep '^scenes/' | cut -d'/' -f1-2 | sort -u)
+          if [ "${{ inputs.deploy_all }}" = "true" ]; then
+            echo "Deploy all scenes enabled"
+            CANDIDATES=$(find scenes -maxdepth 1 -mindepth 1 -type d | sort)
+          else
+            CANDIDATES=$(git diff --name-only HEAD~1 HEAD | grep '^scenes/' | cut -d'/' -f1-2 | sort -u)
+          fi
           JSON="[]"
-          for dir in $CHANGED; do
+          for dir in $CANDIDATES; do
             if [ -f "$dir/scene.json" ]; then
               JSON=$(echo "$JSON" | jq --arg d "$dir" '. + [$d]')
             fi
           done
           echo "scenes=$JSON" >> "$GITHUB_OUTPUT"
-          echo "Changed scenes: $JSON"
+          echo "has_scenes=$( [ "$JSON" != "[]" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+          echo "Scenes to deploy: $JSON"
 
   deploy:
     name: Deploy ${{ matrix.scene }}
     needs: detect-changes
-    if: needs.detect-changes.outputs.scenes != '[]'
+    if: needs.detect-changes.outputs.has_scenes == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
