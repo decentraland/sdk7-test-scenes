@@ -2,8 +2,6 @@ name: Deploy changed scenes to world
 
 on:
   push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       scene:
