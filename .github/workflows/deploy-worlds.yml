@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - chore/multi-scene-world-deploy
   workflow_dispatch:
     inputs:
       scene:
