@@ -4,7 +4,7 @@
     "display": {
         "title": "Test scene for SDK7",
         "description": "Test",
-        "navmapThumbnail": "images/scene-thumbnail.png",
+        "navmapThumbnail": "img.png",
         "favicon": "favicon_asset"
     },
     "owner": "",

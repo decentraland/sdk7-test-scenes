@@ -7,10 +7,10 @@ on:
       - chore/multi-scene-world-deploy
   workflow_dispatch:
     inputs:
-      deploy_all:
-        description: 'Deploy all scenes'
-        type: boolean
-        default: true
+      scene:
+        description: 'Scene folder to deploy (e.g. scenes/88,-10-audio-visualization)'
+        type: string
+        required: true
 
 env:
   DCL_PRIVATE_KEY: ${{ secrets.DCL_PRIVATE_KEY }}
@@ -30,9 +30,9 @@ jobs:
       - name: Find changed scenes
         id: changes
         run: |
-          if [ "${{ inputs.deploy_all }}" = "true" ] || [ "${{ github.ref_name }}" = "chore/multi-scene-world-deploy" ]; then
-            echo "Deploy all scenes enabled"
-            CANDIDATES=$(find scenes -maxdepth 1 -mindepth 1 -type d | sort)
+          if [ -n "${{ inputs.scene }}" ]; then
+            echo "Manual deploy for: ${{ inputs.scene }}"
+            CANDIDATES="${{ inputs.scene }}"
           else
             CANDIDATES=$(git diff --name-only HEAD~1 HEAD | grep '^scenes/' | cut -d'/' -f1-2 | sort -u)
           fi
