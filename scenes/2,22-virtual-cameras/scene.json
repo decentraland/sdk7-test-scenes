@@ -51,5 +51,8 @@
   },
   "requiredPermissions": [
     "ALLOW_TO_MOVE_PLAYER_INSIDE_SCENE"
-  ]
+  ],
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
 }

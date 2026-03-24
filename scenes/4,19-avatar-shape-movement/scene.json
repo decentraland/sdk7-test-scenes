@@ -22,5 +22,8 @@
       "4,19"
     ]
   },
-  "name": "avatar shapes movement test scene"
+  "name": "avatar shapes movement test scene",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
 }

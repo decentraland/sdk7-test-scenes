@@ -1,0 +1,74 @@
+name: Deploy changed scenes to world
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      scene:
+        description: 'Scene folder to deploy (e.g. scenes/88,-10-audio-visualization)'
+        type: string
+        required: true
+
+env:
+  DCL_PRIVATE_KEY: ${{ secrets.DCL_PRIVATE_KEY }}
+
+jobs:
+  detect-changes:
+    name: Detect changed scenes
+    runs-on: ubuntu-latest
+    outputs:
+      scenes: ${{ steps.changes.outputs.scenes }}
+      has_scenes: ${{ steps.changes.outputs.has_scenes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Find changed scenes
+        id: changes
+        run: |
+          if [ -n "${{ inputs.scene }}" ]; then
+            echo "Manual deploy for: ${{ inputs.scene }}"
+            CANDIDATES="${{ inputs.scene }}"
+          else
+            CANDIDATES=$(git diff --name-only HEAD~1 HEAD | grep '^scenes/' | cut -d'/' -f1-2 | sort -u)
+          fi
+          JSON="[]"
+          for dir in $CANDIDATES; do
+            if [ -f "$dir/scene.json" ]; then
+              JSON=$(echo "$JSON" | jq -c --arg d "$dir" '. + [$d]')
+            fi
+          done
+          echo "scenes=$JSON" >> "$GITHUB_OUTPUT"
+          echo "has_scenes=$( [ "$JSON" != "[]" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+          echo "Scenes to deploy: $JSON"
+
+  deploy:
+    name: Deploy ${{ matrix.scene }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_scenes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        scene: ${{ fromJson(needs.detect-changes.outputs.scenes) }}
+      fail-fast: false
+    defaults:
+      run:
+        working-directory: ./${{ matrix.scene }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install npm packages
+        run: npm install
+
+      - name: Build scene
+        run: npm run build
+
+      - name: Deploy scene
+        run: npm run deploy -- --target-content=https://worlds-content-server.decentraland.zone

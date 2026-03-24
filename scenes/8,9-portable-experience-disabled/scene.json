@@ -19,5 +19,8 @@
 	"featureToggles": {
 		"voiceChat": "enabled",
 		"portableExperiences": "disabled"
+	},
+	"worldConfiguration": {
+		"name": "sdk7testscenes.dcl.eth"
 	}
 }

@@ -54,5 +54,8 @@
       }
     }
   ],
-  "name": "dbmonster"
+  "name": "dbmonster",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
 }

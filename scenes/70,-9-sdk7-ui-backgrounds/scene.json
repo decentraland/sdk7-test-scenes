@@ -4,7 +4,7 @@
     "display": {
         "title": "Test scene for SDK7",
         "description": "Test",
-        "navmapThumbnail": "images/scene-thumbnail.png",
+        "navmapThumbnail": "img.png",
         "favicon": "favicon_asset"
     },
     "owner": "",
@@ -25,5 +25,8 @@
         "parcels": [
             "70,-9"
         ]
-    }
+    },
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
 }

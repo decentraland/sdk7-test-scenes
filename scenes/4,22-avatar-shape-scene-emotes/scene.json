@@ -22,5 +22,8 @@
   },
   "spawnPoints": [],
   "featureToggles": {},
-  "name": "avatar-shape-scene-emotes"
+  "name": "avatar-shape-scene-emotes",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
 }
