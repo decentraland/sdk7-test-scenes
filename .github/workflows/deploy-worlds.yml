@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - chore/add-multi-scene-support
   workflow_dispatch:
     inputs:
       scene:
