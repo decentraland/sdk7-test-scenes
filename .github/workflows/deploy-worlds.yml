@@ -71,4 +71,4 @@ jobs:
         run: npm run build
 
       - name: Deploy scene
-        run: npm run deploy -- --target-content=https://worlds-content-server.decentraland.zone
+        run: npm run deploy -- --target-content=https://worlds-content-server.decentraland.zone --multi-scene
