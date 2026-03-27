@@ -139,7 +139,8 @@ function createFireEmber(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
 
     shape: ParticleSystem.Shape.Point(),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
@@ -168,7 +169,8 @@ function createMagicAura(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     shape: ParticleSystem.Shape.Sphere({ radius: 0.8 }),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 0.8 }))
@@ -200,7 +202,8 @@ function createSnowfall(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     shape: ParticleSystem.Shape.Cone({ angle: 15, radius: 2 }),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 15, radius: 2 }))
@@ -228,9 +231,10 @@ function createSpriteFlame(): PsEntry {
     initialVelocitySpeed: { start: 0.5, end: 1.0 },
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
 
-    spriteSheet: { tilesX: 4, tilesY: 4, startFrame: 0, endFrame: 15, framesPerSecond: 16 },
+    spriteSheet: { tilesX: 4, tilesY: 4, framesPerSecond: 16 },
     shape: ParticleSystem.Shape.Box({ size: Vector3.create(0.5, 0.1, 0.5) }),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Box({ size: Vector3.create(0.5, 0.1, 0.5) }))
@@ -259,7 +263,8 @@ function createGravityFountain(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     shape: ParticleSystem.Shape.Sphere({ radius: 0.1 }),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 0.1 }))
@@ -288,9 +293,10 @@ function createBatSwarm(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     texture: { src: 'assets/32x32-bat-sprite.png' },
-    spriteSheet: { tilesX: 4, tilesY: 4, startFrame: 0, endFrame: 15, framesPerSecond: 24 },
+    spriteSheet: { tilesX: 4, tilesY: 4, framesPerSecond: 24 },
     shape: ParticleSystem.Shape.Sphere({ radius: 1.5 }),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 1.5 }))
@@ -320,7 +326,8 @@ function createSmokeHaze(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     shape: ParticleSystem.Shape.Sphere({ radius: 1.2 }),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 1.2 }))
@@ -349,7 +356,8 @@ function createLightningSparks(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
 
     shape: ParticleSystem.Shape.Point(),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
@@ -382,7 +390,8 @@ function createHeavyRain(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     shape: ParticleSystem.Shape.Box({ size: Vector3.create(6, 0.1, 6) }),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Box({ size: Vector3.create(6, 0.1, 6) }))
@@ -414,11 +423,14 @@ function createOneShotBurst(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     shape: ParticleSystem.Shape.Sphere({ radius: 0.5 }),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: [
+      { time: 0, count: 100, cycles: 1, interval: 0.01, probability: 1.0 }
+    ]
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 0.5 }))
-  addLabel(entity, 'One-Shot Burst\nSphere | ALPHA | No Loop')
+  addLabel(entity, 'One-Shot Burst\nSphere | ALPHA | Burst Emission')
 
   return registerPs(entity, 'One-Shot Burst', viz)
 }
@@ -445,7 +457,8 @@ function createAsteroidTrail(): PsEntry {
     faceTravelDirection: true,
 
     shape: ParticleSystem.Shape.Cone({ angle: 10, radius: 0.1 }),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 10, radius: 0.1 }))
@@ -475,7 +488,8 @@ function createPurpleSwirl(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     shape: ParticleSystem.Shape.Sphere({ radius: 0.3 }),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 0.3 }))
@@ -504,9 +518,10 @@ function createBeeSwarm(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     texture: { src: 'assets/dcl-particles/bee.png' },
-    spriteSheet: { tilesX: 1, tilesY: 20, startFrame: 0, endFrame: 19, framesPerSecond: 30 },
+    spriteSheet: { tilesX: 1, tilesY: 20, framesPerSecond: 30 },
     shape: ParticleSystem.Shape.Sphere({ radius: 1.0 }),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 1.0 }))
@@ -535,9 +550,10 @@ function createToxicPumpkin(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     texture: { src: 'assets/dcl-particles/rottenpumpkin.png' },
-    spriteSheet: { tilesX: 2, tilesY: 2, startFrame: 0, endFrame: 3, framesPerSecond: 8 },
+    spriteSheet: { tilesX: 2, tilesY: 2, framesPerSecond: 8 },
     shape: ParticleSystem.Shape.Point(),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
@@ -566,9 +582,10 @@ function createCampfire(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
 
     texture: { src: 'assets/dcl-particles/sprite_fire3.png' },
-    spriteSheet: { tilesX: 4, tilesY: 3, startFrame: 0, endFrame: 11, framesPerSecond: 12 },
+    spriteSheet: { tilesX: 4, tilesY: 3, framesPerSecond: 12 },
     shape: ParticleSystem.Shape.Point(),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
@@ -598,9 +615,10 @@ function createFlameWisps(): PsEntry {
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
 
     texture: { src: 'assets/dcl-particles/sprite_flame.png' },
-    spriteSheet: { tilesX: 4, tilesY: 3, startFrame: 0, endFrame: 11, framesPerSecond: 10 },
+    spriteSheet: { tilesX: 4, tilesY: 3, framesPerSecond: 10 },
     shape: ParticleSystem.Shape.Cone({ angle: 20, radius: 0.3 }),
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 20, radius: 0.3 }))
@@ -631,7 +649,8 @@ function createMovingTrail(): PsEntry {
 
     shape: ParticleSystem.Shape.Point(),
     simulationSpace: PBParticleSystem_SimulationSpace.PSS_LOCAL,
-    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING
+    playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
+    bursts: []
   })
 
   Tween.create(entity, {

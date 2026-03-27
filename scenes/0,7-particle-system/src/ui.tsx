@@ -98,7 +98,6 @@ function getOriginal(entity: Entity): Record<string, any> {
       forceX: ps?.additionalForce?.x, forceY: ps?.additionalForce?.y, forceZ: ps?.additionalForce?.z,
       hasAdditionalForce: ps?.additionalForce != null,
       sheetTilesX: ps?.spriteSheet?.tilesX, sheetTilesY: ps?.spriteSheet?.tilesY,
-      sheetStartFrame: ps?.spriteSheet?.startFrame, sheetEndFrame: ps?.spriteSheet?.endFrame,
       sheetFps: ps?.spriteSheet?.framesPerSecond,
       hasSpriteSheet: ps?.spriteSheet != null,
       shape: ps?.shape ? JSON.parse(JSON.stringify(ps.shape)) : undefined,
@@ -534,8 +533,6 @@ function serializeParticleSystem(entity: Entity): string {
     lines.push(`${ind}spriteSheet: {`)
     lines.push(`${ind}${ind}tilesX: ${ss.tilesX},`)
     lines.push(`${ind}${ind}tilesY: ${ss.tilesY},`)
-    lines.push(`${ind}${ind}startFrame: ${ss.startFrame},`)
-    lines.push(`${ind}${ind}endFrame: ${ss.endFrame},`)
     lines.push(`${ind}${ind}framesPerSecond: ${ss.framesPerSecond ?? 30},`)
     lines.push(`${ind}},`)
   }
@@ -558,7 +555,7 @@ function UI(): ReactEcs.JSX.Element {
   }
 
   const entry: PsEntry = maybeEntry
-  const comp = ParticleSystem.getMutableOrNull(entry.entity)
+  const comp = ParticleSystem.getOrNull(entry.entity)
   if (!comp) {
     return (<UiEntity uiTransform={{ display: 'none' }} />)
   }
@@ -607,8 +604,6 @@ function UI(): ReactEcs.JSX.Element {
   const hasSpriteSheet = comp.spriteSheet !== undefined && comp.spriteSheet !== null
   const sheetTilesX = comp.spriteSheet?.tilesX ?? 2
   const sheetTilesY = comp.spriteSheet?.tilesY ?? 2
-  const sheetStartFrame = comp.spriteSheet?.startFrame ?? 0
-  const sheetEndFrame = comp.spriteSheet?.endFrame ?? 3
   const sheetFps = comp.spriteSheet?.framesPerSecond ?? 30
 
   const shapeCase = comp.shape?.$case ?? 'point'
@@ -633,11 +628,6 @@ function UI(): ReactEcs.JSX.Element {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (m) m.playbackState = PBParticleSystem_PlaybackState.PS_STOPPED
   }
-  function onRestart() {
-    const m = ParticleSystem.getMutableOrNull(entry.entity)
-    if (m) m.restartCount = (m.restartCount ?? 0) + 1
-  }
-
   // ─── Toggle handlers ────────────────────────────────────────────────────
 
   function onToggleActive() {
@@ -1004,11 +994,11 @@ function UI(): ReactEcs.JSX.Element {
     if (m.spriteSheet !== undefined && m.spriteSheet !== null) {
       m.spriteSheet = undefined
     } else {
-      m.spriteSheet = { tilesX: 2, tilesY: 2, startFrame: 0, endFrame: 3, framesPerSecond: 30 }
+      m.spriteSheet = { tilesX: 2, tilesY: 2, framesPerSecond: 30 }
     }
   }
   function ensureSheet(m: any) {
-    if (!m.spriteSheet) m.spriteSheet = { tilesX: 2, tilesY: 2, startFrame: 0, endFrame: 3, framesPerSecond: 30 }
+    if (!m.spriteSheet) m.spriteSheet = { tilesX: 2, tilesY: 2, framesPerSecond: 30 }
   }
   function onDecTilesX() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
@@ -1030,26 +1020,6 @@ function UI(): ReactEcs.JSX.Element {
     if (!m) return; ensureSheet(m)
     m.spriteSheet!.tilesY = clamp(m.spriteSheet!.tilesY + 1, 1, 32)
   }
-  function onDecStartFrame() {
-    const m = ParticleSystem.getMutableOrNull(entry.entity)
-    if (!m) return; ensureSheet(m)
-    m.spriteSheet!.startFrame = clamp(m.spriteSheet!.startFrame - 1, 0, 512)
-  }
-  function onIncStartFrame() {
-    const m = ParticleSystem.getMutableOrNull(entry.entity)
-    if (!m) return; ensureSheet(m)
-    m.spriteSheet!.startFrame = clamp(m.spriteSheet!.startFrame + 1, 0, 512)
-  }
-  function onDecEndFrame() {
-    const m = ParticleSystem.getMutableOrNull(entry.entity)
-    if (!m) return; ensureSheet(m)
-    m.spriteSheet!.endFrame = clamp(m.spriteSheet!.endFrame - 1, 0, 512)
-  }
-  function onIncEndFrame() {
-    const m = ParticleSystem.getMutableOrNull(entry.entity)
-    if (!m) return; ensureSheet(m)
-    m.spriteSheet!.endFrame = clamp(m.spriteSheet!.endFrame + 1, 0, 512)
-  }
   function onDecFps() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureSheet(m)
@@ -1069,16 +1039,6 @@ function UI(): ReactEcs.JSX.Element {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureSheet(m)
     m.spriteSheet!.tilesY = clamp(Math.round(v), 1, 32)
-  }
-  function onSetStartFrame(v: number) {
-    const m = ParticleSystem.getMutableOrNull(entry.entity)
-    if (!m) return; ensureSheet(m)
-    m.spriteSheet!.startFrame = clamp(Math.round(v), 0, 512)
-  }
-  function onSetEndFrame(v: number) {
-    const m = ParticleSystem.getMutableOrNull(entry.entity)
-    if (!m) return; ensureSheet(m)
-    m.spriteSheet!.endFrame = clamp(Math.round(v), 0, 512)
   }
   function onSetFps(v: number) {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
@@ -1289,9 +1249,7 @@ function UI(): ReactEcs.JSX.Element {
           <Button value="Pause" fontSize={scale * 11} variant="secondary"
             uiTransform={{ height: scale * 24, margin: { right: scale * 4 } }} onMouseDown={onPause} />
           <Button value="Stop" fontSize={scale * 11} variant="secondary"
-            uiTransform={{ height: scale * 24, margin: { right: scale * 4 } }} onMouseDown={onStop} />
-          <Button value="Restart" fontSize={scale * 11} variant="primary"
-            uiTransform={{ height: scale * 24 }} onMouseDown={onRestart} />
+            uiTransform={{ height: scale * 24 }} onMouseDown={onStop} />
         </UiEntity>
         <Divider scale={scale} />
       </UiEntity>
@@ -1489,8 +1447,6 @@ function UI(): ReactEcs.JSX.Element {
         </UiEntity>
         <Row label="Tiles X" value={sheetTilesX} decimals={0} onDec={onDecTilesX} onInc={onIncTilesX} onSet={onSetTilesX} onReset={() => onSetTilesX(orig.sheetTilesX ?? 2)} scale={scale} />
         <Row label="Tiles Y" value={sheetTilesY} decimals={0} onDec={onDecTilesY} onInc={onIncTilesY} onSet={onSetTilesY} onReset={() => onSetTilesY(orig.sheetTilesY ?? 2)} scale={scale} />
-        <Row label="Start Frame" value={sheetStartFrame} decimals={0} onDec={onDecStartFrame} onInc={onIncStartFrame} onSet={onSetStartFrame} onReset={() => onSetStartFrame(orig.sheetStartFrame ?? 0)} scale={scale} />
-        <Row label="End Frame" value={sheetEndFrame} decimals={0} onDec={onDecEndFrame} onInc={onIncEndFrame} onSet={onSetEndFrame} onReset={() => onSetEndFrame(orig.sheetEndFrame ?? 3)} scale={scale} />
         <Row label="FPS" value={sheetFps} decimals={0} onDec={onDecFps} onInc={onIncFps} onSet={onSetFps} onReset={() => onSetFps(orig.sheetFps ?? 30)} scale={scale} />
       </UiEntity>
 
