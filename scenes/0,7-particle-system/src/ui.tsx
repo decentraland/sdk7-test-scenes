@@ -100,6 +100,7 @@ function getOriginal(entity: Entity): Record<string, any> {
       sheetTilesX: ps?.spriteSheet?.tilesX, sheetTilesY: ps?.spriteSheet?.tilesY,
       sheetFps: ps?.spriteSheet?.framesPerSecond,
       hasSpriteSheet: ps?.spriteSheet != null,
+      bursts: ps?.bursts ? JSON.parse(JSON.stringify(ps.bursts)) : [],
       shape: ps?.shape ? JSON.parse(JSON.stringify(ps.shape)) : undefined,
     })
   }
@@ -535,6 +536,21 @@ function serializeParticleSystem(entity: Entity): string {
     lines.push(`${ind}${ind}tilesY: ${ss.tilesY},`)
     lines.push(`${ind}${ind}framesPerSecond: ${ss.framesPerSecond ?? 30},`)
     lines.push(`${ind}},`)
+  }
+
+  // Bursts
+  if (ps.bursts && ps.bursts.length > 0) {
+    lines.push(`${ind}bursts: [`)
+    for (const b of ps.bursts) {
+      const parts = [`time: ${b.time}`, `count: ${b.count}`]
+      if (b.cycles !== undefined) parts.push(`cycles: ${b.cycles}`)
+      if (b.interval !== undefined) parts.push(`interval: ${b.interval}`)
+      if (b.probability !== undefined) parts.push(`probability: ${b.probability}`)
+      lines.push(`${ind}${ind}{ ${parts.join(', ')} },`)
+    }
+    lines.push(`${ind}],`)
+  } else {
+    lines.push(`${ind}bursts: [],`)
   }
 
   lines.push('})')
@@ -1046,6 +1062,40 @@ function UI(): ReactEcs.JSX.Element {
     m.spriteSheet!.framesPerSecond = clamp(Math.round(v), 1, 60)
   }
 
+  // ─── Burst handlers ────────────────────────────────────────────────
+
+  const MAX_BURSTS = 8
+  const burstList = comp.bursts ?? []
+  const hasBursts = burstList.length > 0
+
+  function onToggleBursts() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return
+    if (m.bursts && m.bursts.length > 0) {
+      m.bursts = []
+    } else {
+      m.bursts = [{ time: 0, count: 20, cycles: 1, interval: 0.01, probability: 1.0 }]
+    }
+  }
+  function onAddBurst() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return
+    if (!m.bursts) m.bursts = []
+    if (m.bursts.length >= MAX_BURSTS) return
+    const lastTime = m.bursts.length > 0 ? m.bursts[m.bursts.length - 1].time : 0
+    m.bursts.push({ time: lastTime + 0.5, count: 20, cycles: 1, interval: 0.01, probability: 1.0 })
+  }
+  function onRemoveBurst(index: number) {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m || !m.bursts) return
+    m.bursts.splice(index, 1)
+  }
+  function onSetBurstField(index: number, field: string, value: number) {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m || !m.bursts || !m.bursts[index]) return
+    ;(m.bursts[index] as any)[field] = value
+  }
+
   // ─── Shape handlers ──────────────────────────────────────────────────
 
   function onShapePoint() {
@@ -1448,6 +1498,65 @@ function UI(): ReactEcs.JSX.Element {
         <Row label="Tiles X" value={sheetTilesX} decimals={0} onDec={onDecTilesX} onInc={onIncTilesX} onSet={onSetTilesX} onReset={() => onSetTilesX(orig.sheetTilesX ?? 2)} scale={scale} />
         <Row label="Tiles Y" value={sheetTilesY} decimals={0} onDec={onDecTilesY} onInc={onIncTilesY} onSet={onSetTilesY} onReset={() => onSetTilesY(orig.sheetTilesY ?? 2)} scale={scale} />
         <Row label="FPS" value={sheetFps} decimals={0} onDec={onDecFps} onInc={onIncFps} onSet={onSetFps} onReset={() => onSetFps(orig.sheetFps ?? 30)} scale={scale} />
+        <Divider scale={scale} />
+      </UiEntity>
+
+      {/* ── Bursts ────────────────────────────────────────────────────────── */}
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 17 }}>
+        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 } }}>
+          <SectionLabel text="Bursts" scale={scale} />
+          <Button value={hasBursts ? 'ON' : 'OFF'} fontSize={scale * 10}
+            variant={hasBursts ? 'primary' : 'secondary'}
+            uiTransform={{ height: scale * 22, margin: { left: scale * 6 } }} onMouseDown={onToggleBursts} />
+          {hasBursts && burstList.length < MAX_BURSTS && (
+            <Button value="+ Add" fontSize={scale * 10}
+              uiTransform={{ height: scale * 22, margin: { left: scale * 6 } }} onMouseDown={onAddBurst} />
+          )}
+        </UiEntity>
+        {burstList.map((burst, i) => {
+          const origBurst = (orig.bursts as any[])?.[i]
+          return (
+            <UiEntity key={'burst-' + i} uiTransform={{ flexDirection: 'column', width: '100%', margin: { bottom: scale * 4 } }}>
+              <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 2 } }}>
+                <Label value={`Burst ${i + 1}`} fontSize={scale * 10} uiTransform={{ margin: { right: scale * 6 } }} />
+                <Button value="X" fontSize={scale * 9}
+                  uiTransform={{ width: scale * 22, height: scale * 20 }}
+                  uiBackground={{ color: Color4.create(0.6, 0.15, 0.15, 1) }}
+                  onMouseDown={() => onRemoveBurst(i)} />
+              </UiEntity>
+              <Row label="Time" value={burst.time} decimals={2}
+                onDec={() => onSetBurstField(i, 'time', clamp(burst.time - 0.1, 0, 30))}
+                onInc={() => onSetBurstField(i, 'time', clamp(burst.time + 0.1, 0, 30))}
+                onSet={(v) => onSetBurstField(i, 'time', clamp(v, 0, 30))}
+                onReset={origBurst ? () => onSetBurstField(i, 'time', origBurst.time ?? 0) : undefined}
+                scale={scale} />
+              <Row label="Count" value={burst.count} decimals={0}
+                onDec={() => onSetBurstField(i, 'count', clamp(burst.count - 1, 1, 500))}
+                onInc={() => onSetBurstField(i, 'count', clamp(burst.count + 1, 1, 500))}
+                onSet={(v) => onSetBurstField(i, 'count', clamp(Math.round(v), 1, 500))}
+                onReset={origBurst ? () => onSetBurstField(i, 'count', origBurst.count ?? 20) : undefined}
+                scale={scale} />
+              <Row label="Cycles" value={burst.cycles ?? 1} decimals={0}
+                onDec={() => onSetBurstField(i, 'cycles', clamp((burst.cycles ?? 1) - 1, 0, 100))}
+                onInc={() => onSetBurstField(i, 'cycles', clamp((burst.cycles ?? 1) + 1, 0, 100))}
+                onSet={(v) => onSetBurstField(i, 'cycles', clamp(Math.round(v), 0, 100))}
+                onReset={origBurst ? () => onSetBurstField(i, 'cycles', origBurst.cycles ?? 1) : undefined}
+                scale={scale} />
+              <Row label="Interval" value={burst.interval ?? 0.01} decimals={2}
+                onDec={() => onSetBurstField(i, 'interval', clamp((burst.interval ?? 0.01) - 0.01, 0.01, 10))}
+                onInc={() => onSetBurstField(i, 'interval', clamp((burst.interval ?? 0.01) + 0.01, 0.01, 10))}
+                onSet={(v) => onSetBurstField(i, 'interval', clamp(v, 0.01, 10))}
+                onReset={origBurst ? () => onSetBurstField(i, 'interval', origBurst.interval ?? 0.01) : undefined}
+                scale={scale} />
+              <Row label="Probability" value={burst.probability ?? 1.0} decimals={2}
+                onDec={() => onSetBurstField(i, 'probability', clamp((burst.probability ?? 1.0) - 0.05, 0, 1))}
+                onInc={() => onSetBurstField(i, 'probability', clamp((burst.probability ?? 1.0) + 0.05, 0, 1))}
+                onSet={(v) => onSetBurstField(i, 'probability', clamp(v, 0, 1))}
+                onReset={origBurst ? () => onSetBurstField(i, 'probability', origBurst.probability ?? 1.0) : undefined}
+                scale={scale} />
+            </UiEntity>
+          )
+        })}
       </UiEntity>
 
       {/* Bottom spacer */}
