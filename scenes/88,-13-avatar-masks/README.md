@@ -1,0 +1,1 @@
+Test scene for masked emotes
