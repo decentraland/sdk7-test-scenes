@@ -10,7 +10,7 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/avatar-masks-experimental/@dcl/js-runtime/dcl-js-runtime-7.21.1-22906847616.commit-5d89b42.tgz",
+    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/avatar-masks-experimental/@dcl/js-runtime/dcl-js-runtime-7.22.2-23596460113.commit-5495794.tgz",
     "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/avatar-masks-experimental/dcl-sdk-7.21.1-22906847616.commit-5d89b42.tgz"
   },
   "engines": {
