@@ -530,36 +530,39 @@ function createBeeSwarm(): PsEntry {
   return registerPs(entity, 'Bee Swarm', viz)
 }
 
-// ─── 14. Toxic Pumpkin — Point, PSB_ALPHA, rottenpumpkin spritesheet 2×2 ──────
+// ─── 14. Fireworks Loop — Cone, PSB_ADD, loop=true, 3 staggered bursts ────────
 
-function createToxicPumpkin(): PsEntry {
+function createFireworksLoop(): PsEntry {
   const entity = engine.addEntity()
   Transform.create(entity, { position: Vector3.create(14, 1, 38) })
 
   ParticleSystem.create(entity, {
     active: true,
-    rate: 6,
-    lifetime: 3,
-    maxParticles: 30,
-    initialSize: { start: 0.6, end: 1.2 },
-    sizeOverTime: { start: 0.8, end: 1.5 },
-    initialColor: { start: Color4.create(0.4, 0.8, 0.2, 0.9), end: Color4.create(0.2, 0.6, 0.1, 0.9) },
-    colorOverTime: { start: Color4.create(0.3, 0.7, 0.2, 0.8), end: Color4.create(0.1, 0.4, 0.05, 0) },
-    initialVelocitySpeed: { start: 0.2, end: 0.5 },
-    gravity: -0.2,
-    blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
+    loop: true,
+    rate: 0,
+    lifetime: 2,
+    maxParticles: 300,
+    initialSize: { start: 0.08, end: 0.18 },
+    sizeOverTime: { start: 1.0, end: 0.0 },
+    initialColor: { start: Color4.create(1, 0.9, 0.4, 1), end: Color4.create(1, 0.4, 0.1, 1) },
+    colorOverTime: { start: Color4.create(1, 0.8, 0.5, 1), end: Color4.create(0.8, 0.2, 0, 0) },
+    initialVelocitySpeed: { start: 3, end: 6 },
+    gravity: -1,
+    blendMode: PBParticleSystem_BlendMode.PSB_ADD,
 
-    texture: { src: 'assets/dcl-particles/rottenpumpkin.png' },
-    spriteSheet: { tilesX: 2, tilesY: 2, framesPerSecond: 8 },
-    shape: ParticleSystem.Shape.Point(),
+    shape: ParticleSystem.Shape.Cone({ angle: 30, radius: 0.2 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
+    bursts: [
+      { time: 0, count: 40, cycles: 2, interval: 0.15, probability: 1.0 },
+      { time: 0.5, count: 60, cycles: 1, interval: 0.01, probability: 0.8 },
+      { time: 1.2, count: 30, cycles: 3, interval: 0.1, probability: 0.9 }
+    ]
   })
 
-  const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
-  addLabel(entity, 'Toxic Pumpkin\nPoint | ALPHA | Sheet 2x2')
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 30, radius: 0.2 }))
+  addLabel(entity, 'Fireworks Loop\nCone | ADD | 3 Bursts | Loop')
 
-  return registerPs(entity, 'Toxic Pumpkin', viz)
+  return registerPs(entity, 'Fireworks Loop', viz)
 }
 
 // ─── 15. Campfire — Point, PSB_ADD, sprite_fire3 spritesheet 4×3 ─────────────
@@ -758,7 +761,7 @@ createOneShotBurst()
 createAsteroidTrail()
 createPurpleSwirl()
 createBeeSwarm()
-createToxicPumpkin()
+createFireworksLoop()
 createCampfire()
 createFlameWisps()
 createMovingTrail()
