@@ -137,6 +137,7 @@ function createFireEmber(): PsEntry {
     initialVelocitySpeed: { start: 1.5, end: 2.5 },
     gravity: -0.3,
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
+    billboard: true,
 
     shape: ParticleSystem.Shape.Point(),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
@@ -165,7 +166,7 @@ function createMagicAura(): PsEntry {
     initialColor: { start: Color4.create(0.2, 0.5, 1, 1), end: Color4.create(0.5, 0.8, 1, 1) },
     colorOverTime: { start: Color4.create(0.4, 0.6, 1, 1), end: Color4.create(1, 1, 1, 0) },
     initialVelocitySpeed: { start: 0.5, end: 1.0 },
-    rotationOverTime: { start: 0, end: 90 },
+    rotationOverTime: { x: 0, y: 0, z: 0.7071, w: 0.7071 },
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     shape: ParticleSystem.Shape.Sphere({ radius: 0.8 }),
@@ -213,34 +214,43 @@ function createSnowfall(): PsEntry {
   return registerPs(entity, 'Snowfall', viz)
 }
 
-// ─── 4. Sprite Flame — Box(0.5,0.1,0.5), PSB_ADD, spriteSheet tilesX=4,tilesY=4
+// ─── 4. Vortex Spiral — Cone, PSB_ADD, billboard OFF, initialRotation + rotationOverTime, upward spiral
 
-function createSpriteFlame(): PsEntry {
+function createVortexSpiral(): PsEntry {
   const entity = engine.addEntity()
   Transform.create(entity, { position: Vector3.create(6, 1, 14) })
 
+  // Quaternion.fromEulerDegrees(45, 0, 0) ≈ 45° tilt on X
+  const initRot = { x: 0.3827, y: 0, z: 0, w: 0.9239 }
+  // Quaternion.fromEulerDegrees(0, 90, 30) — rotation over lifetime on Y + slight Z twist
+  const rotOverTime = { x: 0.0381, y: 0.6964, z: 0.2126, w: 0.6848 }
+
   ParticleSystem.create(entity, {
     active: true,
-    rate: 15,
-    lifetime: 1.5,
-    maxParticles: 60,
-    initialSize: { start: 0.8, end: 1.2 },
-    sizeOverTime: { start: 1.0, end: 0.3 },
-    initialColor: { start: Color4.create(1, 0.8, 0.4, 1), end: Color4.create(1, 0.5, 0.1, 1) },
-    colorOverTime: { start: Color4.create(1, 0.7, 0.3, 1), end: Color4.create(0.5, 0, 0, 0) },
-    initialVelocitySpeed: { start: 0.5, end: 1.0 },
+    rate: 35,
+    lifetime: 3,
+    maxParticles: 200,
+    initialSize: { start: 0.15, end: 0.3 },
+    sizeOverTime: { start: 1.0, end: 0.2 },
+    initialColor: { start: Color4.create(0.3, 0.8, 1, 1), end: Color4.create(0.6, 0.2, 1, 1) },
+    colorOverTime: { start: Color4.create(0.5, 0.6, 1, 0.9), end: Color4.create(0.8, 0.1, 1, 0) },
+    initialVelocitySpeed: { start: 1.5, end: 3.0 },
+    gravity: -0.8,
+    additionalForce: Vector3.create(0.3, 0, 0),
+    billboard: false,
+    initialRotation: initRot,
+    rotationOverTime: rotOverTime,
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
 
-    spriteSheet: { tilesX: 4, tilesY: 4, framesPerSecond: 16 },
-    shape: ParticleSystem.Shape.Box({ size: Vector3.create(0.5, 0.1, 0.5) }),
+    shape: ParticleSystem.Shape.Cone({ angle: 15, radius: 0.3 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
     bursts: []
   })
 
-  const viz = createVisualizer(entity, ParticleSystem.Shape.Box({ size: Vector3.create(0.5, 0.1, 0.5) }))
-  addLabel(entity, 'Sprite Flame\nBox | ADD | Sheet')
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 15, radius: 0.3 }))
+  addLabel(entity, 'Vortex Spiral\nCone | ADD | BB Off\nInitRot + RotOverTime')
 
-  return registerPs(entity, 'Sprite Flame', viz)
+  return registerPs(entity, 'Vortex Spiral', viz)
 }
 
 // ─── 5. Gravity Fountain — Sphere r=0.1, PSB_ALPHA, fast upward, gravity=-2.5 ─
@@ -289,7 +299,8 @@ function createBatSwarm(): PsEntry {
     initialColor: { start: Color4.create(1, 1, 1, 1), end: Color4.create(1, 1, 1, 1) },
     colorOverTime: { start: Color4.create(1, 1, 1, 1), end: Color4.create(1, 1, 1, 0) },
     initialVelocitySpeed: { start: 0.5, end: 1.5 },
-    rotationOverTime: { start: -15, end: 15 },
+    rotationOverTime: { x: 0, y: 0, z: 0.1305, w: 0.9914 },
+    billboard: false,
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     texture: { src: 'assets/32x32-bat-sprite.png' },
@@ -305,35 +316,42 @@ function createBatSwarm(): PsEntry {
   return registerPs(entity, 'Bat Swarm', viz)
 }
 
-// ─── 7. Smoke Haze — Sphere r=1.2, PSB_ALPHA, prewarm=true, slow, grey, large ─
+// ─── 7. Tumbling Leaves — Sphere r=1, PSB_ALPHA, billboard OFF, initialRotation + rotationOverTime
 
-function createSmokeHaze(): PsEntry {
+function createTumblingLeaves(): PsEntry {
   const entity = engine.addEntity()
-  Transform.create(entity, { position: Vector3.create(6, 1, 22) })
+  Transform.create(entity, { position: Vector3.create(6, 3, 22) })
+
+  // Quaternion.fromEulerDegrees(30, 60, 0) — tilted initial orientation
+  const initRot = { x: 0.1768, y: 0.4619, z: -0.0924, w: 0.8624 }
+  // Quaternion.fromEulerDegrees(20, 0, 45) — tumble on X + Z over lifetime
+  const rotOverTime = { x: 0.1464, y: -0.0616, z: 0.3536, w: 0.9224 }
 
   ParticleSystem.create(entity, {
     active: true,
-    loop: true,
-    prewarm: true,
-    rate: 8,
-    lifetime: 6,
-    maxParticles: 80,
-    initialSize: { start: 0.5, end: 1.0 },
-    sizeOverTime: { start: 1.0, end: 1.5 },
-    initialColor: { start: Color4.create(0.6, 0.6, 0.6, 0.5), end: Color4.create(0.4, 0.4, 0.4, 0.5) },
-    colorOverTime: { start: Color4.create(0.5, 0.5, 0.5, 0.4), end: Color4.create(0.3, 0.3, 0.3, 0) },
-    initialVelocitySpeed: { start: 0.1, end: 0.3 },
+    rate: 6,
+    lifetime: 5,
+    maxParticles: 50,
+    initialSize: { start: 0.3, end: 0.5 },
+    sizeOverTime: { start: 1.0, end: 0.7 },
+    initialColor: { start: Color4.create(0.4, 0.7, 0.2, 0.9), end: Color4.create(0.8, 0.6, 0.1, 0.9) },
+    colorOverTime: { start: Color4.create(0.6, 0.7, 0.2, 0.8), end: Color4.create(0.5, 0.3, 0.05, 0) },
+    initialVelocitySpeed: { start: 0.2, end: 0.6 },
+    gravity: 0.4,
+    billboard: false,
+    initialRotation: initRot,
+    rotationOverTime: rotOverTime,
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
-    shape: ParticleSystem.Shape.Sphere({ radius: 1.2 }),
+    shape: ParticleSystem.Shape.Sphere({ radius: 1.0 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
     bursts: []
   })
 
-  const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 1.2 }))
-  addLabel(entity, 'Smoke Haze\nSphere | ALPHA | Prewarm')
+  const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 1.0 }))
+  addLabel(entity, 'Tumbling Leaves\nSphere | ALPHA | BB Off\nInitRot + RotOverTime')
 
-  return registerPs(entity, 'Smoke Haze', viz)
+  return registerPs(entity, 'Tumbling Leaves', viz)
 }
 
 // ─── 8. Lightning Sparks — Point, PSB_ADD, fast, limitVelocity, short life, cyan
@@ -483,7 +501,7 @@ function createPurpleSwirl(): PsEntry {
     initialColor: { start: Color4.create(0.6, 0.1, 1, 1), end: Color4.create(0.8, 0.3, 1, 1) },
     colorOverTime: { start: Color4.create(0.7, 0.2, 1, 1), end: Color4.create(0.4, 0, 0.8, 0) },
     initialVelocitySpeed: { start: 0.5, end: 1.5 },
-    rotationOverTime: { start: 0, end: 180 },
+    rotationOverTime: { x: 0, y: 0, z: 1, w: 0 },
     additionalForce: Vector3.create(0.5, 0, 0),
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
@@ -514,7 +532,7 @@ function createBeeSwarm(): PsEntry {
     initialColor: { start: Color4.create(1, 1, 1, 1), end: Color4.create(1, 1, 1, 1) },
     colorOverTime: { start: Color4.create(1, 1, 1, 1), end: Color4.create(1, 1, 1, 0) },
     initialVelocitySpeed: { start: 0.3, end: 0.8 },
-    rotationOverTime: { start: -10, end: 10 },
+    rotationOverTime: { x: 0, y: 0, z: 0.0872, w: 0.9962 },
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     texture: { src: 'assets/dcl-particles/bee.png' },
@@ -614,7 +632,7 @@ function createFlameWisps(): PsEntry {
     colorOverTime: { start: Color4.create(1, 0.7, 0.4, 0.8), end: Color4.create(0.8, 0.2, 0.05, 0) },
     initialVelocitySpeed: { start: 0.5, end: 1.2 },
     gravity: -0.4,
-    rotationOverTime: { start: -30, end: 30 },
+    rotationOverTime: { x: 0, y: 0, z: 0.2588, w: 0.9659 },
     blendMode: PBParticleSystem_BlendMode.PSB_ADD,
 
     texture: { src: 'assets/dcl-particles/sprite_flame.png' },
@@ -751,10 +769,10 @@ addGround()
 createFireEmber()
 createMagicAura()
 createSnowfall()
-createSpriteFlame()
+createVortexSpiral()
 createGravityFountain()
 createBatSwarm()
-createSmokeHaze()
+createTumblingLeaves()
 createLightningSparks()
 createHeavyRain()
 createOneShotBurst()

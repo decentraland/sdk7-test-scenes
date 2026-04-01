@@ -80,10 +80,10 @@ function getOriginal(entity: Entity): Record<string, any> {
       sizeEnd: ps?.initialSize?.end,
       sotStart: ps?.sizeOverTime?.start,
       sotEnd: ps?.sizeOverTime?.end,
-      initRotStart: ps?.initialRotation?.start,
-      initRotEnd: ps?.initialRotation?.end,
-      rotStart: ps?.rotationOverTime?.start,
-      rotEnd: ps?.rotationOverTime?.end,
+      initRotX: ps?.initialRotation?.x, initRotY: ps?.initialRotation?.y,
+      initRotZ: ps?.initialRotation?.z, initRotW: ps?.initialRotation?.w,
+      rotX: ps?.rotationOverTime?.x, rotY: ps?.rotationOverTime?.y,
+      rotZ: ps?.rotationOverTime?.z, rotW: ps?.rotationOverTime?.w,
       icStartR: ps?.initialColor?.start?.r, icStartG: ps?.initialColor?.start?.g,
       icStartB: ps?.initialColor?.start?.b, icStartA: ps?.initialColor?.start?.a,
       icEndR: ps?.initialColor?.end?.r, icEndG: ps?.initialColor?.end?.g,
@@ -496,7 +496,16 @@ function serializeParticleSystem(entity: Entity): string {
 
   const rot = ps.rotationOverTime
   if (rot) {
-    lines.push(`${ind}rotationOverTime: { start: ${rot.start}, end: ${rot.end} },`)
+    lines.push(`${ind}rotationOverTime: { x: ${rot.x}, y: ${rot.y}, z: ${rot.z}, w: ${rot.w} },`)
+  }
+
+  const initRot = ps.initialRotation
+  if (initRot) {
+    lines.push(`${ind}initialRotation: { x: ${initRot.x}, y: ${initRot.y}, z: ${initRot.z}, w: ${initRot.w} },`)
+  }
+
+  if (ps.billboard !== undefined) {
+    lines.push(`${ind}billboard: ${ps.billboard},`)
   }
 
   // Color ranges
@@ -599,10 +608,15 @@ function UI(): ReactEcs.JSX.Element {
   const sizeEnd = comp.initialSize?.end ?? 0.4
   const sotStart = comp.sizeOverTime?.start ?? 1.0
   const sotEnd = comp.sizeOverTime?.end ?? 0.0
-  const initRotStart = comp.initialRotation?.start ?? 0
-  const initRotEnd = comp.initialRotation?.end ?? 0
-  const rotStart = comp.rotationOverTime?.start ?? 0
-  const rotEnd = comp.rotationOverTime?.end ?? 0
+  const initRotX = comp.initialRotation?.x ?? 0
+  const initRotY = comp.initialRotation?.y ?? 0
+  const initRotZ = comp.initialRotation?.z ?? 0
+  const initRotW = comp.initialRotation?.w ?? 1
+  const rotX = comp.rotationOverTime?.x ?? 0
+  const rotY = comp.rotationOverTime?.y ?? 0
+  const rotZ = comp.rotationOverTime?.z ?? 0
+  const rotW = comp.rotationOverTime?.w ?? 1
+  const billboard = comp.billboard ?? true
 
   const icStart = comp.initialColor?.start ?? Color4.create(1, 1, 1, 1)
   const icEnd = comp.initialColor?.end ?? Color4.create(1, 1, 1, 1)
@@ -849,41 +863,71 @@ function UI(): ReactEcs.JSX.Element {
     m.sizeOverTime!.end = clamp(v, 0, 5)
   }
 
-  // ─── RotationOverTime handlers ──────────────────────────────────────────
+  // ─── RotationOverTime handlers ────────────────────────────────────────────────
 
-  function ensureRot(m: any) { if (!m.rotationOverTime) m.rotationOverTime = { start: 0, end: 0 } }
-  function onDecRotStart() {
+  function ensureRot(m: any) { if (!m.rotationOverTime) m.rotationOverTime = { x: 0, y: 0, z: 0, w: 1 } }
+  function onDecRotX() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureRot(m)
-    m.rotationOverTime!.start = clamp(m.rotationOverTime!.start - 5, -360, 360)
+    m.rotationOverTime!.x = clamp(m.rotationOverTime!.x - 0.05, -1, 1)
   }
-  function onIncRotStart() {
+  function onIncRotX() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureRot(m)
-    m.rotationOverTime!.start = clamp(m.rotationOverTime!.start + 5, -360, 360)
+    m.rotationOverTime!.x = clamp(m.rotationOverTime!.x + 0.05, -1, 1)
   }
-  function onDecRotEnd() {
+  function onSetRotX(v: number) {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureRot(m)
-    m.rotationOverTime!.end = clamp(m.rotationOverTime!.end - 5, -360, 360)
+    m.rotationOverTime!.x = clamp(v, -1, 1)
   }
-  function onIncRotEnd() {
+  function onDecRotY() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureRot(m)
-    m.rotationOverTime!.end = clamp(m.rotationOverTime!.end + 5, -360, 360)
+    m.rotationOverTime!.y = clamp(m.rotationOverTime!.y - 0.05, -1, 1)
   }
-  function onSetRotStart(v: number) {
+  function onIncRotY() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureRot(m)
-    m.rotationOverTime!.start = clamp(v, -360, 360)
+    m.rotationOverTime!.y = clamp(m.rotationOverTime!.y + 0.05, -1, 1)
   }
-  function onSetRotEnd(v: number) {
+  function onSetRotY(v: number) {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureRot(m)
-    m.rotationOverTime!.end = clamp(v, -360, 360)
+    m.rotationOverTime!.y = clamp(v, -1, 1)
+  }
+  function onDecRotZ() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureRot(m)
+    m.rotationOverTime!.z = clamp(m.rotationOverTime!.z - 0.05, -1, 1)
+  }
+  function onIncRotZ() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureRot(m)
+    m.rotationOverTime!.z = clamp(m.rotationOverTime!.z + 0.05, -1, 1)
+  }
+  function onSetRotZ(v: number) {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureRot(m)
+    m.rotationOverTime!.z = clamp(v, -1, 1)
+  }
+  function onDecRotW() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureRot(m)
+    m.rotationOverTime!.w = clamp(m.rotationOverTime!.w - 0.05, -1, 1)
+  }
+  function onIncRotW() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureRot(m)
+    m.rotationOverTime!.w = clamp(m.rotationOverTime!.w + 0.05, -1, 1)
+  }
+  function onSetRotW(v: number) {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureRot(m)
+    m.rotationOverTime!.w = clamp(v, -1, 1)
   }
 
-  // ─── Color handlers (hex + alpha) ─────────────────────────────────────
+    // ─── Color handlers (hex + alpha) ─────────────────────────────────────
 
   const entityId = entry.entity
   function icStartHex(hex: string) { setColorHex(entityId, 'initialColor', 'start', hex) }
@@ -1221,41 +1265,79 @@ function UI(): ReactEcs.JSX.Element {
     m.shape = ParticleSystem.Shape.Box({ size: Vector3.create(s.x, s.y, clamp(v, 0.1, 50)) })
   }
 
-  // ─── Initial Rotation handlers ─────────────────────────────────────────
+  // ─── Initial Rotation handlers ─────────────────────────────────────────────────
 
-  function ensureInitRot(m: any) { if (!m.initialRotation) m.initialRotation = { start: 0, end: 0 } }
-  function onDecInitRotStart() {
+  function ensureInitRot(m: any) { if (!m.initialRotation) m.initialRotation = { x: 0, y: 0, z: 0, w: 1 } }
+  function onDecInitRotX() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureInitRot(m)
-    m.initialRotation!.start = clamp(m.initialRotation!.start - 5, -360, 360)
+    m.initialRotation!.x = clamp(m.initialRotation!.x - 0.05, -1, 1)
   }
-  function onIncInitRotStart() {
+  function onIncInitRotX() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureInitRot(m)
-    m.initialRotation!.start = clamp(m.initialRotation!.start + 5, -360, 360)
+    m.initialRotation!.x = clamp(m.initialRotation!.x + 0.05, -1, 1)
   }
-  function onSetInitRotStart(v: number) {
+  function onSetInitRotX(v: number) {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureInitRot(m)
-    m.initialRotation!.start = clamp(v, -360, 360)
+    m.initialRotation!.x = clamp(v, -1, 1)
   }
-  function onDecInitRotEnd() {
+  function onDecInitRotY() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureInitRot(m)
-    m.initialRotation!.end = clamp(m.initialRotation!.end - 5, -360, 360)
+    m.initialRotation!.y = clamp(m.initialRotation!.y - 0.05, -1, 1)
   }
-  function onIncInitRotEnd() {
+  function onIncInitRotY() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureInitRot(m)
-    m.initialRotation!.end = clamp(m.initialRotation!.end + 5, -360, 360)
+    m.initialRotation!.y = clamp(m.initialRotation!.y + 0.05, -1, 1)
   }
-  function onSetInitRotEnd(v: number) {
+  function onSetInitRotY(v: number) {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return; ensureInitRot(m)
-    m.initialRotation!.end = clamp(v, -360, 360)
+    m.initialRotation!.y = clamp(v, -1, 1)
+  }
+  function onDecInitRotZ() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureInitRot(m)
+    m.initialRotation!.z = clamp(m.initialRotation!.z - 0.05, -1, 1)
+  }
+  function onIncInitRotZ() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureInitRot(m)
+    m.initialRotation!.z = clamp(m.initialRotation!.z + 0.05, -1, 1)
+  }
+  function onSetInitRotZ(v: number) {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureInitRot(m)
+    m.initialRotation!.z = clamp(v, -1, 1)
+  }
+  function onDecInitRotW() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureInitRot(m)
+    m.initialRotation!.w = clamp(m.initialRotation!.w - 0.05, -1, 1)
+  }
+  function onIncInitRotW() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureInitRot(m)
+    m.initialRotation!.w = clamp(m.initialRotation!.w + 0.05, -1, 1)
+  }
+  function onSetInitRotW(v: number) {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return; ensureInitRot(m)
+    m.initialRotation!.w = clamp(v, -1, 1)
   }
 
-  // ─── Render ─────────────────────────────────────────────────────────────
+  // ─── Billboard handler ────────────────────────────────────────────────────────────────
+
+  function onToggleBillboard() {
+    const m = ParticleSystem.getMutableOrNull(entry.entity)
+    if (!m) return
+    m.billboard = !(m.billboard ?? true)
+  }
+
+    // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
     <UiEntity
@@ -1422,17 +1504,21 @@ function UI(): ReactEcs.JSX.Element {
         <Divider scale={scale} />
       </UiEntity>
 
-      {/* ── Rotation ─────────────────────────────────────────────────────── */}
+            {/* ── Rotation ──────────────────────────────────────────────────────────────────── */}
       <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 11 }}>
         <SectionLabel text="Rotation" scale={scale} />
-        <RangeRow label="Init Rotation" startVal={initRotStart} endVal={initRotEnd} decimals={0}
-          onDecStart={onDecInitRotStart} onIncStart={onIncInitRotStart} onSetStart={onSetInitRotStart}
-          onDecEnd={onDecInitRotEnd} onIncEnd={onIncInitRotEnd} onSetEnd={onSetInitRotEnd}
-          onReset={() => { onSetInitRotStart(orig.initRotStart ?? 0); onSetInitRotEnd(orig.initRotEnd ?? 0) }} scale={scale} />
-        <RangeRow label="Rot Over Time" startVal={rotStart} endVal={rotEnd} decimals={0}
-          onDecStart={onDecRotStart} onIncStart={onIncRotStart} onSetStart={onSetRotStart}
-          onDecEnd={onDecRotEnd} onIncEnd={onIncRotEnd} onSetEnd={onSetRotEnd}
-          onReset={() => { onSetRotStart(orig.rotStart ?? 0); onSetRotEnd(orig.rotEnd ?? 0) }} scale={scale} />
+        <SectionLabel text="Init Rotation (quat x/y/z/w)" scale={scale} />
+        <Row label="IR x" value={initRotX} decimals={3} onDec={onDecInitRotX} onInc={onIncInitRotX} onSet={onSetInitRotX} onReset={() => onSetInitRotX(orig.initRotX ?? 0)} scale={scale} />
+        <Row label="IR y" value={initRotY} decimals={3} onDec={onDecInitRotY} onInc={onIncInitRotY} onSet={onSetInitRotY} onReset={() => onSetInitRotY(orig.initRotY ?? 0)} scale={scale} />
+        <Row label="IR z" value={initRotZ} decimals={3} onDec={onDecInitRotZ} onInc={onIncInitRotZ} onSet={onSetInitRotZ} onReset={() => onSetInitRotZ(orig.initRotZ ?? 0)} scale={scale} />
+        <Row label="IR w" value={initRotW} decimals={3} onDec={onDecInitRotW} onInc={onIncInitRotW} onSet={onSetInitRotW} onReset={() => onSetInitRotW(orig.initRotW ?? 1)} scale={scale} />
+        <SectionLabel text="Rot Over Time (quat x/y/z/w)" scale={scale} />
+        <Row label="ROT x" value={rotX} decimals={3} onDec={onDecRotX} onInc={onIncRotX} onSet={onSetRotX} onReset={() => onSetRotX(orig.rotX ?? 0)} scale={scale} />
+        <Row label="ROT y" value={rotY} decimals={3} onDec={onDecRotY} onInc={onIncRotY} onSet={onSetRotY} onReset={() => onSetRotY(orig.rotY ?? 0)} scale={scale} />
+        <Row label="ROT z" value={rotZ} decimals={3} onDec={onDecRotZ} onInc={onIncRotZ} onSet={onSetRotZ} onReset={() => onSetRotZ(orig.rotZ ?? 0)} scale={scale} />
+        <Row label="ROT w" value={rotW} decimals={3} onDec={onDecRotW} onInc={onIncRotW} onSet={onSetRotW} onReset={() => onSetRotW(orig.rotW ?? 1)} scale={scale} />
+        <SectionLabel text="Billboard" scale={scale} />
+        <ToggleBtn label="Billboard" active={billboard} onToggle={onToggleBillboard} scale={scale} />
         <Divider scale={scale} />
       </UiEntity>
 
