@@ -13,19 +13,30 @@ Provides a simple environment for testing basic functionality during development
 2. npm install
 3. npm run start
 
-## Testing main branch
+## Deploying and testing scenes in the SEPOLIA World
 
-In a Decentraland Explorer execute:
+Each test scene's `scene.json` must include the following `worldConfiguration` so it can be deployed to the shared SEPOLIA world:
 
-- latest sdk version
+```json
+"worldConfiguration": {
+  "name": "sdk7testscenes.dcl.eth"
+}
 ```
-/goto https://sdk-team-cdn.decentraland.org/ipfs/sdk7-test-scenes-main-latest
-```
-- next sdk version
-```
-/goto https://sdk-team-cdn.decentraland.org/ipfs/sdk7-test-scenes-main-next
-```
-You can use command, to jump into specific location in that realm
-```
-/goto-local 72,-10
-```
+
+### Automatic deployment
+
+The [Deploy changed scenes to world](https://github.com/decentraland/sdk7-test-scenes/actions/workflows/deploy-worlds.yml) GitHub Action runs automatically with every commit merged into `main`, detecting and deploying only the scenes that changed.
+
+### Manual deployment
+
+1. Open https://github.com/decentraland/sdk7-test-scenes/actions/workflows/deploy-worlds.yml
+2. Click **Run workflow** on the right side
+3. In the popup, enter the target branch and the scene folder to deploy (e.g. `scenes/88,-10-audio-visualization`)
+
+### Testing a deployed scene in the Explorer
+
+1. Switch your MetaMask network to **SEPOLIA** (not mainnet)
+2. Open the Explorer using one of these methods:
+   - **Deep link** (any browser): `decentraland://?dclenv=zone&realm=sdk7testscenes.dcl.eth`
+   - **Custom build**: launch with the `--dclenv zone` app param — see [connecting a custom build to a scene](https://github.com/decentraland/unity-explorer/blob/main/docs/how-to-connect-to-a-local-scene.md#connecting-a-custom-build-to-the-scene)
+   - **Unity Editor**: set _Decentraland Environment_ to `zone` and _Init Realm_ to `sdk7testscenes.dcl.eth`
