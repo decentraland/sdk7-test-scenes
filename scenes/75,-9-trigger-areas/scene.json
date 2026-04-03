@@ -37,5 +37,8 @@
       "75,-9"
     ]
   },
-  "name": "trigger-areas"
+  "name": "trigger-areas",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
 }

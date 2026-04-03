@@ -55,5 +55,8 @@
     "origin": "creator-hub",
     "projectId": "0f902fcc-81b1-4d2a-9172-17438eafe3f2"
   },
-  "name": "asset-load"
+  "name": "asset-load",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
 }

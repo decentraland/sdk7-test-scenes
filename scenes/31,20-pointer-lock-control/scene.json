@@ -53,5 +53,8 @@
     "voiceChat": "enabled",
     "portableExperiences": "enabled"
   },
-  "skyboxConfig": {}
+  "skyboxConfig": {},
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
 }

@@ -144,28 +144,6 @@ export function main() {
         }
     )
 
-    //// MoveRotateScaleContinuous
-    const mrsContEntity = engine.addEntity()
-    Transform.create(mrsContEntity, { position: Vector3.create(11, 1, 6) })
-    MeshRenderer.setBox(mrsContEntity)
-    MeshCollider.setBox(mrsContEntity)
-    pointerEventsSystem.onPointerDown(
-        { entity: mrsContEntity, opts: { button: InputAction.IA_POINTER, hoverText: 'MRSContinuous' } },
-        () => {
-            const comp = Tween.getMutableOrNull(mrsContEntity)
-            if (comp) {
-                comp.playing = !comp.playing
-                return
-            }
-            Tween.setMoveRotateScaleContinuous(mrsContEntity, {
-                position: { direction: Vector3.create(0, 0.1, 0) },
-                rotation: { direction: Quaternion.fromEulerDegrees(0, 5, 0) },
-                scale: { direction: Vector3.create(0.01, 0.01, 0.01) },
-                speed: 5
-            })
-        }
-    )
-
     // ─── TweenSequence Examples ───
 
     //// TweenSequence: Mixed modes (Move, Rotate, MoveRotateScale x2)

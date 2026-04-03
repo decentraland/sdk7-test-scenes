@@ -46,5 +46,8 @@
       "4,20"
     ]
   },
-  "name": "avatar shapes test scene"
+  "name": "avatar shapes test scene",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
 }

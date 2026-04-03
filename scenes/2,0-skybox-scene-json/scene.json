@@ -52,5 +52,8 @@
   "skyboxConfig": {
     "fixedTime": 80000
   },
-  "name": "json scene"
+  "name": "json scene",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
 }

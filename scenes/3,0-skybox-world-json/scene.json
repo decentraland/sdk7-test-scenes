@@ -50,7 +50,7 @@
     "portableExperiences": "enabled"
   },
   "worldConfiguration": {
-    "name": "AleAlvarez.dcl.eth",
+    "name": "sdk7testscenes.dcl.eth",
     "skyboxConfig": {
       "fixedTime": 36000
     }

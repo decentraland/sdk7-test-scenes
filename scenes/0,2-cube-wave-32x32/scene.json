@@ -46,5 +46,8 @@
       "0,2"
     ]
   },
-  "name": "cube-wave-32x32"
+  "name": "cube-wave-32x32",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
 }

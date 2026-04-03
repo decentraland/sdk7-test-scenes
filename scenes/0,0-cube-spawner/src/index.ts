@@ -13,6 +13,8 @@ export function main() {
   engine.addSystem(circularSystem)
   engine.addSystem(changeColorSystem)
 
+  
+  
   // draw UI. Here is the logic to spawn cubes.
   setupUi()
 }
