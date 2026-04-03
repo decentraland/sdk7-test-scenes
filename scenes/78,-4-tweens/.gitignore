@@ -5,3 +5,8 @@ bin
 *.*~
 export
 .idea/
+
+.editor
+.idea
+.vscode
+dclcontext
