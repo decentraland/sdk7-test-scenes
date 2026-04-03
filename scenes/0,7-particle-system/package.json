@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@dcl/js-runtime": "7.0.0",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/sdk-particle-system/dcl-sdk-7.22.3-23861203625.commit-3f453d4.tgz"
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/sdk-particle-system-main/dcl-sdk-7.22.3-23952991362.commit-2b68fd3.tgz"
   },
   "engines": {
     "node": ">=16.0.0",
