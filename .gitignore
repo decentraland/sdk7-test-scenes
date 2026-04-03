@@ -13,3 +13,5 @@ ipfs
 yarn.lock
 **/tsconfig.tsbuildinfo
 static
+**/.editor/
+**/dclcontext/
