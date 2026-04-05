@@ -300,7 +300,7 @@ function createBatSwarm(): PsEntry {
     colorOverTime: { start: Color4.create(1, 1, 1, 1), end: Color4.create(1, 1, 1, 0) },
     initialVelocitySpeed: { start: 0.5, end: 1.5 },
     rotationOverTime: { x: 0, y: 0, z: 0.1305, w: 0.9914 },
-    billboard: false,
+    billboard: true,
     blendMode: PBParticleSystem_BlendMode.PSB_ALPHA,
 
     texture: { src: 'assets/32x32-bat-sprite.png' },
