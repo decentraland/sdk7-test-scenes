@@ -13,3 +13,4 @@ ipfs
 yarn.lock
 **/tsconfig.tsbuildinfo
 static
+dclcontext
