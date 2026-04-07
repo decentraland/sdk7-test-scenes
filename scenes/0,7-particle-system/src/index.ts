@@ -188,7 +188,7 @@ function createSnowfall(): PsEntry {
   const entity = engine.addEntity()
   Transform.create(entity, {
     position: Vector3.create(26, 5, 6),
-    rotation: Quaternion.fromEulerDegrees(45, -90, 0)
+    rotation: Quaternion.fromEulerDegrees(50, -90, 0)
   })
 
   ParticleSystem.create(entity, {
