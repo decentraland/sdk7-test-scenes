@@ -42,30 +42,32 @@ const SHAPE_COLOR = Color4.create(0.4, 0.9, 1, 0.18)
 // ─── Shape Visualizers ────────────────────────────────────────────────────────
 
 function applyShapeToVisualizer(vizEntity: Entity, shape: NonNullable<ReturnType<typeof ParticleSystem.getOrNull>>['shape']): void {
-  const t = Transform.getMutable(vizEntity)
+  const transform = Transform.getMutable(vizEntity)
   const shapeCase = shape?.$case ?? 'point'
 
+  transform.rotation = Quaternion.Identity()
   switch (shapeCase) {
     case 'point':
-      t.scale = Vector3.create(0.15, 0.15, 0.15)
+      transform.scale = Vector3.create(0.15, 0.15, 0.15)
       MeshRenderer.setSphere(vizEntity)
       break
     case 'sphere': {
       const radius = (shape?.$case === 'sphere' ? shape.sphere.radius : undefined) ?? 1
       const diameter = radius * 2
-      t.scale = Vector3.create(diameter, diameter, diameter)
+      transform.scale = Vector3.create(diameter, diameter, diameter)
       MeshRenderer.setSphere(vizEntity)
       break
     }
     case 'cone': {
       const radius = (shape?.$case === 'cone' ? shape.cone.radius : undefined) ?? 1
-      t.scale = Vector3.create(radius * 2, 0.05, radius * 2)
+      transform.scale = Vector3.create(1, 0.05, 1)
+      transform.rotation = Quaternion.fromEulerDegrees(0, 90, 90) 
       MeshRenderer.setCylinder(vizEntity, radius, 0)
       break
     }
     case 'box': {
       const size = (shape?.$case === 'box' ? shape.box.size : undefined) ?? Vector3.create(1, 1, 1)
-      t.scale = Vector3.create(size.x, size.y, size.z)
+      transform.scale = Vector3.create(size.x, size.y, size.z)
       MeshRenderer.setBox(vizEntity)
       break
     }
@@ -186,7 +188,7 @@ function createSnowfall(): PsEntry {
   const entity = engine.addEntity()
   Transform.create(entity, {
     position: Vector3.create(26, 5, 6),
-    rotation: Quaternion.fromEulerDegrees(180, 0, 0)
+    rotation: Quaternion.fromEulerDegrees(45, -90, 0)
   })
 
   ParticleSystem.create(entity, {
