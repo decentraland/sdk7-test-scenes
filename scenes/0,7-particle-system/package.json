@@ -5,11 +5,16 @@
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
-    "build": "sdk-commands build"
+    "build": "sdk-commands build",
+    "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
+    "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "7.22.3-24082946861.commit-0d8c4f2",
-    "@dcl/sdk": "^7.22.3-24082946861.commit-0d8c4f2"
+    "@dcl/js-runtime": "experimental",
+    "@dcl/sdk": "experimental"
+  },
+  "dependencies": {
+    "@dcl/sdk-commands": "experimental"
   },
   "engines": {
     "node": ">=16.0.0",
