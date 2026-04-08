@@ -90,132 +90,6 @@
         "serializationType": "transform"
       },
       "data": {
-        "514": {
-          "json": {
-            "position": {
-              "x": 12,
-              "y": 0,
-              "z": 4
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "rotation": {
-              "x": 0,
-              "y": 1,
-              "z": 0,
-              "w": 0
-            },
-            "parent": 0
-          }
-        },
-        "517": {
-          "json": {
-            "position": {
-              "x": 12,
-              "y": 0,
-              "z": 8
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
-            },
-            "parent": 0
-          }
-        },
-        "521": {
-          "json": {
-            "position": {
-              "x": 12.025626182556152,
-              "y": 0,
-              "z": 9.340478897094727
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
-            },
-            "parent": 0
-          }
-        },
-        "522": {
-          "json": {
-            "position": {
-              "x": 12,
-              "y": 1,
-              "z": 9
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "rotation": {
-              "x": 0,
-              "y": 1,
-              "z": 0,
-              "w": 0
-            },
-            "parent": 0
-          }
-        },
-        "523": {
-          "json": {
-            "position": {
-              "x": 12.025626182556152,
-              "y": 0.6514679193496704,
-              "z": 11.118297576904297
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
-            },
-            "parent": 0
-          }
-        },
-        "525": {
-          "json": {
-            "position": {
-              "x": 12.025626182556152,
-              "y": -0.03551888093352318,
-              "z": 11.118297576904297
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
-            },
-            "parent": 0
-          }
-        },
         "528": {
           "json": {
             "position": {
@@ -236,87 +110,6 @@
             },
             "parent": 0
           }
-        },
-        "529": {
-          "json": {
-            "position": {
-              "x": 8,
-              "y": 0,
-              "z": 8
-            },
-            "scale": {
-              "x": 1,
-              "y": 1,
-              "z": 1
-            },
-            "rotation": {
-              "x": 0,
-              "y": 0,
-              "z": 0,
-              "w": 1
-            },
-            "parent": 528
-          }
-        }
-      }
-    },
-    {
-      "name": "core::GltfContainer",
-      "jsonSchema": {
-        "type": "object",
-        "properties": {},
-        "serializationType": "protocol-buffer",
-        "protocolBuffer": "PBGltfContainer"
-      },
-      "data": {
-        "514": {
-          "json": {
-            "src": "assets/asset-packs/wooden_dock_stairs/DocksModuleStairs_01/DocksModuleStairs_01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "517": {
-          "json": {
-            "src": "assets/asset-packs/small_straight_dock_module/DocksModuleSmall_01/DocksModuleSmall_01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "521": {
-          "json": {
-            "src": "assets/asset-packs/dock_piling/DocksPillar_01/DocksPillar_01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "522": {
-          "json": {
-            "src": "assets/asset-packs/small_straight_dock_module/DocksModuleSmall_01/DocksModuleSmall_01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "523": {
-          "json": {
-            "src": "assets/asset-packs/dock_piling/DocksPillar_01/DocksPillar_01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "525": {
-          "json": {
-            "src": "assets/asset-packs/dock_piling/DocksPillar_01/DocksPillar_01.glb",
-            "visibleMeshesCollisionMask": 0,
-            "invisibleMeshesCollisionMask": 3
-          }
-        },
-        "529": {
-          "json": {
-            "src": "assets/asset-packs/grass/Grass.glb",
-            "visibleMeshesCollisionMask": 1,
-            "invisibleMeshesCollisionMask": 2
-          }
         }
       }
     },
@@ -333,44 +126,9 @@
         "serializationType": "map"
       },
       "data": {
-        "514": {
-          "json": {
-            "value": "Wooden Dock Stairs"
-          }
-        },
-        "517": {
-          "json": {
-            "value": "Small Straight Dock Module"
-          }
-        },
-        "521": {
-          "json": {
-            "value": "Dock Piling"
-          }
-        },
-        "522": {
-          "json": {
-            "value": "Small Straight Dock Module_2"
-          }
-        },
-        "523": {
-          "json": {
-            "value": "Dock Piling_2"
-          }
-        },
-        "525": {
-          "json": {
-            "value": "Dock Piling_3"
-          }
-        },
         "528": {
           "json": {
             "value": "Ground"
-          }
-        },
-        "529": {
-          "json": {
-            "value": "Tile 1"
           }
         }
       }
@@ -470,12 +228,6 @@
                 "entity": 0,
                 "open": true,
                 "children": [
-                  514,
-                  517,
-                  521,
-                  522,
-                  523,
-                  525,
                   528
                 ]
               },
@@ -488,37 +240,8 @@
                 "children": []
               },
               {
-                "entity": 514,
-                "children": []
-              },
-              {
-                "entity": 517,
-                "children": []
-              },
-              {
-                "entity": 521,
-                "children": []
-              },
-              {
-                "entity": 522,
-                "children": []
-              },
-              {
-                "entity": 523,
-                "children": []
-              },
-              {
-                "entity": 525,
-                "children": []
-              },
-              {
                 "entity": 528,
-                "children": [
-                  529
-                ]
-              },
-              {
-                "entity": 529,
+                "open": true,
                 "children": []
               }
             ]
@@ -543,22 +266,7 @@
         "serializationType": "map"
       },
       "data": {
-        "514": {
-          "json": {}
-        },
-        "517": {
-          "json": {}
-        },
-        "521": {
-          "json": {}
-        },
-        "522": {
-          "json": {}
-        },
-        "523": {
-          "json": {}
-        },
-        "525": {
+        "528": {
           "json": {}
         }
       }
@@ -580,11 +288,6 @@
           "json": {
             "value": true
           }
-        },
-        "529": {
-          "json": {
-            "value": true
-          }
         }
       }
     },
@@ -597,19 +300,6 @@
       },
       "data": {
         "528": {
-          "json": {}
-        }
-      }
-    },
-    {
-      "name": "inspector::Tile",
-      "jsonSchema": {
-        "type": "object",
-        "properties": {},
-        "serializationType": "map"
-      },
-      "data": {
-        "529": {
           "json": {}
         }
       }
@@ -945,19 +635,22 @@
             "thumbnail": "assets/images/autogenerated-thumbnail.png",
             "categories": [],
             "author": "SDK",
+            "email": "",
             "tags": [],
             "layout": {
-              "base": {
-                "x": 88,
-                "y": -13
-              },
               "parcels": [
                 {
                   "x": 88,
                   "y": -13
                 }
-              ]
+              ],
+              "base": {
+                "x": 88,
+                "y": -13
+              }
             },
+            "silenceVoiceChat": false,
+            "disablePortableExperiences": false,
             "spawnPoints": [
               {
                 "name": "spawn1",
@@ -992,7 +685,8 @@
                 }
               }
             ],
-            "skyboxConfig": {}
+            "skyboxConfig": {},
+            "creator": ""
           }
         }
       }

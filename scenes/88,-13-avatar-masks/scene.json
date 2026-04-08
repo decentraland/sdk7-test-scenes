@@ -15,9 +15,9 @@
   "main": "bin/index.js",
   "tags": [],
   "scene": {
-    "base": "88,-13",
+    "base": "0,0",
     "parcels": [
-      "88,-13"
+      "0,0"
     ]
   },
   "spawnPoints": [
@@ -60,6 +60,6 @@
     "projectId": "e86faf88-d9a3-4b0d-a2ef-5eb5657dab9f"
   },
   "worldConfiguration": {
-    "name": "sdk7testscenes.dcl.eth"
+    "name": "nebi.dcl.eth"
   }
 }
