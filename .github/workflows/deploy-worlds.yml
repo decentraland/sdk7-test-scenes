@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  pull_request:
   workflow_dispatch:
     inputs:
       scene:
@@ -72,3 +73,39 @@ jobs:
 
       - name: Deploy scene
         run: npm run deploy -- --target-content=https://worlds-content-server.decentraland.zone --multi-scene
+
+  pr-comment:
+    name: Post PR test instructions
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Find existing comment
+        uses: peter-evans/find-comment@v3
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: How to test scene changes
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## How to test scene changes in the SEPOLIA World
+
+            To deploy your changes to the `sdk7testscenes.dcl.eth` world on SEPOLIA:
+
+            1. Go to the [Deploy changed scenes to world](https://github.com/decentraland/sdk7-test-scenes/actions/workflows/deploy-worlds.yml) action
+            2. Click **Run workflow**, select your branch, and enter the scene folder (e.g. `scenes/88,-10-audio-visualization`)
+
+            Once deployed, test the scene in the Explorer:
+            1. Switch MetaMask to the **SEPOLIA** network (not mainnet)
+            2. Open the Explorer using one of these methods:
+               - **Deep link** (any browser): `decentraland://?dclenv=zone&realm=sdk7testscenes.dcl.eth`
+               - **Custom build**: launch with `--dclenv zone` app param — [instructions](https://github.com/decentraland/unity-explorer/blob/main/docs/how-to-connect-to-a-local-scene.md#connecting-a-custom-build-to-the-scene)
+               - **Unity Editor**: set _Decentraland Environment_ to `zone` and _Init Realm_ to `sdk7testscenes.dcl.eth`
+          edit-mode: replace
