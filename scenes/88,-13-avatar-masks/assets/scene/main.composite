@@ -90,7 +90,7 @@
         "serializationType": "transform"
       },
       "data": {
-        "528": {
+        "514": {
           "json": {
             "position": {
               "x": 0,
@@ -126,7 +126,7 @@
         "serializationType": "map"
       },
       "data": {
-        "528": {
+        "514": {
           "json": {
             "value": "Ground"
           }
@@ -175,7 +175,7 @@
         "serializationType": "map"
       },
       "data": {
-        "0": {
+        "514": {
           "json": {
             "gizmo": 0
           }
@@ -228,7 +228,7 @@
                 "entity": 0,
                 "open": true,
                 "children": [
-                  528
+                  514
                 ]
               },
               {
@@ -240,34 +240,12 @@
                 "children": []
               },
               {
-                "entity": 528,
+                "entity": 514,
                 "open": true,
                 "children": []
               }
             ]
           }
-        }
-      }
-    },
-    {
-      "name": "inspector::TransformConfig",
-      "jsonSchema": {
-        "type": "object",
-        "properties": {
-          "porportionalScaling": {
-            "type": "boolean",
-            "serializationType": "optional",
-            "optionalJsonSchema": {
-              "type": "boolean",
-              "serializationType": "boolean"
-            }
-          }
-        },
-        "serializationType": "map"
-      },
-      "data": {
-        "528": {
-          "json": {}
         }
       }
     },
@@ -284,7 +262,7 @@
         "serializationType": "map"
       },
       "data": {
-        "528": {
+        "514": {
           "json": {
             "value": true
           }
@@ -299,7 +277,7 @@
         "serializationType": "map"
       },
       "data": {
-        "528": {
+        "514": {
           "json": {}
         }
       }
@@ -640,13 +618,13 @@
             "layout": {
               "parcels": [
                 {
-                  "x": 88,
-                  "y": -13
+                  "x": 0,
+                  "y": 0
                 }
               ],
               "base": {
-                "x": 88,
-                "y": -13
+                "x": 0,
+                "y": 0
               }
             },
             "silenceVoiceChat": false,
