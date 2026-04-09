@@ -18,8 +18,8 @@
   "author": "Decentraland",
   "license": "ISC",
   "dependencies": {
-    "@dcl/js-runtime": "^7.5.8-10926653489.commit-aec9f09",
-    "@dcl/sdk": "experimental",
+    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/avatar-masks-experimental/@dcl/js-runtime/dcl-js-runtime-7.22.3-24137267513.commit-9b1609c.tgz",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/avatar-masks-experimental/dcl-sdk-7.22.3-24137267513.commit-9b1609c.tgz",
     "glob": "^10.3.10",
     "syncpack": "^12.3.0"
   },
