@@ -11,7 +11,7 @@
   },
   "devDependencies": {
     "@dcl/js-runtime": "7.0.0",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/update-particle-system-bursts-prop/dcl-sdk-7.22.4-24514296416.commit-1457b3e.tgz"
+    "@dcl/sdk": "^7.22.4-24525731607.commit-cda77a9"
   },
   "dependencies": {
     "@dcl/sdk-commands": "experimental"
