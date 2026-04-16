@@ -100,7 +100,7 @@ function getOriginal(entity: Entity): Record<string, any> {
       sheetTilesX: ps?.spriteSheet?.tilesX, sheetTilesY: ps?.spriteSheet?.tilesY,
       sheetFps: ps?.spriteSheet?.framesPerSecond,
       hasSpriteSheet: ps?.spriteSheet != null,
-      bursts: ps?.bursts ? JSON.parse(JSON.stringify(ps.bursts)) : [],
+      bursts: ps?.bursts ? JSON.parse(JSON.stringify(ps.bursts)) : undefined,
       shape: ps?.shape ? JSON.parse(JSON.stringify(ps.shape)) : undefined,
     })
   }
@@ -548,18 +548,16 @@ function serializeParticleSystem(entity: Entity): string {
   }
 
   // Bursts
-  if (ps.bursts && ps.bursts.length > 0) {
-    lines.push(`${ind}bursts: [`)
-    for (const b of ps.bursts) {
+  if (ps.bursts && ps.bursts.values.length > 0) {
+    lines.push(`${ind}bursts: { values: [`)
+    for (const b of ps.bursts.values) {
       const parts = [`time: ${b.time}`, `count: ${b.count}`]
       if (b.cycles !== undefined) parts.push(`cycles: ${b.cycles}`)
       if (b.interval !== undefined) parts.push(`interval: ${b.interval}`)
       if (b.probability !== undefined) parts.push(`probability: ${b.probability}`)
       lines.push(`${ind}${ind}{ ${parts.join(', ')} },`)
     }
-    lines.push(`${ind}],`)
-  } else {
-    lines.push(`${ind}bursts: [],`)
+    lines.push(`${ind}] },`)
   }
 
   lines.push('})')
@@ -1109,35 +1107,35 @@ function UI(): ReactEcs.JSX.Element {
   // ─── Burst handlers ────────────────────────────────────────────────
 
   const MAX_BURSTS = 8
-  const burstList = comp.bursts ?? []
+  const burstList = comp.bursts?.values ?? []
   const hasBursts = burstList.length > 0
 
   function onToggleBursts() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return
-    if (m.bursts && m.bursts.length > 0) {
-      m.bursts = []
+    if (m.bursts && m.bursts.values.length > 0) {
+      m.bursts = undefined
     } else {
-      m.bursts = [{ time: 0, count: 20, cycles: 1, interval: 0.01, probability: 1.0 }]
+      m.bursts = { values: [{ time: 0, count: 20, cycles: 1, interval: 0.01, probability: 1.0 }] }
     }
   }
   function onAddBurst() {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m) return
-    if (!m.bursts) m.bursts = []
-    if (m.bursts.length >= MAX_BURSTS) return
-    const lastTime = m.bursts.length > 0 ? m.bursts[m.bursts.length - 1].time : 0
-    m.bursts.push({ time: lastTime + 0.5, count: 20, cycles: 1, interval: 0.01, probability: 1.0 })
+    if (!m.bursts) m.bursts = { values: [] }
+    if (m.bursts.values.length >= MAX_BURSTS) return
+    const lastTime = m.bursts.values.length > 0 ? m.bursts.values[m.bursts.values.length - 1].time : 0
+    m.bursts.values.push({ time: lastTime + 0.5, count: 20, cycles: 1, interval: 0.01, probability: 1.0 })
   }
   function onRemoveBurst(index: number) {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
     if (!m || !m.bursts) return
-    m.bursts.splice(index, 1)
+    m.bursts.values.splice(index, 1)
   }
   function onSetBurstField(index: number, field: string, value: number) {
     const m = ParticleSystem.getMutableOrNull(entry.entity)
-    if (!m || !m.bursts || !m.bursts[index]) return
-    ;(m.bursts[index] as any)[field] = value
+    if (!m || !m.bursts || !m.bursts.values[index]) return
+    ;(m.bursts.values[index] as any)[field] = value
   }
 
   // ─── Shape handlers ──────────────────────────────────────────────────
@@ -1600,7 +1598,7 @@ function UI(): ReactEcs.JSX.Element {
           )}
         </UiEntity>
         {burstList.map((burst, i) => {
-          const origBurst = (orig.bursts as any[])?.[i]
+          const origBurst = (orig.bursts?.values as any[])?.[i]
           return (
             <UiEntity key={'burst-' + i} uiTransform={{ flexDirection: 'column', width: '100%', margin: { bottom: scale * 4 } }}>
               <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 2 } }}>
