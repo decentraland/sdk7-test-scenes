@@ -10,8 +10,8 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "experimental",
-    "@dcl/sdk": "experimental"
+    "@dcl/js-runtime": "7.0.0",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/update-particle-system-bursts-prop/dcl-sdk-7.22.4-24507799465.commit-0cef099.tgz"
   },
   "dependencies": {
     "@dcl/sdk-commands": "experimental"

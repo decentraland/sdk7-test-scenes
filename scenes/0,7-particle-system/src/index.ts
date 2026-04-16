@@ -143,7 +143,6 @@ function createFireEmber(): PsEntry {
 
     shape: ParticleSystem.Shape.Point(),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
@@ -173,7 +172,6 @@ function createMagicAura(): PsEntry {
 
     shape: ParticleSystem.Shape.Sphere({ radius: 0.8 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 0.8 }))
@@ -206,7 +204,6 @@ function createSnowfall(): PsEntry {
 
     shape: ParticleSystem.Shape.Cone({ angle: 15, radius: 2 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 15, radius: 2 }))
@@ -246,7 +243,6 @@ function createVortexSpiral(): PsEntry {
 
     shape: ParticleSystem.Shape.Cone({ angle: 15, radius: 0.3 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 15, radius: 0.3 }))
@@ -276,7 +272,6 @@ function createGravityFountain(): PsEntry {
 
     shape: ParticleSystem.Shape.Sphere({ radius: 0.1 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 0.1 }))
@@ -309,7 +304,6 @@ function createBatSwarm(): PsEntry {
     spriteSheet: { tilesX: 4, tilesY: 4, framesPerSecond: 24 },
     shape: ParticleSystem.Shape.Sphere({ radius: 1.5 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 1.5 }))
@@ -347,7 +341,6 @@ function createTumblingLeaves(): PsEntry {
 
     shape: ParticleSystem.Shape.Sphere({ radius: 1.0 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 1.0 }))
@@ -377,7 +370,6 @@ function createLightningSparks(): PsEntry {
 
     shape: ParticleSystem.Shape.Point(),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
@@ -411,7 +403,6 @@ function createHeavyRain(): PsEntry {
 
     shape: ParticleSystem.Shape.Box({ size: Vector3.create(6, 0.1, 6) }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Box({ size: Vector3.create(6, 0.1, 6) }))
@@ -444,9 +435,9 @@ function createOneShotBurst(): PsEntry {
 
     shape: ParticleSystem.Shape.Sphere({ radius: 0.5 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: [
+    bursts: { values: [
       { time: 0, count: 100, cycles: 1, interval: 0.01, probability: 1.0 }
-    ]
+    ] }
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 0.5 }))
@@ -478,7 +469,6 @@ function createAsteroidTrail(): PsEntry {
 
     shape: ParticleSystem.Shape.Cone({ angle: 10, radius: 0.1 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 10, radius: 0.1 }))
@@ -509,7 +499,6 @@ function createPurpleSwirl(): PsEntry {
 
     shape: ParticleSystem.Shape.Sphere({ radius: 0.3 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 0.3 }))
@@ -541,7 +530,6 @@ function createBeeSwarm(): PsEntry {
     spriteSheet: { tilesX: 1, tilesY: 20, framesPerSecond: 30 },
     shape: ParticleSystem.Shape.Sphere({ radius: 1.0 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Sphere({ radius: 1.0 }))
@@ -572,11 +560,11 @@ function createFireworksLoop(): PsEntry {
 
     shape: ParticleSystem.Shape.Cone({ angle: 30, radius: 0.2 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: [
+    bursts: { values: [
       { time: 0, count: 40, cycles: 2, interval: 0.15, probability: 1.0 },
       { time: 0.5, count: 60, cycles: 1, interval: 0.01, probability: 0.8 },
       { time: 1.2, count: 30, cycles: 3, interval: 0.1, probability: 0.9 }
-    ]
+    ] }
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 30, radius: 0.2 }))
@@ -608,7 +596,6 @@ function createCampfire(): PsEntry {
     spriteSheet: { tilesX: 4, tilesY: 3, framesPerSecond: 12 },
     shape: ParticleSystem.Shape.Point(),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Point())
@@ -641,7 +628,6 @@ function createFlameWisps(): PsEntry {
     spriteSheet: { tilesX: 4, tilesY: 3, framesPerSecond: 10 },
     shape: ParticleSystem.Shape.Cone({ angle: 20, radius: 0.3 }),
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   const viz = createVisualizer(entity, ParticleSystem.Shape.Cone({ angle: 20, radius: 0.3 }))
@@ -673,7 +659,6 @@ function createMovingTrail(): PsEntry {
     shape: ParticleSystem.Shape.Point(),
     simulationSpace: PBParticleSystem_SimulationSpace.PSS_LOCAL,
     playbackState: PBParticleSystem_PlaybackState.PS_PLAYING,
-    bursts: []
   })
 
   Tween.create(entity, {
