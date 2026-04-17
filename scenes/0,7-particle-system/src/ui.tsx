@@ -127,18 +127,19 @@ function Row(props: {
       uiTransform={{
         flexDirection: 'row',
         alignItems: 'center',
-        margin: { bottom: scale * 2 }
+        margin: { bottom: scale * 2 },
+        pointerFilter: 'block'
       }}
     >
       <Label
         value={`${label}  ${formatNumber(value, decPlaces)}`}
         fontSize={scale * 10}
-        uiTransform={{ width: scale * 140, margin: { right: scale * 4 } }}
+        uiTransform={{ width: scale * 140, margin: { right: scale * 4 }, pointerFilter: 'block' }}
       />
       <Button
         value="-"
         fontSize={scale * 11}
-        uiTransform={{ width: scale * 24, height: scale * 22, margin: { right: scale * 2 } }}
+        uiTransform={{ width: scale * 24, height: scale * 22, margin: { right: scale * 2 }, pointerFilter: 'block' }}
         onMouseDown={onDec}
       />
       <Input
@@ -150,20 +151,20 @@ function Row(props: {
         textAlign="middle-center"
         color={INPUT_COLOR}
         placeholderColor={INPUT_PH_COLOR}
-        uiTransform={{ width: scale * 60, height: scale * 22, margin: { right: scale * 2 } }}
+        uiTransform={{ width: scale * 60, height: scale * 22, margin: { right: scale * 2 }, pointerFilter: 'block' }}
         uiBackground={{ color: INPUT_BG }}
       />
       <Button
         value="+"
         fontSize={scale * 11}
-        uiTransform={{ width: scale * 24, height: scale * 22 }}
+        uiTransform={{ width: scale * 24, height: scale * 22, pointerFilter: 'block' }}
         onMouseDown={onInc}
       />
       {onReset && (
         <Button
           value="R"
           fontSize={scale * 9}
-          uiTransform={{ width: scale * 20, height: scale * 20, margin: { left: scale * 4 } }}
+          uiTransform={{ width: scale * 20, height: scale * 20, margin: { left: scale * 4 }, pointerFilter: 'block' }}
           uiBackground={{ color: RESET_COLOR }}
           onMouseDown={onReset}
         />
@@ -193,18 +194,19 @@ function RangeRow(props: {
       uiTransform={{
         flexDirection: 'row',
         alignItems: 'center',
-        margin: { bottom: scale * 2 }
+        margin: { bottom: scale * 2 },
+        pointerFilter: 'block'
       }}
     >
       <Label
         value={`${label}  ${formatNumber(startVal, decPlaces)} > ${formatNumber(endVal, decPlaces)}`}
         fontSize={scale * 10}
-        uiTransform={{ width: scale * 120, margin: { right: scale * 4 } }}
+        uiTransform={{ width: scale * 120, margin: { right: scale * 4 }, pointerFilter: 'block' }}
       />
       <Button
         value="-"
         fontSize={scale * 11}
-        uiTransform={{ width: scale * 24, height: scale * 22, margin: { right: scale * 2 } }}
+        uiTransform={{ width: scale * 24, height: scale * 22, margin: { right: scale * 2 }, pointerFilter: 'block' }}
         onMouseDown={onDecStart}
       />
       <Input
@@ -216,24 +218,24 @@ function RangeRow(props: {
         textAlign="middle-center"
         color={INPUT_COLOR}
         placeholderColor={INPUT_PH_COLOR}
-        uiTransform={{ width: scale * 50, height: scale * 22, margin: { right: scale * 2 } }}
+        uiTransform={{ width: scale * 50, height: scale * 22, margin: { right: scale * 2 }, pointerFilter: 'block' }}
         uiBackground={{ color: INPUT_BG }}
       />
       <Button
         value="+"
         fontSize={scale * 11}
-        uiTransform={{ width: scale * 24, height: scale * 22, margin: { right: scale * 4 } }}
+        uiTransform={{ width: scale * 24, height: scale * 22, margin: { right: scale * 4 }, pointerFilter: 'block' }}
         onMouseDown={onIncStart}
       />
       <Label
         value=">"
         fontSize={scale * 10}
-        uiTransform={{ width: scale * 12, margin: { right: scale * 4 } }}
+        uiTransform={{ width: scale * 12, margin: { right: scale * 4 }, pointerFilter: 'block' }}
       />
       <Button
         value="-"
         fontSize={scale * 11}
-        uiTransform={{ width: scale * 24, height: scale * 22, margin: { right: scale * 2 } }}
+        uiTransform={{ width: scale * 24, height: scale * 22, margin: { right: scale * 2 }, pointerFilter: 'block' }}
         onMouseDown={onDecEnd}
       />
       <Input
@@ -245,20 +247,20 @@ function RangeRow(props: {
         textAlign="middle-center"
         color={INPUT_COLOR}
         placeholderColor={INPUT_PH_COLOR}
-        uiTransform={{ width: scale * 50, height: scale * 22, margin: { right: scale * 2 } }}
+        uiTransform={{ width: scale * 50, height: scale * 22, margin: { right: scale * 2 }, pointerFilter: 'block' }}
         uiBackground={{ color: INPUT_BG }}
       />
       <Button
         value="+"
         fontSize={scale * 11}
-        uiTransform={{ width: scale * 24, height: scale * 22 }}
+        uiTransform={{ width: scale * 24, height: scale * 22, pointerFilter: 'block' }}
         onMouseDown={onIncEnd}
       />
       {onReset && (
         <Button
           value="R"
           fontSize={scale * 9}
-          uiTransform={{ width: scale * 20, height: scale * 20, margin: { left: scale * 4 } }}
+          uiTransform={{ width: scale * 20, height: scale * 20, margin: { left: scale * 4 }, pointerFilter: 'block' }}
           uiBackground={{ color: RESET_COLOR }}
           onMouseDown={onReset}
         />
@@ -284,10 +286,11 @@ function HexColorRow(props: {
       uiTransform={{
         flexDirection: 'row',
         alignItems: 'center',
-        margin: { bottom: scale * 2 }
+        margin: { bottom: scale * 2 },
+        pointerFilter: 'block'
       }}
     >
-      <Label value={`${label} ${hex}`} fontSize={scale * 10} uiTransform={{ width: scale * 50, margin: { right: scale * 4 } }} />
+      <Label value={`${label} ${hex}`} fontSize={scale * 10} uiTransform={{ width: scale * 50, margin: { right: scale * 4 }, pointerFilter: 'block' }} />
       <Input
         value=""
         placeholder="#RRGGBB"
@@ -297,16 +300,16 @@ function HexColorRow(props: {
         textAlign="middle-center"
         color={INPUT_COLOR}
         placeholderColor={INPUT_PH_COLOR}
-        uiTransform={{ width: scale * 90, height: scale * 22, margin: { right: scale * 6 } }}
+        uiTransform={{ width: scale * 90, height: scale * 22, margin: { right: scale * 6 }, pointerFilter: 'block' }}
         uiBackground={{ color: INPUT_BG }}
       />
       <UiEntity
-        uiTransform={{ width: scale * 18, height: scale * 18, margin: { right: scale * 6 } }}
+        uiTransform={{ width: scale * 18, height: scale * 18, margin: { right: scale * 6 }, pointerFilter: 'block' }}
         uiBackground={{ color: Color4.create(color.r, color.g, color.b, 1) }}
       />
-      <Label value={`A ${formatNumber(color.a, 2)}`} fontSize={scale * 10} uiTransform={{ width: scale * 40, margin: { right: scale * 2 } }} />
+      <Label value={`A ${formatNumber(color.a, 2)}`} fontSize={scale * 10} uiTransform={{ width: scale * 40, margin: { right: scale * 2 }, pointerFilter: 'block' }} />
       <Button value="-" fontSize={scale * 11}
-        uiTransform={{ width: scale * 22, height: scale * 20, margin: { right: scale * 2 } }}
+        uiTransform={{ width: scale * 22, height: scale * 20, margin: { right: scale * 2 }, pointerFilter: 'block' }}
         onMouseDown={onDecAlpha} />
       <Input
         value=""
@@ -317,15 +320,15 @@ function HexColorRow(props: {
         textAlign="middle-center"
         color={INPUT_COLOR}
         placeholderColor={INPUT_PH_COLOR}
-        uiTransform={{ width: scale * 45, height: scale * 20, margin: { right: scale * 2 } }}
+        uiTransform={{ width: scale * 45, height: scale * 20, margin: { right: scale * 2 }, pointerFilter: 'block' }}
         uiBackground={{ color: INPUT_BG }}
       />
       <Button value="+" fontSize={scale * 11}
-        uiTransform={{ width: scale * 22, height: scale * 20 }}
+        uiTransform={{ width: scale * 22, height: scale * 20, pointerFilter: 'block' }}
         onMouseDown={onIncAlpha} />
       {onReset && (
         <Button value="R" fontSize={scale * 9}
-          uiTransform={{ width: scale * 20, height: scale * 20, margin: { left: scale * 4 } }}
+          uiTransform={{ width: scale * 20, height: scale * 20, margin: { left: scale * 4 }, pointerFilter: 'block' }}
           uiBackground={{ color: RESET_COLOR }}
           onMouseDown={onReset} />
       )}
@@ -345,7 +348,7 @@ function ToggleBtn(props: {
       value={`${label}: ${active ? 'ON' : 'OFF'}`}
       fontSize={scale * 10}
       variant={active ? 'primary' : 'secondary'}
-      uiTransform={{ height: scale * 24, margin: { right: scale * 4, bottom: scale * 2 } }}
+      uiTransform={{ height: scale * 24, margin: { right: scale * 4, bottom: scale * 2 }, pointerFilter: 'block' }}
       onMouseDown={onToggle}
     />
   )
@@ -354,7 +357,7 @@ function ToggleBtn(props: {
 function Divider(props: { scale: number }): ReactEcs.JSX.Element {
   return (
     <UiEntity
-      uiTransform={{ width: '100%', height: 1, margin: { top: props.scale * 2, bottom: props.scale * 2 } }}
+      uiTransform={{ width: '100%', height: 1, margin: { top: props.scale * 2, bottom: props.scale * 2 }, pointerFilter: 'block' }}
       uiBackground={{ color: Color4.create(1, 1, 1, 0.15) }}
     />
   )
@@ -362,7 +365,7 @@ function Divider(props: { scale: number }): ReactEcs.JSX.Element {
 
 function SectionLabel(props: { text: string; scale: number }): ReactEcs.JSX.Element {
   return (
-    <Label value={props.text} fontSize={props.scale * 11} uiTransform={{ margin: { bottom: props.scale * 3 } }} />
+    <Label value={props.text} fontSize={props.scale * 11} uiTransform={{ margin: { bottom: props.scale * 3 }, pointerFilter: 'block' }} />
   )
 }
 
@@ -574,13 +577,13 @@ function UI(): ReactEcs.JSX.Element {
   const panelBg = Color4.create(0.04, 0.05, 0.12, 0.92)
 
   if (!maybeEntry) {
-    return (<UiEntity uiTransform={{ display: 'none' }} />)
+    return (<UiEntity uiTransform={{ display: 'none', pointerFilter: 'block' }} />)
   }
 
   const entry: PsEntry = maybeEntry
   const comp = ParticleSystem.getOrNull(entry.entity)
   if (!comp) {
-    return (<UiEntity uiTransform={{ display: 'none' }} />)
+    return (<UiEntity uiTransform={{ display: 'none', pointerFilter: 'block' }} />)
   }
 
   // ─── Original snapshot (captured once per entity) ───────────────────────
@@ -1347,23 +1350,24 @@ function UI(): ReactEcs.JSX.Element {
         width: scale * 620,
         maxHeight: scale * 1020,
         overflow: 'scroll',
-        padding: { top: scale * 10, bottom: scale * 10, left: scale * 12, right: scale * 12 }
+        padding: { top: scale * 10, bottom: scale * 10, left: scale * 12, right: scale * 12 },
+        pointerFilter: 'block'
       }}
       uiBackground={{ color: panelBg }}
     >
       {/* ── Header ───────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 1 }}>
-        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', margin: { bottom: scale * 6 } }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 1, pointerFilter: 'block' }}>
+        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', margin: { bottom: scale * 6 }, pointerFilter: 'block' }}>
           <Label
             value={entry.name}
             fontSize={scale * 15}
-            uiTransform={{ margin: { right: scale * 8 } }}
+            uiTransform={{ margin: { right: scale * 8 }, pointerFilter: 'block' }}
           />
           <Button
             value={Date.now() - copiedAt < 2000 ? 'Copied!' : 'Copy'}
             fontSize={scale * 10}
             variant={Date.now() - copiedAt < 2000 ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 24 }}
+            uiTransform={{ height: scale * 24, pointerFilter: 'block' }}
             onMouseDown={onCopyToClipboard}
           />
         </UiEntity>
@@ -1371,23 +1375,23 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Playback ─────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 2 }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 2, pointerFilter: 'block' }}>
         <SectionLabel text="Playback" scale={scale} />
-        <UiEntity uiTransform={{ flexDirection: 'row', margin: { bottom: scale * 4 } }}>
+        <UiEntity uiTransform={{ flexDirection: 'row', margin: { bottom: scale * 4 }, pointerFilter: 'block' }}>
           <Button value="Play" fontSize={scale * 11} variant="primary"
-            uiTransform={{ height: scale * 24, margin: { right: scale * 4 } }} onMouseDown={onPlay} />
+            uiTransform={{ height: scale * 24, margin: { right: scale * 4 }, pointerFilter: 'block' }} onMouseDown={onPlay} />
           <Button value="Pause" fontSize={scale * 11} variant="secondary"
-            uiTransform={{ height: scale * 24, margin: { right: scale * 4 } }} onMouseDown={onPause} />
+            uiTransform={{ height: scale * 24, margin: { right: scale * 4 }, pointerFilter: 'block' }} onMouseDown={onPause} />
           <Button value="Stop" fontSize={scale * 11} variant="secondary"
-            uiTransform={{ height: scale * 24 }} onMouseDown={onStop} />
+            uiTransform={{ height: scale * 24, pointerFilter: 'block' }} onMouseDown={onStop} />
         </UiEntity>
         <Divider scale={scale} />
       </UiEntity>
 
       {/* ── Flags ────────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 3 }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 3, pointerFilter: 'block' }}>
         <SectionLabel text="Flags" scale={scale} />
-        <UiEntity uiTransform={{ flexDirection: 'row', flexWrap: 'wrap', margin: { bottom: scale * 4 } }}>
+        <UiEntity uiTransform={{ flexDirection: 'row', flexWrap: 'wrap', margin: { bottom: scale * 4 }, pointerFilter: 'block' }}>
           <ToggleBtn label="Active" active={active} onToggle={onToggleActive} scale={scale} />
           <ToggleBtn label="Loop" active={loop} onToggle={onToggleLoop} scale={scale} />
           <ToggleBtn label="Prewarm" active={prewarm} onToggle={onTogglePrewarm} scale={scale} />
@@ -1397,64 +1401,64 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Simulation Space ─────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 4 }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 4, pointerFilter: 'block' }}>
         <SectionLabel text="Simulation Space" scale={scale} />
-        <UiEntity uiTransform={{ flexDirection: 'row', margin: { bottom: scale * 4 } }}>
+        <UiEntity uiTransform={{ flexDirection: 'row', margin: { bottom: scale * 4 }, pointerFilter: 'block' }}>
           <Button value="Local" fontSize={scale * 11}
             variant={!simSpaceWorld ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 24, margin: { right: scale * 4 } }} onMouseDown={() => { if (simSpaceWorld) onToggleSimSpace() }} />
+            uiTransform={{ height: scale * 24, margin: { right: scale * 4 }, pointerFilter: 'block' }} onMouseDown={() => { if (simSpaceWorld) onToggleSimSpace() }} />
           <Button value="World" fontSize={scale * 11}
             variant={simSpaceWorld ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 24 }} onMouseDown={() => { if (!simSpaceWorld) onToggleSimSpace() }} />
+            uiTransform={{ height: scale * 24, pointerFilter: 'block' }} onMouseDown={() => { if (!simSpaceWorld) onToggleSimSpace() }} />
         </UiEntity>
         <Divider scale={scale} />
       </UiEntity>
 
       {/* ── Blend Mode ───────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 5 }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 5, pointerFilter: 'block' }}>
         <SectionLabel text="Blend Mode" scale={scale} />
-        <UiEntity uiTransform={{ flexDirection: 'row', margin: { bottom: scale * 4 } }}>
+        <UiEntity uiTransform={{ flexDirection: 'row', margin: { bottom: scale * 4 }, pointerFilter: 'block' }}>
           <Button value="Alpha" fontSize={scale * 11}
             variant={blendMode === PBParticleSystem_BlendMode.PSB_ALPHA ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 24, margin: { right: scale * 4 } }} onMouseDown={onBlendAlpha} />
+            uiTransform={{ height: scale * 24, margin: { right: scale * 4 }, pointerFilter: 'block' }} onMouseDown={onBlendAlpha} />
           <Button value="Additive" fontSize={scale * 11}
             variant={blendMode === PBParticleSystem_BlendMode.PSB_ADD ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 24, margin: { right: scale * 4 } }} onMouseDown={onBlendAdd} />
+            uiTransform={{ height: scale * 24, margin: { right: scale * 4 }, pointerFilter: 'block' }} onMouseDown={onBlendAdd} />
           <Button value="Multiply" fontSize={scale * 11}
             variant={blendMode === PBParticleSystem_BlendMode.PSB_MULTIPLY ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 24 }} onMouseDown={onBlendMultiply} />
+            uiTransform={{ height: scale * 24, pointerFilter: 'block' }} onMouseDown={onBlendMultiply} />
         </UiEntity>
         <Divider scale={scale} />
       </UiEntity>
 
       {/* ── Emitter Shape ────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 6 }}>
-        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 } }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 6, pointerFilter: 'block' }}>
+        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 }, pointerFilter: 'block' }}>
           <SectionLabel text="Emitter Shape" scale={scale} />
           <ToggleBtn label="Shape Viz" active={vizVisible} onToggle={onToggleVizVisible} scale={scale} />
         </UiEntity>
-        <UiEntity uiTransform={{ flexDirection: 'row', flexWrap: 'wrap', margin: { bottom: scale * 3 } }}>
+        <UiEntity uiTransform={{ flexDirection: 'row', flexWrap: 'wrap', margin: { bottom: scale * 3 }, pointerFilter: 'block' }}>
           <Button value="Point" fontSize={scale * 10}
             variant={shapeCase === 'point' ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 24, margin: { right: scale * 4, bottom: scale * 2 } }} onMouseDown={onShapePoint} />
+            uiTransform={{ height: scale * 24, margin: { right: scale * 4, bottom: scale * 2 }, pointerFilter: 'block' }} onMouseDown={onShapePoint} />
           <Button value="Sphere" fontSize={scale * 10}
             variant={shapeCase === 'sphere' ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 24, margin: { right: scale * 4, bottom: scale * 2 } }} onMouseDown={onShapeSphere} />
+            uiTransform={{ height: scale * 24, margin: { right: scale * 4, bottom: scale * 2 }, pointerFilter: 'block' }} onMouseDown={onShapeSphere} />
           <Button value="Cone" fontSize={scale * 10}
             variant={shapeCase === 'cone' ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 24, margin: { right: scale * 4, bottom: scale * 2 } }} onMouseDown={onShapeCone} />
+            uiTransform={{ height: scale * 24, margin: { right: scale * 4, bottom: scale * 2 }, pointerFilter: 'block' }} onMouseDown={onShapeCone} />
           <Button value="Box" fontSize={scale * 10}
             variant={shapeCase === 'box' ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 24, margin: { right: scale * 4, bottom: scale * 2 } }} onMouseDown={onShapeBox} />
+            uiTransform={{ height: scale * 24, margin: { right: scale * 4, bottom: scale * 2 }, pointerFilter: 'block' }} onMouseDown={onShapeBox} />
         </UiEntity>
-        <UiEntity uiTransform={{ display: shapeCase === 'sphere' ? 'flex' : 'none', flexDirection: 'column' }}>
+        <UiEntity uiTransform={{ display: shapeCase === 'sphere' ? 'flex' : 'none', flexDirection: 'column', pointerFilter: 'block' }}>
           <Row label="Radius" value={sphereRadius} onDec={onDecSphereRadius} onInc={onIncSphereRadius} onSet={onSetSphereRadius} scale={scale} />
         </UiEntity>
-        <UiEntity uiTransform={{ display: shapeCase === 'cone' ? 'flex' : 'none', flexDirection: 'column' }}>
+        <UiEntity uiTransform={{ display: shapeCase === 'cone' ? 'flex' : 'none', flexDirection: 'column', pointerFilter: 'block' }}>
           <Row label="Angle" value={coneAngle} decimals={0} onDec={onDecConeAngle} onInc={onIncConeAngle} onSet={onSetConeAngle} scale={scale} />
           <Row label="Radius" value={coneRadius} onDec={onDecConeRadius} onInc={onIncConeRadius} onSet={onSetConeRadius} scale={scale} />
         </UiEntity>
-        <UiEntity uiTransform={{ display: shapeCase === 'box' ? 'flex' : 'none', flexDirection: 'column' }}>
+        <UiEntity uiTransform={{ display: shapeCase === 'box' ? 'flex' : 'none', flexDirection: 'column', pointerFilter: 'block' }}>
           <Row label="Size X" value={boxSizeX} onDec={onDecBoxX} onInc={onIncBoxX} onSet={onSetBoxX} scale={scale} />
           <Row label="Size Y" value={boxSizeY} onDec={onDecBoxY} onInc={onIncBoxY} onSet={onSetBoxY} scale={scale} />
           <Row label="Size Z" value={boxSizeZ} onDec={onDecBoxZ} onInc={onIncBoxZ} onSet={onSetBoxZ} scale={scale} />
@@ -1463,7 +1467,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Emission ─────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 7 }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 7, pointerFilter: 'block' }}>
         <SectionLabel text="Emission" scale={scale} />
         <Row label="Rate (p/s)" value={rate} decimals={0} onDec={onDecRate} onInc={onIncRate} onSet={onSetRate} onReset={() => onSetRate(orig.rate ?? 20)} scale={scale} />
         <Row label="Lifetime (s)" value={lifetime} onDec={onDecLifetime} onInc={onIncLifetime} onSet={onSetLifetime} onReset={() => onSetLifetime(orig.lifetime ?? 5)} scale={scale} />
@@ -1472,14 +1476,14 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Motion ───────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 8 }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 8, pointerFilter: 'block' }}>
         <SectionLabel text="Motion" scale={scale} />
         <Row label="Gravity" value={gravity} onDec={onDecGravity} onInc={onIncGravity} onSet={onSetGravity} onReset={() => onSetGravity(orig.gravity ?? 0)} scale={scale} />
         <Divider scale={scale} />
       </UiEntity>
 
       {/* ── Velocity ─────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 9 }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 9, pointerFilter: 'block' }}>
         <SectionLabel text="Velocity" scale={scale} />
         <RangeRow label="Init Vel Speed" startVal={velStart} endVal={velEnd}
           onDecStart={onDecVelStart} onIncStart={onIncVelStart} onSetStart={onSetVelStart}
@@ -1489,7 +1493,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Size ─────────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 10 }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 10, pointerFilter: 'block' }}>
         <SectionLabel text="Size" scale={scale} />
         <RangeRow label="Init Size" startVal={sizeStart} endVal={sizeEnd} decimals={2}
           onDecStart={onDecSizeStart} onIncStart={onIncSizeStart} onSetStart={onSetSizeStart}
@@ -1503,7 +1507,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
             {/* ── Rotation ──────────────────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 11 }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 11, pointerFilter: 'block' }}>
         <SectionLabel text="Rotation" scale={scale} />
         <SectionLabel text="Init Rotation (quat x/y/z/w)" scale={scale} />
         <Row label="IR x" value={initRotX} decimals={3} onDec={onDecInitRotX} onInc={onIncInitRotX} onSet={onSetInitRotX} onReset={() => onSetInitRotX(orig.initRotX ?? 0)} scale={scale} />
@@ -1521,7 +1525,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Initial Color ────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 12 }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 12, pointerFilter: 'block' }}>
         <SectionLabel text="Initial Color" scale={scale} />
         <HexColorRow label="Start" color={icStart}
           onSetHex={icStartHex} onDecAlpha={icStartADec} onIncAlpha={icStartAInc} onSetAlpha={icStartASet}
@@ -1533,7 +1537,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Color Over Time ──────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 13 }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 13, pointerFilter: 'block' }}>
         <SectionLabel text="Color Over Time" scale={scale} />
         <HexColorRow label="Start" color={cotStart}
           onSetHex={cotStartHex} onDecAlpha={cotStartADec} onIncAlpha={cotStartAInc} onSetAlpha={cotStartASet}
@@ -1545,12 +1549,12 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Limit Velocity ───────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 14 }}>
-        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 } }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 14, pointerFilter: 'block' }}>
+        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 }, pointerFilter: 'block' }}>
           <SectionLabel text="Limit Velocity" scale={scale} />
           <Button value={hasLimitVel ? 'ON' : 'OFF'} fontSize={scale * 10}
             variant={hasLimitVel ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 22, margin: { left: scale * 6 } }} onMouseDown={onToggleLimitVel} />
+            uiTransform={{ height: scale * 22, margin: { left: scale * 6 }, pointerFilter: 'block' }} onMouseDown={onToggleLimitVel} />
         </UiEntity>
         <Row label="Max Speed" value={limitSpeed} onDec={onDecLimitSpeed} onInc={onIncLimitSpeed} onSet={onSetLimitSpeed} onReset={() => onSetLimitSpeed(orig.limitSpeed ?? 3)} scale={scale} />
         <Row label="Dampen" value={limitDampen} decimals={2} onDec={onDecLimitDampen} onInc={onIncLimitDampen} onSet={onSetLimitDampen} onReset={() => onSetLimitDampen(orig.limitDampen ?? 1)} scale={scale} />
@@ -1558,12 +1562,12 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Additional Force ─────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 15 }}>
-        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 } }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 15, pointerFilter: 'block' }}>
+        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 }, pointerFilter: 'block' }}>
           <SectionLabel text="Additional Force" scale={scale} />
           <Button value={hasAdditionalForce ? 'ON' : 'OFF'} fontSize={scale * 10}
             variant={hasAdditionalForce ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 22, margin: { left: scale * 6 } }} onMouseDown={onToggleAdditionalForce} />
+            uiTransform={{ height: scale * 22, margin: { left: scale * 6 }, pointerFilter: 'block' }} onMouseDown={onToggleAdditionalForce} />
         </UiEntity>
         <Row label="Force X" value={forceX} onDec={onDecForceX} onInc={onIncForceX} onSet={onSetForceX} onReset={() => onSetForceX(orig.forceX ?? 0)} scale={scale} />
         <Row label="Force Y" value={forceY} onDec={onDecForceY} onInc={onIncForceY} onSet={onSetForceY} onReset={() => onSetForceY(orig.forceY ?? 0)} scale={scale} />
@@ -1572,12 +1576,12 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Sprite Sheet ─────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 16 }}>
-        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 } }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 16, pointerFilter: 'block' }}>
+        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 }, pointerFilter: 'block' }}>
           <SectionLabel text="Sprite Sheet" scale={scale} />
           <Button value={hasSpriteSheet ? 'ON' : 'OFF'} fontSize={scale * 10}
             variant={hasSpriteSheet ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 22, margin: { left: scale * 6 } }} onMouseDown={onToggleSpriteSheet} />
+            uiTransform={{ height: scale * 22, margin: { left: scale * 6 }, pointerFilter: 'block' }} onMouseDown={onToggleSpriteSheet} />
         </UiEntity>
         <Row label="Tiles X" value={sheetTilesX} decimals={0} onDec={onDecTilesX} onInc={onIncTilesX} onSet={onSetTilesX} onReset={() => onSetTilesX(orig.sheetTilesX ?? 2)} scale={scale} />
         <Row label="Tiles Y" value={sheetTilesY} decimals={0} onDec={onDecTilesY} onInc={onIncTilesY} onSet={onSetTilesY} onReset={() => onSetTilesY(orig.sheetTilesY ?? 2)} scale={scale} />
@@ -1586,25 +1590,25 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* ── Bursts ────────────────────────────────────────────────────────── */}
-      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 17 }}>
-        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 } }}>
+      <UiEntity uiTransform={{ flexDirection: 'column', width: '100%', zIndex: 17, pointerFilter: 'block' }}>
+        <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 3 }, pointerFilter: 'block' }}>
           <SectionLabel text="Bursts" scale={scale} />
           <Button value={hasBursts ? 'ON' : 'OFF'} fontSize={scale * 10}
             variant={hasBursts ? 'primary' : 'secondary'}
-            uiTransform={{ height: scale * 22, margin: { left: scale * 6 } }} onMouseDown={onToggleBursts} />
+            uiTransform={{ height: scale * 22, margin: { left: scale * 6 }, pointerFilter: 'block' }} onMouseDown={onToggleBursts} />
           {hasBursts && burstList.length < MAX_BURSTS && (
             <Button value="+ Add" fontSize={scale * 10}
-              uiTransform={{ height: scale * 22, margin: { left: scale * 6 } }} onMouseDown={onAddBurst} />
+              uiTransform={{ height: scale * 22, margin: { left: scale * 6 }, pointerFilter: 'block' }} onMouseDown={onAddBurst} />
           )}
         </UiEntity>
         {burstList.map((burst, i) => {
           const origBurst = (orig.bursts?.values as any[])?.[i]
           return (
-            <UiEntity key={'burst-' + i} uiTransform={{ flexDirection: 'column', width: '100%', margin: { bottom: scale * 4 } }}>
-              <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 2 } }}>
-                <Label value={`Burst ${i + 1}`} fontSize={scale * 10} uiTransform={{ margin: { right: scale * 6 } }} />
+            <UiEntity key={'burst-' + i} uiTransform={{ flexDirection: 'column', width: '100%', margin: { bottom: scale * 4 }, pointerFilter: 'block' }}>
+              <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', margin: { bottom: scale * 2 }, pointerFilter: 'block' }}>
+                <Label value={`Burst ${i + 1}`} fontSize={scale * 10} uiTransform={{ margin: { right: scale * 6 }, pointerFilter: 'block' }} />
                 <Button value="X" fontSize={scale * 9}
-                  uiTransform={{ width: scale * 22, height: scale * 20 }}
+                  uiTransform={{ width: scale * 22, height: scale * 20, pointerFilter: 'block' }}
                   uiBackground={{ color: Color4.create(0.6, 0.15, 0.15, 1) }}
                   onMouseDown={() => onRemoveBurst(i)} />
               </UiEntity>
@@ -1644,7 +1648,7 @@ function UI(): ReactEcs.JSX.Element {
       </UiEntity>
 
       {/* Bottom spacer */}
-      <UiEntity uiTransform={{ height: scale * 10 }} />
+      <UiEntity uiTransform={{ height: scale * 10, pointerFilter: 'block' }} />
     </UiEntity>
   )
 }
