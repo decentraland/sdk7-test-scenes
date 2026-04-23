@@ -1,0 +1,27 @@
+{
+  "name": "audio-source-retrigger-test",
+  "version": "1.0.0",
+  "description": "Test scene for PBAudioSource retrigger fixes",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "build": "sdk-commands build"
+  },
+  "devDependencies": {
+    "@dcl/js-runtime": "7.0.0",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/fix/audio-source-retrigger-dedup/dcl-sdk-7.22.5-24835698970.commit-ad23bf7.tgz"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  },
+  "dependencies": {
+    "@dcl/sdk-commands": "^7.21.0"
+  }
+}
