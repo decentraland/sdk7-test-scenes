@@ -1,0 +1,42 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "AudioSource Retrigger Test",
+    "description": "Test scene for PBAudioSource retrigger fixes. Covers playSound/stopSound helpers, same-URL retrigger, URL-swap, resetCursor semantics, property variations, and getMutable vs helper comparison.",
+    "navmapThumbnail": "images/scene-thumbnail.png",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": ["audio", "test"],
+  "scene": {
+    "parcels": ["89,-10", "90,-10"],
+    "base": "89,-10"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [0, 3],
+        "y": [0, 0],
+        "z": [0, 3]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1,
+        "z": 8
+      }
+    }
+  ],
+  "requiredPermissions": [],
+  "featureToggles": {},
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}
