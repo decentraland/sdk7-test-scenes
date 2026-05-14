@@ -3,8 +3,8 @@
   "description": "ECS7 ",
   "version": "1.0.0",
   "dependencies": {
-    "@dcl/js-runtime": "7.0.0",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/fix/trigger-area-onstay-crdt-spam-main/dcl-sdk-7.23.2-25699211439.commit-75b9da9.tgz",
+    "@dcl/js-runtime": "latest",
+    "@dcl/sdk": "latest",
     "@types/cannon": "latest",
     "cannon": "latest"
   },
