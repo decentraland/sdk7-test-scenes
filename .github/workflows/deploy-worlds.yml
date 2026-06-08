@@ -76,11 +76,19 @@ jobs:
 
   pr-comment:
     name: Post PR test instructions
+    needs: detect-changes
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && needs.detect-changes.outputs.has_scenes == 'true'
     permissions:
       pull-requests: write
     steps:
+      - name: Extract coords from first changed scene
+        id: coords
+        run: |
+          FIRST=$(echo '${{ needs.detect-changes.outputs.scenes }}' | jq -r '.[0]')
+          COORDS=$(echo "$FIRST" | sed -E 's|^scenes/(-?[0-9]+,-?[0-9]+).*|\1|')
+          echo "coords=$COORDS" >> "$GITHUB_OUTPUT"
+
       - name: Find existing comment
         uses: peter-evans/find-comment@v3
         id: fc
@@ -97,7 +105,9 @@ jobs:
           body: |
             ## How to test scene changes in the SEPOLIA World
 
-            To deploy your changes to the `sdk7testscenes.dcl.eth` world on SEPOLIA:
+            Every commit pushed to any branch automatically triggers the deployment of the modified scenes to the `sdk7testscenes.dcl.eth` world on SEPOLIA.
+
+            If you need to re-trigger that deployment manually:
 
             1. Go to the [Deploy changed scenes to world](https://github.com/decentraland/sdk7-test-scenes/actions/workflows/deploy-worlds.yml) action
             2. Click **Run workflow**, select your branch, and enter the scene folder (e.g. `scenes/88,-10-audio-visualization`)
@@ -105,7 +115,7 @@ jobs:
             Once deployed, test the scene in the Explorer:
             1. Switch MetaMask to the **SEPOLIA** network (not mainnet)
             2. Open the Explorer using one of these methods:
-               - **Deep link** (any browser): `decentraland://?dclenv=zone&realm=sdk7testscenes.dcl.eth`
-               - **Custom build**: launch with `--dclenv zone` app param — [instructions](https://github.com/decentraland/unity-explorer/blob/main/docs/how-to-connect-to-a-local-scene.md#connecting-a-custom-build-to-the-scene)
+               - **Deep link** (any browser): `decentraland://?dclenv=zone&realm=sdk7testscenes.dcl.eth&position=${{ steps.coords.outputs.coords }}`
+               - **Custom build**: launch with `--dclenv zone --position ${{ steps.coords.outputs.coords }}` app params — [instructions](https://github.com/decentraland/unity-explorer/blob/main/docs/how-to-connect-to-a-local-scene.md#connecting-a-custom-build-to-the-scene)
                - **Unity Editor**: set _Decentraland Environment_ to `zone` and _Init Realm_ to `sdk7testscenes.dcl.eth`
           edit-mode: replace
