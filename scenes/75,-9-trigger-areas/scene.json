@@ -3,17 +3,23 @@
   "runtimeVersion": "7",
   "display": {
     "title": "trigger-areas",
-    "description": "Test",
+    "description": "trigger areas test scene",
     "navmapThumbnail": "images/scene-thumbnail.png",
     "favicon": "favicon_asset"
   },
   "owner": "",
   "contact": {
-    "name": "Lean",
+    "name": "SDK",
     "email": ""
   },
   "main": "bin/game.js",
   "tags": [],
+  "scene": {
+    "base": "75,-9",
+    "parcels": [
+      "75,-9"
+    ]
+  },
   "spawnPoints": [
     {
       "name": "spawn1",
@@ -31,13 +37,6 @@
     }
   ],
   "featureToggles": {},
-  "scene": {
-    "base": "75,-9",
-    "parcels": [
-      "75,-9"
-    ]
-  },
-  "name": "trigger-areas",
   "worldConfiguration": {
     "name": "sdk7testscenes.dcl.eth"
   }

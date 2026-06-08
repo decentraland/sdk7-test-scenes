@@ -1,16 +1,21 @@
 {
   "name": "trigger-areas",
-  "description": "ECS7 ",
   "version": "1.0.0",
-  "dependencies": {
-    "@dcl/js-runtime": "7.0.0",
-    "@dcl/sdk": "latest",
-    "@types/cannon": "latest",
-    "cannon": "latest"
-  },
+  "description": "trigger areas test scene",
   "scripts": {
     "build": "sdk-commands build --skip-install",
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy"
+  },
+  "dependencies": {
+    "@dcl/js-runtime": "7.22.4-24525731607.commit-cda77a9",
+    "@dcl/sdk": "latest",
+    "@dcl/sdk-commands": "latest",
+    "@types/cannon": "latest",
+    "cannon": "latest"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
   }
 }
