@@ -2,8 +2,8 @@
   "ecs7": true,
   "runtimeVersion": "7",
   "display": {
-    "title": "ColliderLayer CL_MAIN_PLAYER Test",
-    "description": "Demonstrates CL_MAIN_PLAYER (local player only) versus CL_PLAYER (all avatars) across TriggerArea, Raycast, MeshCollider, and GltfContainer",
+    "title": "ColliderLayer Showcase",
+    "description": "Demonstrates the different ColliderLayer values (CL_PLAYER, CL_MAIN_PLAYER, CL_PHYSICS, CL_POINTER, CL_CUSTOM*) and how they behave across TriggerArea, Raycast, MeshCollider, and GltfContainer.",
     "navmapThumbnail": "images/scene-thumbnail.png",
     "favicon": "favicon_asset"
   },

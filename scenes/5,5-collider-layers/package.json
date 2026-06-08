@@ -1,7 +1,7 @@
 {
-  "name": "collider-layer-main-player",
+  "name": "collider-layers",
   "version": "1.0.0",
-  "description": "Test scene for CL_MAIN_PLAYER ColliderLayer — demonstrates local-player-only targeting across TriggerArea, Raycast, MeshCollider, and GltfContainer",
+  "description": "Showcase scene for the ColliderLayer enum — demonstrates how each layer (CL_PLAYER, CL_MAIN_PLAYER, CL_PHYSICS, CL_POINTER, CL_CUSTOM*) behaves across TriggerArea, Raycast, MeshCollider, and GltfContainer.",
   "scripts": {
     "build": "sdk-commands build --skip-install",
     "start": "sdk-commands start",

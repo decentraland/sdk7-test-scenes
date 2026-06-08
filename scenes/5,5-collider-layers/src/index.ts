@@ -1,5 +1,9 @@
 /**
- * ColliderLayer CL_MAIN_PLAYER demo scene
+ * ColliderLayer showcase scene
+ *
+ * Demonstrates how each ColliderLayer value (CL_PLAYER, CL_MAIN_PLAYER, CL_PHYSICS,
+ * CL_POINTER, CL_CUSTOM*) behaves across the SDK components that consume collider
+ * masks: TriggerArea, Raycast, MeshCollider, and GltfContainer.
  *
  * Parcel: 5,5
  *
