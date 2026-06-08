@@ -1,0 +1,19 @@
+{
+  "name": "collider-layer-main-player",
+  "version": "1.0.0",
+  "description": "Test scene for CL_MAIN_PLAYER ColliderLayer — demonstrates local-player-only targeting across TriggerArea, Raycast, MeshCollider, and GltfContainer",
+  "scripts": {
+    "build": "sdk-commands build --skip-install",
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy"
+  },
+  "dependencies": {
+    "@dcl/js-runtime": "file:../../../js-sdk-toolchain/packages/@dcl/js-runtime",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/collision-layer-main-player/dcl-sdk-7.24.1-27151613567.commit-9ed1c6b.tgz",
+    "@dcl/sdk-commands": "file:../../../js-sdk-toolchain/packages/@dcl/sdk-commands"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  }
+}

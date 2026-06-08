@@ -79,6 +79,9 @@
       "path": "scenes/5,90-scene-bounds-check"
     },
     {
+      "path": "scenes/5,5-collider-layer-main-player"
+    },
+    {
       "path": "scenes/4,22-avatar-shape-scene-emotes"
     },
     {
