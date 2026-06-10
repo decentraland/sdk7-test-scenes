@@ -15,9 +15,9 @@
   "main": "bin/index.js",
   "tags": [],
   "scene": {
-    "base": "0,0",
+    "base": "88,-13",
     "parcels": [
-      "0,0"
+      "88,-13"
     ]
   },
   "spawnPoints": [
