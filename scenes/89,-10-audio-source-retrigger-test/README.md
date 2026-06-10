@@ -25,7 +25,7 @@ Uses `AudioSource.createOrReplace` directly — no helpers. Confirms the baselin
 - **A1 (green)** — `createOrReplace(entity, { audioClipUrl: CLIP_A, playing: true, volume: 1 })`. Expected: clip plays every click.
 - **A2 (red)** — `createOrReplace(entity, { audioClipUrl: CLIP_A, playing: false })`. Expected: clip stops.
 
-### Zone B — Same-URL Retrigger (THE bug scenario)
+### Zone B — Same-URL Retrigger
 *Objects B1 and B2, second column.*
 
 One entity is pre-populated with `AudioSource.create(entity, { audioClipUrl: CLIP_LONG, playing: false })` at scene init.

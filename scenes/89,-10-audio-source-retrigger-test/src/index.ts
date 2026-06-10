@@ -11,7 +11,7 @@
  *
  * Zones:
  *   A — Basic playback (createOrReplace directly)
- *   B — Same-URL retrigger: the primary retrigger bug scenario
+ *   B — Same-URL retrigger
  *   C — URL swap on the same entity
  *   D — resetCursor semantics (playSound / stopSound with resetCursor flag)
  *   E — Property variations (volume, pitch, loop)
@@ -142,7 +142,7 @@ function setupZoneA(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Zone B — Same-URL retrigger (THE retrigger bug scenario)
+// Zone B — Same-URL retrigger
 // ---------------------------------------------------------------------------
 // Pre-populate entity. Clicking B1 repeatedly should restart from 0 each time.
 // Without fix/audio-source-retrigger-dedup + fix/audio-source-same-url-retrigger
@@ -152,7 +152,7 @@ function setupZoneB(): void {
   const BASE_X = 6
   const BASE_Z = 4
 
-  createZoneHeader('Zone B: Same-URL Retrigger\n(THE bug)', Vector3.create(BASE_X + 1, 4, BASE_Z))
+  createZoneHeader('Zone B: Same-URL Retrigger', Vector3.create(BASE_X + 1, 4, BASE_Z))
 
   // Pre-populate with playing:false so subsequent playSound calls trigger CRDT PUTs
   const audioEntity = engine.addEntity()
