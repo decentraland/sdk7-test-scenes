@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@dcl/js-runtime": "7.0.0",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/fix/audio-source-retrigger-dedup/dcl-sdk-7.24.1-27311145287.commit-d17d516.tgz"
+    "@dcl/sdk": "^7.24.1-27387182535.commit-de44c20"
   },
   "engines": {
     "node": ">=16.0.0",
