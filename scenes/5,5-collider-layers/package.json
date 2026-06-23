@@ -1,0 +1,19 @@
+{
+  "name": "collider-layers",
+  "version": "1.0.0",
+  "description": "Showcase scene for the ColliderLayer enum — demonstrates how each layer (CL_PLAYER, CL_MAIN_PLAYER, CL_PHYSICS, CL_POINTER, CL_CUSTOM*) behaves across TriggerArea, Raycast, MeshCollider, and GltfContainer.",
+  "scripts": {
+    "build": "sdk-commands build --skip-install",
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy"
+  },
+  "dependencies": {
+    "@dcl/js-runtime": "7.24.1",
+    "@dcl/sdk": "latest",
+    "@dcl/sdk-commands": "latest"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  }
+}
