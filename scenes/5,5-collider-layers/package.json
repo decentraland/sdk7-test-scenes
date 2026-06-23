@@ -8,9 +8,9 @@
     "deploy": "sdk-commands deploy"
   },
   "dependencies": {
-    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/collision-layer-main-player/@dcl/js-runtime/dcl-js-runtime-7.24.1-27151613567.commit-9ed1c6b.tgz",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/collision-layer-main-player-main/dcl-sdk-7.24.1-27227243706.commit-fd2db8d.tgz",
-    "@dcl/sdk-commands": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/collision-layer-main-player/dcl-sdk-commands-7.24.1-27151613567.commit-9ed1c6b.tgz"
+    "@dcl/js-runtime": "7.24.1",
+    "@dcl/sdk": "latest",
+    "@dcl/sdk-commands": "latest"
   },
   "engines": {
     "node": ">=16.0.0",
