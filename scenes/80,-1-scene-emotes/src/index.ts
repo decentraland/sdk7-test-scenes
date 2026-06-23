@@ -1,5 +1,5 @@
 import { Vector3 } from '@dcl/sdk/math'
-import { triggerEmote, triggerSceneEmote } from '~system/RestrictedActions'
+import { triggerEmote, triggerSceneEmote, stopEmote } from '~system/RestrictedActions'
 import { engine, GltfContainer, Transform, pointerEventsSystem, MeshRenderer, MeshCollider, TransformType, EventSystemCallback, AvatarEmoteMask } from '@dcl/sdk/ecs'
 
 addTestCube({ position: Vector3.create(8, 1, 2) }, () => {
@@ -13,14 +13,20 @@ addTestCube({ position: Vector3.create(8, 1, 4) }, () => {
 // Not working on purpose, because the naming doesn't have "_emote"
 addTestCube({ position: Vector3.create(8, 1, 6) }, () => {
   triggerSceneEmote({ src: 'animations/Snowball_Throw.glb', loop: false })
-}, "Snowball_Throw.glb")
+}, "Snowball_Throw.glb\n(shouldn't play)")
 
 addTestCube({ position: Vector3.create(8, 1, 8) }, () => {
     triggerSceneEmote({ src: 'animations/LoveGrenade_emote.glb', loop: true })
 }, "LoveGrenade_emote.glb")
 
+let maskedEmotePlaying = false
 addTestCube({ position: Vector3.create(8, 1, 10) }, () => {
-  triggerSceneEmote({ src: 'animations/Crafting_Snowball_emote.glb', loop: true, mask: AvatarEmoteMask.AEM_UPPER_BODY })
+  if (maskedEmotePlaying) {
+    stopEmote({})
+  } else {
+    triggerSceneEmote({ src: 'animations/Crafting_Snowball_emote.glb', loop: true, mask: AvatarEmoteMask.AEM_UPPER_BODY })
+  }
+  maskedEmotePlaying = !maskedEmotePlaying
 }, "Crafting_Snowball_emote.glb (upper body)")
 
 let snowTree = engine.addEntity()
