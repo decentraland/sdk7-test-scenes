@@ -139,6 +139,9 @@
       "path": "scenes/10,0-move-to-test"
     },
     {
+      "path": "scenes/1,1-billboard-target-entity"
+    },
+    {
       "path": "scenes/1,0-visibility-comp-propagation"
     },
     {
