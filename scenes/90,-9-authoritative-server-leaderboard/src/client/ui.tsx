@@ -1,8 +1,9 @@
 import { engine } from '@dcl/sdk/ecs'
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
+import { room } from '../shared/messages'
 import { Leaderboard } from '../shared/schemas'
-import { getMyScore, getToast, isServerAlive } from './state'
+import { getMyScore, getToast, isLocalAdmin, isServerAlive, showToast } from './state'
 
 export function setupUi(): void {
   ReactEcsRenderer.setUiRenderer(uiComponent)
@@ -42,10 +43,18 @@ function row(rank: number, name: string, score: number) {
   )
 }
 
+// Admin-only: ask the server to wipe the board. The server re-verifies the sender
+// against ADMINS, so a non-admin firing this (somehow) is a no-op server-side.
+function resetLeaderboard(): void {
+  room.send('resetLeaderboard', {})
+  showToast('Leaderboard reset requested…')
+}
+
 const uiComponent = () => {
   const { names, scores } = readBoard()
   const alive = isServerAlive()
   const toast = getToast()
+  const admin = isLocalAdmin()
 
   return (
     // Full-screen container: right-anchored (justifyContent flex-end on the row
@@ -109,6 +118,23 @@ const uiComponent = () => {
           <Label value="YOUR SCORE" fontSize={20} color={Color4.White()} />
           <Label value={`${getMyScore()}`} fontSize={27} color={ACCENT} />
         </UiEntity>
+
+        {/* Admin-only reset button (shown only to wallets in ADMINS) */}
+        {admin && (
+          <UiEntity
+            uiTransform={{
+              width: '100%',
+              height: 40,
+              margin: { top: 12 },
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
+            uiBackground={{ color: Color4.create(0.8, 0.2, 0.2, 0.85) }}
+            onMouseDown={resetLeaderboard}
+          >
+            <Label value="🗑  RESET LEADERBOARD" fontSize={18} color={Color4.White()} />
+          </UiEntity>
+        )}
 
         {/* Transient toast */}
         {toast !== '' && (
