@@ -1,6 +1,6 @@
 # SDK7 Test Scenes
 Welcome to the SDK7 Test Scene repository!
-Provides a simple environment for testing basic functionality during development.
+A place with separated test scenes for dedicated testing of different SDK features.
 
 ## Step to add a local scene
 1. Just create a new folder inside the `scenes/` path.
@@ -9,9 +9,9 @@ Provides a simple environment for testing basic functionality during development
 4. Commit your changes and push
 
 ## Step to run local scenes.
-1. npm run install-sdk
-2. npm install
-3. npm run start
+1. step into a scene's folder
+2. run `npm install`
+3. run `npm run start`
 
 ## Deploying and testing scenes in the SEPOLIA World
 
