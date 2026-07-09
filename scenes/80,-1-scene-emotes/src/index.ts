@@ -1,6 +1,6 @@
 import { Vector3 } from '@dcl/sdk/math'
 import { triggerEmote, triggerSceneEmote, stopEmote } from '~system/RestrictedActions'
-import { engine, GltfContainer, Transform, pointerEventsSystem, MeshRenderer, MeshCollider, TransformType, EventSystemCallback, AvatarEmoteMask } from '@dcl/sdk/ecs'
+import { engine, GltfContainer, Transform, pointerEventsSystem, MeshRenderer, MeshCollider, TransformType, EventSystemCallback, AvatarMask } from '@dcl/sdk/ecs'
 
 addTestCube({ position: Vector3.create(8, 1, 2) }, () => {
   triggerEmote({ predefinedEmote: 'robot' })
@@ -24,7 +24,7 @@ addTestCube({ position: Vector3.create(8, 1, 10) }, () => {
   if (maskedEmotePlaying) {
     stopEmote({})
   } else {
-    triggerSceneEmote({ src: 'animations/Crafting_Snowball_emote.glb', loop: true, mask: AvatarEmoteMask.AEM_UPPER_BODY })
+    triggerSceneEmote({ src: 'animations/Crafting_Snowball_emote.glb', loop: true, mask: AvatarMask.AM_UPPER_BODY })
   }
   maskedEmotePlaying = !maskedEmotePlaying
 }, "Crafting_Snowball_emote.glb (upper body)")

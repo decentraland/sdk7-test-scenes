@@ -10,8 +10,8 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "7.0.0",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/billboard-target-entity/dcl-sdk-7.24.4-28631572056.commit-1afff26.tgz"
+    "@dcl/js-runtime": "7.24.5-28985931443.commit-4a0bcfc",
+    "@dcl/sdk": "^7.24.5-28985931443.commit-4a0bcfc"
   },
   "engines": {
     "node": ">=16.0.0",
