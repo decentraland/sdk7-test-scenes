@@ -1,6 +1,7 @@
 import { engine } from '@dcl/sdk/ecs'
 import { isStateSyncronized } from '@dcl/sdk/network'
-import { HEARTBEAT_FRESHNESS_MS } from '../shared/config'
+import { getPlayer } from '@dcl/sdk/players'
+import { ADMINS, HEARTBEAT_FRESHNESS_MS } from '../shared/config'
 import { ServerHeartbeat } from '../shared/schemas'
 
 // Client-side, UI-facing state. Kept in its own module to avoid a circular import
@@ -50,4 +51,14 @@ export function isServerAlive(): boolean {
   if (!isStateSyncronized()) return false
   if (lastBeatSeenAt === 0) return false // never observed a tick yet
   return Date.now() - lastBeatSeenAt < HEARTBEAT_FRESHNESS_MS
+}
+
+// --- Admin gate -----------------------------------------------------------------
+// Purely cosmetic: decides whether to show the reset button. The SERVER is the real
+// authority and re-checks the sender against ADMINS, so hiding the button is only a
+// convenience, never the security boundary. getPlayer() returns the local player
+// (null until identity resolves), whose userId is the wallet address.
+export function isLocalAdmin(): boolean {
+  const userId = getPlayer()?.userId
+  return userId !== undefined && ADMINS.includes(userId.toLowerCase())
 }

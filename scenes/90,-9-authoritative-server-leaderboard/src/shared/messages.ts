@@ -12,7 +12,11 @@ export const Messages = {
   scoreUpdate: Schemas.Map({ total: Schemas.Int }),
 
   // Server → one client: a claim was rejected (e.g. you were too far from the orb).
-  claimRejected: Schemas.Map({ reason: Schemas.String })
+  claimRejected: Schemas.Map({ reason: Schemas.String }),
+
+  // Client → server: an admin asks to wipe the leaderboard. Empty payload — the
+  // server ignores the sender unless their verified wallet is in ADMINS.
+  resetLeaderboard: Schemas.Map({})
 }
 
 export const room = registerMessages(Messages)
