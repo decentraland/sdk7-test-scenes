@@ -6,8 +6,9 @@
     "@dcl-sdk/utils": "latest"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/export-unique-avatar-mask-enum/@dcl/js-runtime/dcl-js-runtime-7.24.5-28988277526.commit-44edbd8.tgz",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/export-unique-avatar-mask-enum/dcl-sdk-7.24.5-28988277526.commit-44edbd8.tgz"
+    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/single-exposure-types-between-kernel-apis-and-ecs-comp/@dcl/js-runtime/dcl-js-runtime-7.24.5-29288390187.commit-efabf0e.tgz",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/single-exposure-types-between-kernel-apis-and-ecs-comp/dcl-sdk-7.24.5-29288390187.commit-efabf0e.tgz",
+    "@dcl/sdk-commands": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/single-exposure-types-between-kernel-apis-and-ecs-comp/dcl-sdk-commands-7.24.5-29288390187.commit-efabf0e.tgz"
   },
   "engines": {
     "node": ">=16.0.0",
