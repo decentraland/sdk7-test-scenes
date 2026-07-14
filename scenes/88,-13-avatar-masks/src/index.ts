@@ -1,8 +1,8 @@
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import { engine, InputAction, Material, MeshCollider, MeshRenderer, pointerEventsSystem, Transform, PointerEvents, PointerEventType, inputSystem, GltfContainer, Tween, EasingFunction, ColliderLayer, CameraType, AvatarMask, AvatarAttach, AvatarAnchorPointType, InteractionType, PBMeshCollider_BoxMesh, PBMeshCollider } from '@dcl/sdk/ecs'
+import { engine, InputAction, Material, MeshCollider, MeshRenderer, pointerEventsSystem, Transform, PointerEventType, inputSystem, GltfContainer, ColliderLayer, AvatarMask, AvatarAttach, AvatarAnchorPointType } from '@dcl/sdk/ecs'
 import { setupUi } from './ui'
 import { stopEmote, triggerEmote, triggerSceneEmote } from '~system/RestrictedActions'
-import { getPlayer, onEnterScene, onLeaveScene } from '@dcl/sdk/src/players'
+import { getPlayer } from '@dcl/sdk/src/players'
 import { parentEntity, removeParent, syncEntity } from '@dcl/sdk/src/network'
 
 enum SyncId {
