@@ -18,7 +18,6 @@
   "author": "Decentraland",
   "license": "ISC",
   "dependencies": {
-    "@dcl/js-runtime": "experimental",
     "@dcl/sdk": "experimental",
     "glob": "^10.3.10",
     "syncpack": "^12.3.0"
