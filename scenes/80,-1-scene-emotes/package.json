@@ -6,7 +6,7 @@
     "@dcl-sdk/utils": "latest"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "^7.24.5-29351748668.commit-acb4b31",
+    "@dcl/js-runtime": "7.24.5-29351748668.commit-acb4b31",
     "@dcl/sdk": "^7.24.5-29351748668.commit-acb4b31",
     "@dcl/sdk-commands": "^7.24.5-29351748668.commit-acb4b31"
   },
