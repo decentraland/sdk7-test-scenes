@@ -1,8 +1,8 @@
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import { engine, InputAction, Material, MeshCollider, MeshRenderer, pointerEventsSystem, Transform, PointerEvents, PointerEventType, inputSystem, GltfContainer, Tween, EasingFunction, ColliderLayer, CameraType, AvatarEmoteMask, AvatarAttach, AvatarAnchorPointType, InteractionType, PBMeshCollider_BoxMesh, PBMeshCollider } from '@dcl/sdk/ecs'
+import { engine, InputAction, Material, MeshCollider, MeshRenderer, pointerEventsSystem, Transform, PointerEventType, inputSystem, GltfContainer, ColliderLayer, AvatarMask, AvatarAttach, AvatarAnchorPointType } from '@dcl/sdk/ecs'
 import { setupUi } from './ui'
 import { stopEmote, triggerEmote, triggerSceneEmote } from '~system/RestrictedActions'
-import { getPlayer, onEnterScene, onLeaveScene } from '@dcl/sdk/src/players'
+import { getPlayer } from '@dcl/sdk/src/players'
 import { parentEntity, removeParent, syncEntity } from '@dcl/sdk/src/network'
 
 enum SyncId {
@@ -35,9 +35,9 @@ export function main() {
         },
         function () {
             console.log('Interacted with trigger scene emote entity')   
-            //triggerSceneEmote({ src: 'assets/scene/Models/WateringCan_emote.glb', loop: true, mask: AvatarEmoteMask.AEM_FULL_BODY})
-            triggerSceneEmote({ src: 'assets/scene/Models/Hanoi_juggler_emote.glb', loop: true, mask: AvatarEmoteMask.AEM_UPPER_BODY})
-            //triggerSceneEmote({ src: 'assets/scene/Models/AvatarMasks_Test_emote.glb', loop: true, mask: AvatarEmoteMask.AEM_UPPER_BODY})
+            //triggerSceneEmote({ src: 'assets/scene/Models/WateringCan_emote.glb', loop: true, mask: AvatarMask.AM_FULL_BODY})
+            triggerSceneEmote({ src: 'assets/scene/Models/Hanoi_juggler_emote.glb', loop: true, mask: AvatarMask.AM_UPPER_BODY})
+            //triggerSceneEmote({ src: 'assets/scene/Models/AvatarMasks_Test_emote.glb', loop: true, mask: AvatarMask.AM_UPPER_BODY})
         }
     )
 
@@ -118,7 +118,7 @@ export function main() {
         crateHeld = true
 
         // Play carry animation
-        triggerSceneEmote({ src: 'assets/scene/Models/AvatarMasks_Test_emote.glb', loop: true, mask: AvatarEmoteMask.AEM_UPPER_BODY})
+        triggerSceneEmote({ src: 'assets/scene/Models/AvatarMasks_Test_emote.glb', loop: true, mask: AvatarMask.AM_UPPER_BODY})
 
         // Remove collider so it doesn't block interactions while held
         MeshCollider.deleteFrom(crateEntity)

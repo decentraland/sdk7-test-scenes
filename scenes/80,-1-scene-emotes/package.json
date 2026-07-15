@@ -6,8 +6,9 @@
     "@dcl-sdk/utils": "latest"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/export-unique-avatar-mask-enum/@dcl/js-runtime/dcl-js-runtime-7.24.5-28988277526.commit-44edbd8.tgz",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/export-unique-avatar-mask-enum/dcl-sdk-7.24.5-28988277526.commit-44edbd8.tgz"
+    "@dcl/js-runtime": "7.24.5-29351748668.commit-acb4b31",
+    "@dcl/sdk": "^7.24.5-29351748668.commit-acb4b31",
+    "@dcl/sdk-commands": "^7.24.5-29351748668.commit-acb4b31"
   },
   "engines": {
     "node": ">=16.0.0",
