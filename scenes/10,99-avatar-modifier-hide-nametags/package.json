@@ -10,8 +10,11 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "7.24.5-29351748668.commit-acb4b31",
-    "@dcl/sdk": "^7.24.5-28985931443.commit-4a0bcfc"
+    "@dcl/js-runtime": "7.24.5-28985931443.commit-4a0bcfc",
+    "@dcl/sdk": "^7.24.5"
+  },
+  "dependencies": {
+    "@dcl/sdk-commands": "^7.21.0"
   },
   "engines": {
     "node": ">=16.0.0",
