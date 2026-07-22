@@ -9,10 +9,6 @@
     "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
-  "devDependencies": {
-    "@dcl/asset-packs": "latest",
-    "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09"
-  },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=6.0.0"
@@ -22,5 +18,8 @@
     "singleQuote": true,
     "printWidth": 120,
     "trailingComma": "none"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5"
   }
 }

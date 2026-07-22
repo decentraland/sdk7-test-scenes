@@ -17,14 +17,6 @@ for (const projectFolder of projects.map(path.dirname)) {
   }
 }
 
-// update dcl-workspace.json
-{
-  const workspaceJsonPath = path.resolve('dcl-workspace.json')
-  const workspaceJson = JSON.parse(fs.readFileSync(workspaceJsonPath))
-  workspaceJson.folders = projects.map(path.dirname).map(_ => ({ path: path.relative(process.cwd(), _).replace(/\\/g, '/') })).sort()
-  fs.writeFileSync(workspaceJsonPath, JSON.stringify(workspaceJson, null, 2))
-}
-
 let fail = false
 for (const [tile, arr] of parcels) {
   if (arr.length > 1) {

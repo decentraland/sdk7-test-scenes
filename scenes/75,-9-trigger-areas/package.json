@@ -7,15 +7,15 @@
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy"
   },
-  "dependencies": {
-    "@dcl/js-runtime": "7.22.4-24525731607.commit-cda77a9",
-    "@dcl/sdk": "latest",
-    "@dcl/sdk-commands": "latest",
-    "@types/cannon": "latest",
-    "cannon": "latest"
-  },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=6.0.0"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5"
+  },
+  "dependencies": {
+    "cannon": "latest",
+    "@types/cannon": "latest"
   }
 }

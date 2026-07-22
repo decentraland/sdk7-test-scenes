@@ -2,12 +2,12 @@
   "name": "gltf-container-update-test",
   "description": "ECS7 ",
   "version": "1.0.0",
-  "dependencies": {
-    "@dcl/sdk": "latest"
-  },
   "scripts": {
     "build": "sdk-commands build --skip-install",
     "deploy": "sdk-commands deploy",
     "start": "sdk-commands start"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5"
   }
 }
