@@ -2,11 +2,6 @@
   "name": "json-scene",
   "description": "SDK7 Template scene",
   "version": "1.0.0",
-  "devDependencies": {
-    "@dcl/asset-packs": "latest",
-    "@dcl/js-runtime": "latest",
-    "@dcl/sdk": "^7.20.3"
-  },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=6.0.0"
@@ -23,5 +18,8 @@
     "start": "sdk-commands start",
     "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5"
   }
 }

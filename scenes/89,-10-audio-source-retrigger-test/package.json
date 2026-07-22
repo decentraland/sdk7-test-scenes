@@ -7,10 +7,6 @@
     "deploy": "sdk-commands deploy",
     "build": "sdk-commands build"
   },
-  "devDependencies": {
-    "@dcl/js-runtime": "7.0.0",
-    "@dcl/sdk": "^7.24.1-27387182535.commit-de44c20"
-  },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=6.0.0"
@@ -21,7 +17,7 @@
     "printWidth": 120,
     "trailingComma": "none"
   },
-  "dependencies": {
-    "@dcl/sdk-commands": "^7.21.0"
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5"
   }
 }

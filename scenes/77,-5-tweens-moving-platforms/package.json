@@ -2,14 +2,12 @@
   "name": "moving-platforms",
   "description": "Moving Platforms",
   "version": "1.0.0",
-  "dependencies": {
-    "@dcl-sdk/utils": "latest",
-    "@dcl/js-runtime": "7.13.0",
-    "@dcl/sdk": "^7.13.0"
-  },
   "scripts": {
     "build": "sdk-commands build --skip-install",
     "deploy": "sdk-commands deploy",
     "start": "sdk-commands start"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5"
   }
 }

@@ -11,15 +11,6 @@
     "format": "npx prettier src --write",
     "lint": "npx eslint src --fix"
   },
-  "devDependencies": {
-    "@dcl/asset-packs": "latest",
-    "@dcl/js-runtime": "7.14.0",
-    "@dcl/sdk": "7.20.4-22561917759.commit-d944d0d",
-    "@eslint/js": "^9.39.1",
-    "eslint": "^9.39.1",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.48.1"
-  },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=6.0.0"
@@ -29,5 +20,8 @@
     "singleQuote": true,
     "printWidth": 120,
     "trailingComma": "none"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5"
   }
 }

@@ -9,10 +9,6 @@
     "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
-  "devDependencies": {
-    "@dcl/js-runtime": "7.24.5-28985931443.commit-4a0bcfc",
-    "@dcl/sdk": "^7.24.5-28985931443.commit-4a0bcfc"
-  },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=6.0.0"
@@ -23,7 +19,7 @@
     "printWidth": 120,
     "trailingComma": "none"
   },
-  "dependencies": {
-    "@dcl/sdk-commands": "^7.21.0"
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5"
   }
 }

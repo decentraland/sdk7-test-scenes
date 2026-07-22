@@ -2,14 +2,6 @@
   "name": "scene-emotes",
   "description": "Avatar custom animations from the scene",
   "version": "1.0.0",
-  "dependencies": {
-    "@dcl-sdk/utils": "latest"
-  },
-  "devDependencies": {
-    "@dcl/js-runtime": "7.24.5-29351748668.commit-acb4b31",
-    "@dcl/sdk": "^7.24.5-29351748668.commit-acb4b31",
-    "@dcl/sdk-commands": "^7.24.5-29351748668.commit-acb4b31"
-  },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=6.0.0"
@@ -26,5 +18,8 @@
     "start": "sdk-commands start",
     "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5"
   }
 }

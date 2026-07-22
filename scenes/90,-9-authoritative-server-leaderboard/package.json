@@ -8,10 +8,6 @@
     "build": "sdk-commands build",
     "server-logs": "sdk-commands sdk-server-logs"
   },
-  "devDependencies": {
-    "@dcl/js-runtime": "7.24.4-28592331167.commit-697ce9e",
-    "@dcl/sdk": "7.24.4-28592331167.commit-697ce9e"
-  },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=6.0.0"
@@ -22,7 +18,7 @@
     "printWidth": 120,
     "trailingComma": "none"
   },
-  "dependencies": {
-    "@dcl/sdk-commands": "7.24.4-28592331167.commit-697ce9e"
+  "devDependencies": {
+    "@dcl/sdk": "auth-server"
   }
 }
