@@ -3,7 +3,7 @@
   "runtimeVersion": "7",
   "display": {
     "title": "Authoritative Server — Limits Lab",
-    "description": "A QA harness for the hammurabi-headless authoritative server. Clients click per-limit test buttons; the server executes each limit-pushing operation (concurrent fetches, WebSocket size/count, comms rate limits, entity spam) and reports the outcome back via synced components. Includes a gated DANGER ZONE for destructive tests that intentionally kill the server isolate."
+    "description": ""
   },
   "owner": "",
   "contact": {
