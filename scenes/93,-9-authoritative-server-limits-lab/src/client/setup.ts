@@ -1,7 +1,7 @@
 import { Material, MeshCollider, MeshRenderer, TextAlignMode, TextShape, Transform, engine, timers } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { isStateSyncronized } from '@dcl/sdk/network'
-import { FLOOD_DURATION_MS, FLOOD_PER_FRAME } from '../shared/config'
+import { FLOOD_DURATION_MS, FLOOD_PER_FRAME, FLOOD_REPORT_DELAY_MS } from '../shared/config'
 import { room } from '../shared/messages'
 import { RunnerState } from '../shared/schemas'
 import { isServerAlive, pollHeartbeat, showToast } from './state'
@@ -93,7 +93,11 @@ function clientSyncSystem(): void {
   if (flooding) {
     if (Date.now() >= floodEndsAt) {
       flooding = false
-      room.send('reportFloodSent', { testIndex: 8, sent: floodSent })
+      // Delay the report past the 1 s rate window the flood just exhausted —
+      // sent immediately, the report itself is rate-limited away and the server
+      // sees "no flood observed" (see FLOOD_REPORT_DELAY_MS in config.ts).
+      const sent = floodSent
+      timers.setTimeout(() => room.send('reportFloodSent', { testIndex: 8, sent }), FLOOD_REPORT_DELAY_MS)
     } else {
       for (let i = 0; i < FLOOD_PER_FRAME; i++) room.send('floodPing', { seq: floodSent++ })
     }

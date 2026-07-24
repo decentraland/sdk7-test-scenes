@@ -62,7 +62,7 @@ Only one test runs at a time; clicking another while one is running gets you a
 | 3 | Fetch body size | `maxBodyBytes = 10 MB` | rejects "response body exceeds N bytes" |
 | 4 | WebSocket message size | `maxWsMessageBytes = 1 MB` | oversized frame dropped (silent); only the sentinel echoes |
 | 5 | Open sockets | `maxOpenSockets = 32` | 33rd socket throws "too many open connections" |
-| 6 | In-flight host calls | `maxInflightHostCalls = 40` | excess `Storage.get` reject "too many concurrent host calls" |
+| 6 | In-flight host calls | `maxInflightHostCalls = 40` | excess `getRealm` reject "too many concurrent host calls" |
 | 7 | Outbound comms burst | `maxSendMessages = 512` | clients receive < 700 (excess dropped) |
 | 8 | Inbound rate limit | `maxMessagesPerWindow = 300/s` | server receives fewer than the client sent |
 | 9 | Entity spam | `maxLiveEntities = 100000` | live count climbs; clients feel sync stress |
@@ -76,14 +76,22 @@ Notes on the trickier ones:
   the drop observably: it sends the oversized frame followed by a small sentinel,
   and passes when only the sentinel echoes back (the oversized one, had it been
   sent, would have echoed first). Needs an echo server (`ws.postman-echo.com`).
-- **#6 uses `Storage.get`, not `fetch`.** `fetch` would trip its own 32-concurrency
-  cap first, so the in-flight host-call cap is pushed with a non-fetch host call.
+- **#6 uses raw `getRealm`, not `fetch` and not `Storage`.** `fetch` would trip its
+  own 32-concurrency cap first, so the cap is pushed with a non-fetch host call —
+  and it must be a *raw* one. `Storage.get` (the original probe) stopped working
+  with js-sdk-toolchain#1497: the per-call `getRealm` inside `getStorageServerUrl`
+  is now memoized, repeat reads are served from an in-memory cache (zero host
+  calls), and transport errors resolve to `null` instead of rejecting — so the
+  burst fulfills 60/60 and no rejection ever surfaces to count.
 - **#7 (comms burst)** relies on ≥1 other client being connected to report a
   tally. The server emits 700 messages in one turn; the room batches them into a
   single `sendBinary`, so `maxSendMessages` drops everything past 512. The detail
   line shows received / sent across the reporting clients.
 - **#8 (inbound rate limit)** is client-driven: the clicking client floods tiny
-  messages (~1200/s) for ~3 s while the server counts arrivals. **Caveat:** the
+  messages (~1200/s) for ~3 s while the server counts arrivals. The client's
+  `reportFloodSent` is deliberately delayed 1.5 s past the flood — sent
+  immediately, the report itself lands in the same 1 s rate window the flood
+  exhausted and is silently dropped ("no flood observed"). **Caveat:** the
   SDK batches a client's per-frame messages into one transport packet, and the
   server's limiter counts *packets*, so heavy batching can coalesce the flood
   below the cap. If received ≈ sent, the flood was coalesced or under the cap —

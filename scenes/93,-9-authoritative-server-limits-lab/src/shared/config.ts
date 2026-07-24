@@ -74,6 +74,13 @@ export const ENTITY_TARGETS = [10000, 50000, 100000]
 export const FLOOD_DURATION_MS = 3000
 export const FLOOD_PER_FRAME = 40
 
+// How long the client waits after the flood before sending reportFloodSent. The
+// report must survive the very rate limiter the flood just tripped: sent
+// immediately, it lands in the same 1 s window whose budget the flood exhausted
+// and is silently dropped ("no flood observed"). Waiting >1 full rateWindowMs
+// guarantees the report goes out in a fresh window.
+export const FLOOD_REPORT_DELAY_MS = 1500
+
 // Result detail strings are truncated to this before being written to a synced
 // component, keeping TestResults well under the CRDT chunk cap.
 export const RESULT_DETAIL_MAX = 80

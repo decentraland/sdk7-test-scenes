@@ -1,8 +1,9 @@
-import { Storage } from '@dcl/sdk/server'
+import { getRealm } from '~system/Runtime'
 import {
   ENDPOINTS,
   FETCH_BURST,
   FLOOD_DURATION_MS,
+  FLOOD_REPORT_DELAY_MS,
   HOSTCALL_BURST,
   SEND_BURST,
   WS_BURST,
@@ -55,14 +56,21 @@ const fetchRedirects: TestFn = async () => {
 
 // #3 — maxBodyBytes = 10 MB. Read a body bigger than the buffer cap. The cap can
 // fire during fetch() (Content-Length) or while reading the body — cover both.
+// The cap error is named ("response body exceeds N bytes"); undici's generic
+// "fetch failed" means the request itself died (endpoint/network hiccup) and says
+// nothing about the limit, so retry once before reporting it as inconclusive.
 const fetchBodySize: TestFn = async () => {
-  try {
-    const res = await fetch(ENDPOINTS.fetchBigBody)
-    await res.text()
-    return { pass: false, detail: 'read the whole body without hitting the cap' }
-  } catch (e) {
-    const m = errMsg(e)
-    return { pass: /exceed|too large|body/i.test(m), detail: m }
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(ENDPOINTS.fetchBigBody)
+      await res.text()
+      return { pass: false, detail: 'read the whole body without hitting the cap' }
+    } catch (e) {
+      const m = errMsg(e)
+      if (/exceed|too large|body/i.test(m)) return { pass: true, detail: m }
+      if (attempt < 2) continue
+      return { pass: false, detail: `${m} — endpoint unreachable from server? retry` }
+    }
   }
 }
 
@@ -142,11 +150,15 @@ const wsOpenSockets: TestFn = async () => {
 }
 
 // #6 — maxInflightHostCalls = 40. fetch trips its own 32-cap first, so burst a
-// NON-fetch host call instead. Storage.get crosses the host boundary cleanly.
+// NON-fetch host call instead. getRealm crosses the host boundary raw: past the
+// cap the bridge rejects with "too many concurrent host calls" and nothing in
+// between catches it. Storage.get stopped working as the probe with SDK PR
+// js-sdk-toolchain#1497: getStorageServerUrl (the old per-call getRealm) is now
+// memoized, repeat reads are served from an in-memory cache (zero host calls),
+// and transport errors are swallowed into a `null` result — the burst resolves
+// fulfilled across the board, so no rejection ever surfaces to count.
 const inflightHostCalls: TestFn = async () => {
-  const settled = await Promise.allSettled(
-    Array.from({ length: HOSTCALL_BURST }, (_v, i) => Storage.get(`limitslab-probe-${i}`))
-  )
+  const settled = await Promise.allSettled(Array.from({ length: HOSTCALL_BURST }, () => getRealm({})))
   const rejected = settled.filter((r) => r.status === 'rejected') as PromiseRejectedResult[]
   const forCap = rejected.filter((r) => /too many concurrent host calls/i.test(errMsg(r.reason))).length
   return {
@@ -192,8 +204,9 @@ const inboundRateLimit: TestFn = async (ctx) => {
   tally.inboundReceivedByServer = 0
   tally.inboundSentByClient = 0
 
-  // Wait for the client's ~3 s flood plus a buffer for its reportFloodSent.
-  await ctx.delay(FLOOD_DURATION_MS + 2000)
+  // Wait for the client's ~3 s flood, its deliberately-delayed reportFloodSent
+  // (see FLOOD_REPORT_DELAY_MS), plus transit buffer.
+  await ctx.delay(FLOOD_DURATION_MS + FLOOD_REPORT_DELAY_MS + 2000)
 
   const t = CommsTally.get(ctx.stateEntity)
   if (t.inboundSentByClient === 0) {
