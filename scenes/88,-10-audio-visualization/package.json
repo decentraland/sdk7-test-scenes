@@ -22,6 +22,7 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/sdk": "^7.24.5"
+    "@dcl/sdk": "^7.24.5",
+    "@dcl/js-runtime": "7.24.5"
   }
 }
