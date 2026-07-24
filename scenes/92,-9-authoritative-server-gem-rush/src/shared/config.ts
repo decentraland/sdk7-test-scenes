@@ -10,10 +10,19 @@ export const NORMAL_VALUE = 1
 export const RARE_VALUE = 5
 
 // A collect is only accepted if the player is within this many metres of the gem.
-// This is the server-side anti-cheat radius. Kept generous (most of the parcel)
-// so players can collect from range; it still rejects senders who aren't
-// actually in/near the scene.
-export const COLLECT_RADIUS = 12
+// This is the server-side anti-cheat radius, verified from the player's
+// server-side Transform — never anything the client reported. Tight on purpose:
+// the player has to genuinely walk up to a gem, so position actually gates
+// collection instead of letting any click from across the parcel through.
+export const COLLECT_RADIUS = 2
+
+// Max ray length for the client's click handler on a gem. DELIBERATELY much larger
+// than COLLECT_RADIUS: the client lets you CLICK a gem from across the parcel, but
+// the server only ACCEPTS the collect within COLLECT_RADIUS. That gap is the point
+// of this teaching scene — clicking a far gem sends the exact same "collectGem"
+// intent a cheating client would hand-craft, and lets you watch the authoritative
+// server reject it with in-scene feedback. Keep this well above COLLECT_RADIUS.
+export const GEM_POINTER_MAX_DISTANCE = 16
 
 // How many ranked entries the synced round scoreboard broadcasts (13 KB-cap safety).
 export const MAX_SCOREBOARD = 8

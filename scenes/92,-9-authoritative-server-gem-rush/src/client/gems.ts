@@ -8,7 +8,7 @@ import {
   pointerEventsSystem
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import { RARE_VALUE } from '../shared/config'
+import { GEM_POINTER_MAX_DISTANCE, RARE_VALUE } from '../shared/config'
 import { Gem } from '../shared/schemas'
 import { queueCollect } from './setup'
 
@@ -67,9 +67,12 @@ function gemDecoratorSystem(dt: number): void {
           opts: {
             button: InputAction.IA_POINTER,
             hoverText: rare ? `Rare gem! (+${gem.value})` : 'Collect (+1)',
-            // Clickable from across the parcel — the server's COLLECT_RADIUS is
-            // the real gate, so keep this at least as large as that.
-            maxDistance: 25
+            // Only clickable when the player is close: derived from the server's
+            // COLLECT_RADIUS (+ a camera buffer) so the click ray roughly matches
+            // the range at which the server will actually accept the collect. The
+            // server anti-cheat is still the real gate — this just stops clicks
+            // firing from across the parcel only to be rejected.
+            maxDistance: GEM_POINTER_MAX_DISTANCE
           }
         },
         () => queueCollect(gemId)

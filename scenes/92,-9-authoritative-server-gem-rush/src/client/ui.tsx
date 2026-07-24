@@ -54,6 +54,8 @@ const SELF_BG = Color4.create(0.22, 0.84, 0.94, 0.18)
 const ACCENT = Color4.fromHexString('#37d5efff')
 const GOLD = Color4.fromHexString('#ffd34eff')
 const DIM = Color4.create(1, 1, 1, 0.7)
+const ALERT = Color4.fromHexString('#ff4d4dff')
+const ALERT_BG = Color4.create(0.5, 0.06, 0.06, 0.85)
 
 function phaseBanner(state: ReturnType<typeof readRoundState>): { text: string; color: Color4 } {
   const mmss = `0:${String(Math.max(0, state.secondsLeft)).padStart(2, '0')}`
@@ -214,9 +216,18 @@ const uiComponent = () => {
           />
         )}
 
-        {/* Transient toast */}
-        {toast !== '' && (
-          <Label value={toast} fontSize={18} color={Color4.fromHexString('#ff9d3aff')} uiTransform={{ height: 30, margin: { top: 8 } }} />
+        {/* Transient toast. An anti-cheat 'alert' renders as a red boxed banner so a
+            server-blocked collect is unmistakable; benign info is plain orange text. */}
+        {toast.text !== '' && toast.kind === 'alert' && (
+          <UiEntity
+            uiTransform={{ width: '100%', height: 'auto', margin: { top: 8 }, padding: 10 }}
+            uiBackground={{ color: ALERT_BG }}
+          >
+            <Label value={toast.text} fontSize={17} color={ALERT} />
+          </UiEntity>
+        )}
+        {toast.text !== '' && toast.kind !== 'alert' && (
+          <Label value={toast.text} fontSize={18} color={Color4.fromHexString('#ff9d3aff')} uiTransform={{ height: 30, margin: { top: 8 } }} />
         )}
       </UiEntity>
     </UiEntity>

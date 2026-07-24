@@ -25,8 +25,9 @@ export function setupClient(): void {
     showToast(data.value > 1 ? `Rare gem! +${data.value}` : '+1 gem')
   })
 
-  // Server → me: collect was rejected (too far, too late, no round).
-  room.onMessage('collectRejected', (data) => showToast(data.reason))
+  // Server → me: collect was rejected (too far, too late, no round). An anti-cheat
+  // rejection (clicked a gem I wasn't near) shows as a distinct red alert.
+  room.onMessage('collectRejected', (data) => showToast(data.reason, data.antiCheat ? 'alert' : 'info'))
 
   // Server → me: my persisted lifetime stats.
   room.onMessage('myStats', (data) => setLifetimeStats(data))
