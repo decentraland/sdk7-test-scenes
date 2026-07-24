@@ -1,0 +1,61 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Authoritative Server — Limits Lab",
+    "description": "A QA harness for the hammurabi-headless authoritative server. Clients click per-limit test buttons; the server executes each limit-pushing operation (concurrent fetches, WebSocket size/count, comms rate limits, entity spam) and reports the outcome back via synced components. Includes a gated DANGER ZONE for destructive tests that intentionally kill the server isolate."
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": [
+    "multiplayer",
+    "authoritative-server",
+    "limits",
+    "qa",
+    "test"
+  ],
+  "scene": {
+    "parcels": [
+      "93,-9"
+    ],
+    "base": "93,-9"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          2,
+          4
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          2,
+          4
+        ]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1,
+        "z": 8
+      }
+    }
+  ],
+  "requiredPermissions": [
+    "USE_FETCH",
+    "USE_WEBSOCKET"
+  ],
+  "featureToggles": {},
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  },
+  "authoritativeMultiplayer": true
+}

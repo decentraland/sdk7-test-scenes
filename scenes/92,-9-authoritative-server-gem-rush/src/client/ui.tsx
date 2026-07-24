@@ -4,9 +4,13 @@ import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { getPlayer } from '@dcl/sdk/players'
 import { HallOfFame, LastRound, RoundPhase, RoundScores, RoundState } from '../shared/schemas'
 import { getLifetimeStats, getMyRoundTotal, getToast, isServerAlive } from './state'
+import { getPlatform } from '@dcl/sdk/platform'
+
+const platform = getPlatform()
+const isMobile = platform === 'mobile';
 
 export function setupUi(): void {
-  ReactEcsRenderer.setUiRenderer(uiComponent)
+    ReactEcsRenderer.setUiRenderer(uiComponent, { virtualWidth: isMobile ? 1600 : 1920, virtualHeight: isMobile ? 720 : 1080 })
 }
 
 // Read the synced, server-authoritative state (there is exactly one entity
