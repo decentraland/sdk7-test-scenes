@@ -53,7 +53,11 @@ function registerMessageHandlers(): void {
     const address = context.from.toLowerCase()
 
     if (getPhase() !== RoundPhase.Active) {
-      room.send('collectRejected', { gemId: data.gemId, reason: 'No active round right now.' }, { to: [context.from] })
+      room.send(
+        'collectRejected',
+        { gemId: data.gemId, reason: 'No active round right now.', antiCheat: false },
+        { to: [context.from] }
+      )
       return
     }
 
@@ -61,23 +65,28 @@ function registerMessageHandlers(): void {
     // the gem, so the second lookup simply misses.
     const gem = getGem(data.gemId)
     if (!gem) {
-      room.send('collectRejected', { gemId: data.gemId, reason: 'Too late — gem already taken!' }, { to: [context.from] })
+      room.send(
+        'collectRejected',
+        { gemId: data.gemId, reason: 'Too late — gem already taken!', antiCheat: false },
+        { to: [context.from] }
+      )
       return
     }
 
     // --- Anti-cheat: verify the player is genuinely near the gem. ---
     // We trust ONLY server-verified positions read from PlayerIdentityData +
     // Transform, never anything the client reported. The gem position comes from
-    // the server's own memory (liveGems), not from any synced component.
+    // the server's own memory (liveGems), not from any synced component. A client
+    // that clicks a far gem (or hand-crafts a collectGem packet) is caught here.
     let playerName = shortAddress(address)
-    let withinRange = false
+    let distance = Number.POSITIVE_INFINITY
 
     for (const [playerEntity, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
       if (identity.address.toLowerCase() !== address) continue
 
       const transform = Transform.getOrNull(playerEntity)
       if (transform) {
-        withinRange = Vector3.distance(transform.position, gem.position) <= COLLECT_RADIUS
+        distance = Vector3.distance(transform.position, gem.position)
       }
 
       const avatar = AvatarBase.getOrNull(playerEntity)
@@ -85,8 +94,15 @@ function registerMessageHandlers(): void {
       break
     }
 
-    if (!withinRange) {
-      room.send('collectRejected', { gemId: data.gemId, reason: 'Get closer to the gem!' }, { to: [context.from] })
+    if (distance > COLLECT_RADIUS) {
+      const reason = Number.isFinite(distance)
+        ? `⛔ Server blocked: you were ${distance.toFixed(1)}m from the gem (must be within ${COLLECT_RADIUS}m).`
+        : '⛔ Server blocked: could not verify your position.'
+      console.log(
+        `[ANTI-CHEAT] Rejected collect of gem ${data.gemId} from ${playerName} (${address}): ` +
+          `distance=${Number.isFinite(distance) ? distance.toFixed(1) + 'm' : 'unknown'}, radius=${COLLECT_RADIUS}m`
+      )
+      room.send('collectRejected', { gemId: data.gemId, reason, antiCheat: true }, { to: [context.from] })
       return
     }
 

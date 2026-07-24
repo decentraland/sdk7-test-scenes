@@ -16,7 +16,10 @@ export const Messages = {
   gemCollected: Schemas.Map({ gemId: Schemas.Int, value: Schemas.Int, roundTotal: Schemas.Int }),
 
   // Server → one client: your collect was rejected (too far / too late / no round).
-  collectRejected: Schemas.Map({ gemId: Schemas.Int, reason: Schemas.String }),
+  // antiCheat=true marks the rejection that came from the server-side position
+  // check specifically (the collect was for a gem the player was NOT near), so the
+  // client can flag it distinctly from the benign "no round / too late" rejections.
+  collectRejected: Schemas.Map({ gemId: Schemas.Int, reason: Schemas.String, antiCheat: Schemas.Boolean }),
 
   // Client → server: ask for my persisted lifetime stats (sent once after join).
   getMyStats: Schemas.Map({}),

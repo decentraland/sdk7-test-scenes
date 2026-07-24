@@ -26,14 +26,19 @@ export function setLifetimeStats(stats: LifetimeStats): void {
 }
 
 // --- Transient toast message (e.g. "get closer to the gem") ---------------------
+// 'alert' toasts (e.g. a server anti-cheat rejection) render distinctly and linger
+// a little longer than the benign 'info' ones.
+export type ToastKind = 'info' | 'alert'
 let toastText = ''
+let toastKind: ToastKind = 'info'
 let toastUntil = 0
-export function showToast(message: string): void {
+export function showToast(message: string, kind: ToastKind = 'info'): void {
   toastText = message
-  toastUntil = Date.now() + 3000
+  toastKind = kind
+  toastUntil = Date.now() + (kind === 'alert' ? 4500 : 3000)
 }
-export function getToast(): string {
-  return Date.now() < toastUntil ? toastText : ''
+export function getToast(): { text: string; kind: ToastKind } {
+  return Date.now() < toastUntil ? { text: toastText, kind: toastKind } : { text: '', kind: 'info' }
 }
 
 // --- Server liveness ------------------------------------------------------------

@@ -50,7 +50,7 @@ mirrored into synced components (`RoundState`, `RoundScores`, `LastRound`,
 | **Dynamic synced entities**: server spawns/despawns gem entities per round (`syncEntity` + `engine.removeEntity`) | `src/server/rounds.ts` |
 | Synced component carrying data (`Gem.position`) while clients keep **local-only decorations** (mesh, material, spin animation) on the same entity | `src/shared/schemas.ts`, `src/client/gems.ts` |
 | Per-player persistence with `Storage.player` (lifetime stats) | `src/server/persistence.ts` |
-| Proximity anti-cheat using server-verified `PlayerIdentityData` + `Transform` | `src/server/server.ts` |
+| Proximity anti-cheat using server-verified `PlayerIdentityData` + `Transform`, with an observable in-scene rejection (red alert + `[ANTI-CHEAT]` log) when a far click is blocked | `src/server/server.ts`, `src/client/ui.tsx` |
 | Server-only component writes via `validateBeforeChange()` → `AUTH_SERVER_PEER_ID` | `src/shared/schemas.ts` |
 | Client→server / server→client messages via `registerMessages()` | `src/shared/messages.ts` |
 | Server-liveness **heartbeat** (distinguishing "room synced" from "server awake") | `src/shared/schemas.ts`, `src/client/state.ts` |
@@ -73,11 +73,34 @@ The client **never reports a score or a position** — only the *intent* to coll
 
 1. Reads the sender's wallet from the verified message `context.from`.
 2. Checks the round is active and the gem still exists (first click wins races).
-3. Confirms the player is genuinely within `COLLECT_RADIUS` of the gem using
+3. Confirms the player is genuinely within `COLLECT_RADIUS` (2 m) of the gem using
    server-verified positions (`PlayerIdentityData` + `Transform`) and the gem
    position from its own memory — never client-reported data.
 4. Counts the score itself and is the *only* writer of every synced component
    (enforced by `validateBeforeChange` → `AUTH_SERVER_PEER_ID`).
+
+**The gem never disappears on the click.** Nothing client-side removes it: the
+entity is only despawned by the server inside `acceptCollect` (`engine.removeEntity`)
+*after* the three checks pass, and that despawn syncs to every client. A rejected
+collect leaves the gem exactly where it was.
+
+### Testing the anti-cheat
+
+The pointer's `maxDistance` (`GEM_POINTER_MAX_DISTANCE`, 16 m) is **deliberately much
+larger** than the server's `COLLECT_RADIUS` (2 m). That gap is the test surface:
+
+- **Legit collect** — walk up to a gem (within 2 m) and click. Accepted; the score
+  ticks up and the gem despawns for everyone.
+- **Trigger the anti-cheat** — stand far from a gem (anywhere across the parcel) and
+  click it. The click still *fires* — sending the exact same `collectGem { gemId }`
+  intent a hand-crafted cheating client would — but the server rejects it. You get a
+  distinct **red "⛔ Server blocked: you were X m from the gem…" banner** in the HUD,
+  the server logs an `[ANTI-CHEAT]` line with the measured distance, and **the gem
+  stays put**.
+
+Because the client sends only intent (never a position or score), a raw crafted
+`collectGem` packet from anywhere produces byte-identical traffic to a far-away
+click — and is rejected by the same server-side `Transform` check.
 
 ## Run it
 
