@@ -43,7 +43,7 @@ export function main() {
         ]
     })
     VideoPlayer.create(shark, {
-        src: 'https://player.vimeo.com/external/878776484.m3u8?s=0b62be8cfb1d35f8bf30fcb33170a6f3a86620fe&logging=false',
+        src: 'https://vz-8a0704eb-552.b-cdn.net/868d1f35-9036-4985-9a3f-73d4498213a5/playlist.m3u8',
         playing: true,
     })
     let clickCounter = 0;
@@ -53,10 +53,10 @@ export function main() {
             opts: {
                 button: InputAction.IA_POINTER,
                 hoverText: "Animate!",
-            }},
+            }
+        },
         () => {
-            if (clickCounter === 0)
-            {
+            if (clickCounter === 0) {
                 clickCounter = 1;
                 Animator.playSingleAnimation(shark, "swim");
             } else if (clickCounter === 1) {
@@ -65,7 +65,7 @@ export function main() {
             } else if (clickCounter === 2) {
                 clickCounter = 3;
                 Animator.playSingleAnimation(shark, "swim");
-                let animation = Animator.getClip(shark,"bite");
+                let animation = Animator.getClip(shark, "bite");
                 animation.playing = true;
             } else {
                 Animator.stopAllAnimations(shark);
@@ -85,7 +85,7 @@ export function main() {
         cake,
         {
             modifiers: [
-                { path: '', material: { material: { $case: 'pbr', pbr: { texture: Material.Texture.Video({ videoPlayerEntity: shark }), } }} }
+                { path: '', material: { material: { $case: 'pbr', pbr: { texture: Material.Texture.Video({ videoPlayerEntity: shark }), } } } }
             ]
         }
     )
@@ -105,7 +105,8 @@ export function main() {
                                     texture: Material.Texture.Video({ videoPlayerEntity: shark }),
                                 }
                             }
-                        }}
+                        }
+                    }
                     ]
                 }
             )
@@ -127,7 +128,8 @@ export function main() {
                                     texture: Material.Texture.Video({ videoPlayerEntity: shark }),
                                 }
                             }
-                        }}
+                        }
+                    }
                     ]
                 }
             )
@@ -150,7 +152,8 @@ export function main() {
                                     albedoColor: randomizedColor,
                                 }
                             }
-                        }}
+                        }
+                    }
                     ]
                 }
             )
@@ -181,7 +184,7 @@ export function main() {
             GltfNodeModifiers.createOrReplace(
                 shark,
                 {
-                    modifiers: [ {
+                    modifiers: [{
                         path: 'Scene_root/shark_skeleton/Sphere/Sphere.001',
                         material: {
                             material: {
@@ -193,36 +196,36 @@ export function main() {
                             }
                         }
                     },
-                        {
-                            path: 'Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_1',
+                    {
+                        path: 'Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_1',
+                        material: {
                             material: {
-                                material: {
-                                    $case: 'unlit', unlit: {
-                                        diffuseColor: Color4.fromHexString(getRandomHexColor()),
-                                    }
-                                }
-                            }
-                        },
-                        {
-                            path: 'Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_2',
-                            material: {
-                                material: {
-                                    $case: 'pbr', pbr: {
-                                        albedoColor: Color4.fromHexString(getRandomHexColor()),
-                                    }
-                                }
-                            }
-                        },
-                        {
-                            path: 'Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_3',
-                            material: {
-                                material: {
-                                    $case: 'pbr', pbr: {
-                                        albedoColor: Color4.fromHexString(getRandomHexColor()),
-                                    }
+                                $case: 'unlit', unlit: {
+                                    diffuseColor: Color4.fromHexString(getRandomHexColor()),
                                 }
                             }
                         }
+                    },
+                    {
+                        path: 'Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_2',
+                        material: {
+                            material: {
+                                $case: 'pbr', pbr: {
+                                    albedoColor: Color4.fromHexString(getRandomHexColor()),
+                                }
+                            }
+                        }
+                    },
+                    {
+                        path: 'Scene_root/shark_skeleton/Sphere/Sphere.001/Sphere_3',
+                        material: {
+                            material: {
+                                $case: 'pbr', pbr: {
+                                    albedoColor: Color4.fromHexString(getRandomHexColor()),
+                                }
+                            }
+                        }
+                    }
                     ]
                 }
             )
@@ -319,8 +322,8 @@ export function main() {
                 }
             )
         }
-    ) 
-    
+    )
+
     // --------------------------------------------------
 
     // Primitive Mesh
@@ -336,7 +339,8 @@ export function main() {
             opts: {
                 button: InputAction.IA_POINTER,
                 hoverText: "TOGGLE CUBE Material!",
-            }},
+            }
+        },
         () => {
             if (!Material.has(cube)) {
                 Material.setPbrMaterial(cube, {
@@ -388,7 +392,8 @@ function createClickableCube(position: Vector3, hoverText: string, callback: Eve
             opts: {
                 button: InputAction.IA_POINTER,
                 hoverText: hoverText,
-            }},
+            }
+        },
         callback)
 }
 
