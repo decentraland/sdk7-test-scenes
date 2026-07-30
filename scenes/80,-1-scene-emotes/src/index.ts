@@ -29,6 +29,23 @@ addTestCube({ position: Vector3.create(8, 1, 10) }, () => {
   maskedEmotePlaying = !maskedEmotePlaying
 }, "Crafting_Snowball_emote.glb (upper body)")
 
+// A non-looping masked emote must play exactly once and hand the upper body back to locomotion.
+// If it restarts by itself, the masked loop flag is being ignored.
+addTestCube({ position: Vector3.create(8, 1, 12) }, () => {
+  triggerSceneEmote({ src: 'animations/Fishing_Cast_emote.glb', loop: false, mask: AvatarMask.AM_UPPER_BODY })
+}, "Fishing_Cast_emote.glb (upper body, loop: false)\nplays once")
+
+// Same clip looping, to compare against the one-shot cube above
+let fishingLoopPlaying = false
+addTestCube({ position: Vector3.create(8, 1, 14) }, () => {
+  if (fishingLoopPlaying) {
+    stopEmote({})
+  } else {
+    triggerSceneEmote({ src: 'animations/Fishing_Cast_emote.glb', loop: true, mask: AvatarMask.AM_UPPER_BODY })
+  }
+  fishingLoopPlaying = !fishingLoopPlaying
+}, "Fishing_Cast_emote.glb (upper body, loop: true)\nrepeats until clicked again")
+
 let snowTree = engine.addEntity()
 
 GltfContainer.create(snowTree, { src: "models/SnowTree_01.glb" })
