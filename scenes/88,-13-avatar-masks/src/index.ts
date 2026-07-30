@@ -91,6 +91,59 @@ export function main() {
         }
     )
 
+    // One-shot masked emote entity.
+    // A non-looping masked emote must play exactly once and hand the upper body back to
+    // locomotion. If it restarts by itself, the masked loop flag is being ignored.
+    const oneShotMaskedEmoteEntity = engine.addEntity()
+    MeshRenderer.setBox(oneShotMaskedEmoteEntity)
+    MeshCollider.setBox(oneShotMaskedEmoteEntity)
+    Material.setPbrMaterial(oneShotMaskedEmoteEntity, {albedoColor: Color4.Blue()})
+    Transform.create(oneShotMaskedEmoteEntity, { position: Vector3.create(10, 1, 4)})
+
+    pointerEventsSystem.onPointerDown(
+        {
+            entity: oneShotMaskedEmoteEntity,
+            opts: {
+                button: InputAction.IA_PRIMARY,
+                hoverText: 'Fishing cast once (upper body)',
+                showHighlight: true,
+                showFeedback: true,
+                maxDistance: 10,
+                maxPlayerDistance: 10,
+            },
+        },
+        function () {
+            console.log('Interacted with one-shot masked emote entity')
+            triggerSceneEmote({ src: 'assets/Fishing_Cast_emote.glb', loop: false, mask: AvatarMask.AM_UPPER_BODY})
+        }
+    )
+
+    // Looping masked emote entity, same clip as the one-shot above so both can be compared.
+    // This one must keep repeating until the red stop entity is used.
+    const loopingMaskedEmoteEntity = engine.addEntity()
+    MeshRenderer.setBox(loopingMaskedEmoteEntity)
+    MeshCollider.setBox(loopingMaskedEmoteEntity)
+    Material.setPbrMaterial(loopingMaskedEmoteEntity, {albedoColor: Color4.Purple()})
+    Transform.create(loopingMaskedEmoteEntity, { position: Vector3.create(12, 1, 4)})
+
+    pointerEventsSystem.onPointerDown(
+        {
+            entity: loopingMaskedEmoteEntity,
+            opts: {
+                button: InputAction.IA_PRIMARY,
+                hoverText: 'Fishing cast looping (upper body)',
+                showHighlight: true,
+                showFeedback: true,
+                maxDistance: 10,
+                maxPlayerDistance: 10,
+            },
+        },
+        function () {
+            console.log('Interacted with looping masked emote entity')
+            triggerSceneEmote({ src: 'assets/Fishing_Cast_emote.glb', loop: true, mask: AvatarMask.AM_UPPER_BODY})
+        }
+    )
+
     // Pickup crate
     // Anchor entity is invisible, attached to the hand. Crate is a child with an offset.
     const crateAnchorEntity = engine.addEntity()
