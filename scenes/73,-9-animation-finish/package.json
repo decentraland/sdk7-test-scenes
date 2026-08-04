@@ -8,10 +8,7 @@
     "deploy": "sdk-commands deploy"
   },
   "devDependencies": {
-    "@dcl/ecs": "file:../../../js-sdk-toolchain/packages/@dcl/ecs",
-    "@dcl/js-runtime": "7.0.0",
-    "@dcl/react-ecs": "file:../../../js-sdk-toolchain/packages/@dcl/react-ecs",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/playback-completion-signals/dcl-sdk-7.25.1-30919646039.commit-e2b29be.tgz",
-    "@dcl/sdk-commands": "file:../../../js-sdk-toolchain/packages/@dcl/sdk-commands"
+    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/playback-completion-signals/@dcl/js-runtime/dcl-js-runtime-7.25.1-30919646039.commit-e2b29be.tgz",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/playback-completion-signals/dcl-sdk-7.25.1-30919646039.commit-e2b29be.tgz"
   }
 }
