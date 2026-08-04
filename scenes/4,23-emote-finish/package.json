@@ -1,0 +1,29 @@
+{
+  "name": "emote-finish",
+  "description": "Test scene for AvatarEmoteCommand playback-completion signaling",
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  },
+  "scripts": {
+    "build": "sdk-commands build",
+    "deploy": "sdk-commands deploy",
+    "start": "sdk-commands start",
+    "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
+    "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
+  },
+  "devDependencies": {
+    "@dcl/ecs": "file:../../../js-sdk-toolchain/packages/@dcl/ecs",
+    "@dcl/js-runtime": "7.0.0",
+    "@dcl/react-ecs": "file:../../../js-sdk-toolchain/packages/@dcl/react-ecs",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/playback-completion-signals/dcl-sdk-7.25.1-30919646039.commit-e2b29be.tgz",
+    "@dcl/sdk-commands": "file:../../../js-sdk-toolchain/packages/@dcl/sdk-commands"
+  }
+}
