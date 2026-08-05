@@ -1,27 +1,26 @@
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Button, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { ADD_BATCH, addBoxes, addSpheres, deleteAll, getBoxCount, getSphereCount } from './spawner'
+import { ADD_BATCH, addSpheres, deleteAll, getSphereCount } from './spawner'
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
 }
 
 const uiComponent = () => (
-  // Full-screen wrapper: pin the panel to the vertical middle of the right edge.
+  // Full-screen wrapper; the panel itself is absolutely positioned against the
+  // right edge, 25% down from the top of the screen.
   <UiEntity
     uiTransform={{
       width: '100%',
-      height: '100%',
-      flexDirection: 'row',
-      alignItems: 'center', // vertical center → "mid"
-      justifyContent: 'flex-end' // right edge
+      height: '100%'
     }}
   >
     <UiEntity
       uiTransform={{
         width: 520,
-        height: 620,
-        margin: '0 32px 0 0',
+        height: 460,
+        positionType: 'absolute',
+        position: { top: '25%', right: 32 },
         padding: 20,
         flexDirection: 'column',
         alignItems: 'center',
@@ -30,22 +29,16 @@ const uiComponent = () => (
       uiBackground={{ color: Color4.create(0, 0, 0, 0.6) }}
     >
       <Label
-        value="Mesh-sharing benchmark"
-        fontSize={34}
+        value="Sphere mesh-sharing benchmark"
+        fontSize={32}
         color={Color4.White()}
         uiTransform={{ width: '100%', height: 50, margin: '0 0 8px 0' }}
       />
       <Label
-        value={`Spheres: ${getSphereCount()}  (shared mesh)`}
-        fontSize={26}
+        value={`Spheres: ${getSphereCount()}`}
+        fontSize={28}
         color={Color4.create(0.4, 0.6, 1, 1)}
-        uiTransform={{ width: '100%', height: 40 }}
-      />
-      <Label
-        value={`Boxes: ${getBoxCount()}  (mesh per entity)`}
-        fontSize={26}
-        color={Color4.create(1, 0.4, 0.35, 1)}
-        uiTransform={{ width: '100%', height: 40, margin: '0 0 12px 0' }}
+        uiTransform={{ width: '100%', height: 44, margin: '0 0 12px 0' }}
       />
       <Button
         uiTransform={{ width: '100%', height: 90, margin: '8px 0' }}
@@ -53,13 +46,6 @@ const uiComponent = () => (
         variant="primary"
         fontSize={30}
         onMouseDown={() => addSpheres()}
-      />
-      <Button
-        uiTransform={{ width: '100%', height: 90, margin: '8px 0' }}
-        value={`+${ADD_BATCH} boxes`}
-        variant="primary"
-        fontSize={30}
-        onMouseDown={() => addBoxes()}
       />
       <Button
         uiTransform={{ width: '100%', height: 90, margin: '8px 0' }}
