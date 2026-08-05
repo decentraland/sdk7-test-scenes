@@ -20,12 +20,16 @@ import { Color4 } from '@dcl/sdk/math'
 // batch is visible in the memory graph.
 export const ADD_BATCH = 100
 
-// Grid layout: entities are laid out in columns that grow downward (+z) as more
-// are added. SPACING/ENTITY_SCALE keep neighbors from overlapping.
-const GRID_COLUMNS = 20
+// Stack layout: each group fills a fixed GRID_COLUMNS x GRID_DEPTH footprint and
+// grows UPWARD (+y), layer by layer. GRID_COLUMNS * GRID_DEPTH is sized to equal
+// ADD_BATCH, so every button press drops one complete new layer on top of the
+// previous one — the stack visibly rises with each click.
+const GRID_COLUMNS = 10 // entities along x
+const GRID_DEPTH = 10 // entities along z  (COLUMNS * DEPTH === ADD_BATCH === one layer)
+const PER_LAYER = GRID_COLUMNS * GRID_DEPTH
 const SPACING = 0.6 // meters between entity centers
 const ENTITY_SCALE = 0.4 // meters (diameter/side length) — smaller than SPACING so entities never touch
-const ENTITY_HEIGHT = 1 // meters, comfortable eye-level for both grids
+const BASE_HEIGHT = 0.5 // meters, y of the bottom layer
 
 // Local-coordinate anchors for each grid's near corner. Scene base parcel is
 // "40,40" with a second parcel at "41,40" (see scene.json), giving a local
@@ -52,15 +56,13 @@ export function getBoxCount(): number {
 
 export function addSpheres(count: number = ADD_BATCH) {
   for (let i = 0; i < count; i++) {
-    const { x, z } = gridPosition(SPHERE_GRID_ORIGIN, spheres.length)
-    spheres.push(createSphere(x, z))
+    spheres.push(createSphere(stackPosition(SPHERE_GRID_ORIGIN, spheres.length)))
   }
 }
 
 export function addBoxes(count: number = ADD_BATCH) {
   for (let i = 0; i < count; i++) {
-    const { x, z } = gridPosition(BOX_GRID_ORIGIN, boxes.length)
-    boxes.push(createBox(x, z))
+    boxes.push(createBox(stackPosition(BOX_GRID_ORIGIN, boxes.length)))
   }
 }
 
@@ -71,20 +73,27 @@ export function deleteAll() {
   boxes.length = 0
 }
 
-// Places the entity at index `i` within a grid anchored at `origin`, filling
-// columns left-to-right and wrapping to a new row (+z) every GRID_COLUMNS.
-function gridPosition(origin: { x: number; z: number }, i: number): { x: number; z: number } {
-  const column = i % GRID_COLUMNS
-  const row = Math.floor(i / GRID_COLUMNS)
-  return { x: origin.x + column * SPACING, z: origin.z + row * SPACING }
+// Places the entity at index `i` within a stack anchored at `origin`. Each layer
+// is a GRID_COLUMNS x GRID_DEPTH slab in the x/z plane; once a layer fills, the
+// stack grows upward (+y) into the next layer.
+function stackPosition(origin: { x: number; z: number }, i: number): { x: number; y: number; z: number } {
+  const layer = Math.floor(i / PER_LAYER)
+  const withinLayer = i % PER_LAYER
+  const column = withinLayer % GRID_COLUMNS
+  const row = Math.floor(withinLayer / GRID_COLUMNS)
+  return {
+    x: origin.x + column * SPACING,
+    y: BASE_HEIGHT + layer * SPACING,
+    z: origin.z + row * SPACING
+  }
 }
 
 // Optimized path: MeshRenderer.setSphere reuses a single shared, immutable Mesh
 // asset across every sphere entity instead of allocating its own.
-function createSphere(x: number, z: number): Entity {
+function createSphere(position: { x: number; y: number; z: number }): Entity {
   const entity = engine.addEntity()
   Transform.create(entity, {
-    position: { x, y: ENTITY_HEIGHT, z },
+    position,
     scale: { x: ENTITY_SCALE, y: ENTITY_SCALE, z: ENTITY_SCALE }
   })
   MeshRenderer.setSphere(entity)
@@ -94,10 +103,10 @@ function createSphere(x: number, z: number): Entity {
 
 // Control/unoptimized path: MeshRenderer.setBox allocates a distinct Mesh asset
 // per entity, so this group's Mesh count scales 1:1 with the box count.
-function createBox(x: number, z: number): Entity {
+function createBox(position: { x: number; y: number; z: number }): Entity {
   const entity = engine.addEntity()
   Transform.create(entity, {
-    position: { x, y: ENTITY_HEIGHT, z },
+    position,
     scale: { x: ENTITY_SCALE, y: ENTITY_SCALE, z: ENTITY_SCALE }
   })
   MeshRenderer.setBox(entity)
