@@ -20,7 +20,7 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/playback-completion-signals/@dcl/js-runtime/dcl-js-runtime-7.25.1-30919646039.commit-e2b29be.tgz",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/playback-completion-signals/dcl-sdk-7.25.1-30919646039.commit-e2b29be.tgz"
+    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/playback-completion-signals-main/@dcl/js-runtime/dcl-js-runtime-7.25.1-31212903500.commit-0c78ee7.tgz",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/playback-completion-signals-main/dcl-sdk-7.25.1-31212903500.commit-0c78ee7.tgz"
   }
 }
