@@ -1,0 +1,44 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Tween From Current Position",
+    "description": "Test scene proving Tween.setMove can retarget an entity mid-travel from its current live position, and shows the hardcoded-start artifact when it doesn't",
+    "navmapThumbnail": "images/scene-thumbnail.png",
+    "favicon": "favicon_asset"
+  },
+  "contact": {
+    "name": "decentraland",
+    "email": ""
+  },
+  "owner": "",
+  "scene": {
+    "parcels": [
+      "79,-4"
+    ],
+    "base": "79,-4"
+  },
+  "requiredPermissions": [],
+  "main": "bin/game.js",
+  "tags": [],
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": 8,
+        "y": 0,
+        "z": 1
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1,
+        "z": 10
+      }
+    }
+  ],
+  "name": "tween-from-current-position",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}

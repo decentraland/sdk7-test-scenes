@@ -1,0 +1,26 @@
+{
+  "name": "tween-from-current-position",
+  "version": "1.0.0",
+  "description": "Test scene proving Tween.setMove can retarget an entity mid-travel from its current live position",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "build": "sdk-commands build",
+    "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
+    "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  },
+  "devDependencies": {
+    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/fix/tween-state-invalidation/@dcl/js-runtime/dcl-js-runtime-7.25.1-31442136831.commit-7f21252.tgz",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/fix/tween-state-invalidation/dcl-sdk-7.25.1-31442136831.commit-7f21252.tgz"
+  }
+}
