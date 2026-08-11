@@ -1,9 +1,4 @@
-# Tween From Current Position
-
-> **Temporary SDK link.** This scene points its `@dcl/sdk` and `@dcl/js-runtime`
-> devDependencies at a branch CI build of `js-sdk-toolchain`
-> (`fix/tween-state-invalidation`). **Swap these back to published packages
-> before opening the PR.**
+# Tween Following Cube
 
 A cube that chases the player, driven entirely by tweens aimed from the cube's
 **current position**. A pad switches between the two ways of carrying that

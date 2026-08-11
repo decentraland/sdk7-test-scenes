@@ -2,7 +2,7 @@
   "ecs7": true,
   "runtimeVersion": "7",
   "display": {
-    "title": "Tween From Current Position",
+    "title": "Tween Following Cube",
     "description": "A cube that chases the player with tweens, switchable between a per-re-aim Move tween (jitters) and setMoveContinuous (smooth)",
     "navmapThumbnail": "images/scene-thumbnail.png",
     "favicon": "favicon_asset"
@@ -37,7 +37,7 @@
       }
     }
   ],
-  "name": "tween-from-current-position",
+  "name": "tween-following-cube",
   "worldConfiguration": {
     "name": "sdk7testscenes.dcl.eth"
   }

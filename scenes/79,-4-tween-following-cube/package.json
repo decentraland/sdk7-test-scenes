@@ -1,7 +1,7 @@
 {
-  "name": "tween-from-current-position",
+  "name": "tween-following-cube",
   "version": "1.0.0",
-  "description": "Test scene proving Tween.setMove can retarget an entity mid-travel from its current live position",
+  "description": "Test scene comparing setMoveContinuous against a per-re-aim Move tween for a cube that follows the player",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
