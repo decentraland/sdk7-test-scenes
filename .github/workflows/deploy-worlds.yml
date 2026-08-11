@@ -115,6 +115,7 @@ jobs:
             Once deployed, test the scene in the Explorer:
             1. Switch MetaMask to the **SEPOLIA** network (not mainnet)
             2. Open the Explorer using one of these methods:
+               - **Jump-in link** (any browser): http://decentraland.zone/jump/?dclenv=zone&realm=sdk7testscenes.dcl.eth&position=${{ steps.coords.outputs.coords }}
                - **Deep link** (any browser): `decentraland://?dclenv=zone&realm=sdk7testscenes.dcl.eth&position=${{ steps.coords.outputs.coords }}`
                - **Custom build**: launch with `--dclenv zone --realm sdk7testscenes.dcl.eth --position ${{ steps.coords.outputs.coords }}` app params — [instructions](https://github.com/decentraland/unity-explorer/blob/main/docs/how-to-connect-to-a-local-scene.md#connecting-a-custom-build-to-the-scene)
                - **Unity Editor**: set _Decentraland Environment_ to `zone` and _Init Realm_ to `sdk7testscenes.dcl.eth`
