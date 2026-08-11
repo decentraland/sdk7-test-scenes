@@ -1,65 +1,71 @@
 # Tween From Current Position
 
-> **Temporary local SDK link.** This scene currently points its `@dcl/sdk`
-> (and `@dcl/ecs`, `@dcl/js-runtime`, `@dcl/react-ecs`, `@dcl/sdk-commands`)
-> devDependencies at a local `js-sdk-toolchain` build
-> (`fix/tween-state-invalidation`) that fixes a `tweenSystem.tweenCompleted()`
-> false-positive on retarget. **Swap these back to published/CI packages
+> **Temporary SDK link.** This scene points its `@dcl/sdk` and `@dcl/js-runtime`
+> devDependencies at a branch CI build of `js-sdk-toolchain`
+> (`fix/tween-state-invalidation`). **Swap these back to published packages
 > before opening the PR.**
 
-Proves that `Tween.setMove` can move an entity from its **current, live
-position** to a new target -- including retargeting the destination while
-the entity is still mid-travel -- as long as the tween's `start` argument is
-built from `Transform.get(entity).position` rather than a hardcoded vector.
+A cube that chases the player, driven entirely by tweens aimed from the cube's
+**current position**. A pad switches between the two ways of carrying that
+motion, so the difference is visible side by side in one scene:
 
-## Why this works
+- **`setMoveContinuous` (default, green)** -- smooth.
+- **`Move` tween re-created on every re-aim (red-orange)** -- visibly jittery.
 
-- Unity Explorer PUTs the tweened entity's `Transform` back to the scene over
-  CRDT **every frame** a tween is active, so `Transform.get(entity).position`
-  is the live, mid-flight position of the entity (at most one frame stale).
-- `Tween.setMove(entity, start, end, duration, easing)` uses
-  `createOrReplace` under the hood, which **always** resends the component
-  (even if the bytes are identical), and the explorer kills and rebuilds the
-  tweener the same frame it receives the update. So calling
-  `Tween.setMove(entity, Transform.get(entity).position, newTarget, ...)`
-  while a previous tween on that entity is still running retargets it
-  smoothly from wherever it currently is -- no snap, no teleport.
-- Omitting `start` does **not** mean "use the current position" -- a missing
-  proto `Vector3` deserializes to `(0, 0, 0)` on the renderer side, which
-  teleports the entity to the world origin. `start` must always be supplied
-  explicitly.
+Both modes use the **same** re-aim trigger (the player moving `MOVE_THRESHOLD`
+= 0.1m), the same `CUBE_SPEED`, and the same stop rule. Only the kind of tween
+differs, so whatever you see is attributable to the tween mode and not to how
+often the scene re-aims.
 
 ## What's in the scene
 
-1. **Centerpiece (back of the parcel).** A blue traveler cube plus 5 colored
-   pads (RED, ORANGE, YELLOW, GREEN, BLUE). Clicking any pad sends the
-   traveler there using its current live position as the tween start.
-   Duration is a generous 2.5s specifically so you have time to click a
-   *different* pad while the cube is mid-flight and watch it smoothly change
-   direction instead of snapping back anywhere.
-2. **"Come to me" pad (magenta, near spawn).** Tweens the same traveler cube
-   from wherever it currently is to your current position (clamped to stay
-   inside the parcel).
-3. **Arrival feedback.** A system checks `tweenSystem.tweenCompleted(traveler)`
-   every frame. On arrival the cube flashes gold and an "Arrived!" label
-   appears above it; both reset the moment a new journey starts.
-
-   This is also the in-world regression check for the `tweenSystem`
-   completion fix: retargeting a running tween used to make
-   `tweenCompleted()` false-positive (report "done" while the cube was still
-   mid-flight), which is why an earlier version of this scene compared the
-   live position against the target instead. With the fix,
-   `tweenCompleted()` is the correct, intended API to use here.
-
-All pads use `maxDistance: 20` -- double the SDK's default 10m click range --
-so every pad stays clickable from anywhere in the parcel.
+1. **The follow cube.** Starts at `(3, 0.5, 6)` and chases you, stopping
+   `STOP_DISTANCE` = 1m short. Its colour shows the active mode: green for
+   `setMoveContinuous`, red-orange for `Move`.
+2. **Mode pad (magenta, at `(13, 0.1, 3)` near spawn).** Click to switch modes.
+   Switching drops the in-flight tween so the new mode starts clean. The label
+   above it always names the active mode. `maxDistance: 20` (double the SDK
+   default) keeps it clickable from most of the parcel.
 
 ## How to exercise it
 
-1. Click any of the 5 colored pads -- the traveler cube glides there over
-   2.5 seconds and flashes gold with an "Arrived!" label when it lands.
-2. While it's still moving, click a **different** colored pad. The cube
-   should smoothly curve toward the new target from its current position --
-   it must never jump or snap.
-3. Click the magenta "come to me" pad at any time (including mid-travel) to
-   redirect the traveler to your own position.
+1. Walk around. In the default green mode the cube glides after you smoothly.
+2. Click the magenta pad to switch to `Move` mode -- the cube turns red-orange.
+3. Walk around again. The cube now visibly stutters: it lurches forward, snaps
+   back a little, lurches again.
+4. Stand still in either mode. The cube settles 1m away and stops.
+
+## Why `Move` jitters and `setMoveContinuous` does not
+
+`Transform.get(cube).position` is the position the **renderer** last wrote back
+to the scene over CRDT, so it trails the cube's true on-screen position by the
+round trip (roughly 1-3 frames). `Move` mode declares that stale value as its
+`start`; on receiving the new tween the renderer kills the running tweener and
+applies that `start` immediately, so the cube snaps **backwards** to where it
+was a few frames ago before resuming.
+
+A single correction is imperceptible -- that is why a click-driven tween, fired
+seconds apart, looks perfect. But at `MOVE_THRESHOLD` = 0.1m a walking player
+(~3-4 m/s, so ~0.05-0.07m per frame) crosses the threshold about every **two
+frames**, so the cube takes roughly 30 backward corrections per second. That
+reads as jitter.
+
+Raising the threshold or lowering the speed only makes the stutter coarser: the
+frequency of replacement is the problem, not the tuning. **A `Tween` in `Move`
+mode describes a discrete A-to-B motion; it is not a per-frame follow
+primitive.**
+
+`setMoveContinuous` avoids this because it hands the renderer a *direction and
+a speed* rather than a start point. Continuous modes take their start from the
+renderer's own live transform, so replacing one mid-motion cannot snap the cube
+back -- there is no scene-supplied `start` to disagree with the renderer.
+
+The trade-off: a continuous tween has no destination, so it never stops on its
+own. The per-frame `STOP_DISTANCE` check is what ends the chase, and because
+that removal has to round-trip to the renderer the cube can drift slightly
+closer than 1m before halting.
+
+(The third option, moving the `Transform` directly in a system, sidesteps the
+round trip entirely and is the usual answer for continuous motion. It is
+deliberately not demonstrated here -- this scene is about what the `Tween`
+component can do.)

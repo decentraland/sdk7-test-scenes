@@ -20,7 +20,7 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/fix/tween-state-invalidation/@dcl/js-runtime/dcl-js-runtime-7.25.1-31442136831.commit-7f21252.tgz",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/fix/tween-state-invalidation/dcl-sdk-7.25.1-31442136831.commit-7f21252.tgz"
+    "@dcl/js-runtime": "7.25.0",
+    "@dcl/sdk": "^7.25.0"
   }
 }
