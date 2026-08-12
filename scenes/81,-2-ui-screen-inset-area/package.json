@@ -20,6 +20,7 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/chore/ui-default-vscreen-default-screen-inset/dcl-sdk-7.25.1-31521300370.commit-6fa4fed.tgz"
+    "@dcl/sdk": "^7.25.1-31605440953.commit-08dff78",
+    "@dcl/js-runtime": "7.25.1-31605440953.commit-08dff78"
   }
 }
