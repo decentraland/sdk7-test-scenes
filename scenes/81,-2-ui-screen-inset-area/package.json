@@ -20,7 +20,6 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/sdk": "^7.25.1-31605440953.commit-08dff78",
-    "@dcl/js-runtime": "7.25.1-31605440953.commit-08dff78"
+    "@dcl/sdk": "latest"
   }
 }
