@@ -17,7 +17,6 @@ export async function main() {
   // is a no-op on clients. Runs synchronously before the first await, while the
   // engine is still open.
   registerValidators()
-
   if (isServer()) {
     // ONLY the server module is dynamically imported, so its server-only
     // dependency (@dcl/sdk/server → Storage) is never pulled into the client
@@ -27,7 +26,6 @@ export async function main() {
     await startServer()
     return
   }
-
   setupClient()
   setupUi()
 }

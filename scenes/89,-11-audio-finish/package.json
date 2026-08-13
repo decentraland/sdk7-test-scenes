@@ -1,12 +1,11 @@
 {
-  "name": "authoritative-server-limits-lab",
+  "name": "audio-finish",
   "version": "1.0.0",
-  "description": "Authoritative Server QA harness for testing hammurabi-headless runtime limits",
+  "description": "Test scene for audioEventsSystem and AudioSource.playing completion signaling",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
-    "build": "sdk-commands build",
-    "server-logs": "sdk-commands sdk-server-logs"
+    "build": "sdk-commands build"
   },
   "engines": {
     "node": ">=16.0.0",
@@ -19,6 +18,6 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/sdk": "auth-server"
+    "@dcl/sdk": "latest"
   }
 }
