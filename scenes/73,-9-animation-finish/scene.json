@@ -1,0 +1,45 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Animation Finish Detection Test",
+    "description": "Test scene for Animator playback-completion signaling. Plays a non-looping GLTF clip via Animator.playSingleAnimation, polls the played clip's playing flag via read-only Animator.get() (never Animator.getClip(), which marks the component dirty), and chains a second clip on natural completion. Also demonstrates that looping clips never report finish.",
+    "navmapThumbnail": "images/scene-thumbnail.png",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": ["animation", "test"],
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1,
+        "z": 8
+      }
+    }
+  ],
+  "featureToggles": {},
+  "scene": {
+    "base": "73,-9",
+    "parcels": [
+      "73,-9"
+    ]
+  },
+  "requiredPermissions": [],
+  "name": "animation-finish",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Emote Finish Detection Test",
+    "description": "Test scene for AvatarEmoteCommand playback-completion signaling. Triggers a predefined emote and a non-looping scene emote, then subscribes AvatarEmoteCommand.onChange(engine.PlayerEntity, ...) to display a log of STARTED/FINISHED/INTERRUPTED entries.",
+    "navmapThumbnail": "images/scene-thumbnail.png",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": ["emote", "test"],
+  "scene": {
+    "parcels": [
+      "4,23"
+    ],
+    "base": "4,23"
+  },
+  "spawnPoints": [],
+  "requiredPermissions": ["ALLOW_TO_TRIGGER_AVATAR_EMOTE"],
+  "featureToggles": {},
+  "name": "emote-finish",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}
