@@ -79,7 +79,7 @@ const BASE_TRANSFORM: PBUiTransform = {
   paddingBottom: 0
 }
 
-function createPanel(leftPercent: number, topPercent: number): Entity {
+function createPanel(rightPercent: number, topPercent: number): Entity {
   const entity = engine.addEntity()
 
   UiTransform.create(entity, {
@@ -89,8 +89,8 @@ function createPanel(leftPercent: number, topPercent: number): Entity {
     height: PANEL_HEIGHT,
     heightUnit: YGUnit.YGU_POINT,
     positionType: YGPositionType.YGPT_ABSOLUTE,
-    positionLeft: leftPercent,
-    positionLeftUnit: YGUnit.YGU_PERCENT,
+    positionRight: rightPercent,
+    positionRightUnit: YGUnit.YGU_PERCENT,
     positionTop: topPercent,
     positionTopUnit: YGUnit.YGU_PERCENT
   })
@@ -107,7 +107,7 @@ function createPanel(leftPercent: number, topPercent: number): Entity {
 export function setupRawTextWrapTest() {
   // 'textWrap' is deliberately omitted, so the field is absent from the wire and the
   // renderer has to fall back to the proto default TW_WRAP: this text must wrap.
-  UiText.create(createPanel(3, 52), {
+  UiText.create(createPanel(15, 5), {
     value: WRAP_TEXT,
     fontSize: 18,
     color: Color4.White()
@@ -116,7 +116,7 @@ export function setupRawTextWrapTest() {
   // Control with the same panel geometry, differing only in that 'textWrap' is sent: this text
   // must stay on a single line regardless of what the default is. It spills past the panel
   // edges because 'overflow' is left at its YGO_VISIBLE default, so nothing clips it.
-  UiText.create(createPanel(3, 75), {
+  UiText.create(createPanel(15, 28), {
     value: NO_WRAP_TEXT,
     fontSize: 18,
     color: Color4.White(),
