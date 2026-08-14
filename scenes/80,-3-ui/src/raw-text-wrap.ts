@@ -20,7 +20,8 @@ import {
 } from '@dcl/sdk/ecs'
 import { Color4 } from '@dcl/sdk/math'
 
-const SAMPLE_TEXT = 'this label has no textWrap field set and must wrap onto several lines'
+const WRAP_TEXT = 'no textWrap field on the wire, so this text must wrap onto several lines'
+const NO_WRAP_TEXT = 'textWrap sent as TW_NO_WRAP, so this text must stay on a single line'
 const PANEL_WIDTH = 240
 const PANEL_HEIGHT = 140
 
@@ -107,15 +108,16 @@ export function setupRawTextWrapTest() {
   // 'textWrap' is deliberately omitted, so the field is absent from the wire and the
   // renderer has to fall back to the proto default TW_WRAP: this text must wrap.
   UiText.create(createPanel(3, 52), {
-    value: SAMPLE_TEXT,
+    value: WRAP_TEXT,
     fontSize: 18,
     color: Color4.White()
   })
 
-  // Control with identical geometry and text, differing only in that 'textWrap' is sent:
-  // this text must stay on one clipped line regardless of what the default is.
+  // Control with the same panel geometry, differing only in that 'textWrap' is sent: this text
+  // must stay on a single line regardless of what the default is. It spills past the panel
+  // edges because 'overflow' is left at its YGO_VISIBLE default, so nothing clips it.
   UiText.create(createPanel(3, 75), {
-    value: SAMPLE_TEXT,
+    value: NO_WRAP_TEXT,
     fontSize: 18,
     color: Color4.White(),
     textWrap: TextWrap.TW_NO_WRAP
