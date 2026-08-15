@@ -39,11 +39,15 @@ export const ROW_OFFSETS = [6, 9.5, 13, 16.5, 20, 23.5, 27]
 
 /**
  * PACKED / MERGED are single entities whose contents are already laid out in
- * the model, so they sit at the strip origin. Tweak these two if the exporter
- * you used mirrors or rotates the row relative to the SHARED strip — it is
- * cosmetic and changes none of the counts being measured.
+ * the model, so they sit at the strip origin.
+ *
+ * The X offset compensates for glTFast mirroring the X axis on import
+ * (measured in-world: the baked rows landed at x -1.2 / -3.6 instead of
+ * +1.2 / +3.6). It shifts the row back into its strip; the two columns end up
+ * swapped, which nothing measures. Adjust if you regenerate the models with a
+ * different exporter — this is cosmetic and changes none of the counts.
  */
-export const BAKED_ROW_OFFSET = Vector3.create(0, 0, 0)
+export const BAKED_ROW_OFFSET = Vector3.create(COLUMN_OFFSETS[0] + COLUMN_OFFSETS[1], 0, 0)
 export const BAKED_ROW_ROTATION_Y = 0
 
 /** Position of copy `i` inside the strip of station `stationIndex`. */
