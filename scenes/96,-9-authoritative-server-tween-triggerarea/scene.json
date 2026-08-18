@@ -1,0 +1,58 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Authoritative Server \u2014 Tween & TriggerArea Capability Harness",
+    "description": "Runs the SAME Tween + TriggerArea test suite twice \u2014 once on the headless authoritative server, once locally on the client \u2014 and shows the two verdicts side by side. A server that lacks the tween/trigger-area systems never writes TweenState / TriggerAreaResult, so every server column entry times out and fails while the client column passes: that CLIENT-pass / SERVER-fail split is the signal. Includes an always-on live rig (server-tweened platform entering a server-owned trigger zone) that needs BOTH features working server-side to ever register an entry, plus a tween-free canary that proves the trigger system alive on its own."
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": [
+    "multiplayer",
+    "authoritative-server",
+    "tween",
+    "trigger-area",
+    "test"
+  ],
+  "scene": {
+    "parcels": [
+      "96,-9"
+    ],
+    "base": "96,-9"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          2,
+          4
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          2,
+          4
+        ]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1.5,
+        "z": 8
+      }
+    }
+  ],
+  "requiredPermissions": [],
+  "featureToggles": {},
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  },
+  "authoritativeMultiplayer": true
+}
