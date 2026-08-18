@@ -1,0 +1,25 @@
+{
+  "name": "authoritative-server-tween-raycast",
+  "version": "1.0.0",
+  "description": "Authoritative Server capability harness for Tween + Raycast support on the headless server",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "build": "sdk-commands build",
+    "server-logs": "sdk-commands sdk-server-logs"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "auth-server",
+    "@dcl/js-runtime": "7.26.1-31714079767.commit-96e9a29"
+  }
+}

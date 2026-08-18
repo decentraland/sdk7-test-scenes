@@ -1,0 +1,58 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Authoritative Server — Tween & Raycast Capability Harness",
+    "description": "Runs the SAME Tween + Raycast test suite twice — once on the headless authoritative server, once locally on the client — and shows the two verdicts side by side. A server that lacks the tween/raycast systems never writes TweenState / RaycastResult, so every server column entry times out and fails while the client column passes: that CLIENT-pass / SERVER-fail split is the signal. Includes an always-on live rig (server-tweened platform crossing a server-cast tripwire beam) that needs BOTH features working server-side to ever register a hit."
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": [
+    "multiplayer",
+    "authoritative-server",
+    "tween",
+    "raycast",
+    "test"
+  ],
+  "scene": {
+    "parcels": [
+      "96,-9"
+    ],
+    "base": "96,-9"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          2,
+          4
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          2,
+          4
+        ]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1.5,
+        "z": 8
+      }
+    }
+  ],
+  "requiredPermissions": [],
+  "featureToggles": {},
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  },
+  "authoritativeMultiplayer": true
+}
