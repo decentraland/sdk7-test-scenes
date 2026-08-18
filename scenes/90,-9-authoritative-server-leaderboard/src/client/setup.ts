@@ -19,6 +19,17 @@ import { isServerAlive, pollHeartbeat, setMyScore, showToast } from './state'
 // A claim queued locally, waiting for the room to be synced before it is sent.
 let pendingClaim = false
 
+// --- Click feedback: flash the orb, then lerp it back to its resting colour. ---
+const ORB_ALBEDO = Color4.fromHexString('#ffd34eff')
+const ORB_EMISSIVE = Color4.fromHexString('#ffb000ff')
+const FLASH_ALBEDO = Color4.White()
+const FLASH_EMISSIVE = Color4.White()
+const FLASH_SECONDS = 0.8
+
+let orbEntity: Entity | undefined
+// 0 = just clicked (full flash colour), 1 = fully back to the original colour.
+let flashProgress = 1
+
 export function setupClient(): void {
   buildScene()
 
@@ -29,6 +40,7 @@ export function setupClient(): void {
   room.onMessage('claimRejected', (data) => showToast(data.reason))
 
   engine.addSystem(claimRetrySystem)
+  engine.addSystem(orbFlashSystem)
 }
 
 // Build the local, non-synced visuals. These are client-only decorations — the
@@ -56,12 +68,13 @@ function buildScene(): void {
 
   // The clickable score orb (glowing emissive sphere).
   const orb = engine.addEntity()
+  orbEntity = orb
   Transform.create(orb, { position: ORB_POSITION, scale: Vector3.create(0.9, 0.9, 0.9) })
   MeshRenderer.setSphere(orb)
   MeshCollider.setSphere(orb) // required for the pointer raycast to hit the orb
   Material.setPbrMaterial(orb, {
-    albedoColor: Color4.fromHexString('#ffd34eff'),
-    emissiveColor: Color4.fromHexString('#ffb000ff'),
+    albedoColor: ORB_ALBEDO,
+    emissiveColor: ORB_EMISSIVE,
     emissiveIntensity: 2
   })
   pointerEventsSystem.onPointerDown(
@@ -85,6 +98,10 @@ function buildScene(): void {
 
 // The orb was clicked. We never send a score — only the intent to claim a point.
 function tryClaim(): void {
+  // Immediate local feedback — the flash starts on click, regardless of whether
+  // the server ends up accepting the claim.
+  flashProgress = 0
+
   // Server-not-alive is a long (cold-start) failure that may never resolve — tell
   // the player explicitly instead of silently buffering a click that goes nowhere.
   if (!isServerAlive()) {
@@ -93,6 +110,18 @@ function tryClaim(): void {
   }
   // Room-not-synced is a brief (~1 s) load-time blip — buffer and auto-fire.
   pendingClaim = true
+}
+
+// Eases the orb from its flash colour back into the original one after a click.
+function orbFlashSystem(dt: number): void {
+  if (flashProgress >= 1 || orbEntity === undefined) return
+
+  flashProgress = Math.min(1, flashProgress + dt / FLASH_SECONDS)
+  Material.setPbrMaterial(orbEntity, {
+    albedoColor: Color4.lerp(FLASH_ALBEDO, ORB_ALBEDO, flashProgress),
+    emissiveColor: Color4.lerp(FLASH_EMISSIVE, ORB_EMISSIVE, flashProgress),
+    emissiveIntensity: 2
+  })
 }
 
 function claimRetrySystem(): void {
