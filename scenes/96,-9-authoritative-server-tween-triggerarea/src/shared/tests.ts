@@ -8,7 +8,7 @@
 
 export enum TestGroup {
   Tween = 0,
-  Raycast = 1
+  Trigger = 1
 }
 
 export interface TestDescriptor {
@@ -111,90 +111,90 @@ export const TESTS: TestDescriptor[] = [
     expected: 'The entity reaches the end and then travels back toward the start.'
   },
 
-  // --- Raycast ---------------------------------------------------------------
+  // --- TriggerArea -----------------------------------------------------------
   {
     index: 9,
-    id: 'raycast-result-appears',
-    group: TestGroup.Raycast,
-    name: 'RaycastResult is written',
+    id: 'trigger-result-appears',
+    group: TestGroup.Trigger,
+    name: 'TriggerAreaResult is written',
     probe: true,
-    api: 'Raycast → RaycastResult',
-    description: 'Casts into empty space and waits for the host to attach RaycastResult.',
-    expected: 'RaycastResult appears with an empty hits[] — a miss still produces a result. A host with no raycast system writes nothing.'
+    api: 'TriggerArea → TriggerAreaResult',
+    description: 'Slides a collider into a trigger area and waits for the host to record a result.',
+    expected: 'TriggerAreaResult appears on the area. A host with no trigger-area system never writes it.'
   },
   {
     index: 10,
-    id: 'raycast-ray-geometry',
-    group: TestGroup.Raycast,
-    name: 'Ray origin & direction',
-    api: 'globalTarget direction mode',
-    description: 'Casts at a global target from a positioned entity and checks the reported ray.',
-    expected: 'globalOrigin equals the entity position and direction is the normalized origin→target vector.'
+    id: 'trigger-enter-event',
+    group: TestGroup.Trigger,
+    name: 'onTriggerEnter fires',
+    api: 'triggerAreaEventsSystem.onTriggerEnter',
+    description: 'Registers the SDK callback, then moves a collider into the area.',
+    expected: 'The callback fires with TAET_ENTER, trigger.entity = the prober and triggeredEntity = the area.'
   },
   {
     index: 11,
-    id: 'raycast-hits-collider',
-    group: TestGroup.Raycast,
-    name: 'Hits a MeshCollider',
-    api: 'RQT_HIT_FIRST + hits[]',
-    description: 'Casts at a single 1 m collider box 3 m away.',
-    expected: 'One hit, entityId is the box, and length matches the distance to its near face.'
+    id: 'trigger-exit-event',
+    group: TestGroup.Trigger,
+    name: 'onTriggerExit fires',
+    api: 'triggerAreaEventsSystem.onTriggerExit',
+    description: 'Moves a collider in, waits for the entry, then moves it back out.',
+    expected: 'A matching TAET_EXIT arrives — the host tracks leaving, not just arriving.'
   },
   {
     index: 12,
-    id: 'raycast-query-all',
-    group: TestGroup.Raycast,
-    name: 'RQT_QUERY_ALL',
-    api: 'RaycastQueryType.RQT_QUERY_ALL',
-    description: 'Casts through three collider boxes lined up along the ray.',
-    expected: 'All three boxes appear in hits[] (order is not guaranteed by the protocol, so only membership is asserted).'
+    id: 'trigger-stay-event',
+    group: TestGroup.Trigger,
+    name: 'onTriggerStay repeats',
+    api: 'triggerAreaEventsSystem.onTriggerStay',
+    description: 'Parks a collider inside the area and counts stay callbacks for one second.',
+    expected: 'Several stay callbacks. NOTE: the SDK synthesizes these from ENTER/EXIT, so this needs the host’s ENTER.'
   },
   {
     index: 13,
-    id: 'raycast-max-distance',
-    group: TestGroup.Raycast,
-    name: 'maxDistance clipping',
-    api: 'PBRaycast.maxDistance',
-    description: 'Casts a ray deliberately too short to reach the nearest box.',
-    expected: 'A result arrives with zero hits — the ray was clipped, not silently extended.'
+    id: 'trigger-collision-mask',
+    group: TestGroup.Trigger,
+    name: 'collisionMask filtering',
+    api: 'ColliderLayer / PBTriggerArea.collisionMask',
+    description: 'An area listening on one custom layer, probed by a collider on that layer and then by one on another.',
+    expected: 'It fires for its own layer and stays silent for the other. Both halves must hold.'
   },
   {
     index: 14,
-    id: 'raycast-collision-mask',
-    group: TestGroup.Raycast,
-    name: 'collisionMask filtering',
-    api: 'ColliderLayer / PBRaycast.collisionMask',
-    description: 'One box on CL_CUSTOM1 only, probed twice: once with a CL_PHYSICS ray, once with CL_CUSTOM1.',
-    expected: 'The CL_PHYSICS ray misses it and the CL_CUSTOM1 ray hits it. Both halves must hold.'
+    id: 'trigger-volume-from-scale',
+    group: TestGroup.Trigger,
+    name: 'Volume from Transform.scale',
+    api: 'PBTriggerArea + Transform.scale',
+    description: 'Moves a prober to a point inside the SCALED box but outside an unscaled default one.',
+    expected: 'An entry fires — the host sized the volume from Transform.scale rather than a unit default.'
   },
   {
     index: 15,
-    id: 'raycast-continuous',
-    group: TestGroup.Raycast,
-    name: 'continuous re-casting',
-    api: 'PBRaycast.continuous',
-    description: 'Sets continuous: true and watches RaycastResult.tickNumber across frames.',
-    expected: 'tickNumber advances repeatedly — the host is re-casting every tick, not once.'
+    id: 'trigger-sphere-mesh',
+    group: TestGroup.Trigger,
+    name: 'Sphere area',
+    api: 'TriggerArea.setSphere',
+    description: 'Repeats the enter/exit cycle against a sphere-shaped area instead of a box.',
+    expected: 'Enter and exit both fire — the sphere mesh type is handled, not just the box.'
   },
   {
     index: 16,
-    id: 'raycast-tracks-tween',
-    group: TestGroup.Raycast,
-    name: 'Ray sees a tweened box',
-    api: 'Tween + continuous Raycast',
-    description: 'A continuous ray watches a box, proven visible first, that a tween then carries out of its path.',
-    expected: 'The ray loses sight of the box. Proves the two systems share one scene graph — the live rig in miniature.'
+    id: 'trigger-tracks-tween',
+    group: TestGroup.Trigger,
+    name: 'Area sees a tweened box',
+    api: 'Tween + TriggerArea',
+    description: 'Proves the area fires for a hand-moved collider first, then lets a TWEEN carry the collider in.',
+    expected: 'The tween-driven entry fires too. Proves both systems share one scene graph — the live rig in miniature.'
   }
 ]
 
 export const TEST_COUNT = TESTS.length
 
 export const TWEEN_TESTS = TESTS.filter((t) => t.group === TestGroup.Tween)
-export const RAYCAST_TESTS = TESTS.filter((t) => t.group === TestGroup.Raycast)
+export const TRIGGER_TESTS = TESTS.filter((t) => t.group === TestGroup.Trigger)
 
 // The two probe indices, hoisted because the verdict banner keys off them.
 export const TWEEN_PROBE_INDEX = TESTS.find((t) => t.group === TestGroup.Tween && t.probe)!.index
-export const RAYCAST_PROBE_INDEX = TESTS.find((t) => t.group === TestGroup.Raycast && t.probe)!.index
+export const TRIGGER_PROBE_INDEX = TESTS.find((t) => t.group === TestGroup.Trigger && t.probe)!.index
 
 export function testByIndex(index: number): TestDescriptor | undefined {
   return TESTS[index]

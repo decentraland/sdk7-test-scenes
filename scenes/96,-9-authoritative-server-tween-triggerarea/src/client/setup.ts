@@ -17,16 +17,15 @@ import {
 import { Color4, Vector3 } from '@dcl/sdk/math'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import {
-  BEAM_LENGTH,
-  BEAM_X_START,
-  BEAM_Z,
   CLIENT_LANE_X,
   PLATFORM_MS,
   PLATFORM_SCALE,
   PLATFORM_Z_END,
   PLATFORM_Z_START,
   RIG_Y,
-  SERVER_LANE_X
+  SERVER_LANE_X,
+  ZONE_SCALE,
+  ZONE_Z
 } from '../shared/config'
 import { harnessSystem } from '../shared/harness'
 import { room } from '../shared/messages'
@@ -43,13 +42,13 @@ let serverGhost: Entity
 let clientTwin: Entity
 let serverLabel: Entity
 let clientLabel: Entity
-let beamVisual: Entity
-let beamLabel: Entity
-// The beam has THREE states, not two. Painting "raycast dead" the same green as
-// "raycast alive and clear" is the trap this rig exists to avoid: both would say
-// "nothing wrong here" while one of them means the server cannot cast at all.
-type BeamState = 'dead' | 'clear' | 'hit'
-let lastBeamState: BeamState | '' = ''
+let zoneVisual: Entity
+let zoneLabel: Entity
+// The zone has THREE states, not two. Painting "no trigger system" the same green as
+// "trigger system alive and empty" is the trap this rig exists to avoid: both would
+// say "nothing wrong here" while one of them means the server cannot detect anything.
+type ZoneState = 'dead' | 'empty' | 'occupied'
+let lastZoneState: ZoneState | '' = ''
 let lastLabelText = ''
 
 export function setupClient(): void {
@@ -125,10 +124,10 @@ function buildSignpost(): void {
     // counter's cause line and the panel — update live; a sign that repeated them
     // would go stale and, at this size, skews badly when read from an angle.
     text:
-      'TWEEN & RAYCAST ON THE AUTHORITATIVE SERVER\n\n' +
+      'TWEEN & TRIGGER AREAS ON THE AUTHORITATIVE SERVER\n\n' +
       'Two boxes should be sliding: one moved by the SERVER’s tween,\n' +
       'one by this CLIENT’s. Both moving = the server tweens.\n\n' +
-      'The beam is the SERVER’s own raycast. Grey = it never cast.',
+      'The zone is the SERVER’s own TriggerArea. Grey = it never fired.',
     fontSize: 1.9,
     textColor: Color4.White(),
     textAlign: TextAlignMode.TAM_MIDDLE_CENTER
@@ -172,20 +171,21 @@ function buildLiveRig(): void {
   TweenSequence.create(clientTwin, { sequence: [], loop: TweenLoop.TL_YOYO })
   clientLabel = floatingLabel('CLIENT TWEEN', Color4.fromHexString('#fb923cff'))
 
-  // The beam, drawn along the exact line the server casts. No collider: this is a
-  // picture of the server's ray, and giving it geometry the server cannot see would
-  // make it a lie.
-  beamVisual = engine.addEntity()
-  Transform.create(beamVisual, {
-    position: Vector3.create(BEAM_X_START + BEAM_LENGTH / 2, RIG_Y, BEAM_Z),
-    scale: Vector3.create(BEAM_LENGTH, 0.06, 0.06)
+  // The zone, drawn at the exact pose of the server's trigger area. Deliberately NO
+  // TriggerArea and no collider of its own: this is a picture of the server's volume,
+  // and giving it real trigger geometry the server cannot see would make it a lie.
+  // Translucent so the platform stays visible while it is inside.
+  zoneVisual = engine.addEntity()
+  Transform.create(zoneVisual, {
+    position: Vector3.create(SERVER_LANE_X, RIG_Y, ZONE_Z),
+    scale: ZONE_SCALE
   })
-  MeshRenderer.setBox(beamVisual)
+  MeshRenderer.setBox(zoneVisual)
 
-  beamLabel = engine.addEntity()
-  Transform.create(beamLabel, { position: Vector3.create(8, 2.6, BEAM_Z) })
-  TextShape.create(beamLabel, { text: '', fontSize: 1.6, textColor: Color4.White() })
-  Billboard.create(beamLabel, { billboardMode: BillboardMode.BM_Y })
+  zoneLabel = engine.addEntity()
+  Transform.create(zoneLabel, { position: Vector3.create(SERVER_LANE_X, RIG_Y + 1.9, ZONE_Z) })
+  TextShape.create(zoneLabel, { text: '', fontSize: 1.5, textColor: Color4.White() })
+  Billboard.create(zoneLabel, { billboardMode: BillboardMode.BM_Y })
 }
 
 // A billboarded label kept at ROOT level and repositioned each frame, rather than
@@ -222,13 +222,16 @@ function updateLiveRig(): void {
     break
   }
 
-  // rayTicks is the liveness signal: it only advances when the server's continuous
-  // Raycast actually resolves. Zero means no RaycastResult ever came back.
-  const beamState: BeamState =
-    rig === undefined || rig.rayTicks === 0 ? 'dead' : rig.beamHitLength >= 0 ? 'hit' : 'clear'
-  if (beamState !== lastBeamState) {
-    paintBeam(beamState)
-    lastBeamState = beamState
+  // canaryEvents is the liveness signal, and it is the whole reason the canary exists:
+  // a trigger area reports transitions only, so an empty zone says nothing on its own.
+  // The canary is driven by direct Transform writes rather than a tween, so it keeps
+  // firing on a host that has triggers but no tweens. Zero means the host never
+  // reported a transition at all.
+  const zoneState: ZoneState =
+    rig === undefined || rig.canaryEvents === 0 ? 'dead' : rig.zoneOccupied ? 'occupied' : 'empty'
+  if (zoneState !== lastZoneState) {
+    paintZone(zoneState)
+    lastZoneState = zoneState
   }
 
   trackLabel(clientLabel, clientTwin)
@@ -245,63 +248,66 @@ function updateLiveRig(): void {
   }
   trackLabel(serverLabel, serverGhost)
 
-  // A break needs BOTH features, so the count alone cannot say which one is missing —
+  // An entry needs BOTH features, so the count alone cannot say which one is missing —
   // and "0" is the reading a passer-by will actually see on a broken server. So the
-  // label names the cause from the two independent signals the server reports:
-  // tweenState < 0 means no TweenState was ever written, rayTicks === 0 means no
-  // RaycastResult ever came back. Without this the rig invites exactly the wrong
-  // conclusion, e.g. "raycasts must be broken too" on a server whose raycasts work.
-  const breaks = rig.beamBreaks
+  // label names the cause from the two INDEPENDENT signals the server reports:
+  // tweenState < 0 means no TweenState was ever written, canaryEvents === 0 means the
+  // host never reported a trigger transition even for the tween-free canary. Without
+  // this the rig invites exactly the wrong conclusion, e.g. "trigger areas must be
+  // broken too" on a server whose trigger areas work.
+  const entries = rig.zoneEntries
   const tweenAlive = rig.tweenState >= 0
-  const rayAlive = rig.rayTicks > 0
+  const triggerAlive = rig.canaryEvents > 0
 
   let text: string
   let color: Color4
-  if (breaks > 0) {
-    text = `BEAM BREAKS: ${breaks}\nserver tween + raycast are LIVE`
+  if (entries > 0) {
+    text = `ZONE ENTRIES: ${entries}\nserver tween + trigger areas are LIVE`
     color = Color4.fromHexString('#4ade80ff')
-  } else if (!rayAlive && !tweenAlive) {
-    text = 'BEAM BREAKS: 0\nno server tween AND no server raycast'
+  } else if (!triggerAlive && !tweenAlive) {
+    text = 'ZONE ENTRIES: 0\nno server tween AND no server trigger areas'
     color = Color4.fromHexString('#ff5a5aff')
-  } else if (!rayAlive) {
-    text = 'BEAM BREAKS: 0\nno server raycast — beam is blind (tween IS live)'
-    color = Color4.fromHexString('#ff5a5aff')
-  } else if (!tweenAlive) {
-    text = `BEAM BREAKS: 0\nplatform frozen: no server tween\nraycast IS live — ${rig.rayTicks} casts, nothing to see`
+  } else if (!triggerAlive) {
+    text = 'ZONE ENTRIES: 0\nno server trigger areas — the zone is deaf (tween IS live)'
     color = Color4.fromHexString('#ff5a5aff')
   } else {
-    text = 'BEAM BREAKS: 0\nboth live — waiting for the first crossing'
+    text = `ZONE ENTRIES: 0\nplatform frozen: no server tween\ntrigger areas ARE live — ${rig.canaryEvents} canary events`
+    color = Color4.fromHexString('#ff5a5aff')
+  }
+  if (entries === 0 && triggerAlive && tweenAlive) {
+    text = 'ZONE ENTRIES: 0\nboth live — waiting for the first entry'
     color = Color4.fromHexString('#ffb347ff')
   }
 
   if (text !== lastLabelText) {
     lastLabelText = text
-    const shape = TextShape.getMutable(beamLabel)
+    const shape = TextShape.getMutable(zoneLabel)
     shape.text = text
     shape.textColor = color
   }
 }
 
-// GREY = the server never answered a raycast, so the beam is blind and its colour
-// says nothing about the platform. GREEN = casting, path clear. RED = casting, and it
-// sees the platform.
+// GREY = the server never reported a trigger transition, so the zone is deaf and its
+// colour says nothing about the platform. GREEN = trigger system live, zone empty.
+// RED = live, and the platform is inside it right now.
 //
 // Grey keeps a small emissive on purpose. Fully unlit reads as ABSENT at night — and
-// "the beam vanished" is a different (and wrong) message from "the beam is dead". It
-// has to stay visible while being obviously duller than the two live colours.
-function paintBeam(state: BeamState): void {
+// "the zone vanished" is a different (and wrong) message from "the zone is deaf". It
+// has to stay visible while being obviously duller than the two live colours. Alpha
+// stays low throughout so the platform is visible through the volume.
+function paintZone(state: ZoneState): void {
   if (state === 'dead') {
-    Material.setPbrMaterial(beamVisual, {
-      albedoColor: Color4.fromHexString('#8a92a0ff'),
+    Material.setPbrMaterial(zoneVisual, {
+      albedoColor: Color4.create(0.54, 0.57, 0.63, 0.22),
       emissiveColor: Color4.fromHexString('#6b7280ff'),
-      emissiveIntensity: 0.35
+      emissiveIntensity: 0.3
     })
     return
   }
-  const hit = state === 'hit'
-  Material.setPbrMaterial(beamVisual, {
-    albedoColor: hit ? Color4.fromHexString('#ff4d4dff') : Color4.fromHexString('#4ade80ff'),
-    emissiveColor: hit ? Color4.fromHexString('#ff0000ff') : Color4.fromHexString('#22c55eff'),
-    emissiveIntensity: 1.2
+  const occupied = state === 'occupied'
+  Material.setPbrMaterial(zoneVisual, {
+    albedoColor: occupied ? Color4.create(1, 0.3, 0.3, 0.34) : Color4.create(0.29, 0.87, 0.5, 0.24),
+    emissiveColor: occupied ? Color4.fromHexString('#ff0000ff') : Color4.fromHexString('#22c55eff'),
+    emissiveIntensity: occupied ? 1.4 : 0.8
   })
 }

@@ -2,8 +2,8 @@
   "ecs7": true,
   "runtimeVersion": "7",
   "display": {
-    "title": "Authoritative Server — Tween & Raycast Capability Harness",
-    "description": "Runs the SAME Tween + Raycast test suite twice — once on the headless authoritative server, once locally on the client — and shows the two verdicts side by side. A server that lacks the tween/raycast systems never writes TweenState / RaycastResult, so every server column entry times out and fails while the client column passes: that CLIENT-pass / SERVER-fail split is the signal. Includes an always-on live rig (server-tweened platform crossing a server-cast tripwire beam) that needs BOTH features working server-side to ever register a hit."
+    "title": "Authoritative Server \u2014 Tween & TriggerArea Capability Harness",
+    "description": "Runs the SAME Tween + TriggerArea test suite twice \u2014 once on the headless authoritative server, once locally on the client \u2014 and shows the two verdicts side by side. A server that lacks the tween/trigger-area systems never writes TweenState / TriggerAreaResult, so every server column entry times out and fails while the client column passes: that CLIENT-pass / SERVER-fail split is the signal. Includes an always-on live rig (server-tweened platform entering a server-owned trigger zone) that needs BOTH features working server-side to ever register an entry, plus a tween-free canary that proves the trigger system alive on its own."
   },
   "owner": "",
   "contact": {
@@ -15,7 +15,7 @@
     "multiplayer",
     "authoritative-server",
     "tween",
-    "raycast",
+    "trigger-area",
     "test"
   ],
   "scene": {

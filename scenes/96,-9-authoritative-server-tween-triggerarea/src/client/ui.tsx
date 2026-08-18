@@ -4,7 +4,7 @@ import { getPlatform } from '@dcl/sdk/platform'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { Summary, summarize, supportName } from '../shared/runner'
 import { LiveRig, ServerCapabilities, ServerResults, Support, TestStatus } from '../shared/schemas'
-import { RAYCAST_TESTS, TESTS, TWEEN_TESTS, TestDescriptor } from '../shared/tests'
+import { TESTS, TRIGGER_TESTS, TWEEN_TESTS, TestDescriptor } from '../shared/tests'
 import { requestServerSuite, requestServerTest } from './setup'
 import {
   getClientCurrentIndex,
@@ -41,11 +41,11 @@ function readServerCapabilities(): Summary & { running: boolean; currentIndex: n
   for (const [, capabilities] of engine.getEntitiesWith(ServerCapabilities)) {
     return {
       tween: capabilities.tween,
-      raycast: capabilities.raycast,
+      trigger: capabilities.trigger,
       tweenPassed: capabilities.tweenPassed,
       tweenTotal: capabilities.tweenTotal,
-      raycastPassed: capabilities.raycastPassed,
-      raycastTotal: capabilities.raycastTotal,
+      triggerPassed: capabilities.triggerPassed,
+      triggerTotal: capabilities.triggerTotal,
       running: capabilities.running,
       currentIndex: capabilities.currentIndex,
       probed: capabilities.completedAt > 0
@@ -233,9 +233,9 @@ function conclusion(
 ): { text: string; color: Color4 } {
   const missing: string[] = []
   if (server.tween === Support.Unsupported) missing.push('TWEENS')
-  if (server.raycast === Support.Unsupported) missing.push('RAYCASTS')
+  if (server.trigger === Support.Unsupported) missing.push('TRIGGER AREAS')
 
-  const clientBroken = client.tween === Support.Unsupported || client.raycast === Support.Unsupported
+  const clientBroken = client.tween === Support.Unsupported || client.trigger === Support.Unsupported
   if (clientBroken && missing.length > 0) {
     return {
       text: '⚠ The CLIENT column failed too — suspect the harness or the SDK build, not the server.',
@@ -254,8 +254,8 @@ function conclusion(
       color: RED
     }
   }
-  if (server.tween === Support.Supported && server.raycast === Support.Supported) {
-    const partial = server.tweenPassed < server.tweenTotal || server.raycastPassed < server.raycastTotal
+  if (server.tween === Support.Supported && server.trigger === Support.Supported) {
+    const partial = server.tweenPassed < server.tweenTotal || server.triggerPassed < server.triggerTotal
     return partial
       ? {
           text: '✓ Server implements both — but some rows still fail. Read the SRV details below.',
@@ -266,19 +266,19 @@ function conclusion(
   return { text: '○ Not probed yet.', color: DIM }
 }
 
-// Why BEAM BREAKS reads what it reads. The rig needs a working tween AND a working
-// raycast to register even one break, so a 0 is ambiguous on its own — and the wrong
-// reading of it ("raycasts must be broken too") is the natural one.
-function beamBreaksReason(rig: ReturnType<typeof readLiveRig>): string {
+// Why ZONE ENTRIES reads what it reads. The rig needs a working tween AND working
+// trigger areas to register even one entry, so a 0 is ambiguous on its own — and the
+// wrong reading of it ("trigger areas must be broken too") is the natural one.
+function zoneEntriesReason(rig: ReturnType<typeof readLiveRig>): string {
   if (rig === undefined) return 'no rig sample from the server yet'
-  if (rig.beamBreaks > 0) return 'the server tweened its platform through its own ray'
+  if (rig.zoneEntries > 0) return 'the server tweened its platform into its own trigger zone'
   const tweenAlive = rig.tweenState >= 0
-  const rayAlive = rig.rayTicks > 0
-  if (!rayAlive && !tweenAlive) return 'neither feature is live server-side'
-  if (!rayAlive) return 'the beam is blind — no RaycastResult, so it can see nothing'
+  const triggerAlive = rig.canaryEvents > 0
+  if (!triggerAlive && !tweenAlive) return 'neither feature is live server-side'
+  if (!triggerAlive) return 'the zone is deaf — no trigger transition ever reported, not even for the canary'
   return tweenAlive
-    ? 'both live — the platform has not crossed the beam yet'
-    : 'the ray works; the platform never moves into it (no server tween)'
+    ? 'both live — the platform has not reached the zone yet'
+    : 'trigger areas work (canary firing); the platform never moves into the zone (no server tween)'
 }
 
 // The live rig readout — the same numbers the in-world beam is drawn from, for when
@@ -291,7 +291,7 @@ function rigBlock(rig: ReturnType<typeof readLiveRig>) {
       ? 'NOT WRITTEN'
       : `state ${rig.tweenState} · t=${rig.tweenProgress.toFixed(2)}`
   const position = rig ? `(${rig.platformPosition.x.toFixed(1)}, ${rig.platformPosition.y.toFixed(1)}, ${rig.platformPosition.z.toFixed(1)})` : '—'
-  const breaks = rig?.beamBreaks ?? 0
+  const entries = rig?.zoneEntries ?? 0
 
   return (
     <UiEntity
@@ -305,26 +305,47 @@ function rigBlock(rig: ReturnType<typeof readLiveRig>) {
       }}
       uiBackground={{ color: BANNER_BG }}
     >
-      <Label value="LIVE RIG (server’s own reading)" fontSize={13} color={SERVER_COLOR} uiTransform={{ height: 18 }} />
-      <Label value={`platform at ${position}`} fontSize={11} color={DIM} uiTransform={{ height: 15 }} />
-      <Label value={`TweenState: ${tweenStateText}`} fontSize={11} color={rig && rig.tweenState >= 0 ? GREEN : RED} uiTransform={{ height: 15 }} />
       <Label
-        value={`RaycastResult ticks: ${rig?.rayTicks ?? 0}`}
-        fontSize={11}
-        color={rig && rig.rayTicks > 0 ? GREEN : RED}
-        uiTransform={{ height: 15 }}
-      />
-      <Label
-        value={`BEAM BREAKS: ${breaks}`}
+        value="LIVE RIG (server’s own reading)"
         fontSize={13}
         textAlign="middle-left"
-        color={breaks > 0 ? GREEN : AMBER}
+        color={SERVER_COLOR}
         uiTransform={{ width: '100%', height: 18 }}
       />
-      {/* A break needs BOTH features, so the count alone never says which one is
+      <Label
+        value={`platform at ${position}`}
+        fontSize={11}
+        textAlign="middle-left"
+        color={DIM}
+        uiTransform={{ width: '100%', height: 15 }}
+      />
+      <Label
+        value={`TweenState: ${tweenStateText}`}
+        fontSize={11}
+        textAlign="middle-left"
+        color={rig && rig.tweenState >= 0 ? GREEN : RED}
+        uiTransform={{ width: '100%', height: 15 }}
+      />
+      {/* The canary is the tween-independent liveness signal for trigger areas — see
+          the comment in server/rig.ts for why an empty zone cannot serve as one. */}
+      <Label
+        value={`Trigger canary events: ${rig?.canaryEvents ?? 0}`}
+        fontSize={11}
+        textAlign="middle-left"
+        color={rig && rig.canaryEvents > 0 ? GREEN : RED}
+        uiTransform={{ width: '100%', height: 15 }}
+      />
+      <Label
+        value={`ZONE ENTRIES: ${entries}`}
+        fontSize={13}
+        textAlign="middle-left"
+        color={entries > 0 ? GREEN : AMBER}
+        uiTransform={{ width: '100%', height: 18 }}
+      />
+      {/* An entry needs BOTH features, so the count alone never says which one is
           missing. Spell out the cause rather than leaving the reader to infer it. */}
       <Label
-        value={beamBreaksReason(rig)}
+        value={zoneEntriesReason(rig)}
         fontSize={11}
         textAlign="middle-left"
         color={DIM}
@@ -380,7 +401,7 @@ const uiComponent = () => {
         uiBackground={{ color: PANEL_BG }}
       >
         {/* Header */}
-        <Label value="◆ TWEEN & RAYCAST ON THE SERVER" fontSize={22} color={Color4.White()} uiTransform={{ height: 30 }} />
+        <Label value="◆ TWEEN & TRIGGER AREAS ON THE SERVER" fontSize={22} color={Color4.White()} uiTransform={{ height: 30 }} />
         <Label
           value={alive ? '● server online' : '○ server offline — waking up, or not running'}
           fontSize={13}
@@ -401,11 +422,11 @@ const uiComponent = () => {
             `${clientSummary.tweenPassed}/${clientSummary.tweenTotal}`
           )}
           {verdictLine(
-            'RAYCAST',
-            serverCapabilities.raycast,
-            `${serverCapabilities.raycastPassed}/${serverCapabilities.raycastTotal}`,
-            clientSummary.raycast,
-            `${clientSummary.raycastPassed}/${clientSummary.raycastTotal}`
+            'TRIGGER',
+            serverCapabilities.trigger,
+            `${serverCapabilities.triggerPassed}/${serverCapabilities.triggerTotal}`,
+            clientSummary.trigger,
+            `${clientSummary.triggerPassed}/${clientSummary.triggerTotal}`
           )}
           <Label
             value={verdict.text}
@@ -433,12 +454,24 @@ const uiComponent = () => {
         </UiEntity>
 
         {/* Tween group */}
-        <Label value="TWEEN" fontSize={15} color={DIM} uiTransform={{ height: 22, margin: { bottom: 4 } }} />
+        <Label
+          value="TWEEN"
+          fontSize={15}
+          textAlign="middle-left"
+          color={DIM}
+          uiTransform={{ width: '100%', height: 22, margin: { bottom: 4 } }}
+        />
         {TWEEN_TESTS.map((test) => testRow(test, serverResults, serverBusy, clientBusy))}
 
-        {/* Raycast group */}
-        <Label value="RAYCAST" fontSize={15} color={DIM} uiTransform={{ height: 22, margin: { top: 8, bottom: 4 } }} />
-        {RAYCAST_TESTS.map((test) => testRow(test, serverResults, serverBusy, clientBusy))}
+        {/* TriggerArea group */}
+        <Label
+          value="TRIGGER AREAS"
+          fontSize={15}
+          textAlign="middle-left"
+          color={DIM}
+          uiTransform={{ width: '100%', height: 22, margin: { top: 8, bottom: 4 } }}
+        />
+        {TRIGGER_TESTS.map((test) => testRow(test, serverResults, serverBusy, clientBusy))}
 
         {/* Toast */}
         {toast !== '' && (

@@ -2,7 +2,7 @@ import { RESULT_DETAIL_MAX, TEST_TIMEOUT_MS } from './config'
 import { errMsg, waitMs } from './harness'
 import { Support, TestStatus } from './schemas'
 import { TestOutcome, suiteFn } from './suite'
-import { RAYCAST_TESTS, RAYCAST_PROBE_INDEX, TESTS, TWEEN_TESTS, TWEEN_PROBE_INDEX } from './tests'
+import { TESTS, TRIGGER_PROBE_INDEX, TRIGGER_TESTS, TWEEN_PROBE_INDEX, TWEEN_TESTS } from './tests'
 
 // ---------------------------------------------------------------------------
 // One orchestration, two consumers. The server drives it and writes into synced
@@ -13,11 +13,11 @@ import { RAYCAST_TESTS, RAYCAST_PROBE_INDEX, TESTS, TWEEN_TESTS, TWEEN_PROBE_IND
 
 export interface Summary {
   tween: Support
-  raycast: Support
+  trigger: Support
   tweenPassed: number
   tweenTotal: number
-  raycastPassed: number
-  raycastTotal: number
+  triggerPassed: number
+  triggerTotal: number
 }
 
 // Where a run reports to. Deliberately push-based: results have to become visible
@@ -117,7 +117,7 @@ export async function runAll(sink: ResultSink): Promise<boolean> {
   sink.log(
     '══════════════════════════════════════════════\n' +
       ` TWEEN   : ${supportName(summary.tween)} — ${summary.tweenPassed}/${summary.tweenTotal} passed\n` +
-      ` RAYCAST : ${supportName(summary.raycast)} — ${summary.raycastPassed}/${summary.raycastTotal} passed\n` +
+      ` TRIGGER : ${supportName(summary.trigger)} — ${summary.triggerPassed}/${summary.triggerTotal} passed\n` +
       '══════════════════════════════════════════════'
   )
   return true
@@ -138,11 +138,11 @@ export function summarize(statuses: TestStatus[]): Summary {
 
   return {
     tween: verdict(TWEEN_PROBE_INDEX),
-    raycast: verdict(RAYCAST_PROBE_INDEX),
+    trigger: verdict(TRIGGER_PROBE_INDEX),
     tweenPassed: passed(TWEEN_TESTS),
     tweenTotal: TWEEN_TESTS.length,
-    raycastPassed: passed(RAYCAST_TESTS),
-    raycastTotal: RAYCAST_TESTS.length
+    triggerPassed: passed(TRIGGER_TESTS),
+    triggerTotal: TRIGGER_TESTS.length
   }
 }
 

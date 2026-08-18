@@ -20,7 +20,7 @@ let stateEntity: Entity
 let heartbeatEntity: Entity
 
 export async function startServer(): Promise<void> {
-  console.log('[SERVER] Tween & Raycast capability harness starting…')
+  console.log('[SERVER] Tween & TriggerArea capability harness starting…')
 
   // The single server-owned state entity. ONLY the server calls syncEntity() in an
   // authoritative scene; clients receive the sync. The three components share one
@@ -29,11 +29,11 @@ export async function startServer(): Promise<void> {
   ServerResults.create(stateEntity, emptyResults())
   ServerCapabilities.create(stateEntity, {
     tween: Support.Unknown,
-    raycast: Support.Unknown,
+    trigger: Support.Unknown,
     tweenPassed: 0,
     tweenTotal: 0,
-    raycastPassed: 0,
-    raycastTotal: 0,
+    triggerPassed: 0,
+    triggerTotal: 0,
     running: false,
     currentIndex: -1,
     completedAt: 0
@@ -95,11 +95,11 @@ const sink: ResultSink = {
   publishSummary(summary: Summary): void {
     const capabilities = ServerCapabilities.getMutable(stateEntity)
     capabilities.tween = summary.tween
-    capabilities.raycast = summary.raycast
+    capabilities.trigger = summary.trigger
     capabilities.tweenPassed = summary.tweenPassed
     capabilities.tweenTotal = summary.tweenTotal
-    capabilities.raycastPassed = summary.raycastPassed
-    capabilities.raycastTotal = summary.raycastTotal
+    capabilities.triggerPassed = summary.triggerPassed
+    capabilities.triggerTotal = summary.triggerTotal
     capabilities.completedAt = Date.now()
   },
 

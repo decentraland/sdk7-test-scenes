@@ -1,3 +1,4 @@
+import { ColliderLayer } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 
 // ---------------------------------------------------------------------------
@@ -23,7 +24,7 @@ export const LAB_Y = 15
 // Lanes inside the lab, kept apart so a tween test and a raycast test running
 // back-to-back can never collide with each other's leftovers.
 export const TWEEN_LANE_X = 3
-export const RAY_LANE_X = 9
+export const TRIGGER_LANE_X = 9
 
 // --- Capability probe timing -----------------------------------------------------
 // A host WITH the feature writes TweenState / RaycastResult within a frame or two.
@@ -56,27 +57,31 @@ export const LINEARITY_TOLERANCE = 0.15
 export const SCALE_EPSILON = 0.1
 export const ROT_DOT_EPSILON = 0.002
 
-// --- Raycast test parameters ------------------------------------------------------
-// Three unit boxes in a row along +Z, used by the hit / query-all / distance tests.
-// A default MeshCollider box is 1 m per side, so a box centred at z spans z±0.5.
-export const RAY_ORIGIN_Z = 1
-export const RAY_TARGET_Z = [4, 7, 10]
-// Ray long enough to reach every target…
-export const RAY_MAX_DISTANCE = 14
-// …and short enough to fall short of the FIRST one (nearest face at z = 3.5,
-// i.e. 2.5 m away), which is what the maxDistance test asserts.
-export const RAY_SHORT_DISTANCE = 2
+// --- TriggerArea test parameters ----------------------------------------------------
+// The suite's probe entities carry a CUSTOM collider layer, never CL_PLAYER or
+// CL_PHYSICS: a trigger volume 15 m up must be invisible to the player's avatar and to
+// anything else in the scene, or the tests would react to a passing player.
+export const TRIGGER_LAYER = ColliderLayer.CL_CUSTOM4
+// A second custom layer, used only to prove an area IGNORES a layer it is not listening for.
+export const OTHER_LAYER = ColliderLayer.CL_CUSTOM5
 
-// Distance tolerance for an asserted hit length, in metres.
-export const HIT_LENGTH_EPSILON = 0.2
+// The trigger area's box. Transform.scale defines the volume, so scale 4 means a
+// half-extent of 2 m around the area's position.
+export const AREA_SCALE = 4
+export const AREA_HALF_EXTENT = AREA_SCALE / 2
 
-// How long a raycast test waits for a freshly created MeshCollider to become
-// raycastable before giving up. A collider is NOT visible to a ray on the tick its
-// entity is created, and the headless server takes measurably longer to register one
-// than the renderer does — waiting a single frame produced intermittent "2/3 boxes
-// hit" / "CL_CUSTOM1 ray missed its own layer" failures against a server whose
-// raycast was working. See the comment above casterSeeing() in suite/raycast.ts.
-export const COLLIDER_SETTLE_MS = 2000
+// Where the prober sits relative to the area's centre. A prober is a 1 m collider box
+// (half-extent 0.5), so the true boundary is AREA_HALF_EXTENT + 0.5 = 2.5 m.
+export const PROBER_CENTRE = 0 // dead centre: unambiguously inside
+export const PROBER_OUTSIDE = 4.5 // well clear of the 2.5 m boundary
+// Inside ONLY IF the host honoured Transform.scale: a host defaulting to a 1 m box
+// (half-extent 0.5) would not contain a prober whose near face is 1.0 m out.
+export const PROBER_SCALE_PROBE = 1.5
+
+// How long to wait for the host to report an enter/exit after a prober moves. A trigger
+// volume is re-evaluated per tick, but the collider has to register first — the same
+// settle the raycast suite needed before it stopped reporting races as server bugs.
+export const TRIGGER_SETTLE_MS = 2000
 
 // --- The always-on live rig -------------------------------------------------------
 // A server-tweened platform sliding along Z, and a server-cast continuous ray
@@ -98,11 +103,25 @@ export const PLATFORM_Z_START = 3
 export const PLATFORM_Z_END = 13
 export const PLATFORM_MS = 5000
 
-// The beam lies across the platform's path at the midpoint of its travel, so a
-// working rig breaks it twice per yoyo cycle.
-export const BEAM_Z = 8
-export const BEAM_X_START = 0.5
-export const BEAM_LENGTH = 15
+// The trigger zone sits across the platform's path at the midpoint of its travel, so a
+// working rig registers an entry twice per yoyo cycle.
+export const ZONE_Z = 8
+export const ZONE_SCALE = Vector3.create(3, 2, 3)
+
+// --- The canary ---------------------------------------------------------------------
+// A TriggerArea only reports TRANSITIONS. Unlike a continuous raycast — which answers
+// every tick even when it hits nothing — a zone that nothing ever enters is silent, and
+// silence is indistinguishable from "this host has no trigger-area system at all".
+//
+// So the rig carries a canary: a tiny area with a prober the server slides in and out on
+// a timer using DIRECT Transform writes, never a tween. It therefore keeps firing on a
+// host that has triggers but no tweens, which is exactly the case that has to stay
+// distinguishable. canaryEvents > 0 means the trigger system is alive, independently of
+// whether the platform ever arrives.
+export const CANARY_X = 13.5
+export const CANARY_Z = 3
+export const CANARY_SCALE = 2
+export const CANARY_PERIOD_MS = 1200
 
 // How often the server samples its rig into the synced component. Deliberately
 // low-rate: this is a status readout, not an animation channel — clients animate

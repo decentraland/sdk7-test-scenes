@@ -1,11 +1,11 @@
 import { TESTS } from '../tests'
-import { RAYCAST_SUITE } from './raycast'
+import { TRIGGER_SUITE } from './triggerarea'
 import { TWEEN_SUITE } from './tween'
 import { TestFn } from './types'
 
 // The one table both runners dispatch through, so the client column and the server
 // column are provably running the same function for a given row.
-const SUITE: Record<string, TestFn> = { ...TWEEN_SUITE, ...RAYCAST_SUITE }
+const SUITE: Record<string, TestFn> = { ...TWEEN_SUITE, ...TRIGGER_SUITE }
 
 export function suiteFn(index: number): TestFn | undefined {
   const test = TESTS[index]

@@ -81,18 +81,29 @@ export async function sampleFor(durationMs: number, sample: (elapsedMs: number) 
 // with the live rig and the UI.
 export interface EntityScope {
   add(): Entity
+  // Register extra teardown, e.g. detaching triggerAreaEventsSystem callbacks. Those
+  // live in an SDK-side map keyed by entity, so removing the entity alone does not
+  // unregister them and a later test would keep feeding a dead closure.
+  onDispose(cleanup: () => void): void
   dispose(): void
 }
 
 export function entityScope(): EntityScope {
   const owned: Entity[] = []
+  const cleanups: (() => void)[] = []
   return {
     add() {
       const entity = engine.addEntity()
       owned.push(entity)
       return entity
     },
+    onDispose(cleanup: () => void) {
+      cleanups.push(cleanup)
+    },
     dispose() {
+      // Cleanups first: they may still need their entities to exist.
+      for (const cleanup of cleanups) cleanup()
+      cleanups.length = 0
       for (const entity of owned) engine.removeEntity(entity)
       owned.length = 0
     }

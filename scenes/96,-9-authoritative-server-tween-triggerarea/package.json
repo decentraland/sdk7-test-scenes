@@ -1,7 +1,7 @@
 {
-  "name": "authoritative-server-tween-raycast",
+  "name": "authoritative-server-tween-triggerarea",
   "version": "1.0.0",
-  "description": "Authoritative Server capability harness for Tween + Raycast support on the headless server",
+  "description": "Authoritative Server capability harness for Tween + TriggerArea support on the headless server",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
@@ -19,6 +19,7 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/sdk": "auth-server"
+    "@dcl/sdk": "auth-server",
+    "@dcl/js-runtime": "7.26.1-32160793830.commit-0b97733"
   }
 }

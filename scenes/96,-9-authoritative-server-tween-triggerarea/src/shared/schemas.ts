@@ -34,7 +34,7 @@ export enum Support {
 // CRDT chunk cap. Client results are NOT here — they never leave the client that
 // produced them (see client/state.ts), because each client's column is about its
 // own renderer.
-export const ServerResults = engine.defineComponent('tweenray::ServerResults', {
+export const ServerResults = engine.defineComponent('tweentrigger::ServerResults', {
   status: Schemas.Array(Schemas.EnumNumber<TestStatus>(TestStatus, TestStatus.Idle)),
   detail: Schemas.Array(Schemas.String),
   durationMs: Schemas.Array(Schemas.Int)
@@ -42,13 +42,13 @@ export const ServerResults = engine.defineComponent('tweenray::ServerResults', {
 
 // The headline verdict, derived by the server from its own run. Small and rarely
 // written, so the banner never waits on the results table.
-export const ServerCapabilities = engine.defineComponent('tweenray::Capabilities', {
+export const ServerCapabilities = engine.defineComponent('tweentrigger::Capabilities', {
   tween: Schemas.EnumNumber<Support>(Support, Support.Unknown),
-  raycast: Schemas.EnumNumber<Support>(Support, Support.Unknown),
+  trigger: Schemas.EnumNumber<Support>(Support, Support.Unknown),
   tweenPassed: Schemas.Int,
   tweenTotal: Schemas.Int,
-  raycastPassed: Schemas.Int,
-  raycastTotal: Schemas.Int,
+  triggerPassed: Schemas.Int,
+  triggerTotal: Schemas.Int,
   // True while a suite run is in flight, so clients can disable the RUN buttons.
   running: Schemas.Boolean,
   // -1 when idle, otherwise the test index currently executing.
@@ -58,21 +58,24 @@ export const ServerCapabilities = engine.defineComponent('tweenray::Capabilities
 
 // The always-on live rig, sampled by the server at RIG_SAMPLE_HZ. This is the
 // glanceable half of the scene: `platformPosition` is where the SERVER's engine
-// believes its tweened platform is, and `beamBreaks` only ever increments if the
-// server's own raycast saw that platform cross its beam. On a server missing
-// either feature the position stays frozen at the start and beamBreaks stays 0.
-export const LiveRig = engine.defineComponent('tweenray::LiveRig', {
+// believes its tweened platform is, and `zoneEntries` only ever increments if the
+// server's own trigger area saw that platform arrive. On a server missing either
+// feature the position stays frozen and zoneEntries stays 0.
+export const LiveRig = engine.defineComponent('tweentrigger::LiveRig', {
   platformPosition: Schemas.Vector3,
   // TweenState.state as the server reads it, or -1 when no TweenState exists at all.
   tweenState: Schemas.Int,
   tweenProgress: Schemas.Float,
-  // Distinct RaycastResult.tickNumber values the server has observed. Stuck at 0
-  // means the raycast never resolved even once.
-  rayTicks: Schemas.Int,
-  // Distance to the beam's current hit, or -1 when the beam is clear.
-  beamHitLength: Schemas.Float,
-  // Clear → hit transitions since the server booted. The rig's headline number.
-  beamBreaks: Schemas.Int,
+  // Canary events the server has observed. The canary is driven by direct Transform
+  // writes rather than a tween, so this is the TWEEN-INDEPENDENT liveness signal for
+  // the trigger system: 0 means the host never reported a trigger transition at all,
+  // even for a collider that demonstrably moved. Without it a silent zone would be
+  // ambiguous between "no trigger system" and "the platform never arrived".
+  canaryEvents: Schemas.Int,
+  // Whether the platform is inside the zone right now.
+  zoneOccupied: Schemas.Boolean,
+  // Zone entries since the server booted. The rig's headline number — needs BOTH features.
+  zoneEntries: Schemas.Int,
   sampledAt: Schemas.Int64
 })
 
@@ -80,7 +83,7 @@ export const LiveRig = engine.defineComponent('tweenray::LiveRig', {
 // "server actually awake" from "room merely connected to a stale CRDT snapshot" —
 // which matters a lot here, because a stale snapshot and a server with no tween
 // system both look like a frozen platform.
-export const ServerHeartbeat = engine.defineComponent('tweenray::Heartbeat', {
+export const ServerHeartbeat = engine.defineComponent('tweentrigger::Heartbeat', {
   beatAt: Schemas.Int64
 })
 
