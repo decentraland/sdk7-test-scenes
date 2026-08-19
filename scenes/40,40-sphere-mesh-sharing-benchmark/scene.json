@@ -1,0 +1,53 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Sphere Mesh Sharing Benchmark",
+    "description": "Spawns equal-size grids of sphere and box MeshRenderers to make the shared-Mesh optimization for spheres observable in the Memory Profiler",
+    "navmapThumbnail": "images/scene-thumbnail.png",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "SDK",
+    "email": ""
+  },
+  "main": "bin/index.js",
+  "tags": [],
+  "scene": {
+    "parcels": [
+      "40,40",
+      "41,40"
+    ],
+    "base": "40,40"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          14,
+          18
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          1,
+          3
+        ]
+      },
+      "cameraTarget": {
+        "x": 16,
+        "y": 2,
+        "z": 10
+      }
+    }
+  ],
+  "featureToggles": {},
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}
