@@ -1,0 +1,59 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Authoritative Server — Avatar Purge (DELETE_ENTITY exploit)",
+    "description": "Reproduces the inbound DELETE_ENTITY avatar-purge bug on top of the authoritative-server leaderboard: a full headless-server multiplayer scene where clicking the RED orb injects a crafted DELETE_ENTITY CRDT frame for every remote avatar entity (any PlayerIdentityData+Transform entity that is not the local player), purging them from the clicking client's ECS view. Click again to purge avatars that arrive later."
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": [
+    "multiplayer",
+    "authoritative-server",
+    "exploit",
+    "delete-entity",
+    "test"
+  ],
+  "scene": {
+    "parcels": [
+      "93,-8",
+      "94,-8"
+    ],
+    "base": "93,-8"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          6,
+          10
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          6,
+          10
+        ]
+      },
+      "cameraTarget": {
+        "x": 16,
+        "y": 1.5,
+        "z": 8
+      }
+    }
+  ],
+  "requiredPermissions": [],
+  "featureToggles": {},
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  },
+  "authoritativeMultiplayer": true
+}

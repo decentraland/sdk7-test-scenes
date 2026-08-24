@@ -1,0 +1,25 @@
+{
+  "name": "authoritative-server-avatar-purge",
+  "version": "1.0.0",
+  "description": "Authoritative Server scene reproducing the inbound DELETE_ENTITY avatar-purge bug via a clickable RED orb",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "build": "sdk-commands build",
+    "server-logs": "sdk-commands sdk-server-logs"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "auth-server",
+    "@dcl/js-runtime": "7.26.1-32744818241.commit-e61f378"
+  }
+}
