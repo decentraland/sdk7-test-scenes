@@ -4,7 +4,7 @@ import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { getPlatform } from '@dcl/sdk/platform'
 import { ServerRoster } from '../shared/schemas'
 import { getToast, isServerAlive } from './state'
-import { RosterRow, getPurgeTotal, playerEntityRoster } from './repro-delete'
+import { RosterRow, getClientWarnings, getPurgeTotal, playerEntityRoster } from './repro-delete'
 
 const platform = getPlatform()
 const isMobile = platform === 'mobile'
@@ -30,11 +30,11 @@ function shorten(address: string): string {
 }
 
 // The SERVER's authoritative roster, read from the synced ServerRoster component.
-function serverRoster(): { ids: number[]; addresses: string[] } {
+function serverRoster(): { numbers: number[]; versions: number[]; addresses: string[]; warnings: string[] } {
   for (const [, r] of engine.getEntitiesWith(ServerRoster)) {
-    return { ids: [...r.ids], addresses: [...r.addresses] }
+    return { numbers: [...r.numbers], versions: [...r.versions], addresses: [...r.addresses], warnings: [...r.warnings] }
   }
-  return { ids: [], addresses: [] }
+  return { numbers: [], versions: [], addresses: [], warnings: [] }
 }
 
 function clientRow(r: RosterRow) {
@@ -52,19 +52,19 @@ function clientRow(r: RosterRow) {
       uiBackground={{ color: r.isMe ? ME_BG : ROW_BG }}
     >
       <Label
-        value={`#${r.id}  ${shorten(r.address)}${r.isMe ? '  (me)' : ''}`}
-        fontSize={17}
+        value={`#${r.number} v${r.version}  ${shorten(r.address)}${r.isMe ? '  (me)' : ''}`}
+        fontSize={16}
         color={r.isMe ? ME_COLOR : Color4.White()}
       />
-      <Label value={`(${r.x.toFixed(1)}, ${r.z.toFixed(1)})`} fontSize={15} color={DIM} />
+      <Label value={`(${r.x.toFixed(1)}, ${r.z.toFixed(1)})`} fontSize={14} color={DIM} />
     </UiEntity>
   )
 }
 
-function serverRow(id: number, address: string) {
+function serverRow(key: string, num: number, version: number, address: string) {
   return (
     <UiEntity
-      key={`s${id}`}
+      key={`s${key}`}
       uiTransform={{
         width: '100%',
         height: 40,
@@ -75,7 +75,20 @@ function serverRow(id: number, address: string) {
       }}
       uiBackground={{ color: ROW_BG }}
     >
-      <Label value={`#${id}  ${shorten(address)}`} fontSize={17} color={Color4.White()} />
+      <Label value={`#${num} v${version}  ${shorten(address)}`} fontSize={16} color={Color4.White()} />
+    </UiEntity>
+  )
+}
+
+// A swap-warning line (server or client detector).
+function warningRow(key: string, text: string) {
+  return (
+    <UiEntity
+      key={key}
+      uiTransform={{ width: '100%', height: 34, margin: { bottom: 4 }, padding: { left: 12, right: 12 }, alignItems: 'center' }}
+      uiBackground={{ color: Color4.create(1, 0.6, 0.1, 0.18) }}
+    >
+      <Label value={`⚠ ${text}`} fontSize={14} color={Color4.fromHexString('#ffcf6bff')} />
     </UiEntity>
   )
 }
@@ -92,6 +105,8 @@ const uiComponent = () => {
   const others = client.filter((r) => !r.isMe).length
   const alive = isServerAlive()
   const toast = getToast()
+  const clientWarnings = getClientWarnings()
+  const warnColor = (n: number) => (n > 0 ? Color4.fromHexString('#ffcf6bff') : OK)
 
   return (
     // Full-screen container: right-anchored and vertically centred.
@@ -111,12 +126,12 @@ const uiComponent = () => {
         uiBackground={{ color: PANEL_BG }}
       >
         {/* Header */}
-        <Label value="⚠ AVATAR PURGE" fontSize={28} color={ACCENT} uiTransform={{ height: 40 }} />
+        <Label value="⚠ AVATAR PURGE + SWAP WATCH" fontSize={26} color={ACCENT} uiTransform={{ height: 38 }} />
         <Label
-          value="DELETE_ENTITY exploit — click the RED orb"
-          fontSize={15}
+          value="rows are  #number vversion  — a reused slot should bump the version"
+          fontSize={14}
           color={DIM}
-          uiTransform={{ height: 24, margin: { bottom: 8 } }}
+          uiTransform={{ height: 22, margin: { bottom: 8 } }}
         />
         <Label
           value={alive ? '● authoritative server online' : '○ server waking up…'}
@@ -141,20 +156,39 @@ const uiComponent = () => {
           client.map((r) => clientRow(r))
         )}
 
-        {/* SERVER view — the server's own engine copy (published). Drops on a
-            server purge on BOTH packages (the local purge is below the guard),
-            so this shows the server ran it, NOT whether the guard held. */}
-        {sectionHeader(`SERVER view (server's own copy) — ${server.ids.length}`, OK)}
+        {/* SERVER view — the server's own engine copy (published), version-aware. */}
+        {sectionHeader(`SERVER view (server's own copy) — ${server.numbers.length}`, OK)}
         <Label
-          value="drops on a server purge either way — below the guard, not the discriminator"
+          value="the authoritative roster the server maps to wallets — watch version on reuse"
           fontSize={13}
           color={DIM}
           uiTransform={{ height: 20, margin: { bottom: 4 } }}
         />
-        {server.ids.length === 0 ? (
+        {server.numbers.length === 0 ? (
           <Label value="(server reports no players)" fontSize={15} color={DIM} uiTransform={{ height: 34 }} />
         ) : (
-          server.ids.map((id, i) => serverRow(id, server.addresses[i] ?? '???'))
+          server.numbers.map((num, i) =>
+            serverRow(`${num}-${server.versions[i]}-${i}`, num, server.versions[i] ?? 0, server.addresses[i] ?? '???')
+          )
+        )}
+
+        {/* SWAP WARNINGS — identity anomalies detected over join/leave churn. */}
+        {sectionHeader(
+          `SWAP WARNINGS — server ${server.warnings.length}, client ${clientWarnings.length}`,
+          warnColor(server.warnings.length + clientWarnings.length)
+        )}
+        {server.warnings.length + clientWarnings.length === 0 ? (
+          <Label
+            value="none — ids stable & every verified sender has an entity (churn players to test)"
+            fontSize={13}
+            color={DIM}
+            uiTransform={{ height: 28 }}
+          />
+        ) : (
+          [
+            ...server.warnings.map((w, i) => warningRow(`sw${i}`, `server: ${w}`)),
+            ...clientWarnings.map((w, i) => warningRow(`cw${i}`, `client: ${w}`))
+          ]
         )}
 
         {/* Summary */}

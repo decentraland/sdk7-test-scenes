@@ -11,10 +11,11 @@ import {
   pointerEventsSystem
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
+import { isStateSyncronized } from '@dcl/sdk/network'
 import { ORB_POSITION } from '../shared/config'
 import { room } from '../shared/messages'
 import { pollHeartbeat, showToast } from './state'
-import { purgeOtherAvatars } from './repro-delete'
+import { purgeOtherAvatars, startSwapWatch } from './repro-delete'
 
 // --- Click feedback: flash the orb white, then lerp it back to RED. ---
 // The orb is RED because it is the exploit trigger (DELETE_ENTITY injection),
@@ -35,6 +36,8 @@ export function setupClient(): void {
   // Keep the client's view of server liveness fresh (drives the UI status line).
   engine.addSystem(pollHeartbeat)
   engine.addSystem(orbFlashSystem)
+  startSwapWatch() // version-aware swap detection over the local roster
+  engine.addSystem(pingSystem) // verified-sender ground truth for the server detector
 }
 
 // Build the local, non-synced visuals. These are client-only decorations — the
@@ -110,6 +113,19 @@ function onOrbClick(): void {
       ? `⚠ Purged ${purged} here + asked server to purge`
       : 'No other avatars here — also asked server (invite a 2nd player)'
   )
+}
+
+// Send a verified `ping` to the server ~every 2s once the room is synced. The
+// payload is empty; the point is the server-side comms-verified context.from,
+// which the server's swap detector cross-checks against its avatar roster.
+const PING_SECONDS = 2
+let pingAcc = 0
+function pingSystem(dt: number): void {
+  if (!isStateSyncronized()) return
+  pingAcc += dt
+  if (pingAcc < PING_SECONDS) return
+  pingAcc = 0
+  room.send('ping', {})
 }
 
 // Eases the orb from its flash colour back into RED after a click.

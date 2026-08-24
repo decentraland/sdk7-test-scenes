@@ -1,4 +1,5 @@
 import { Entity, PlayerIdentityData, Transform, Transport, engine } from '@dcl/sdk/ecs'
+import { isAvatarNumber } from './swaps'
 
 // ---------------------------------------------------------------------------
 // Shared exploit primitive: inject a crafted DELETE_ENTITY into THIS instance's
@@ -16,7 +17,6 @@ import { Entity, PlayerIdentityData, Transform, Transport, engine } from '@dcl/s
 // receive path still purges, which is exactly the bug.
 // ---------------------------------------------------------------------------
 
-export const RESERVED_MAX = 512 // ADR-219 reserved block is [0, 512); avatars live in it.
 const CrdtMessageType_DELETE_ENTITY = 3
 const CRDT_MESSAGE_HEADER_LENGTH = 8
 
@@ -39,7 +39,9 @@ export function avatarTargets(exceptAddress?: string): Entity[] {
   const out: Entity[] = []
   for (const [entity, identity] of engine.getEntitiesWith(PlayerIdentityData, Transform)) {
     if (mine.has(entity)) continue
-    if ((entity as number) >= RESERVED_MAX) continue
+    // Filter by NUMBER, not the packed id: a version-bumped avatar packs above 512
+    // but is still a reserved player slot.
+    if (!isAvatarNumber(entity as number)) continue
     if (except && identity.address.toLowerCase() === except) continue
     out.push(entity)
   }

@@ -1,5 +1,6 @@
 import { Entity, PlayerIdentityData, Transform, engine } from '@dcl/sdk/ecs'
 import { createAvatarPurger } from '../shared/purge'
+import { createSwapDetector, entityNumber, entityVersion } from '../shared/swaps'
 
 // ---------------------------------------------------------------------------
 // CLIENT-side half of the exploit + the roster the UI renders.
@@ -20,6 +21,8 @@ const purger = createAvatarPurger('client')
 // console dump and the on-screen UI panel.
 export type RosterRow = {
   id: number
+  number: number
+  version: number
   address: string
   x: number
   z: number
@@ -29,6 +32,26 @@ export type RosterRow = {
 let purgeTotal = 0
 export function getPurgeTotal(): number {
   return purgeTotal
+}
+
+// Client-side swap detector over this browser's own player entities. Surfaces the
+// same "id reused with a new address" / "one address on two ids" anomalies as the
+// server, from the viewpoint of a client.
+const clientSwaps = createSwapDetector()
+export function getClientWarnings(): string[] {
+  return clientSwaps.warnings
+}
+
+// Scan the local roster for swaps ~once a second. Called from setupClient().
+let swapAcc = 0
+export function startSwapWatch(): void {
+  engine.addSystem((dt: number) => {
+    swapAcc += dt
+    if (swapAcc < 1) return
+    swapAcc = 0
+    const remote = playerEntityRoster().filter((r) => !r.isMe)
+    clientSwaps.scan(remote.map((r) => ({ id: r.id, address: r.address })))
+  })
 }
 
 function isMine(entity: Entity): boolean {
@@ -44,6 +67,8 @@ export function playerEntityRoster(): RosterRow[] {
     const t = Transform.getOrNull(entity)
     rows.push({
       id: entity as number,
+      number: entityNumber(entity as number),
+      version: entityVersion(entity as number),
       address: id?.address ?? '???',
       x: t ? t.position.x : 0,
       z: t ? t.position.z : 0,
@@ -84,7 +109,9 @@ export function purgeOtherAvatars(): number {
 // shows exactly which rows the inbound DELETE_ENTITY removed.
 function dumpRoster(when: string): void {
   const roster = playerEntityRoster()
-  const rows = roster.map((r) => `  #${r.id}[${r.address} (${r.x.toFixed(1)},${r.z.toFixed(1)})]${r.isMe ? ' <-- me' : ''}`)
+  const rows = roster.map(
+    (r) => `  #${r.number} v${r.version} [${r.address} (${r.x.toFixed(1)},${r.z.toFixed(1)})]${r.isMe ? ' <-- me' : ''}`
+  )
   console.log(
     `[exploit/client] ${when} getEntitiesWith(PlayerIdentityData, Transform) — ${roster.length} entit${roster.length === 1 ? 'y' : 'ies'}:`
   )

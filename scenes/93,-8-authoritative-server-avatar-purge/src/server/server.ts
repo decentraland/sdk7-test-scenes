@@ -4,6 +4,7 @@ import { HEARTBEAT_MS } from '../shared/config'
 import { room } from '../shared/messages'
 import { createAvatarPurger } from '../shared/purge'
 import { ServerHeartbeat, ServerRoster } from '../shared/schemas'
+import { createSwapDetector, entityNumber, entityVersion, isAvatarNumber } from '../shared/swaps'
 
 // ---------------------------------------------------------------------------
 // Minimal authoritative (headless) server.
@@ -24,11 +25,17 @@ import { ServerHeartbeat, ServerRoster } from '../shared/schemas'
 // Storage / admin logic from the original showcase scene has been removed.
 // ---------------------------------------------------------------------------
 
-const RESERVED_MAX = 512
 const ROSTER_PUBLISH_MS = 1000
+const VERIFIED_ACTIVE_MS = 6000 // a ping is "recent" for this long (≈3 ping intervals)
+const VERIFIED_GRACE_MS = 5000 // give a fresh sender's avatar time to stream in before flagging
 
 let heartbeatEntity: Entity
 let rosterEntity: Entity
+
+// Comms-verified senders (from ping's context.from), the ground-truth channel that
+// is INDEPENDENT of the avatar CRDT. Plain object (no Map iteration) keyed by
+// lower-cased address → first/last time we saw a verified message from them.
+const verifiedSeen: Record<string, { firstAt: number; lastAt: number }> = {}
 
 export async function startServer(): Promise<void> {
   console.log('[SERVER] Avatar-purge repro server starting…')
@@ -41,7 +48,7 @@ export async function startServer(): Promise<void> {
   syncEntity(heartbeatEntity, [ServerHeartbeat.componentId])
 
   rosterEntity = engine.addEntity()
-  ServerRoster.create(rosterEntity, { ids: [], addresses: [], updatedAt: Date.now() })
+  ServerRoster.create(rosterEntity, { ids: [], numbers: [], versions: [], addresses: [], warnings: [], updatedAt: Date.now() })
   syncEntity(rosterEntity, [ServerRoster.componentId])
 
   engine.addSystem(heartbeatSystem)
@@ -65,6 +72,18 @@ export async function startServer(): Promise<void> {
     )
   })
 
+  // Record every comms-verified ping. context.from is signed by the sender and does
+  // NOT come from the avatar CRDT, so it is the one independent proof "this wallet is
+  // really connected" that the roster can be checked against.
+  room.onMessage('ping', (_data, context) => {
+    const from = context?.from?.toLowerCase()
+    if (!from) return
+    const now = Date.now()
+    const seen = verifiedSeen[from]
+    if (seen) seen.lastAt = now
+    else verifiedSeen[from] = { firstAt: now, lastAt: now }
+  })
+
   console.log('[SERVER] Ready.')
 }
 
@@ -76,30 +95,63 @@ function heartbeatSystem(dt: number): void {
   ServerHeartbeat.getMutable(heartbeatEntity).beatAt = Date.now()
 }
 
-// Publish the server's authoritative player roster, throttled and change-gated so
-// the synced component only updates when the set of players actually changes.
+// Publish the server's authoritative player roster (version-aware) and run the
+// swap detector over it. Throttled, and change-gated on both the roster and the
+// warnings so the synced component only updates when something actually changes.
+const swaps = createSwapDetector()
 let rosterAcc = 0
-let lastRosterKey = ''
+let lastKey = ''
 function rosterSystem(dt: number): void {
   rosterAcc += dt
   if (rosterAcc < ROSTER_PUBLISH_MS / 1000) return
   rosterAcc = 0
 
   const ids: number[] = []
+  const numbers: number[] = []
+  const versions: number[] = []
   const addresses: string[] = []
   for (const [entity, identity] of engine.getEntitiesWith(PlayerIdentityData, Transform)) {
-    if ((entity as number) >= RESERVED_MAX) continue // players live in the reserved range
-    ids.push(entity as number)
+    const id = entity as number
+    // Filter by NUMBER, not the packed id: a version-bumped avatar (e.g. (32, v1))
+    // packs above 512 but is still a reserved player slot.
+    if (!isAvatarNumber(id)) continue
+    ids.push(id)
+    numbers.push(entityNumber(id))
+    versions.push(entityVersion(id))
     addresses.push(identity.address)
   }
 
-  const key = ids.join(',') + '|' + addresses.join(',')
-  if (key === lastRosterKey) return
-  lastRosterKey = key
+  // Feed the detector every tick (persistent history), even when the published
+  // roster is unchanged, so a reuse across a leave/rejoin gap is still caught.
+  swaps.scan(ids.map((id, i) => ({ id, address: addresses[i] })))
+
+  // Ground-truth cross-check: recent verified senders (established past the grace
+  // window) that have NO avatar entity in the roster — provably connected, but the
+  // server can't see them. This is the swap the roster alone can't reveal.
+  const now = Date.now()
+  const verifiedActive: string[] = []
+  for (const addr of Object.keys(verifiedSeen)) {
+    const seen = verifiedSeen[addr]
+    if (now - seen.lastAt <= VERIFIED_ACTIVE_MS && now - seen.firstAt >= VERIFIED_GRACE_MS) {
+      verifiedActive.push(addr)
+    }
+  }
+  swaps.checkGroundTruth(addresses.map((a) => a.toLowerCase()), verifiedActive)
+
+  const key = ids.join(',') + '|' + addresses.join(',') + '|' + swaps.warnings.join('|')
+  if (key === lastKey) return
+  lastKey = key
 
   const roster = ServerRoster.getMutable(rosterEntity)
   roster.ids = ids
+  roster.numbers = numbers
+  roster.versions = versions
   roster.addresses = addresses
+  roster.warnings = [...swaps.warnings]
   roster.updatedAt = Date.now()
-  console.log(`[SERVER] roster now ${ids.length} player(s):`, ids.map((id, i) => `#${id}[${addresses[i]}]`).join(' '))
+  console.log(
+    `[SERVER] roster now ${ids.length} player(s):`,
+    ids.map((id, i) => `#${numbers[i]}v${versions[i]}[${addresses[i]}]`).join(' ') || '(none)'
+  )
+  if (swaps.warnings.length) console.log('[SERVER] swap warnings:', swaps.warnings.join(' | '))
 }

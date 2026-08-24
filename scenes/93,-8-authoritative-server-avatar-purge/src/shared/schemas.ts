@@ -27,9 +27,17 @@ export const ServerHeartbeat = engine.defineComponent('avatarpurge::Heartbeat', 
 // The server's authoritative roster of player entities (parallel arrays, atomic
 // & compact). Only the server writes it; clients read it to render the "server
 // view" panel next to their own local view.
+//
+// `numbers`/`versions` decompose each packed id (ADR-117) so the swap bug is
+// visible: a slot reused WITH a generation bump shows a new `version`; reused
+// WITHOUT one keeps the same number+version while `addresses` changes. `warnings`
+// carries the server-side swap detector's findings so clients can see them.
 export const ServerRoster = engine.defineComponent('avatarpurge::ServerRoster', {
   ids: Schemas.Array(Schemas.Int),
+  numbers: Schemas.Array(Schemas.Int),
+  versions: Schemas.Array(Schemas.Int),
   addresses: Schemas.Array(Schemas.String),
+  warnings: Schemas.Array(Schemas.String),
   updatedAt: Schemas.Int64
 })
 
