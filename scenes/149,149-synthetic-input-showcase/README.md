@@ -48,8 +48,9 @@ station's visuals -- the scene never needs a reload to be re-run from a clean st
   `InputModifier` (`Mode.Standard` with `disableAll`/`disableJump`/`disableRun`).
 - **Camera**: `Transform.get(engine.CameraEntity)`, `Quaternion.toEulerAngles`, `Vector3.rotate`/`dot`/`normalize`.
 - **Interactivity**: `pointerEventsSystem.onPointerDown/onPointerUp/onPointerHoverEnter/onPointerHoverLeave`,
-  `inputSystem.isTriggered` (global, no-entity form, per the `advanced-input` skill), `TriggerArea.setBox` +
-  `triggerAreaEventsSystem.onTriggerEnter/onTriggerExit`.
+  `PointerEventsResult.get(engine.RootEntity)` read with a timestamp watermark (S6's board and S10's held-pointer
+  flag — **not** `inputSystem.isTriggered`, which cannot read the scene root in any form; see below),
+  `TriggerArea.setBox` + `triggerAreaEventsSystem.onTriggerEnter/onTriggerExit`.
 - **Rendering**: `TextShape`, `Billboard` (`BM_Y`), `MeshRenderer`/`MeshCollider` primitives, `Material.setPbrMaterial`
   (albedo + emissive for the "reacted" visual state).
 - **Pointer / raycast**: `PrimaryPointerInfo` (`worldRayDirection`) + `raycastSystem.registerGlobalDirectionRaycast`
@@ -76,10 +77,12 @@ The scene was driven end-to-end against a running Explorer; the report lives in
 - **S2 pressure plate** — a 0.1m-thin `TriggerArea` slab never overlaps the avatar capsule
   standing on it, so it never fired. The visual plate stays; the trigger is a separate
   invisible 2m-tall box. (S3's two zones needed the same fix and got it during the run.)
-- **S6 board** — now reads `inputSystem.isTriggered(action, type, engine.RootEntity)`. Without
-  the entity argument the SDK answers from **every** entity's `PointerEventsResult`, so an
-  entity-bound event satisfied the "global" counter too and the suppression demo could not
-  work. Do not drop that argument.
+- **S6 board** — reads the scene root's own `PointerEventsResult` grow-only set with a timestamp
+  watermark. ~~Now reads `inputSystem.isTriggered(action, type, engine.RootEntity)`~~ — that
+  intermediate fix was itself wrong and is superseded: passing `engine.RootEntity` changes
+  nothing, because the root entity is `0` and the SDK's `if (entity)` guard treats it as absent
+  (JS falsy zero), so it runs the same all-entities scan as omitting the argument. Neither form
+  can measure the root. S10's held-pointer flag was fixed the same way on 2026-09-02.
 - **S1 gait classifier** — peak per-frame speed misclassified jog as run; it now uses a
   smoothed sustained speed and logs distance, duration, average and sustained speed.
 - **S3 zone B** — a 9m corridor (was a 4m pad) so a ~1s run burst stays inside past the
@@ -131,11 +134,13 @@ Two stations were added and the docs' world coordinates were rebased.
 - **`TriggerArea` for S2's pressure plate and S3's freeze zones** -- confirmed present and
   used exactly as documented in the `add-interactivity` skill (native SDK7 component, not a
   proximity-check fallback). No substitution needed.
-- **S6 "global input" polling** uses `inputSystem.isTriggered(action, PET_DOWN)` with the
-  entity argument **omitted** (the documented "global" form), rather than binding to
-  `engine.RootEntity` explicitly -- this matches the `advanced-input` skill's guidance
-  ("Omit the entity argument to check globally") and the existing `0,1-input-modifier`
-  reference scene's pattern (`getInputCommand(InputAction.IA_ANY, PET_DOWN)`).
+- **"Global input" polling deviates from the `advanced-input` skill, deliberately.** The skill's
+  guidance ("Omit the entity argument to check globally") and the `0,1-input-modifier` reference
+  scene's `getInputCommand(InputAction.IA_ANY, PET_DOWN)` both answer from **every** entity's
+  `PointerEventsResult`, so an entity-bound event satisfies them — they cannot distinguish a
+  scene-root broadcast from an entity-bound press, and passing `engine.RootEntity` does not help
+  (falsy zero, same scan). S6 and S10 therefore read `PointerEventsResult.get(engine.RootEntity)`
+  directly with a timestamp watermark. Worth filing upstream against `js-sdk-toolchain`.
 - **`click_entity`/`hover_entity`'s `entityId` argument is a *different id space* from this
   scene's own CRDT entity ids**: it is the Explorer's internal Arch ECS entity id, which is what
   `list_scene_entities` returns. Confirmed in the client source, and the tools report **both**

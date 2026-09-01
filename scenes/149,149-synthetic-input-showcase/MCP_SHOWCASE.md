@@ -707,10 +707,12 @@ world surface with, and they fail in different ways, so each gets its own canvas
 - **STAMP canvas** -- an ordinary `pointerEventsSystem.onPointerDown`. Every `click_entity` /
   `click_at` / aimed `press_input` paints exactly one dot at the hit position the event itself
   carries (`PBPointerEventsResult.hit.position`). No held button needed; fully deterministic.
-- **STROKE canvas** -- the `0,5-primary-cursor-info` pattern: a global `IA_POINTER` down/up pair
-  marks the button held, and while it is held the station raycasts along
+- **STROKE canvas** -- the `0,5-primary-cursor-info` pattern: an `IA_POINTER` down/up pair marks
+  the button held, and while it is held the station raycasts along
   `PrimaryPointerInfo.worldRayDirection` every ~60 ms and drops a dot wherever the ray lands.
-  This is the one that needs the pointer to stay **down across several frames**.
+  This is the one that needs the pointer to stay **down across several frames** — and, because
+  that ray is built from the camera, the one that needs the camera to *turn* while it is held.
+  It arms on a pointer-down on the canvas itself or on an `IA_POINTER` scene-root broadcast.
 
 Layout (world; local = world - `(2384, 0, 2384)`):
 
@@ -743,55 +745,47 @@ Layout (world; local = world - `(2384, 0, 2384)`):
    spheres on a diagonal. Readout: `STAMP dots (one per click): 5`, `live dots: 5/40`.
    This path is the fallback for everything below -- if the drag path turns out not to hold the
    pointer, a stepped run of `click_entity` calls still draws a legible dotted stroke.
-3. **Sweep a stroke (the held-pointer path).** `ui_drag` takes **normalized** 0..1 coordinates,
-   which are resolution-independent: aim first, take a screenshot, read the canvas edges off
-   that image, and divide by *that image's* width/height. (`screen` matters only for a point
-   derived from a `screenRect`, which is in screen pixels -- there is no `screenRect` for world
-   geometry.) Verify the point before dragging with a single `click_at` at the same
-   coordinates: it should report the canvas's `crdtEntityId`.
-
-   > **Read this before running the step: as of 2026-09-01 this step cannot be driven, and the
-   > blocker is scene-side.** Four probes, all in that run's `MCP_SHOWCASE_RESULTS.md`:
-   > `ui_drag` takes `path: "device"` here as designed, but the virtual mouse **delivers no
-   > pointer event to 3D scene entities at all** -- the same screen point that stamped a dot via
-   > `click_at` produced nothing via `ui_drag`, so the drag can neither arm the station's held
-   > flag nor move the sampled ray. The tools that *do* arm it (`click_entity`, `click_at`,
-   > aimed `press_input`) pin the reticle at a fixed world point, so the ray cannot sweep. And
-   > an aimed `press_input` on the stroke canvas cannot arm it either: the canvas has no
-   > `PointerEvents` (`entityBound: false`, "entity 82 has no PointerEvents component"), so the
-   > edge goes to the scene root -- which the station's entity-less `inputSystem.isTriggered`
-   > **cannot see**, because `RootEntity` is `0` and the SDK's `if (entity)` guard is falsy for
-   > it. That is the exact same falsy-zero trap S6 documents above, in the one station that
-   > still depends on the broken measurement. Fixing S10 means arming from
-   > `PointerEventsResult.get(engine.RootEntity)` the way S6's board does, and it still leaves
-   > the sweep needing a tool that moves the pointer while it is down.
-
+3. **Sweep a stroke (the held-pointer path).** The sampled ray is
+   `PrimaryPointerInfo.worldRayDirection`, which is built from the **camera** — so a stroke is
+   painted by holding the button and *turning*, never by sliding a pointer across the screen.
+   `sweep_pointer` is exactly that gesture (press, camera-look while held, release):
    ```
-   look_at  x: 2398  y: 2.2  z: 2393
-   screenshot
-   ui_drag  fromX: <left edge of the canvas>  fromY: <mid height>
-            toX:   <right edge of the canvas>  toY:   <mid height>
-            durationFrames: 40
+   look_at        x: 2398  y: 2.2  z: 2393
+   sweep_pointer  entityId: <stroke canvas>  deltaX: 4  deltaY: 0  seconds: 2
    ```
-   The start point is world geometry, not scene UI, so the tool takes the virtual-mouse path --
-   expect the result **not** to say `path: "sdk"`.
-   Expected logs: `[S10-PAINT] STROKE #1 started at local (...)`, then
+   Get the id from `list_scene_entities`, or aim the press with `x: 2398  y: 2.2  z: 2393`
+   instead. Expected result: `pressed.hit: true` on the stroke canvas, `swept: true`, and a
+   `released` leg. Expected logs:
+   `[S10-PAINT] IA_POINTER held (pointer-down on the stroke canvas)`,
+   `[S10-PAINT] STROKE #1 started at local (...)`, then
    `[S10-PAINT] STROKE #1 ended -- N dots over X.XXm of surface (0 samples landed off the canvas)`.
    Screenshot: a coloured trail of spheres across the right canvas; the readout's `STROKE dots`
    and `strokes` lines advance and `longest` records N.
+
+   Tune the turn so the ray stays on the canvas: `deltaX` is the same unit `camera_look` takes,
+   and 4 for 2 s sweeps a few metres of surface from the stand mark. A sweep that leaves the
+   canvas is not a failure — it is step 4's negative case arriving early, and the logs say so.
+
    **Read N carefully.** If it is 1, the station logs
-   `STROKE #1 was a single dot -- the pointer was not held across frames`, which means the press
-   and the release landed inside one drain window: the drag was delivered as a click. That is the
-   measurement this station exists for -- report it as the result, not as a scene failure.
-   If every sample lands in the same spot (a stroke of 1 dot with a long hold), the cursor is
-   locked and `worldRayDirection` is pinned to the camera; free the cursor first
-   (`press_input action: SECONDARY`, or `set_cursor_lock false` if the build has it) and repeat.
-4. **Drag off the canvas onto the decoy (the negative case).** Same drag, but end below the
-   canvas's bottom edge (world y < 1.0), on the red strip:
+   `STROKE #1 was a single dot -- the pointer was not held across frames`: the press and the
+   release landed inside one drain window, so the gesture was delivered as a click. That is the
+   measurement this station exists for — report it as the result, not as a scene failure.
+
+   > **Do not use `ui_drag` here.** Dragging the virtual mouse across the world **pans the
+   > camera** (the left button is the camera-pan binding, for a human too), so the call now fails
+   > with "the drag panned the camera instead of dragging" and paints nothing. `ui_drag` is for
+   > UI. Before 2026-09-02 this step was undrivable: the station armed from the entity-less
+   > `inputSystem.isTriggered`, which cannot read the scene root (`RootEntity` is `0`, falsy-zero
+   > guard — the trap S6 documents), and the stroke canvas had no `PointerEvents` to arm on
+   > either. It now arms from a pointer-down on the canvas itself *or* an `IA_POINTER` scene-root
+   > broadcast read with a timestamp watermark, so an unaimed hold works too:
+   > `press_input action: POINTER holdSeconds: 2` in parallel with a `camera_look` is the same
+   > gesture, split across two calls.
+
+4. **Sweep off the canvas onto the decoy (the negative case).** Same gesture, but turn far enough
+   (or downward) that the ray leaves the canvas onto the red strip below it:
    ```
-   ui_drag  fromX: <canvas centre>  fromY: <mid height>
-            toX:   <canvas centre>  toY:   <below the canvas, on the red strip>
-            durationFrames: 40
+   sweep_pointer  entityId: <stroke canvas>  deltaX: 2  deltaY: -6  seconds: 2
    ```
    Expected logs: the stroke starts normally, then up to three
    `[S10-PAINT] stroke sample left the canvas (hit entityId ...) -- no dot painted` lines
@@ -834,8 +828,9 @@ Layout (world; local = world - `(2384, 0, 2384)`):
 | Disabled `<Input />` refuses a write | `ui_set_text stack:sdk crdtId:<disabledId> text:"nope"` | no `[S9-TEXT]` log; panel line 4 stays white at `0` |
 | A write without `submit` does not submit | `ui_set_text stack:sdk crdtId:<submitOnlyId> text:"x"` | no log, `submits 0` |
 | Empty form is rejected | `ui_click` CLEAR FIELDS, then `ui_click` SUBMIT FORM | `FORM submit #N -- REJECTED callsign="" code=""` |
-| Paint sample off the canvas | `ui_drag` from the stroke canvas down onto the decoy strip | `stroke sample left the canvas ... no dot painted`; no sphere below world y `1.0` |
-| A drag that never holds the pointer | any `ui_drag` whose press and release land in one drain window | `STROKE #N was a single dot -- the pointer was not held across frames` |
+| Paint sample off the canvas | `sweep_pointer` on the stroke canvas turning down onto the decoy strip | `stroke sample left the canvas ... no dot painted`; no sphere below world y `1.0` |
+| A sweep that never holds the pointer | any gesture whose press and release land in one drain window | `STROKE #N was a single dot -- the pointer was not held across frames` |
+| A world drag pans instead of dragging | `ui_drag path:device` over the STROKE canvas | the call fails with "the drag panned the camera instead of dragging"; no stroke |
 
 ---
 
@@ -967,12 +962,15 @@ at the top of this document.
 - The paint dot pool is capped at **40** spheres and recycles oldest-first. A DCL sphere
   primitive is 804 triangles (`SphereFactory`, 24x16 UV sphere) against a 2x2 scene's 40,000
   budget, so an uncapped painter would exceed it in about a minute of dragging.
-- S10 arms its held-pointer flag from the entity-less `inputSystem.isTriggered`, which scans
-  **every** entity's results -- so a click anywhere in the scene arms it. That is deliberate: a
-  stroke only becomes active once a sample actually lands on the stroke canvas, so clicking an S4
-  button never opens a stroke, and off-canvas samples are only counted for a stroke that had
-  already started on the canvas. A held pointer whose release never arrives is force-ended after
-  6 seconds so the station cannot paint forever.
+- S10 arms its held-pointer flag from a pointer-down **on the stroke canvas** or from an
+  `IA_POINTER` **scene-root broadcast**, read from `PointerEventsResult.get(engine.RootEntity)`
+  with a timestamp watermark (2026-09-02). It used to arm from the entity-less
+  `inputSystem.isTriggered`, which was wrong twice over: that call cannot see the root at all
+  (the falsy-zero trap S6 documents), and it scans every entity's results, so clicks at S4/S8
+  opened phantom strokes — S10's counters were untrustworthy in any pass that also drove those
+  stations. A stroke still only becomes *active* once a sample lands on the canvas, and a held
+  pointer whose release never arrives is force-ended after 6 seconds so the station cannot paint
+  forever.
 
 ---
 
@@ -1003,7 +1001,7 @@ what *should* happen):
 | S9 step 7 | **A `disabled: true` `<Input />` accepted a synthetic write.** `ui_set_text` returned `ok: true`, `onChange` fired, and the panel's line 4 went red with `[S9-TEXT] DISABLED FIELD ACCEPTED A WRITE`. The station calls this a client defect and it is: the write path does not check `disabled` |
 | S9 step 8 | S9's `SUBMIT FORM` / `CLEAR FIELDS` buttons sit under the client chat panel's **invisible** message viewport, so `ui_click` fails with `blockedBy: ".../ChatMessages/Viewport"`. `force: true` completes the step. Same class of false positive as the panel-host cover fixed after the first run -- a transparent client container counted as a cover |
 | S9 step 9 | After `CLEAR FIELDS` sets the scene's state back, the **controlled** field 2 still displays the old text on screen (`replaced:`/`still the seed value` label flips correctly, the `<Input>` does not). A programmatic `value` change does not reach a field the client has taken ownership of |
-| S10 steps 3-4 | The STROKE path cannot be driven at all -- see the boxed note in step 3. Steps 2, 5 and 6 pass |
+| S10 steps 3-4 | The STROKE path could not be driven at all in this run. **Resolved 2026-09-02** on both sides: the client gained `sweep_pointer` (press, turn the camera while held, release — the gesture that actually moves the sampled ray) and the station now arms from the stroke canvas's own pointer-down or the scene-root broadcast. Steps 3-4 are rewritten above; steps 2, 5 and 6 always passed |
 
 **Confirmed still working:** every 08-28 fix held. S6's suppression matrix passes (board:
 `scene-root PRIMARY: 1  entity PRIMARY: 2`), and it is independently corroborated from S4 --

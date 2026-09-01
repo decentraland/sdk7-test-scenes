@@ -8,7 +8,7 @@ import {
   Transform,
   Material,
   MeshRenderer,
-  inputSystem,
+  PointerEventsResult,
   pointerEventsSystem,
   raycastSystem
 } from '@dcl/sdk/ecs'
@@ -28,13 +28,16 @@ import { counters, slog, logEntity, logMark, onReset } from '../state'
  *                   carried in the event (`PBPointerEventsResult.hit.position`, scene-relative).
  *                   Discrete, deterministic, and the only path that needs no held button.
  *
- *  STROKE canvas -- the pattern from the `0,5-primary-cursor-info` reference scene: a global
+ *  STROKE canvas -- the pattern from the `0,5-primary-cursor-info` reference scene: an
  *                   `IA_POINTER` down/up pair marks the button held, and while it is held the
  *                   station raycasts along `PrimaryPointerInfo.worldRayDirection` every ~60ms and
  *                   drops a dot wherever the ray lands. This is the one that needs the pointer to
  *                   stay DOWN across several frames -- a synthetic drag that presses and releases
  *                   inside one drain window paints a single dot, and the log says so rather than
- *                   silently looking like a short stroke.
+ *                   silently looking like a short stroke. The ray follows the CAMERA (that is what
+ *                   `worldRayDirection` is built from), so a stroke is painted by holding the
+ *                   button and turning: `sweep_pointer` for a driver, mouse-down-and-look for a
+ *                   human. Dragging a mouse across the world does not paint -- it pans.
  *
  * The DECOY strip under the stroke canvas is collidable but not paintable: samples that land on
  * it are counted as off-canvas and leave no dot, which is what proves the stroke is following the
@@ -189,11 +192,18 @@ export function setupS10Paint() {
   // -----------------------------------------------------------------------------------------
   // STROKE path -- held pointer + repeated ray along PrimaryPointerInfo.worldRayDirection.
   //
-  // The held flag comes from the entity-less `inputSystem.isTriggered`, which scans EVERY
-  // entity's results, so a click anywhere in the scene arms it. That is fine and deliberate:
-  // the stroke only becomes "active" once a sample actually lands on the stroke canvas, so a
-  // click on an S4 button never opens a stroke, and off-canvas samples are only counted for a
-  // stroke that had already started on the canvas.
+  // The held flag is armed by the two presses that can honestly mean "I am about to drag here":
+  // a pointer-down on the stroke canvas itself (entity-bound, registered below), or an
+  // IA_POINTER scene-root broadcast -- a press that no entity consumed, which is what clicking
+  // empty space or an unaimed press_input produces.
+  //
+  // It used to arm from the entity-less `inputSystem.isTriggered`, which CANNOT read the scene
+  // root: without an entity it answers from EVERY entity's results, and passing engine.RootEntity
+  // is the same scan because RootEntity is 0 and the SDK's `if (entity)` guard treats it as
+  // absent (JS falsy zero) -- the exact trap documented for S6. That made the station both deaf
+  // to the broadcast it claimed to watch and armed by any click anywhere in the scene (S4/S8
+  // clicks opened phantom strokes). Reading the root's own grow-only set with a timestamp
+  // watermark is the only true measurement.
   // -----------------------------------------------------------------------------------------
   let pointerHeld = false
   let strokeActive = false
@@ -204,6 +214,14 @@ export function setupS10Paint() {
   let lastSample: Vector3 | null = null
   let strokeColor = STROKE_PALETTE[0]
   let heldSeconds = 0
+
+  function beginStroke(source: string) {
+    if (pointerHeld) return
+    pointerHeld = true
+    heldSeconds = 0
+    rayTimer = RAY_PERIOD_SECONDS // sample immediately on the press frame
+    slog('S10-PAINT', `IA_POINTER held (${source}) -- sweeping the ray until it is released`)
+  }
 
   function endStroke() {
     pointerHeld = false
@@ -236,15 +254,39 @@ export function setupS10Paint() {
     refresh()
   }
 
+  // The stroke canvas is pressable so the gesture can start ON the surface being painted, which is
+  // what a human does and what `sweep_pointer entityId:<this>` produces. An entity-bound press is
+  // suppressed from the scene-root broadcast by design, so this handler -- not the root scan below
+  // -- is what arms that case.
+  pointerEventsSystem.onPointerDown(
+    {
+      entity: strokeCanvas,
+      opts: { button: InputAction.IA_POINTER, hoverText: 'Hold and sweep to paint a stroke', maxDistance: 16 }
+    },
+    () => beginStroke('pointer-down on the stroke canvas')
+  )
+
+  pointerEventsSystem.onPointerUp(
+    {
+      entity: strokeCanvas,
+      opts: { button: InputAction.IA_POINTER, hoverText: 'Release to end the stroke', maxDistance: 16 }
+    },
+    () => endStroke()
+  )
+
+  let lastRootTimestampSeen = 0
+
   engine.addSystem((dt: number) => {
-    if (inputSystem.isTriggered(InputAction.IA_POINTER, PointerEventType.PET_DOWN)) {
-      pointerHeld = true
-      heldSeconds = 0
-      rayTimer = RAY_PERIOD_SECONDS // sample immediately on the press frame
+    let maxTimestamp = lastRootTimestampSeen
+    for (const cmd of PointerEventsResult.get(engine.RootEntity)) {
+      if (cmd.timestamp <= lastRootTimestampSeen) continue
+      if (cmd.timestamp > maxTimestamp) maxTimestamp = cmd.timestamp
+      if (cmd.button !== InputAction.IA_POINTER) continue
+      if (cmd.state === PointerEventType.PET_DOWN) beginStroke('scene-root broadcast')
+      else if (cmd.state === PointerEventType.PET_UP) endStroke()
     }
-    if (inputSystem.isTriggered(InputAction.IA_POINTER, PointerEventType.PET_UP)) {
-      endStroke()
-    }
+    lastRootTimestampSeen = maxTimestamp
+
     if (!pointerHeld) return
 
     heldSeconds += dt
@@ -329,7 +371,8 @@ export function setupS10Paint() {
 
   slog(
     'S10-PAINT',
-    'station ready -- click_entity/click_at the STAMP canvas for one dot per click; hold and sweep the pointer ' +
-      'across the STROKE canvas (ui_drag started over it) for a trail'
+    'station ready -- click_entity/click_at the STAMP canvas for one dot per click; for a trail, hold IA_POINTER ' +
+      'and turn the camera (sweep_pointer aimed at the STROKE canvas, or an unaimed press_input hold plus ' +
+      'camera_look): the sampled ray follows the camera, so dragging a mouse across the world only pans it'
   )
 }
