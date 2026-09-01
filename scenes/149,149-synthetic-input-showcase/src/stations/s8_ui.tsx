@@ -1,6 +1,6 @@
-import { engine, InputAction, pointerEventsSystem } from '@dcl/sdk/ecs'
+import { InputAction, pointerEventsSystem } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
-import ReactEcs, { ReactEcsRenderer, UiEntity, Label, Button, Input, Dropdown } from '@dcl/sdk/react-ecs'
+import ReactEcs, { UiEntity, Label, Button, Input, Dropdown } from '@dcl/sdk/react-ecs'
 import * as C from '../constants'
 import { createSign, createBox, setBoxColor, COLORS } from '../lib'
 import { counters, slog, logEntity, resetAllStations, onReset } from '../state'
@@ -54,36 +54,26 @@ export function setupS8Ui() {
     dragArmed = false
   })
 
-  ReactEcsRenderer.setUiRenderer(MainUi, { virtualWidth: 1920, virtualHeight: 1080 })
   slog('S8-UI', 'station ready -- click the world button to open the panel; every element is listed via ui_list stack:sdk')
 }
 
-function MainUi() {
-  if (!panelOpen) {
-    return (
-      <UiEntity uiTransform={{ width: '100%', height: '100%' }}>
-        <UiEntity
-          uiTransform={{ width: 340, height: 60 }}
-          uiBackground={{ color: Color4.create(0, 0, 0, 0.55) }}
-        >
-          <Label
-            value="S8 panel closed -- click the world toggle button to open it"
-            fontSize={16}
-            color={Color4.White()}
-            uiTransform={{ width: '100%', height: '100%' }}
-          />
-        </UiEntity>
-      </UiEntity>
-    )
-  }
+/**
+ * S8's panel. Rendered by `setupSceneUi()` (`ui_root.tsx`) alongside S9's, because
+ * `ReactEcsRenderer.setUiRenderer` may only be called once per scene.
+ */
+export function S8Panel() {
+  if (!panelOpen) return null
 
   return (
     <UiEntity
       uiTransform={{
+        positionType: 'absolute',
+        position: { top: 0, left: 0 },
         width: '100%',
         height: '100%',
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+        pointerFilter: 'none'
       }}
     >
       <UiEntity

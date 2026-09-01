@@ -126,4 +126,40 @@ export const S7_ANGLE_TOLERANCE_DEG = 8
 // ---------------------------------------------------------------------------------------
 export const S8_TOGGLE_BUTTON = Vector3.create(13, 1, 16)
 
+// ---------------------------------------------------------------------------------------
+// S9 -- UI text entry (<Input />). The world button toggles a second React panel, anchored
+// to the LEFT of the screen so it never overlaps S8's centered panel -- two panels open at
+// once must not occlude each other, or `ui_click`'s occlusion pre-check reports a cover that
+// is really just the other station.
+// ---------------------------------------------------------------------------------------
+export const S9_TOGGLE_BUTTON = Vector3.create(10, 1, 16)
+export const S9_SIGN = Vector3.create(10, 4.6, 16) // above S8's sign line -- both are wide billboards on the same hub row
+
+// ---------------------------------------------------------------------------------------
+// S10 -- Paint surface (SW-central free block, x 8..16, z 4..12). Two canvases side by side:
+// the STAMP canvas is driven by discrete clicks (one dot per `click_entity`/`click_at`), the
+// STROKE canvas by a held pointer dragged across it (`ui_drag` starting over the canvas).
+// The DECOY strip under the stroke canvas is a collidable, NON-paintable surface: a drag that
+// runs off the bottom of the canvas onto it must stop leaving dots.
+// ---------------------------------------------------------------------------------------
+export const S10_SIGN = Vector3.create(12, 6.6, 9)
+export const S10_READOUT = Vector3.create(12, 5, 9)
+export const S10_STAND = Vector3.create(12, 0, 5.5)
+export const S10_STAMP_CANVAS = Vector3.create(10, 2.1, 9)
+export const S10_STAMP_CANVAS_SCALE = Vector3.create(3.6, 2.6, 0.2)
+export const S10_STROKE_CANVAS = Vector3.create(14, 2.2, 9)
+export const S10_STROKE_CANVAS_SCALE = Vector3.create(3.6, 2.4, 0.2)
+export const S10_DECOY = Vector3.create(14, 0.6, 9) // directly below the stroke canvas, y 0.2..1.0
+export const S10_DECOY_SCALE = Vector3.create(3.6, 0.8, 0.2)
+export const S10_CLEAR_BUTTON = Vector3.create(8, 1, 6)
+
+/**
+ * A DCL sphere primitive is 804 triangles (24x16 UV sphere, `SphereFactory` in the client), and a
+ * 2x2 scene's whole triangle budget is 40,000. The rest of this scene spends ~2,000, so the paint
+ * pool is capped at 40 dots -- enough for a legible stroke, and it recycles oldest-first rather
+ * than growing without bound.
+ */
+export const S10_DOT_POOL_MAX = 40
+export const S10_DOT_SCALE = 0.14
+
 export const SIGN_COLOR = { r: 1, g: 1, b: 1, a: 1 }

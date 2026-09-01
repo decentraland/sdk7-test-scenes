@@ -82,7 +82,24 @@ export const counters = {
   s8ScrollY: 0,
   s8Drags: 0,
   s8ModalOpen: false,
-  s8PanelOpen: false
+  s8PanelOpen: false,
+  // S9 -- UI text entry
+  s9PanelOpen: false,
+  s9ChangesFree: 0,
+  s9SubmitsFree: 0,
+  s9ChangesSeeded: 0,
+  s9SubmitsSubmitOnly: 0,
+  s9DisabledChanges: 0, // must stay 0 -- a disabled <Input /> has to reject ui_set_text
+  s9FormSubmits: 0,
+  s9FormAccepted: 0,
+  // S10 -- Paint surface
+  s10Stamps: 0,
+  s10StrokeDots: 0,
+  s10Strokes: 0,
+  s10OffCanvasSamples: 0,
+  s10LongestStrokeDots: 0,
+  s10PoolRecycles: 0,
+  s10Clears: 0
 }
 
 type ResetFn = () => void
