@@ -9,9 +9,11 @@ import {
   inputSystem,
   PointerEventType,
   PointerLock,
-  PrimaryPointerInfo
+  PrimaryPointerInfo,
+  TouchScreenControls
 } from '@dcl/sdk/ecs'
 import { Vector3, Quaternion } from '@dcl/sdk/math'
+import { isMobile } from '@dcl/sdk/platform'
 import { onEnterScene, onLeaveScene } from '@dcl/sdk/src/players'
 
 // Camera pivot for free-cam mode: scene center, high enough for a good overview
@@ -21,6 +23,8 @@ const PIVOT = Vector3.create(8, 8, 8)
 const BOUNDS_MIN = Vector3.create(0, 0, 0)
 const BOUNDS_MAX = Vector3.create(16, 20, 16)
 const BOUNDS_MARGIN = 0.5
+// Remote player transforms are in world coords; this is scene.json base 33,20
+const SCENE_ORIGIN = Vector3.create(33 * 16, 0, 20 * 16)
 
 const PITCH_SPEED = 60 // deg/s
 const YAW_SPEED = 90 // deg/s
@@ -68,6 +72,7 @@ onLeaveScene((userId) => {
 function setFollowTarget(userId: string | null) {
   followTargetId = userId
   state.followTargetId = userId
+  if (state.active) applyTouchscreenControls(!!userId)
 }
 
 // Cycle order: free-cam → player 0 → ... → player n-1 → free-cam
@@ -82,6 +87,54 @@ function cycleTarget(delta: number) {
   setFollowTarget(next === -1 ? null : playerIds[next])
 }
 
+// --- Touchscreen: replace the native on-screen buttons while spectating (no-op on desktop) ---
+
+const ICON_DIR = 'assets/images/spectate-mode'
+
+function textureIcon(src: string) {
+  return { tex: { $case: 'texture' as const, texture: { src } } }
+}
+
+function applyTouchscreenControls(hasTarget: boolean) {
+  TouchScreenControls.createOrReplace(engine.RootEntity, {
+    hideJoystick: false,
+    hideCrosshair: false,
+    touchInputs: [
+      {
+        inputAction: InputAction.IA_ACTION_3,
+        hide: false,
+        icon: textureIcon(`${ICON_DIR}/icon-next.png`)
+      },
+      {
+        inputAction: InputAction.IA_ACTION_4,
+        hide: false,
+        icon: textureIcon(`${ICON_DIR}/icon-previous.png`)
+      },
+      { inputAction: InputAction.IA_ACTION_5, hide: true },
+      { inputAction: InputAction.IA_ACTION_6, hide: true },
+      { inputAction: InputAction.IA_POINTER, hide: true },
+      {
+        inputAction: InputAction.IA_PRIMARY,
+        hide: false,
+        icon: textureIcon(hasTarget ? `${ICON_DIR}/icon-zoomIn.png` : `${ICON_DIR}/icon-down.png`)
+      },
+      {
+        inputAction: InputAction.IA_SECONDARY,
+        hide: false,
+        icon: textureIcon(hasTarget ? `${ICON_DIR}/icon-zoomOut.png` : `${ICON_DIR}/icon-up.png`)
+      }
+    ]
+  })
+}
+
+function clearTouchscreenControls() {
+  TouchScreenControls.createOrReplace(engine.RootEntity, {
+    hideJoystick: false,
+    hideCrosshair: false,
+    touchInputs: []
+  })
+}
+
 // --- Two-entity camera rig: root owns world position + yaw, child owns pitch + orbit offset.
 // Splitting yaw and pitch across two Transforms keeps the euler math trivial. ---
 
@@ -92,6 +145,7 @@ let yaw = 0
 let pitch = PITCH_DEFAULT
 let zoom = 0.5 // 0-1 between MIN and MAX follow distance
 let yOffset = 0
+let rigDestroyTimer = 0
 
 export function toggleSpectate() {
   if (state.active) disableSpectate()
@@ -101,6 +155,10 @@ export function toggleSpectate() {
 function enableSpectate() {
   if (state.active) return
   state.active = true
+
+  engine.removeSystem(rigDestroySystem)
+  if (rigCamera) engine.removeEntity(rigCamera)
+  if (rigRoot) engine.removeEntity(rigRoot)
 
   yaw = 0
   pitch = PITCH_DEFAULT
@@ -136,15 +194,11 @@ function disableSpectate() {
   if (!state.active) return
   state.active = false
 
-  // Clear MainCamera BEFORE removing the VirtualCamera entity — otherwise the engine
-  // keeps binding to a dead entity and the view falls through to the player's feet
+  // Clear MainCamera but leave the VirtualCamera entity for 1s so the renderer
+  // can blend back to the player camera (deleting it this frame makes the view jump).
   const mainCamera = MainCamera.getMutableOrNull(engine.CameraEntity)
   if (mainCamera) mainCamera.virtualCameraEntity = undefined
 
-  if (rigCamera) engine.removeEntity(rigCamera)
-  if (rigRoot) engine.removeEntity(rigRoot)
-  rigCamera = null
-  rigRoot = null
   setFollowTarget(null)
   state.isPointerLocked = false
 
@@ -152,12 +206,27 @@ function disableSpectate() {
     mode: InputModifier.Mode.Standard({ disableAll: false })
   })
 
+  clearTouchscreenControls()
+
   engine.removeSystem(spectateInputSystem)
   engine.removeSystem(cameraRigSystem)
+
+  rigDestroyTimer = 0
+  engine.addSystem(rigDestroySystem)
 }
 
-// --- Input: WASD pitch/yaw, mouse-look while pointer is locked, E/F zoom (following)
-// or raise/lower (free), 1/2 cycle target ---
+function rigDestroySystem(dt: number) {
+  rigDestroyTimer += dt
+  if (rigDestroyTimer < 1) return
+  engine.removeSystem(rigDestroySystem)
+  if (rigCamera) engine.removeEntity(rigCamera)
+  if (rigRoot) engine.removeEntity(rigRoot)
+  rigCamera = null
+  rigRoot = null
+}
+
+// --- Input: WASD pitch/yaw, mouse-look while pointer is locked, E/F (or on-screen
+// primary/secondary) zoom while following or raise/lower in free-cam, 1/2 cycle target ---
 
 function spectateInputSystem(dt: number) {
   // Mouse-look: screenDelta keeps reporting raw mouse deltas while the pointer is locked
@@ -178,12 +247,16 @@ function spectateInputSystem(dt: number) {
   if (inputSystem.isPressed(InputAction.IA_LEFT)) yaw = (yaw - dt * YAW_SPEED) % 360
   if (inputSystem.isPressed(InputAction.IA_RIGHT)) yaw = (yaw + dt * YAW_SPEED) % 360
 
+  // E/F (desktop) or on-screen primary/secondary (mobile). Raise/lower is swapped on
+  // mobile so the touchscreen up/down icons match the actual camera motion.
   if (inputSystem.isPressed(InputAction.IA_PRIMARY)) {
     if (followTargetId) zoom = clamp(zoom - dt * ZOOM_SPEED, 0, 1)
+    else if (isMobile()) yOffset = clamp(yOffset - dt * RAISE_SPEED, -MAX_Y_OFFSET, MAX_Y_OFFSET)
     else yOffset = clamp(yOffset + dt * RAISE_SPEED, -MAX_Y_OFFSET, MAX_Y_OFFSET)
   }
   if (inputSystem.isPressed(InputAction.IA_SECONDARY)) {
     if (followTargetId) zoom = clamp(zoom + dt * ZOOM_SPEED, 0, 1)
+    else if (isMobile()) yOffset = clamp(yOffset + dt * RAISE_SPEED, -MAX_Y_OFFSET, MAX_Y_OFFSET)
     else yOffset = clamp(yOffset - dt * RAISE_SPEED, -MAX_Y_OFFSET, MAX_Y_OFFSET)
   }
 
@@ -198,7 +271,17 @@ function cameraRigSystem() {
   if (!rootTransform || !cameraTransform) return
 
   const followEntity = followTargetId ? playerEntities.get(followTargetId) : undefined
-  const followPosition = followEntity ? Transform.getOrNull(followEntity)?.position : undefined
+  let followPosition = followEntity ? Transform.getOrNull(followEntity)?.position : undefined
+  // Local player is already scene-local; other players come in as world XZ
+  if (
+    followPosition &&
+    (followPosition.x < BOUNDS_MIN.x ||
+      followPosition.x > BOUNDS_MAX.x ||
+      followPosition.z < BOUNDS_MIN.z ||
+      followPosition.z > BOUNDS_MAX.z)
+  ) {
+    followPosition = Vector3.subtract(followPosition, SCENE_ORIGIN)
+  }
 
   // Root: lerp toward the follow target (or the free-cam pivot) and slerp yaw
   const targetPosition = followPosition ? Vector3.add(followPosition, Vector3.create(0, 1, 0)) : PIVOT
