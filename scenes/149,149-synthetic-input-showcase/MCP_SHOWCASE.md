@@ -859,9 +859,12 @@ Layout (world; local = world - `(2384, 0, 2384)`):
    release landed inside one drain window, so the gesture was delivered as a click. That is the
    measurement this station exists for — report it as the result, not as a scene failure.
 
-   > **Do not use `ui_drag` here.** Dragging the virtual mouse across the world **pans the
-   > camera** (the left button is the camera-pan binding, for a human too), so the call now fails
-   > with "the drag panned the camera instead of dragging" and paints nothing. `ui_drag` is for
+   > **Do not use `ui_drag` here.** A device drag over the world verifies nothing and paints
+   > nothing: measured twice (20- and 45-frame drags over this canvas, cursor `Free`) it returned
+   > bare `ok:true` with no stroke and no camera movement (yaw `359.98`, pitch `351.82`). The left
+   > button is also the camera-pan binding (for a human too), so the same call can instead turn the
+   > camera, and then it fails with "the drag panned the camera instead of dragging"; with the
+   > cursor locked it fails up front. Either way nothing is dragged in the world — `ui_drag` is for
    > UI. Before 2026-09-02 this step was undrivable: the station armed from the entity-less
    > `inputSystem.isTriggered`, which cannot read the scene root (`RootEntity` is `0`, falsy-zero
    > guard — the trap S6 documents), and the stroke canvas had no `PointerEvents` to arm on
@@ -958,7 +961,7 @@ Layout (world; local = world - `(2384, 0, 2384)`):
 | Empty form is rejected | `ui_click` CLEAR FIELDS, then `ui_click` SUBMIT FORM | `FORM submit #N -- REJECTED callsign="" code=""` |
 | Paint sample off the canvas | `sweep_pointer` on the stroke canvas turning down onto the decoy strip | `stroke sample left the canvas ... no dot painted`; no sphere below world y `1.0` |
 | A sweep that never holds the pointer | any gesture whose press and release land in one drain window | `STROKE #N was a single dot -- the pointer was not held across frames` |
-| A world drag pans instead of dragging | `ui_drag path:device` over the STROKE canvas | the call fails with "the drag panned the camera instead of dragging"; no stroke |
+| A world drag drags nothing | `ui_drag path:device` over the STROKE canvas | no stroke either way. With a free cursor: bare `ok:true`, no error, camera unmoved (measured twice) — `ok` verifies no target. If the drag engages the camera pan instead, it fails with "the drag panned the camera instead of dragging" |
 | A half-readable aim is refused, not degraded | `press_input action:primary x:2404 z:2413` (no `y`) | fails with "x, y and z must all be numbers to aim the press; omit all three for a scene-root broadcast." — and **no** `[S6-GLOBAL]` root-broadcast log, i.e. it did not silently fall back |
 | A rejected number names itself | `click_entity x:2393 y:"3.0" z:2393` | `"Provide entityId, or a full x/y/z world aim point, or both. (y arrived as string \"3.0\", not a number)"` — unreachable from Claude Code's native tools, see the sixth-run note |
 
