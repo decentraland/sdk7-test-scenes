@@ -34,10 +34,14 @@ import { counters, slog, logEntity, logMark, onReset } from '../state'
  *                   drops a dot wherever the ray lands. This is the one that needs the pointer to
  *                   stay DOWN across several frames -- a synthetic drag that presses and releases
  *                   inside one drain window paints a single dot, and the log says so rather than
- *                   silently looking like a short stroke. The ray follows the CAMERA (that is what
- *                   `worldRayDirection` is built from), so a stroke is painted by holding the
- *                   button and turning: `sweep_pointer` for a driver, mouse-down-and-look for a
- *                   human. Dragging a mouse across the world does not paint -- it pans.
+ *                   silently looking like a short stroke. The ray is the POINTER's, not the
+ *                   camera's: measured 2026-09-03, `worldRayDirection` is populated for a
+ *                   synthetic held pointer but is NOT re-derived while the camera turns, so
+ *                   holding a button and calling `camera_look` samples the same spot ~25 times
+ *                   and paints one dot. Only `sweep_pointer` drags the parked pointer as it
+ *                   turns, and it is the only gesture that paints a stroke. An unaimed hold
+ *                   parks the pointer wherever the free cursor sits, so its ray never crosses
+ *                   this canvas at all. Dragging a mouse across the world does not paint -- it pans.
  *
  * The DECOY strip under the stroke canvas is collidable but not paintable: samples that land on
  * it are counted as off-canvas and leave no dot, which is what proves the stroke is following the
@@ -148,7 +152,8 @@ export function setupS10Paint() {
     readout.setText(
       `STAMP dots (one per click): ${counters.s10Stamps}\n` +
         `STROKE dots: ${counters.s10StrokeDots}  strokes: ${counters.s10Strokes}  longest: ${counters.s10LongestStrokeDots} dots\n` +
-        `off-canvas samples (decoy / miss): ${counters.s10OffCanvasSamples}\n` +
+        `off-canvas samples (decoy / miss): ${counters.s10OffCanvasSamples}  ` +
+        `no-ray samples: ${counters.s10NoDirectionSamples}\n` +
         `live dots: ${dots.length}/${C.S10_DOT_POOL_MAX}  recycles: ${counters.s10PoolRecycles}  clears: ${counters.s10Clears}`
     )
   }
@@ -214,20 +219,54 @@ export function setupS10Paint() {
   let lastSample: Vector3 | null = null
   let strokeColor = STROKE_PALETTE[0]
   let heldSeconds = 0
+  /** Ray sample attempts during THIS hold, and the subset skipped for a missing pointer ray. */
+  let holdSamples = 0
+  let holdNoDirectionSamples = 0
 
   function beginStroke(source: string) {
     if (pointerHeld) return
     pointerHeld = true
     heldSeconds = 0
+    holdSamples = 0
+    holdNoDirectionSamples = 0
     rayTimer = RAY_PERIOD_SECONDS // sample immediately on the press frame
     slog('S10-PAINT', `IA_POINTER held (${source}) -- sweeping the ray until it is released`)
   }
 
   function endStroke() {
+    const wasHeld = pointerHeld
     pointerHeld = false
     heldSeconds = 0
     raycastSystem.removeRaycasterEntity(engine.CameraEntity)
     if (!strokeActive) {
+      // The hold produced no stroke at all. Say which of the three ways it got here, rather than
+      // returning silently -- telling them apart used to take four gestures and three
+      // measurement channels. Skipped entirely for a stray release that followed no hold.
+      if (wasHeld) {
+        if (holdSamples === 0) {
+          slog(
+            'S10-PAINT',
+            'hold ended without painting -- the pointer was released before a single ray sample was taken ' +
+              '(press and release landed inside one drain window, so this was a click, not a drag)'
+          )
+        } else if (holdNoDirectionSamples === holdSamples) {
+          slog(
+            'S10-PAINT',
+            `hold ended without painting -- all ${holdNoDirectionSamples} ray samples were skipped because ` +
+              'PrimaryPointerInfo.worldRayDirection was not populated for this held pointer, so there was no ' +
+              'ray to sweep at all. Use sweep_pointer, which presses at a screen position'
+          )
+        } else {
+          slog(
+            'S10-PAINT',
+            `hold ended without painting -- ${holdSamples} ray samples were taken and none hit the stroke canvas ` +
+              `(${holdNoDirectionSamples} of them had no pointer ray at all)`
+          )
+        }
+        refresh()
+      }
+      holdSamples = 0
+      holdNoDirectionSamples = 0
       lastSample = null
       return
     }
@@ -237,15 +276,33 @@ export function setupS10Paint() {
     slog(
       'S10-PAINT',
       `STROKE #${counters.s10Strokes} ended -- ${strokeDots} dots over ${strokeLength.toFixed(2)}m of surface ` +
-        `(${strokeOffCanvas} samples landed off the canvas)`
+        `(${strokeOffCanvas} samples landed off the canvas` +
+        (holdNoDirectionSamples > 0 ? `, ${holdNoDirectionSamples} skipped for a missing pointer ray` : '') +
+        ')'
     )
+    const samplesThisHold = holdSamples
+    holdSamples = 0
+    holdNoDirectionSamples = 0
     if (strokeDots <= 1) {
-      slog(
-        'S10-PAINT',
-        `STROKE #${counters.s10Strokes} was a single dot -- the pointer was not held across frames. A drag has to ` +
-          'keep IA_POINTER down over several updates for the ray to sweep; a press+release inside one drain window ' +
-          'is indistinguishable from a click here'
-      )
+      // Two very different causes land here and they used to be reported as one. Only the first
+      // is "the gesture was too short"; the second is a held pointer whose RAY never moved, and
+      // calling that one "not held across frames" sends the next run hunting the wrong bug.
+      if (samplesThisHold <= 1) {
+        slog(
+          'S10-PAINT',
+          `STROKE #${counters.s10Strokes} was a single dot -- the pointer was not held across frames. A drag has to ` +
+            'keep IA_POINTER down over several updates for the ray to sweep; a press+release inside one drain window ' +
+            'is indistinguishable from a click here'
+        )
+      } else {
+        slog(
+          'S10-PAINT',
+          `STROKE #${counters.s10Strokes} was a single dot even though the pointer was held across ` +
+            `${samplesThisHold} ray samples -- the ray never moved. The pointer stayed parked where it was ` +
+            'pressed and did not follow the camera, so every sample re-hit the same spot. Turning the camera is ' +
+            'not enough on its own; use sweep_pointer, which drags the parked pointer as it turns'
+        )
+      }
     }
     strokeDots = 0
     strokeOffCanvas = 0
@@ -299,16 +356,39 @@ export function setupS10Paint() {
     rayTimer += dt
     if (rayTimer < RAY_PERIOD_SECONDS) return
     rayTimer = 0
+    holdSamples++
 
     // getOrCreateMutable, matching the `0,5-primary-cursor-info` reference scene: the renderer owns
     // this component on the root and a read-only getter returns null until it has written it once.
     const pointer = PrimaryPointerInfo.getOrCreateMutable(engine.RootEntity)
     const direction = pointer.worldRayDirection
-    if (!direction) return
+    if (!direction) {
+      // Used to `return` silently, which made "no ray at all" indistinguishable from "the ray
+      // missed" -- the off-canvas counter stays 0 in both cases. Count it so one gesture is
+      // enough to tell them apart, and log once per hold so a 2s drag does not flood.
+      holdNoDirectionSamples++
+      counters.s10NoDirectionSamples++
+      if (holdNoDirectionSamples === 1) {
+        slog(
+          'S10-PAINT',
+          'ray sample skipped -- PrimaryPointerInfo.worldRayDirection is not populated for this held pointer ' +
+            '(the press parked no pointer). Nothing will paint until the ray exists; the count is on the readout'
+        )
+        refresh()
+      }
+      return
+    }
 
     raycastSystem.registerGlobalDirectionRaycast(
       { entity: engine.CameraEntity, opts: { queryType: RaycastQueryType.RQT_HIT_FIRST, direction } },
       (result) => {
+        // A raycast result registered before the release can land AFTER endStroke() has run
+        // (removeRaycasterEntity does not recall one already in flight). Without this guard the
+        // on-canvas branch below re-opened a stroke bounded by no gesture: it painted an
+        // unbounded dot, left strokeActive true, and the NEXT gesture was silently merged into
+        // it -- no "started" line, and a dot count and length that overstated what was painted.
+        if (!pointerHeld) return
+
         const hit = result.hits[0]
         if (!hit || !hit.position) return
 
@@ -360,6 +440,8 @@ export function setupS10Paint() {
     strokeDots = 0
     strokeOffCanvas = 0
     strokeLength = 0
+    holdSamples = 0
+    holdNoDirectionSamples = 0
     lastSample = null
     raycastSystem.removeRaycasterEntity(engine.CameraEntity)
     // Not clearCanvas(): resetAllStations has already zeroed every counter, and counting its own
@@ -371,8 +453,9 @@ export function setupS10Paint() {
 
   slog(
     'S10-PAINT',
-    'station ready -- click_entity/click_at the STAMP canvas for one dot per click; for a trail, hold IA_POINTER ' +
-      'and turn the camera (sweep_pointer aimed at the STROKE canvas, or an unaimed press_input hold plus ' +
-      'camera_look): the sampled ray follows the camera, so dragging a mouse across the world only pans it'
+    'station ready -- click_entity/click_at the STAMP canvas for one dot per click; for a trail, use ' +
+      'sweep_pointer aimed at the STROKE canvas, which is the ONLY gesture that paints one: it drags the ' +
+      'parked pointer as the camera turns. A press_input hold plus camera_look does not (the pointer ray is ' +
+      'not re-derived while the camera moves) and dragging a mouse across the world only pans it'
   )
 }

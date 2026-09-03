@@ -110,13 +110,31 @@ emit `IA_FORWARD`.
    Expected log: `[S1-LOCOMOTION] burst finished: distance=...m avgSpeed=...m/s sustainedSpeed=...m/s bucket=walk`.
    Expected screenshot: the player should be near the "4m" floor marker (world `(2388, 0.05, 2389)`)
    or short of it.
-3. Repeat with `kind: jog` then `kind: run`, each `seconds: 2`, and compare `distance` in the
-   three tool results and the three `bucket=` log lines -- `run` should cover visibly more
-   ground per second than `jog`, which covers more than `walk`. **Judge by `sustainedSpeed` and
-   distance first, `bucket=` second**: the sustained estimate climbs with burst duration (a 0.5s
-   jog reads ~5.5 m/s, a 2s jog ~8.2 m/s), so the jog/run boundary sits at 9 m/s — between a
-   long jog (~8.2) and a short run (~9.8). A `move_to` between bursts logs a
-   `teleport detected ... ignored` line instead of a phantom superhuman burst.
+3. Repeat with `kind: jog` then `kind: run` and compare `distance` and `sustainedSpeed` across
+   the three -- `run` should cover visibly more ground per second than `jog`, which covers more
+   than `walk`.
+
+   > **Use `seconds: 1.2`, not 2, and start all three from the same mark.** The lane is only
+   > ~17.5m from the 0m marker to the end wall, and at this client's speeds a 2s jog covers ~20m
+   > and a 2s run ~25m -- both end clipped against the wall, which voids the comparison (caught
+   > on the 2026-09-03 seventh run, which had written 2s as the script says). 1.2s tops out at
+   > ~9.5m and fits, and being equal across the three it compares cleanly. `move_to` back to
+   > `(2388, 0, 2385)` between bursts.
+
+   **Judge by `sustainedSpeed` and distance, and ignore `bucket=` entirely.** With
+   `JOG_MAX_MS = 9` still miscalibrated the label no longer separates *any* pair: measured
+   2026-09-03, a 1.2s jog sustains **10.13** and a free 0.8s jog control **9.08**, so even a
+   plain jog reports `bucket=run`. A `move_to` between bursts logs a
+   `teleport detected ... ignored` line instead of a phantom superhuman burst (each followed by a
+   spurious 0.08m/0.03s micro-burst line -- harmless, ignore it).
+
+   Measured 2026-09-03, three 1.2s bursts from `(2388, 0, 2385)` facing north:
+
+   | burst | tool distance | sustainedSpeed | bucket |
+   |---|---|---|---|
+   | `walk` | 1.73 | 1.96 | walk |
+   | `jog` | 7.99 | 10.13 | run (mislabelled) |
+   | `run` | 9.49 | 12.62 | run |
 4. Walk all the way into the end wall:
    ```
    walk  directionX: 0  directionY: 1  seconds: 6  kind: run
@@ -132,7 +150,7 @@ emit `IA_FORWARD`.
    `global IA_FORWARD count: 0 (see S6)`. `walk` moved the player but the counter stayed at 0.
 6. Now:
    ```
-   press_input  action: FORWARD
+   press_input  action: forward
    ```
    Screenshot the S1 (or S6) readout again: `global IA_FORWARD count: 1` -- proves divergence
    **(3)**: only `press_input FORWARD` increments the SDK input-action counter; `walk` never
@@ -164,11 +182,13 @@ Proves: **(1)**/(2) jump-gated movement via the real pipeline, contrasted with t
    platform really requires the jump flag, not just proximity.
 3. Walk to the ground-level jump mark at world `(2388, 0.05, 2413)` and:
    ```
-   press_input  action: JUMP
+   press_input  action: jump
    ```
-   Expected log: a `[S6-GLOBAL] IA_JUMP global press -- count now N` line (S6's board), and the
-   S2 readout board (world `(2388, 3.6, 2404)`) updates its `global IA_JUMP presses:` line to
-   match. This is the "jump action event" side of the contrast: it does **not** move the
+   Expected log: a `[S6-GLOBAL] IA_JUMP scene-root broadcast -- count now N` line (S6's board),
+   and the S2 readout board (world `(2388, 3.6, 2404)`) updates its `global IA_JUMP presses:`
+   line to match. (This line said `IA_JUMP global press` for six runs; the scene has always
+   logged `scene-root broadcast`. Corrected 2026-09-03.) **Clear the reticle before this
+   unaimed press** — see S6 note 1. This is the "jump action event" side of the contrast: it does **not** move the
    player onto the platform, only `walk(..., jump:true)` does.
 
 ---
@@ -194,9 +214,16 @@ escapes it; the run-only sub-zone shows the degrade-through-fallback case.
    Expected result: `distance` ~0 -- the freeze applies to `walk` exactly as it would to WASD.
 3. Now escape it:
    ```
-   walk  directionX: 0  directionY: 1  seconds: 2  kind: run  ignoreInputModifiers: true
+   walk  directionX: 0  directionY: 1  seconds: 0.7  kind: run  ignoreInputModifiers: true
    ```
    Expected result: `distance` > 0 again -- `ignoreInputModifiers` bypassed the scene's lock.
+
+   > **Keep this burst short — 0.7s, not 2s.** Zone B's north end (`z 2416`) *is* this 2x2 scene's
+   > north parcel boundary, so a 2s escape run north out of zone A carries the player clean off the
+   > scene (measured ~17m of travel against ~11m of room). Off-parcel every subsequent click fails
+   > with "no running current scene". 0.7s lands the player inside zone B at about `z 2410`, which
+   > also gets you step 4's zone-A-exit and zone-B-entry **on foot** in the natural order — better
+   > evidence than step 4's `move_to`, which reverses the two log lines.
 4. Walk out of zone A (south, back the way you came) and confirm the log
    `[S3-FREEZE] zone A exited`, then `move_to` the zone B entry mark at
    world `(2395, 0, 2407.5)` and walk north into the zone (a 9m corridor, world z `2407..2416`).
@@ -211,16 +238,44 @@ escapes it; the run-only sub-zone shows the degrade-through-fallback case.
    the player**, so this step compares speeds, not distances, and the burst must be long enough
    to leave the acceleration ramp (that is why the zone is a 9m corridor and not a 4m pad: a run
    burst crossed the old pad in ~0.25s, entirely inside the ramp, and an in-zone burst read the
-   same as a control burst outside it):
+   same as a control burst outside it). From the zone B entry mark, facing north:
    ```
-   walk  directionX: 0  directionY: 1  seconds: 1  kind: run
+   walk  directionX: 0  directionY: 1  seconds: 0.8  kind: run
    ```
-   Expected log (S1's classifier reports the sustained speed):
-   `[S1-LOCOMOTION] burst finished: ... sustainedSpeed=~7.9m/s bucket=jog` — the run request was
-   degraded to a jog.
-6. Control: leave the zone (`move_to` world `(2400, 0, 2407.5)`, outside the corridor) and repeat
-   the identical burst. Expected: `sustainedSpeed` ~9.8-10.5m/s, `bucket=run`. The two sustained
-   speeds are the proof; a distance comparison over a short burst is not (both are ~1.7m).
+   Expected log (S1's classifier reports the sustained speed): a `sustainedSpeed` clearly below the
+   free-run control in step 6 — the run request was degraded to the jog tier.
+
+   > **0.8s, not 1s** — at this client's speeds a 1s run burst covers ~10m and cannot be contained
+   > in the 9m corridor at all. 0.8s is still well clear of the acceleration ramp: a measured burst
+   > reached `sustainedSpeed 9.51` within 0.49s, so the ramp is far shorter than the corridor
+   > budget assumes.
+   >
+   > **Do not judge this step by the `bucket=` label.** With `JOG_MAX_MS = 9` still miscalibrated
+   > (see the fourth-run defects), the degraded in-zone run measures ~9.1 m/s and so labels
+   > `bucket=run` by a 0.1 m/s margin. Compare sustained speeds, and take step 6's *two* controls.
+6. Controls: leave the zone and repeat the identical 0.8s burst — then run it a third time with
+   `kind: jog`.
+
+   > **Take the controls SOUTHWARD from `(2402, 0, 2412)`, not northward from
+   > `(2400, 0, 2407.5)`.** A 0.8s free run covers ~10m; from z 2407.5 that lands at ~2417.5,
+   > past the scene's north edge at z 2416, and off-parcel every later click fails with "no
+   > running current scene". `(2402, 0, 2412)` facing south (`look_at 2402, 1, 2400`) is clear
+   > ground with ~10m of room and is outside both zones. This is the same hazard step 3 warns
+   > about, one step later; the 2026-09-03 run hit it and rerouted.
+
+   Measured 2026-09-03 (in-zone from the zone B entry mark facing north; controls south from
+   `(2402, 0, 2412)`):
+
+   | burst | distance | sustainedSpeed | bucket |
+   |---|---|---|---|
+   | in-zone `kind: run` | 4.73 | 9.11 | run (mislabelled) |
+   | free `kind: run` | 5.74 | 11.16 | run |
+   | free `kind: jog` | 4.78 | 9.08 | run (mislabelled) |
+
+   The in-zone run sits **on top of** the free **jog** (9.11 vs 9.08) and 2 m/s below the free
+   **run** — that is the proof, and the jog control is what makes it unambiguous. A distance
+   comparison over a short burst is not proof (all three are ~5m), and neither is the `bucket=`
+   label, which now reads `run` for all three.
 7. Also confirm `kind: walk` inside the zone is untouched (`bucket=walk`), i.e. the lock degrades
    the run tier only.
 
@@ -387,11 +442,42 @@ Board: world `(2408, 3.4, 2411)`. Suppression target: world `(2404, 1, 2413)` (b
 
 > **Two things this station gets right that are easy to get wrong.**
 >
-> 1. **An unaimed `press_input` can never land entity-bound.** The entity-bound half of the
->    fan-out needs the reticle on the target, and the reticle follows the OS cursor — which no
->    driver is holding over anything. That is why `press_input` takes an aim (`entityId`, or
->    `x/y/z`): with it the reticle is held on the target for the gesture. `look_at` followed by
->    an unaimed `press_input` does **not** work and never did.
+> 1. **An unaimed `press_input` lands entity-bound whenever the reticle happens to rest on an
+>    interactable — so aim every press you mean to be entity-bound, and clear the reticle for
+>    every press you mean to reach the scene root.** That is why `press_input` takes an aim
+>    (`entityId`, or `x/y/z`): with it the reticle is held on the target for the gesture, which is
+>    the only *reliable* way to bind. `look_at` followed by an unaimed `press_input` is not a
+>    substitute — but it is not inert either, and that is the trap.
+>
+>    Corrected on 2026-09-02, having said "can never land entity-bound" for four runs. Measured
+>    live: an unaimed `press_input action:forward`, with no `entityId` and no `x/y/z`, returned
+>    `entityBound: true` on `crdtEntityId 584` (the S9 world toggle) at `distance 5.54` — and
+>    therefore **suppressed** the `IA_FORWARD` scene-root broadcast the step was trying to count.
+>    Re-aiming the camera at blank geometry and repeating the identical call gave
+>    `entityBound: false` and the expected root broadcast. The binding is not filtered by action:
+>    a `forward` press bound to a button that exists to take a pointer click. `cursorState` is
+>    `Free` and `pointerLocked` is `false` throughout, so the reticle does rest somewhere.
+>
+>    **Practical rule for every unaimed step below (S1 step 6, S2 step 3, S6 steps 1 and 4):**
+>    **pitch the view into open sky with `camera_look deltaX: 0 deltaY: 8 seconds: 1.5`, then
+>    press.** That worked 4/4 on 2026-09-03 (`entityBound: false` every time). A step that
+>    reports `entityBound: true` when you passed no aim has measured nothing; re-clear and repeat
+>    rather than recording it.
+>
+>    **Do NOT rely on `look_at`-ing geometry that has no `PointerEvents`** — that was this note's
+>    advice for two runs and it does not work, because the reticle follows the free cursor and
+>    `look_at` does not move it. Measured 2026-09-03: `look_at` the S1 end wall (no
+>    `PointerEvents`, 1m away) followed by an unaimed `press_input action: forward` returned
+>    `entityBound: true` on `crdtEntityId 582` — the RESET ALL STATIONS button, **15.87m away and
+>    ~15m off the aim axis** — and suppressed the `IA_FORWARD` broadcast the step was counting.
+>    Filling the screen with sky is what actually leaves the cursor over nothing.
+>
+>    (Harmlessly, that stray bind is also evidence for this station: an entity-bound `IA_FORWARD`
+>    on the RESET button neither fired the button's pointer handler — no `[RESET]` log — nor
+>    produced a root broadcast.)
+>
+>    Also: **action names are lowercase.** `action: PRIMARY` is rejected outright with
+>    `"action is required (e.g. primary, secondary, action_3)"`; `action: primary` works.
 > 2. **The board counts the scene-root broadcast by reading the root's own
 >    `PointerEventsResult` grow-only set directly** (with a timestamp watermark).
 >    `inputSystem.isTriggered` CANNOT make this measurement in any form: without an entity it is
@@ -403,14 +489,14 @@ Board: world `(2408, 3.4, 2411)`. Suppression target: world `(2404, 1, 2413)` (b
 
 1. Stand away from the suppression target and press with no aim:
    ```
-   press_input  action: PRIMARY
+   press_input  action: primary
    ```
    Expected result: `entityBound: false`, plus a `hint` explaining the scene-root delivery.
    Expected log: `[S6-GLOBAL] IA_PRIMARY scene-root broadcast -- count now 1`.
    Screenshot the board: `scene-root PRIMARY: 1   entity PRIMARY: 0`.
 2. Now press the same action **aimed at** the suppression target:
    ```
-   press_input  action: PRIMARY  x: 2404  y: 1  z: 2413
+   press_input  action: primary  x: 2404  y: 1  z: 2413
    ```
    Expected result: `entityBound: true`, `entityId`/`crdtEntityId` of the target, `hitPoint`,
    `distance`, and `hoverText: "press_input PRIMARY aimed here (entity-bound)"`.
@@ -421,14 +507,14 @@ Board: world `(2408, 3.4, 2411)`. Suppression target: world `(2404, 1, 2413)` (b
 3. Repeat step 2 addressing the target by id instead of by point, to exercise the other form:
    ```
    list_scene_entities            # then match the [INIT] map, or read entityId back from step 2
-   press_input  action: PRIMARY  entityId: <the target's Arch id>
+   press_input  action: primary  entityId: <the target's Arch id>
    ```
    Same expectations as step 2.
 4. Exercise a few more rows for completeness (all unaimed, so all scene-root):
    ```
-   press_input  action: ACTION_3
-   press_input  action: SECONDARY
-   press_input  action: JUMP  holdSeconds: 1
+   press_input  action: action_3
+   press_input  action: secondary
+   press_input  action: jump  holdSeconds: 1
    ```
    Expected logs: one `[S6-GLOBAL] IA_ACTION_3 ...`, one `IA_SECONDARY ...`, one `IA_JUMP ...`
    line each, and the board's corresponding counters increment by 1 each.
@@ -487,7 +573,9 @@ Stand mark: world `(2400, 0, 2400)`. Markers (world):
 5. ```
    look_at  x: 2400  y: 0.3  z: 2388
    ```
-   Expected: negative pitch (looking down); log `[S7-CAMERA] MARKER-D (down) entered aim`.
+   Expected: the camera pitches **down** — which in this Euler convention is a *positive*
+   `cameraRotationEuler.x` (measured 9.85 with yaw 180), not a negative one; earlier revisions of
+   this line had the sign backwards. Log `[S7-CAMERA] MARKER-D (down) entered aim`.
    Each marker's label board prints its own exact world coordinates (visible in a screenshot)
    so the same numbers used above are also readable in-world.
 
@@ -778,9 +866,49 @@ Layout (world; local = world - `(2384, 0, 2384)`):
    > `inputSystem.isTriggered`, which cannot read the scene root (`RootEntity` is `0`, falsy-zero
    > guard — the trap S6 documents), and the stroke canvas had no `PointerEvents` to arm on
    > either. It now arms from a pointer-down on the canvas itself *or* an `IA_POINTER` scene-root
-   > broadcast read with a timestamp watermark, so an unaimed hold works too:
-   > `press_input action: POINTER holdSeconds: 2` in parallel with a `camera_look` is the same
-   > gesture, split across two calls.
+   > broadcast read with a timestamp watermark, so an unaimed hold *arms* the station too.
+   >
+   > **`sweep_pointer` is the only gesture that actually paints a stroke** -- the 2026-09-03 run
+   > measured the alternatives and they are **not** equivalent, despite arming identically:
+   >
+   > | Gesture | Arms | Ray samples | Result |
+   > |---|---|---|---|
+   > | `sweep_pointer` aimed at the canvas | yes | many, ray moves | a real stroke (13-16 dots) |
+   > | **unaimed** `press_input action: pointer holdSeconds: 2` + parallel `camera_look` | yes (scene-root broadcast) | **27 taken, none hit the canvas** | nothing painted |
+   > | **aimed** `press_input ... x/y/z holdSeconds: 2` + parallel `camera_look` | yes (canvas pointer-down) | **25 taken, all on the same spot** | `STROKE #N ended -- 1 dots over 0.00m` |
+   >
+   > **`PrimaryPointerInfo.worldRayDirection` is populated in all three cases** -- the run-4/5
+   > theory that it was never written is wrong, and the station's `no-ray samples` counter reads
+   > `0` for every gesture above.
+   >
+   > **Why the split gesture fails: the two calls never overlap.** MCP tool calls are
+   > **serialised** by the server, so a `press_input ... holdSeconds: 2` issued "alongside" a
+   > `camera_look` runs to completion *before* the turn starts, and the camera is stationary for
+   > the entire hold. Measured 2026-09-03 with a detached out-of-band yaw poller (~135ms
+   > cadence): the hold ran 10:10:28-30 (`STROKE #4 started`/`ended`) with yaw pinned at
+   > **29.73 for 60+ consecutive samples spanning the whole hold**, and the turn then ran
+   > 10:10:32.45 -> 10:10:34.59 (`29.73 -> 53.85`) — starting **2.4s after the hold ended**.
+   > An unaimed press additionally parks the pointer wherever the free cursor sits, so its ray
+   > never crosses the canvas at all.
+   >
+   > This **withdraws the run-6 client defect** ("an aimed press parks a ray that is not
+   > re-derived as `camera_look` turns the view"). That diagnosis assumed the calls overlapped;
+   > they did not, so the gesture cannot test re-derivation and nothing is established about it.
+   > `sweep_pointer` is the only gesture that holds press + turn + release inside one call, and
+   > therefore the only one that can sweep. Use it; keep the split gesture only as the negative
+   > case above.
+   >
+   > **Measuring overlap, if you ever need to:** reading `get_player_state` yaw before and after
+   > does **not** work — both results arrive in one batch, so there is no moment at which you can
+   > sample "as `press_input` returns", and the naive before/after reading (`29.74` then `54.28`)
+   > says the opposite of the truth. A poller issued in the *same* tool batch does not work
+   > either: it is served for its full window before the gesture is dispatched at all. Only an
+   > already-running **detached background** poller samples the hold.
+   >
+   > Do **not** read `off-canvas samples (decoy / miss)` as "was a sample taken". It only counts
+   > misses once a stroke is already active, so it stays `0` through a hold that sampled 27 times
+   > and missed every time -- the exact reading that sent runs 5 and 6 down the wrong path. The
+   > `hold ended without painting -- N ray samples were taken ...` log line is the honest channel.
 
 4. **Sweep off the canvas onto the decoy (the negative case).** Same gesture, but turn far enough
    (or downward) that the ray leaves the canvas onto the red strip below it:
@@ -818,9 +946,9 @@ Layout (world; local = world - `(2384, 0, 2384)`):
 | Short-range miss from far mark | `click_entity x:2407 y:1 z:2387` from `(2408.25,0,2399)` | `hit:false`, reason names the range |
 | Occluded click | `click_entity x:2401 y:1 z:2394` from the blocked-shot mark | `hit:false` + `blockedByEntityId`/`blockedByCrdtId`/`blockedByCollider` naming the occluder |
 | Offset-pivot miss | `click_entity x:2410 y:1 z:2397` (the pivot, no collider) | `hit:false` |
-| `IA_FORWARD` stays at 0 after `walk` | S1 readout after any `walk` | `global IA_FORWARD count: 0` until `press_input FORWARD` |
-| Unaimed `press_input` is never entity-bound | `press_input action:PRIMARY` with no aim | `entityBound:false` + `hint`; scene-root counter increments, entity counter does not |
-| Scene-root broadcast suppressed | `press_input action:PRIMARY x:2404 y:1 z:2413` | `entityBound:true`; entity counter +1, scene-root counter unchanged |
+| `IA_FORWARD` stays at 0 after `walk` | S1 readout after any `walk` | `global IA_FORWARD count: 0` until `press_input action:forward` |
+| Unaimed `press_input` reaches the scene root | `press_input action:primary` with no aim, **reticle resting on geometry with no `PointerEvents`** | `entityBound:false` + `hint`; scene-root counter increments, entity counter does not. With the reticle over an interactable it binds to that entity instead -- see S6 note 1 |
+| Scene-root broadcast suppressed | `press_input action:primary x:2404 y:1 z:2413` | `entityBound:true`; entity counter +1, scene-root counter unchanged |
 | Covered `ui_click` | `ui_click stack:sdk crdtId:<btn2Id>` while the modal is open | failure + `blockedBy`, no `[S8-UI] button 2 clicked` log |
 | Device path does not reach scene UI | `ui_click stack:sdk crdtId:<btn1Id> device:true` | `ok:true` with an `info` line saying the element observed nothing, and no click log |
 | Unreachable camera target | `look_at x:2400 y:20 z:2400` from the S7 stand mark | `aimErrorDegrees` >> 2 + a `warning` about the pitch clamp |
@@ -831,6 +959,8 @@ Layout (world; local = world - `(2384, 0, 2384)`):
 | Paint sample off the canvas | `sweep_pointer` on the stroke canvas turning down onto the decoy strip | `stroke sample left the canvas ... no dot painted`; no sphere below world y `1.0` |
 | A sweep that never holds the pointer | any gesture whose press and release land in one drain window | `STROKE #N was a single dot -- the pointer was not held across frames` |
 | A world drag pans instead of dragging | `ui_drag path:device` over the STROKE canvas | the call fails with "the drag panned the camera instead of dragging"; no stroke |
+| A half-readable aim is refused, not degraded | `press_input action:primary x:2404 z:2413` (no `y`) | fails with "x, y and z must all be numbers to aim the press; omit all three for a scene-root broadcast." — and **no** `[S6-GLOBAL]` root-broadcast log, i.e. it did not silently fall back |
+| A rejected number names itself | `click_entity x:2393 y:"3.0" z:2393` | `"Provide entityId, or a full x/y/z world aim point, or both. (y arrived as string \"3.0\", not a number)"` — unreachable from Claude Code's native tools, see the sixth-run note |
 
 ---
 
@@ -1001,7 +1131,7 @@ what *should* happen):
 | S9 step 7 | **A `disabled: true` `<Input />` accepted a synthetic write.** `ui_set_text` returned `ok: true`, `onChange` fired, and the panel's line 4 went red with `[S9-TEXT] DISABLED FIELD ACCEPTED A WRITE`. The station calls this a client defect and it is: the write path does not check `disabled` |
 | S9 step 8 | S9's `SUBMIT FORM` / `CLEAR FIELDS` buttons sit under the client chat panel's **invisible** message viewport, so `ui_click` fails with `blockedBy: ".../ChatMessages/Viewport"`. `force: true` completes the step. Same class of false positive as the panel-host cover fixed after the first run -- a transparent client container counted as a cover |
 | S9 step 9 | After `CLEAR FIELDS` sets the scene's state back, the **controlled** field 2 still displays the old text on screen (`replaced:`/`still the seed value` label flips correctly, the `<Input>` does not). A programmatic `value` change does not reach a field the client has taken ownership of |
-| S10 steps 3-4 | The STROKE path could not be driven at all in this run. **Resolved 2026-09-02** on both sides: the client gained `sweep_pointer` (press, turn the camera while held, release — the gesture that actually moves the sampled ray) and the station now arms from the stroke canvas's own pointer-down or the scene-root broadcast. Steps 3-4 are rewritten above; steps 2, 5 and 6 always passed |
+| S10 steps 3-4 | The STROKE path could not be driven at all in this run. Believed resolved 2026-09-02 on both sides (the client gained `sweep_pointer`, and the station now arms from the stroke canvas's own pointer-down or the scene-root broadcast) — but the fifth run found **only the arming half fixed**; the sampler still never fires. **Still open**, see the fifth-run section. Steps 2, 5 and 6 always passed |
 
 **Confirmed still working:** every 08-28 fix held. S6's suppression matrix passes (board:
 `scene-root PRIMARY: 1  entity PRIMARY: 2`), and it is independently corroborated from S4 --
@@ -1016,3 +1146,211 @@ reopening S8's panel moved its ids from `598/599/600/...` to `66172/66133/66137/
 reconciler recreated the entities and the packed id now carries the entity *version* in its high
 16 bits (`66165 = (1 << 16) | 629`). Re-run `ui_list` after every open/close; never cache ids
 across one.
+
+---
+
+## What changed after the fifth live run (2026-09-02)
+
+The first pass against `sweep_pointer` and the first with the `disabled`-input check. Full evidence
+in `MCP_SHOWCASE_RESULTS.md`. Client screen this run was `2017x1135` (the window was a different
+size than run 4's `2087x1174` — nothing depends on the absolute numbers, only on their agreement).
+
+**All five pre-flight checks passed**, with one clarification: a `center` fed to `click_at` resolves
+to exactly that element's `crdtId` (verified twice, on two different buttons), and `click_at` still
+does not *activate* scene UI — `ui_click` does. That boundary is intended; check 2 is about the
+round trip being exact, not about activation.
+
+**Driving changes folded into the steps above:**
+
+- **`press_input` action names are lowercase.** `action: PRIMARY` is rejected outright
+  (`"action is required (e.g. primary, secondary, action_3)"`). Every `press_input` in this document
+  was written uppercase and would have failed as written; all are now lowercase.
+- **S6 note 1 was wrong for four runs and is rewritten.** An unaimed `press_input` *can* land
+  entity-bound — it binds to whatever `PointerEvents` entity the free reticle rests over, and then
+  suppresses the scene-root broadcast you were trying to count. Clear the reticle (aim at geometry
+  with no `PointerEvents`) before every unaimed press.
+- **S3 step 3 is 0.7s, not 2s** — zone B's north end is the parcel boundary and a 2s escape run
+  leaves the scene entirely.
+- **S3 steps 5-6 are 0.8s, not 1s**, and step 6 now takes a *jog* control as well as a run control;
+  the jog control is what makes the degradation unambiguous while `JOG_MAX_MS` stays miscalibrated.
+- **S7 step 5's pitch sign was backwards** — looking down is a positive Euler `x` here.
+
+**Fixed since run 4:** the `disabled: true` `<Input />` now refuses `ui_set_text`
+(`"the input is disabled (PBUiInput.disabled); a user could not type into it"`), on the plain and
+`submit:true` paths both, and `ui_list` reports `"disabled": true` on the element.
+
+**Still open from run 4:** `JOG_MAX_MS = 9` (now pinned tighter — the degraded in-zone run measures
+9.11 m/s, 0.11 above the threshold); the chat panel's invisible `ChatMessages/Viewport` still covers
+S9's form buttons (`force: true` still needed, though the failure message is now much clearer); a
+programmatic `value` change still does not reach a client-owned `<Input />` (seen on three fields
+this run, not just field 2).
+
+**S10 steps 3-4 are still open — the STROKE path remains undrivable.** The arming half is fixed and
+fires from all three documented sources, but the sampler never runs. Four gestures were tried
+(`sweep_pointer` aimed at the canvas in third person, again square-on to the canvas, again in first
+person, and the split `press_input action:pointer holdSeconds` + concurrent `camera_look`); every
+one logged `IA_POINTER held`, and none produced a single sample. The decisive measurement is the
+readout's `off-canvas samples (decoy / miss)` counter staying at **0** — a misdirected ray would
+have incremented it, so no sample was taken at all. `PrimaryPointerInfo.worldRayDirection` is never
+populated for a synthetic held pointer (`cursorState: Free`, `pointerLocked: false` in every result,
+first person included), and the station's `if (!direction) return` exits silently without touching a
+counter. Two follow-ups, different owners: the client needs to populate that component for a
+synthetic pointer (turning the camera is not enough — the scene samples the *pointer* ray, not the
+camera transform), and the station should count or log the `!direction` branch so this is
+diagnosable in one gesture instead of four.
+
+**Other new findings:** run-speed frames are false-flagged
+`teleport detected (0.6-0.7m in one frame)` and chopped out of S1's bursts, so the *logged* distance
+undercounts the tool's (12.95 m vs 16.92 m) — trust the tool result; failed S4 clicks still emit
+root `IA_POINTER` broadcasts that arm phantom S10 strokes, so keep a `RESET ALL` between S4 and S10;
+`ui_set_text ... submit:true` intermittently submits the field's *placeholder* with `ok:true`
+(passed on retry); a `.0`-suffixed float coordinate is rejected (`x: 2394.0` fails, `x: 2394` works);
+`ui_drag path:"device"` returns a bare `ok` with no `info`/`screenRect`/`center`; and run 3's
+MARKER-L "5-6 deg" nit reproduced and is symmetric (L 6.0, R 5.9), both still inside the 8 deg cone.
+
+**Coordinates: every world coordinate in this document verified correct.** All station tables were
+checked against the `[INIT] MARK` lines and every aim point resolved to the intended entity
+(`crdtEntityId` cross-referenced against the `[INIT]` id map). No coordinate changes were needed —
+run 4's S1-readout correction to `(2388, 3.6, 2401.5)` is right as it stands.
+
+---
+
+## What changed after the sixth live run (2026-09-03)
+
+Scope: the **Pre-flight (all five checks) + S10 only**, run as a regression against the
+still-open STROKE defect. S1-S9 were not re-run. Full evidence in `MCP_SHOWCASE_RESULTS.md`.
+Client screen this run was `2190x1232`.
+
+**All five pre-flight checks passed**, with no caveats. `ui_list`'s `center` values are exact to
+the reported precision (`598` -> `801/2190 = 0.365753` vs `0.3658`); a `center` fed to `click_at`
+named that element's own `crdtId` on two different buttons and produced no scene log, while
+`ui_click` on the same id logged the click; `ui_drag` between two `center`s returned `path: "sdk"`
+on the first try with both log lines; the triple appears on `ui_click`/`ui_scroll`/`ui_set_text`
+results including a `blockedBy` failure; and `screenshot` captioned `1280x720 (screen 2190x1232)`
+and `640x360 (screen 2190x1232)`, matching `ui_list` exactly.
+
+**Coordinates: no correction needed.** Every world coordinate used by the Pre-flight and S10 was
+re-verified against the `[INIT] MARK` lines and `src/constants.ts`, and each was additionally
+confirmed by a `hit: true` `click_entity` returning the expected `crdtEntityId` and `hoverText`.
+
+### S10 steps 3-4 are FIXED -- the STROKE path is drivable
+
+Open since run 4 and undrivable in run 5; this run it works, via `sweep_pointer`:
+
+```
+[S10-PAINT] IA_POINTER held (pointer-down on the stroke canvas) -- sweeping the ray until it is released
+[S10-PAINT] STROKE #1 started at local (13.91, 2.20, 8.83)
+[S10-PAINT] STROKE #1 ended -- 14 dots over 1.88m of surface (0 samples landed off the canvas)
+```
+
+Step 4's negative case passes too: three logged `stroke sample left the canvas (hit entityId 591)`
+lines naming exactly the DECOY strip, `5 samples landed off the canvas` in the stroke-end line,
+and **no spheres on the red strip** in the screenshot. Steps 1, 2, 5 and 6 pass as before -- the
+pool cap logged once at 40, `live dots` stuck at `40/40` while `recycles` climbed 2 -> 6, and the
+original stamp diagonal visibly recycled into the newest positions.
+
+### Driving changes folded into the steps above
+
+- **The "split gesture" is not equivalent to `sweep_pointer`** and step 3's blockquote no longer
+  says it is. Both halves arm the station and both sample a real ray; neither paints a stroke.
+  Only `sweep_pointer` drags the parked pointer as the camera turns.
+- **Never write a coordinate with a trailing `.0`.** `click_entity x:2393 y:3.0 z:2393` fails with
+  `"Provide entityId, or a full x/y/z world aim point, or both."` -- the argument is treated as
+  absent. `y: 3` and `y: 2.1` both work.
+  **Update 2026-09-03:** the client now names the offender, so the error is diagnosable:
+  `"Provide entityId, or a full x/y/z world aim point, or both. (y arrived as string \"3.0\", not
+  a number)"`. The leading sentence still points at the wrong cause, but the parenthetical tells
+  you it was a *type* problem, not a missing argument. Also established: from Claude Code the trap
+  is **unreachable through the native MCP tools** -- the tool-call serializer normalizes `3.0` to
+  `3` and coerces a quoted `"3.0"` before it leaves, so all three attempts arrived as the number
+  `3` and hit. It had to be sent as a raw JSON-RPC request to reproduce. It remains a hazard for
+  clients whose serializer preserves the literal.
+
+### Scene bugs found this run -- all three FIXED and re-verified in-world
+
+| Where | Bug | Fix |
+|---|---|---|
+| `s10_paint.ts` raycast callback | **A late raycast callback opened a phantom stroke.** Seen once in four sweeps (a race): `STROKE #4 started` appeared with no `IA_POINTER held` line before it, because the callback's on-canvas branch checked only `strokeActive`, never `pointerHeld`. It painted one unbounded dot, left the stroke open, and the *next* gesture was silently merged into it -- no `started` line, and `STROKE #4 ended -- 11 dots over 3.01m` while only 10 were painted | `if (!pointerHeld) return` at the top of the callback. Four post-fix sweeps produced four clean `started`/`ended` pairs and the arithmetic reconciles exactly (16+13+14 = 43 = `STROKE dots`, 43-40 = 3 recycles) |
+| `s10_paint.ts` sampler | **The `if (!direction) return` branch was silent** (run 5's open follow-up), so "no ray at all" and "the ray missed" were indistinguishable | Counted as `counters.s10NoDirectionSamples`, shown on the readout as `no-ray samples`, and summarised once per hold. It immediately **disproved the run-4/5 diagnosis** on its first use |
+| `s10_paint.ts` stroke-end | **The single-dot diagnostic blamed the wrong cause.** A held pointer whose ray never moved was reported as "the pointer was not held across frames", which is false and points the next run at the wrong bug | Branch on the hold's sample count: 25 samples now report `the ray never moved ... stayed parked where it was pressed` |
+
+### Client defects this run found
+
+| Where | Defect |
+|---|---|
+| S10 step 3, alternative gesture | The `press_input` hold path never gets a *swept* ray. `worldRayDirection` **is** populated (the run-4/5 theory that it is never written is disproved -- `no-ray samples` reads `0`), but an unaimed press parks the pointer off the canvas and an aimed one parks a ray that is not re-derived as `camera_look` turns the view. Client-side; only the `sweep_pointer` half of the run-4/5 defect was fixed |
+
+**Not re-tested this run** (out of scope, still open from run 4): `JOG_MAX_MS = 9` miscalibration,
+the chat `ChatMessages/Viewport` cover on S9's form buttons, and the programmatic `value` that does
+not reach a client-owned `<Input />`.
+
+---
+
+## What changed after the seventh live run (2026-09-03)
+
+Scope: **a full pass -- Pre-flight (all five checks) + S1-S10**, the first since the fifth run for
+S1-S9. Plus three build changes never exercised in-world and the open overlap measurement. Full
+evidence in `MCP_SHOWCASE_RESULTS.md`. Client screen this run was `2188x1231`.
+
+**All five pre-flight checks passed** with no caveats, and **all ten stations passed** every step.
+Zero errors in the scene log buffer (seq 0..409) for the whole session.
+
+### The overlap question is settled -- and it withdraws a client defect
+
+An aimed `press_input ... holdSeconds: 2` issued together with a `camera_look deltaX: 4 seconds: 2`
+does **not** overlap it: **MCP tool calls are serialised by the server.** Measured with a detached
+out-of-band yaw poller, the hold ran with yaw pinned at `29.73` for its entire duration and the
+turn began 2.4s *after* the hold ended. Yaw before the hold: **29.73**. Yaw for the whole hold,
+including the moment `press_input` returned: **29.73** (it reached 53.85 only once `camera_look`
+subsequently ran).
+
+So run 6's client defect -- *"an aimed press parks a ray that is not re-derived as `camera_look`
+turns the view"* -- is **withdrawn**: it assumed an overlap that never happened. The split gesture
+cannot test ray re-derivation at all. S10 step 3's blockquote is rewritten accordingly, including
+how to measure overlap properly (a naive before/after yaw read gives the opposite answer).
+
+### Build changes verified
+
+- **Numeric-argument errors now name what arrived** -- `(y arrived as string "3.0", not a number)`.
+  See the corrected sixth-run `.0` note: from Claude Code this is only reachable via raw JSON-RPC,
+  because the harness normalizes `3.0` to `3`.
+- **`press_input` refuses a half-readable x/y/z aim** instead of degrading to a scene-root
+  broadcast: `"x, y and z must all be numbers to aim the press; omit all three for a scene-root
+  broadcast."`, with no root-broadcast log. Added to the negative-case summary.
+- **Pointer parking / cursor-pipeline `PrimaryPointerInfo`** was probed across S4, S5, S6 and S10:
+  no misaim, no mistimed hover, no readout disagreement. `click_at 0.5,0.5` landed on the centred
+  target's face; eight aimed stamps each hit within 0.04m of their aim point; every hover leave
+  landed exactly at the end of its requested hold; `sweep_pointer` dragged the parked pointer for a
+  real 15-dot stroke.
+
+### Driving changes folded into the steps above
+
+- **S1 step 3 is `seconds: 1.2`, not 2** -- the ~17.5m lane cannot contain a 2s jog (~20m) or run
+  (~25m), and both bursts end clipped against the wall, voiding the comparison.
+- **S3 step 6's controls are taken southward from `(2402, 0, 2412)`** -- the old northward control
+  from `(2400, 0, 2407.5)` carries the player off the scene's north edge at 0.8s of run.
+- **S6 note 1's reticle-clearing recipe is replaced.** `look_at` geometry with no `PointerEvents`
+  does **not** clear the reticle: the S1 end wall at 1m still let an unaimed `press_input` bind to
+  the RESET button **15.87m away**. Pitch into open sky with `camera_look deltaY: 8 seconds: 1.5`
+  instead -- 4/4 this run.
+- **S2 step 3's expected log wording corrected** to `IA_JUMP scene-root broadcast` (the doc said
+  `IA_JUMP global press` for six runs; the scene never logged that).
+- **`bucket=` is now useless for every pair, not just the jog/run boundary** -- see below.
+
+### Still open (unchanged owners)
+
+| Where | Defect | Status |
+|---|---|---|
+| S1 step 3, S3 steps 5-6 | `JOG_MAX_MS = 9` miscalibrated | **Still open, and worse.** The *free jog control* now measures 9.08 and labels `bucket=run`, so the threshold sits below the jog tier itself and the label separates nothing. Speeds remain perfectly diagnostic: in-zone degraded run 9.11, free jog 9.08, free run 11.16 |
+| S9 step 8 | Chat `ChatMessages/Viewport` covers S9's form buttons; `force: true` completes the step | **Still open.** New detail: the transparent cover reaches normalized `y 0.5366` (mid-screen), higher than the lower-left block the tooling docs describe |
+| S9 step 9 | A programmatic `value` does not reach a client-owned `<Input />` | **Still open**, on all three controlled fields. Refined: controlled fields display a *write* correctly and only fail to follow a programmatic *reset*; uncontrolled fields never display the write at all (their boxes read empty while the scene's `read back:` shows the value) |
+
+**Minor, unresolved:** `ui_drag path:"device"` still returns no `screenRect`/`center`/`info` (it
+does now carry `screen`); S7's `look_at aimErrorDegrees` (0.6) vs the station's own marker angle
+(7.5) diverged further against an 8 deg cone -- benign third-person orbit-boom offset, but worth
+widening the cone if it keeps drifting.
+
+**Coordinates: no corrections needed.** Every coordinate used by the pre-flight and all ten
+stations was re-verified against the `[INIT] MARK` lines and confirmed by a `hit: true` returning
+the expected `crdtEntityId` and `hoverText` (581, 582, 584, 542, 543, 544, 545, 548, 549, 555, 556,
+559, 562, 563, 564, 571, 589, 590, 591, 592).

@@ -97,6 +97,10 @@ export const counters = {
   s10StrokeDots: 0,
   s10Strokes: 0,
   s10OffCanvasSamples: 0,
+  // Ray samples skipped because PrimaryPointerInfo.worldRayDirection was not populated -- i.e.
+  // the held press never parked a pointer. Distinguishes "the ray missed" from "no ray at all",
+  // which used to be invisible: the sampler returned silently and no counter moved.
+  s10NoDirectionSamples: 0,
   s10LongestStrokeDots: 0,
   s10PoolRecycles: 0,
   s10Clears: 0
