@@ -417,11 +417,16 @@ Proves: **(6)** real `PET_HOVER_ENTER`/`PET_HOVER_LEAVE` + `hoverText`, distance
    ```
    Expected result: `hoverText` is the long string. Confirm the full string round-trips in the
    tool result (not truncated).
-3. Walk to the near mark `(2412, 0, 2401.5)`:
+3. Walk to the near mark `(2412, 0, 2401.5)`, then aim the camera at C **before** the hover:
    ```
+   look_at       x: 2412  y: 1  z: 2403
    hover_entity  x: 2412  y: 1  z: 2403  seconds: 2
    ```
-   Expected result: `hit: true`. Log: `[S5-HOVER] C: PET_HOVER_ENTER (#1) -- only reachable within 2m`.
+   Expected result: `hit: true`, `distance` around 1.2m. Log:
+   `[S5-HOVER] C: PET_HOVER_ENTER (#1) -- only reachable within 2m`.
+   The `look_at` is not optional: the "~1.8m" in the table is the player-to-target distance, but
+   the 2m gate is measured to where the *camera ray enters* C's collider, so a camera pose left
+   over from step 2 makes the same call read `hit: false` / `out of range (hit distance 2.08m)`.
 4. Walk to the far mark `(2412, 0, 2408)` and repeat the same call. Expected result: `hit: false`
    (out of the 2m gate) -- no `PET_HOVER_ENTER` log for C this time, proving the distance gate.
 5. Check C's enter/leave balance on the readout: it must read `1/1`, not `1/0`. The leave used to
@@ -460,9 +465,12 @@ Board: world `(2408, 3.4, 2411)`. Suppression target: world `(2404, 1, 2413)` (b
 >
 >    **Practical rule for every unaimed step below (S1 step 6, S2 step 3, S6 steps 1 and 4):**
 >    **pitch the view into open sky with `camera_look deltaX: 0 deltaY: 8 seconds: 1.5`, then
->    press.** That worked 4/4 on 2026-09-03 (`entityBound: false` every time). A step that
->    reports `entityBound: true` when you passed no aim has measured nothing; re-clear and repeat
->    rather than recording it.
+>    press** -- and **read the returned `cameraRotationEuler.x` before pressing**: one call does not
+>    reliably clear the reticle. A later run needed a second call 3 times out of 4 (the first stopped
+>    at -22 to -27 degrees, i.e. x around 333-338), and only once did a single call suffice. Repeat
+>    until x is near 306 (-54 degrees, about the third-person clamp). A step that reports
+>    `entityBound: true` when you passed no aim has measured nothing; re-clear and repeat rather than
+>    recording it.
 >
 >    **Do NOT rely on `look_at`-ing geometry that has no `PointerEvents`** — that was this note's
 >    advice for two runs and it does not work, because the reticle follows the free cursor and
@@ -576,8 +584,10 @@ Stand mark: world `(2400, 0, 2400)`. Markers (world):
    Expected: the camera pitches **down** — which in this Euler convention is a *positive*
    `cameraRotationEuler.x` (measured 9.85 with yaw 180), not a negative one; earlier revisions of
    this line had the sign backwards. Log `[S7-CAMERA] MARKER-D (down) entered aim`.
-   Each marker's label board prints its own exact world coordinates (visible in a screenshot)
-   so the same numbers used above are also readable in-world.
+   Each marker's label board prints its own **scene-local** coordinates (e.g. `(4, 6, 16)`), not
+   the world ones used in the calls above -- add the parcel origin (`149,149` -> x+2384, z+2384)
+   to compare them, or read the entity instead: `get_entity_details <engine id>` returns the exact
+   `PBTextShape.text`, which a screenshot cannot resolve past a few metres.
 
 ---
 
@@ -598,10 +608,12 @@ through the virtual mouse.
    ```
    ui_list  stack: sdk
    ```
-   Expected result: a JSON array of elements including the three counter buttons, the text
-   input, the dropdown, the scrollable list, the two drag-surface halves, and the modal-open
-   button. Note each element's `crdtId` for the steps below (referred to as `<btn1Id>`,
-   `<btn2Id>`, `<btn3Id>`, `<inputId>`, `<dropdownId>`, `<scrollId>` here).
+   Expected result: a JSON array of nine elements: the **two** counter buttons (`Button 1`,
+   `Button 2`), the modal-open button (`Open modal (covers btn 2)` -- the third element of that
+   row, it is **not** a counter), the text input, the dropdown, the scrollable list, the two
+   drag-surface halves, and the in-panel `RESET ALL (UI)` button. Note each element's `crdtId`
+   for the steps below (referred to as `<btn1Id>`, `<btn2Id>`, `<btn3Id>` for the modal opener,
+   `<inputId>`, `<dropdownId>`, `<scrollId>` here).
 3. **Semantic click:**
    ```
    ui_click  stack: sdk  crdtId: <btn1Id>
@@ -627,8 +639,10 @@ through the virtual mouse.
    ```
    ui_set_text  stack: sdk  crdtId: <inputId>  text: "submitted value"  submit: true
    ```
-   Expected log: both `[S8-UI] input changed -> "submitted value" (change #2)` **and**
-   `[S8-UI] input submitted -> "submitted value" (submit #1)`.
+   Expected log: both `[S8-UI] input submitted -> "submitted value" (submit #1)` **and**
+   `[S8-UI] input changed -> "submitted value" (change #2)` -- in that order: the client emits the
+   **submit first**, then the change, which is the opposite of the order this step listed for six
+   runs. Assert on both lines, not on their sequence.
 6. **Dropdown:**
    ```
    ui_set_text  stack: sdk  crdtId: <dropdownId>  optionIndex: 2
@@ -720,6 +734,10 @@ other's element, the layout has drifted -- that is the false positive the first 
    Expected result: six inputs and two buttons among the elements -- referred to below as
    `<freeId>`, `<seededId>`, `<submitOnlyId>`, `<disabledId>`, `<callsignId>`, `<codeId>`,
    `<formSubmitId>`, `<clearId>`. Field order on screen matches the numbering in the panel.
+   **Re-list per panel: the ids are reused across panels.** `crdtId 599` is S8's Button 2 *and*
+   S9's FREE field, so an id carried over from the S8 steps will act on a different element here
+   (and reopening a panel renumbers everything -- see the S8 note below). Always `ui_list` again
+   after opening or closing a panel, and never reuse an id across stations.
 3. **Write into the uncontrolled field:**
    ```
    ui_set_text  stack: sdk  crdtId: <freeId>  text: "hello from mcp"
@@ -859,13 +877,14 @@ Layout (world; local = world - `(2384, 0, 2384)`):
    release landed inside one drain window, so the gesture was delivered as a click. That is the
    measurement this station exists for — report it as the result, not as a scene failure.
 
-   > **Do not use `ui_drag` here.** A device drag over the world verifies nothing and paints
-   > nothing: measured twice (20- and 45-frame drags over this canvas, cursor `Free`) it returned
-   > bare `ok:true` with no stroke and no camera movement (yaw `359.98`, pitch `351.82`). The left
-   > button is also the camera-pan binding (for a human too), so the same call can instead turn the
-   > camera, and then it fails with "the drag panned the camera instead of dragging"; with the
-   > cursor locked it fails up front. Either way nothing is dragged in the world — `ui_drag` is for
-   > UI. Before 2026-09-02 this step was undrivable: the station armed from the entity-less
+   > **Do not use `ui_drag` here.** A device drag over the world reaches no UI and paints nothing:
+   > measured twice (20- and 45-frame drags over this canvas, cursor `Free`) it returned `ok:true`
+   > with no stroke and no camera movement (yaw `359.98`, pitch `351.82`). The result now says so —
+   > `pointerOver: {start:"world", end:"world"}` plus an `info` line — because the gesture
+   > verifies no target. The left button is also the camera-pan binding (for a human too), so the
+   > same call can instead turn the camera, and then it fails with "the drag panned the camera
+   > instead of dragging"; with the cursor locked it fails up front. Either way nothing is dragged
+   > in the world — `ui_drag` is for UI. Before 2026-09-02 this step was undrivable: the station armed from the entity-less
    > `inputSystem.isTriggered`, which cannot read the scene root (`RootEntity` is `0`, falsy-zero
    > guard — the trap S6 documents), and the stroke canvas had no `PointerEvents` to arm on
    > either. It now arms from a pointer-down on the canvas itself *or* an `IA_POINTER` scene-root
@@ -961,7 +980,7 @@ Layout (world; local = world - `(2384, 0, 2384)`):
 | Empty form is rejected | `ui_click` CLEAR FIELDS, then `ui_click` SUBMIT FORM | `FORM submit #N -- REJECTED callsign="" code=""` |
 | Paint sample off the canvas | `sweep_pointer` on the stroke canvas turning down onto the decoy strip | `stroke sample left the canvas ... no dot painted`; no sphere below world y `1.0` |
 | A sweep that never holds the pointer | any gesture whose press and release land in one drain window | `STROKE #N was a single dot -- the pointer was not held across frames` |
-| A world drag drags nothing | `ui_drag path:device` over the STROKE canvas | no stroke either way. With a free cursor: bare `ok:true`, no error, camera unmoved (measured twice) — `ok` verifies no target. If the drag engages the camera pan instead, it fails with "the drag panned the camera instead of dragging" |
+| A world drag reaches no UI | `ui_drag path:device` over the STROKE canvas | no stroke either way. With a free cursor: `ok:true` with `pointerOver: {start:"world", end:"world"}` and an `info` line saying no UI element received it (`ok` verifies no target); camera unmoved (measured twice). If the drag engages the camera pan instead, it fails with "the drag panned the camera instead of dragging" |
 | A half-readable aim is refused, not degraded | `press_input action:primary x:2404 z:2413` (no `y`) | fails with "x, y and z must all be numbers to aim the press; omit all three for a scene-root broadcast." — and **no** `[S6-GLOBAL]` root-broadcast log, i.e. it did not silently fall back |
 | A rejected number names itself | `click_entity x:2393 y:"3.0" z:2393` | `"Provide entityId, or a full x/y/z world aim point, or both. (y arrived as string \"3.0\", not a number)"` — unreachable from Claude Code's native tools, see the sixth-run note |
 
@@ -1335,7 +1354,9 @@ how to measure overlap properly (a naive before/after yaw read gives the opposit
 - **S6 note 1's reticle-clearing recipe is replaced.** `look_at` geometry with no `PointerEvents`
   does **not** clear the reticle: the S1 end wall at 1m still let an unaimed `press_input` bind to
   the RESET button **15.87m away**. Pitch into open sky with `camera_look deltaY: 8 seconds: 1.5`
-  instead -- 4/4 this run.
+  instead -- but one call is not enough on its own: a later run cleared the view on the first call
+  only once in four, the rest stopping at -22 to -27 degrees. Read back `cameraRotationEuler.x` and
+  repeat until it is near 306.
 - **S2 step 3's expected log wording corrected** to `IA_JUMP scene-root broadcast` (the doc said
   `IA_JUMP global press` for six runs; the scene never logged that).
 - **`bucket=` is now useless for every pair, not just the jog/run boundary** -- see below.
@@ -1345,7 +1366,7 @@ how to measure overlap properly (a naive before/after yaw read gives the opposit
 | Where | Defect | Status |
 |---|---|---|
 | S1 step 3, S3 steps 5-6 | `JOG_MAX_MS = 9` miscalibrated | **Still open, and worse.** The *free jog control* now measures 9.08 and labels `bucket=run`, so the threshold sits below the jog tier itself and the label separates nothing. Speeds remain perfectly diagnostic: in-zone degraded run 9.11, free jog 9.08, free run 11.16 |
-| S9 step 8 | Chat `ChatMessages/Viewport` covers S9's form buttons; `force: true` completes the step | **Still open.** New detail: the transparent cover reaches normalized `y 0.5366` (mid-screen), higher than the lower-left block the tooling docs describe |
+| S9 step 8 | Chat `ChatMessages/Viewport` covers S9's form buttons; `force: true` completes the step | **Still open.** New detail: the transparent cover reaches normalized `y 0.5366` (mid-screen), higher than the lower-left block the tooling docs describe. **Eighth run: did not reproduce** -- both form clicks succeeded plain at the same `center.y 0.5366`, chat collapsed in both runs; one more run before closing |
 | S9 step 9 | A programmatic `value` does not reach a client-owned `<Input />` | **Still open**, on all three controlled fields. Refined: controlled fields display a *write* correctly and only fail to follow a programmatic *reset*; uncontrolled fields never display the write at all (their boxes read empty while the scene's `read back:` shows the value) |
 
 **Minor, unresolved:** `ui_drag path:"device"` still returns no `screenRect`/`center`/`info` (it
@@ -1357,3 +1378,27 @@ widening the cone if it keeps drifting.
 stations was re-verified against the `[INIT] MARK` lines and confirmed by a `hit: true` returning
 the expected `crdtEntityId` and `hoverText` (581, 582, 584, 542, 543, 544, 545, 548, 549, 555, 556,
 559, 562, 563, 564, 571, 589, 590, 591, 592).
+
+## What changed after the eighth live run (2026-09-04)
+
+Scope: **a full pass -- Pre-flight (all five checks) + S1-S10**, all passing, zero log errors
+(seq 0..291). Full evidence in `MCP_SHOWCASE_RESULTS.md`. Client screen `2188x1231`.
+
+### Driving changes folded into the steps above
+
+- **S5 step 3 gains a `look_at` before the hover.** The near mark's "~1.8m" is the player-to-target
+  distance; the `maxDistance: 2` gate is measured to where the camera ray enters the collider, so
+  the hover from a stale camera pose read `hit distance 2.08m` and failed, then hit at 1.22m after
+  the `look_at`.
+- **S8 step 2's inventory corrected**: two counter buttons, not three -- the third element of that
+  row is the modal opener (`<btn3Id>`, which step 9 addresses), and the ninth element is the
+  in-panel `RESET ALL (UI)`.
+- **S9 step 8's chat-viewport cover did not reproduce** (see the still-open table above).
+
+### Client defect this run found
+
+- **`move_to`'s `lookAtX/Y/Z` is a no-op** -- ten calls left the camera yaw pinned at its
+  session-start value and the player rotation untouched. Since `walk` is camera-relative, a control
+  run intended southward went north and carried the player off the north edge (`scene: null`). The
+  script never uses `move_to`'s lookAt, so no step is affected; set facing with `look_at` only.
+  Reported to the client team (unity-explorer).
