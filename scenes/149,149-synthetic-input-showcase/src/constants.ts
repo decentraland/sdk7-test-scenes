@@ -119,7 +119,21 @@ export const S7_MARKER_LEFT = Vector3.create(4, 6, 16)
 export const S7_MARKER_RIGHT = Vector3.create(28, 6, 16)
 export const S7_MARKER_UP = Vector3.create(16, 20, 16)
 export const S7_MARKER_DOWN = Vector3.create(16, 0.3, 4)
-export const S7_ANGLE_TOLERANCE_DEG = 8
+// Aim cone, with hysteresis. Widened 8 -> 18 on 2026-09-04 and given a separate release angle.
+//
+// The station measures the angle from the CAMERA (not the player), so the cone ought to agree with
+// `look_at`'s own aimErrorDegrees -- and at the instant the aim lands it does: MARKER-R was logged
+// entering at 1.7 deg. But the third-person orbit boom keeps easing AFTER look_at returns, and the
+// angle settles ~10 deg wider: measured 2026-09-04, MARKER-L settled at 11.0 and MARKER-R at 11.5
+// while look_at reported 0.7 and 6.2 for the same two aims.
+//
+// At a single 12 deg threshold that settling crosses the boundary and the station flaps -- observed
+// live: `MARKER-R entered aim (1.7)` -> `left aim (12.1)` -> `entered aim (11.5)`, three log lines and
+// two counter states for one aim. So ENTER at 18 (comfortably past the ~11.5 settled offset) and only
+// RELEASE past 30, which is still far inside the ~90 deg that separates any two markers from the stand
+// mark. First person needs neither: it has no boom, and reads ~1-3 deg.
+export const S7_ANGLE_TOLERANCE_DEG = 18
+export const S7_ANGLE_RELEASE_DEG = 30
 
 // ---------------------------------------------------------------------------------------
 // S8 -- Scene UI toggle (hub)

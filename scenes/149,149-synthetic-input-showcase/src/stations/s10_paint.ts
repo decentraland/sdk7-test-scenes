@@ -35,13 +35,19 @@ import { counters, slog, logEntity, logMark, onReset } from '../state'
  *                   stay DOWN across several frames -- a synthetic drag that presses and releases
  *                   inside one drain window paints a single dot, and the log says so rather than
  *                   silently looking like a short stroke. The ray is the POINTER's, not the
- *                   camera's: measured 2026-09-03, `worldRayDirection` is populated for a
- *                   synthetic held pointer but is NOT re-derived while the camera turns, so
- *                   holding a button and calling `camera_look` samples the same spot ~25 times
- *                   and paints one dot. Only `sweep_pointer` drags the parked pointer as it
- *                   turns, and it is the only gesture that paints a stroke. An unaimed hold
- *                   parks the pointer wherever the free cursor sits, so its ray never crosses
- *                   this canvas at all. Dragging a mouse across the world does not paint -- it pans.
+ *                   camera's, and it is parked where the press landed. `worldRayDirection` is
+ *                   populated for a synthetic held pointer in every case measured. Holding a
+ *                   button and calling `camera_look` still samples the same spot ~25 times and
+ *                   paints one dot -- but NOT because the ray fails to follow the camera:
+ *                   measured 2026-09-04, MCP tool calls are SERIALISED, so the turn only starts
+ *                   after the hold has ended and the camera is stationary for the whole hold.
+ *                   That gesture therefore establishes nothing about re-derivation (an earlier
+ *                   note here claimed it did; it was withdrawn). Only `sweep_pointer` holds the
+ *                   press, the turn and the release inside one call, and it is the only gesture
+ *                   that paints a stroke. Where an unaimed hold's ray lands depends on where the
+ *                   last AIMED gesture parked the free cursor -- pitching the camera away does
+ *                   not move it: left on this canvas it re-samples that one spot, anywhere else
+ *                   it hits nothing. Dragging a mouse across the world does not paint -- it pans.
  *
  * The DECOY strip under the stroke canvas is collidable but not paintable: samples that land on
  * it are counted as off-canvas and leave no dot, which is what proves the stroke is following the
@@ -298,9 +304,10 @@ export function setupS10Paint() {
         slog(
           'S10-PAINT',
           `STROKE #${counters.s10Strokes} was a single dot even though the pointer was held across ` +
-            `${samplesThisHold} ray samples -- the ray never moved. The pointer stayed parked where it was ` +
-            'pressed and did not follow the camera, so every sample re-hit the same spot. Turning the camera is ' +
-            'not enough on its own; use sweep_pointer, which drags the parked pointer as it turns'
+            `${samplesThisHold} ray samples -- the ray never moved, i.e. the camera did not turn while the ` +
+            'button was down. If you issued a camera_look alongside the hold, note that MCP calls are serialised: ' +
+            'the turn ran AFTER the release, so the hold saw a stationary camera. Use sweep_pointer, which holds ' +
+            'the press, turns and releases inside one call'
         )
       }
     }
@@ -454,8 +461,9 @@ export function setupS10Paint() {
   slog(
     'S10-PAINT',
     'station ready -- click_entity/click_at the STAMP canvas for one dot per click; for a trail, use ' +
-      'sweep_pointer aimed at the STROKE canvas, which is the ONLY gesture that paints one: it drags the ' +
-      'parked pointer as the camera turns. A press_input hold plus camera_look does not (the pointer ray is ' +
-      'not re-derived while the camera moves) and dragging a mouse across the world only pans it'
+      'sweep_pointer aimed at the STROKE canvas, which is the ONLY gesture that paints one: it holds the press, ' +
+      'turns and releases inside a single call. A press_input hold plus a separate camera_look does not, because ' +
+      'MCP calls are serialised -- the turn runs after the hold ends, so the camera never moves while the button ' +
+      'is down. Dragging a mouse across the world only pans it'
   )
 }

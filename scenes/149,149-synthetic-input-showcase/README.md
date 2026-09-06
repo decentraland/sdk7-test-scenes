@@ -9,7 +9,53 @@ scene's `<Input />` fields and dragging a held pointer across a world surface to
 
 See **`MCP_SHOWCASE.md`** in this folder for the step-by-step driving script (exact tool
 calls, expected results, and expected observables per station) -- that is the document the
-driving session should read first.
+driving session should read first. Its **Driving notes** and **Known open issues** sections
+carry the cross-station hazards and the defects that are currently outstanding.
+
+## Driving it -- prompt for the agent
+
+Start the Explorer with the MCP server enabled and the scene loaded, then open an agent session
+**in this folder** and give it something like the prompt below. The two lines that matter most are
+the explicit **yes to the intent gate** (the `unity-explorer-mcp` skill will otherwise stop and ask)
+and the **cross-examination requirement** -- without it a session will happily report a screenshot
+as proof of something only the logs can settle.
+
+```text
+Drive the Explorer's synthetic input simulation layer live over MCP against this scene and
+verify it end-to-end.
+
+Scene: this folder -- base parcel 149,149, world offset (2384, 0, 2384).
+Driving script: MCP_SHOWCASE.md here, stations S1..S10. Yes to the intent gate: I want this
+run against a live Explorer.
+
+Setup: I have the Explorer running with the MCP enabled and connected to the scene already.
+
+Read MCP_SHOWCASE.md top to bottom first, including its Driving notes and Known open issues.
+Run the pre-flight, then all ten stations as the regression, including every negative case.
+Cross-examine every claim across at least two channels (tool result + get_scene_logs, or a
+screenshot + get_player_state); read the readout boards with get_entity_details ->
+PBTextShape.text rather than from screenshots.
+
+DELIVERABLES
+  - Write MCP_SHOWCASE_RESULTS.md in this folder: per-station pass/fail with the evidence,
+    a clear verdict on the pre-flight checks, and whether each Known open issue still
+    reproduces.
+  - Report anything the script itself got wrong -- stale coordinates, wrong expected log
+    lines, steps that no longer match the client -- and fix MCP_SHOWCASE.md.
+  - If the unity-explorer-mcp skill told you something wrong or left a gap, report it in your
+    final message -- do NOT edit the skill; I sync it to the sdk-skills repo myself.
+```
+
+Variations worth knowing:
+
+- **Explorer not started yet?** Drop the "Setup:" line. The skill's own setup will launch it
+  (`npm run start -- --mcp --skip-auth-screen true`), but the MCP tools bind only at session
+  start -- so it will have to stop and ask you to `/mcp reconnect explorer` or open a fresh
+  session. Starting the Explorer *before* the agent session avoids that round trip entirely.
+- **One station only?** Replace the run line with e.g. *"Run the pre-flight and S10 only, as a
+  regression against the STROKE path"* -- every station is self-contained and re-runnable.
+- **Re-running in the same session?** Tell it to click **RESET ALL STATIONS** at world
+  `(2403, 1, 2400)` first; the scene never needs a reload to go back to a clean state.
 
 ## Parcels
 
@@ -27,7 +73,7 @@ driving session should read first.
 |---|---|---|---|
 | S1 -- Locomotion lane | `walk` runs the real locomotion pipeline; collisions apply; `kind` changes speed | corridor x:2-6, z:1-18.5 | metre markers at z=1,5,9,13,17 (0/4/8/12/16m); wall at z=18.5 |
 | S2 -- Jump / vertical | `walk(..., jump:true)` reaches an unsteppable platform; contrasts with `press_input JUMP` | platform (4, 0.6, 25) | ground jump mark (4, 0.05, 29) |
-| S3 -- Freeze zone | `InputModifier` locks `walk` exactly like WASD; `ignoreInputModifiers` escapes it | zone A (11, 0.05, 20), zone B (11, 0.05, 26) | zone A: `disableAll`+`disableJump`; zone B: `disableRun` only |
+| S3 -- Freeze zone | `InputModifier` locks `walk` exactly like WASD; `ignoreInputModifiers` escapes it | zone A (11, 0.05, 20), zone B (11, 0.05, 27.5) | zone A (4m pad): `disableAll`+`disableJump`; zone B (9m corridor, z 23-32): `disableRun` only |
 | S4 -- Click targets | real reticle raycast: occlusion, `maxDistance`, down/up ordering, offset colliders | (17-30, 1, 3-13) | see `MCP_SHOWCASE.md` for the 8 individual targets |
 | S5 -- Hover | `PET_HOVER_ENTER`/`LEAVE`, `hoverText`, distance-gated hover | (20-28, 1, 19) | hover C gated to 2m |
 | S6 -- Global input board | `press_input` fan-out: entity-bound vs global broadcast, and the suppression rule | board (24, 3.4, 27) | suppression target (20, 1, 29), bound to `IA_PRIMARY` |
@@ -68,66 +114,65 @@ S10 paints with sphere primitives, which cost 804 triangles each in the client a
 scene's 40,000 budget, so its dot pool is capped at 40 and recycles oldest-first
 (`S10_DOT_POOL_MAX` in `src/constants.ts`).
 
-## Changes after the first live run (2026-08-28)
+## Design notes -- why the scene is built this way
 
-The scene was driven end-to-end against a running Explorer; the report lives in
-`MCP_SHOWCASE_RESULTS.md` and the resulting changes are summarised at the bottom of
-`MCP_SHOWCASE.md`. Scene-side:
+Each of these is a correction that a live run forced, and each one is load-bearing: reverting it
+makes the station silently stop proving anything.
 
-- **S2 pressure plate** — a 0.1m-thin `TriggerArea` slab never overlaps the avatar capsule
-  standing on it, so it never fired. The visual plate stays; the trigger is a separate
-  invisible 2m-tall box. (S3's two zones needed the same fix and got it during the run.)
-- **S6 board** — reads the scene root's own `PointerEventsResult` grow-only set with a timestamp
-  watermark. ~~Now reads `inputSystem.isTriggered(action, type, engine.RootEntity)`~~ — that
-  intermediate fix was itself wrong and is superseded: passing `engine.RootEntity` changes
-  nothing, because the root entity is `0` and the SDK's `if (entity)` guard treats it as absent
-  (JS falsy zero), so it runs the same all-entities scan as omitting the argument. Neither form
-  can measure the root. S10's held-pointer flag was fixed the same way on 2026-09-02.
-- **S1 gait classifier** — peak per-frame speed misclassified jog as run; it now uses a
-  smoothed sustained speed and logs distance, duration, average and sustained speed.
-- **S3 zone B** — a 9m corridor (was a 4m pad) so a ~1s run burst stays inside past the
-  acceleration ramp; `disableRun` degrades run to jog, so the proof is a speed comparison, not
-  a distance one.
-- **S1 readout board** — moved to the far end of the lane; at its old position (above the
-  spawn point) it was behind the camera from every viewpoint the lane is walked from.
+- **S2's pressure plate and S3's zones use a tall invisible trigger, not the visible slab.** A
+  0.1m-thin `TriggerArea` never overlaps the avatar capsule standing on it, so it never fires. The
+  visual plate stays where it is; the trigger is a separate invisible 2m-tall box.
+- **S6's board and S10's held-pointer flag read `PointerEventsResult.get(engine.RootEntity)`
+  directly, with a timestamp watermark.** `inputSystem.isTriggered` cannot make this measurement in
+  *any* form: without an entity it is answered from every entity's `PointerEventsResult`, and
+  passing `engine.RootEntity` does not help either, because the root entity is `0` and the SDK's
+  `if (entity)` guard treats it as absent (JS falsy zero) -- the same all-entities scan either way.
+  An entity-bound press therefore satisfies it, so it cannot distinguish a scene-root broadcast from
+  an entity-bound one. **If a future edit swaps the direct gset read for any `isTriggered` call, S6
+  silently stops proving anything** -- and the artifact reads convincingly as "suppression is
+  broken".
+- **S1 classifies gait by a smoothed sustained speed, not peak per-frame speed**, and logs distance,
+  duration, average and sustained speed. Single-frame displacements above 20 m/s (a `move_to`
+  teleport) are logged as teleports and excluded rather than counted as a superhuman burst.
+- **S3's zone B is a 9m corridor, not a 4m pad.** `disableRun` degrades run to jog rather than
+  stopping the player, so the proof is a *speed* comparison and the burst has to stay inside the
+  zone past the acceleration ramp. A run crossed the old pad in ~0.25s, entirely inside the ramp,
+  and read identically to a control burst outside it.
+- **S3's zone handlers recompute the `InputModifier` from current zone occupancy on every
+  enter/exit**, rather than writing it last-writer-wins. A teleport that crosses both volumes
+  delivers `enter(destination)` before `exit(origin)`, and a stale exit used to wipe the modifier
+  while the player stood inside the zone that set it.
+- **S2 counts an arrival only after ~0.4s of dwell** inside the trigger; a jump arc passing through
+  the volume logs a fly-through instead.
+- **S1's readout sits at the far end of the lane.** Above the spawn point it was behind the camera
+  from every viewpoint the lane is actually walked from.
+- **S10's raycast callback returns early unless the pointer is still held**, its "no ray at all"
+  branch is counted rather than silent (`no-ray samples` on the readout), and its single-dot
+  diagnostic branches on the hold's sample count -- a held pointer whose ray never moved reports
+  *"the ray never moved ... stayed parked where it was pressed"*, not *"the pointer was not held
+  across frames"*. Without the first, a late callback opens a phantom stroke and the next gesture is
+  silently merged into it; without the other two, "the ray missed" and "there was no ray" are
+  indistinguishable and the next session chases the wrong bug.
+- **One UI root.** `ReactEcsRenderer.setUiRenderer` may only be called once per scene, so S8 and S9
+  both render through `src/stations/ui_root.tsx`. S8's panel is centered and S9's is left-anchored
+  so they cannot overlap -- an overlap makes `ui_click`'s occlusion pre-check report one station's
+  panel as a cover over the other's element.
 
-After the second run (also 2026-08-28, report superseded in place):
+## The two UI stations
 
-- **S1 gait thresholds** — the sustained-speed EMA converges on the gait's true top speed as
-  the burst lengthens (a 2s jog reads ~8.2 m/s), so the jog/run boundary moved to 9 m/s;
-  single-frame displacements above 20 m/s (a `move_to` teleport) are logged and excluded.
-- **S3 zones** — the handlers no longer write the `InputModifier` last-writer-wins; every
-  enter/exit recomputes it from current zone occupancy, because a teleport crossing both
-  volumes delivers `enter(destination)` before `exit(origin)` and the stale exit used to wipe
-  the modifier.
-- **S2 arrivals** — count only after ~0.4s of dwell inside the trigger; a jump arc passing
-  through the volume logs a fly-through instead of an arrival.
-
-## Scene expansion (2026-08-31)
-
-Two stations were added and the docs' world coordinates were rebased.
-
-- **S9 -- UI text entry.** A second React panel, left-anchored, with five `<Input />` fields that
-  separate what one field conflates: uncontrolled vs. controlled (`value`), change vs. submit, a
-  `disabled` field that must refuse a synthetic write, and a two-field form whose values are read
-  by a later `ui_click` rather than by the write itself.
+- **S9 -- UI text entry.** Six `<Input />` fields across five cases, separating what a single field
+  conflates: uncontrolled vs. controlled (`value`), change vs. submit, a `disabled` field that must
+  refuse a synthetic write, and a two-field form whose values are read by a later `ui_click` rather
+  than by the write itself -- the case that proves a write is *state the scene can read back*, not a
+  one-shot event.
 - **S10 -- Paint surface.** The painting idea from the `0,5-primary-cursor-info` reference scene,
-  split into the two paths the synthetic-input layer can reach a world surface with: a STAMP
-  canvas (one dot per `click_entity`/`click_at`, placed at the event's own `hit.position`) and a
-  STROKE canvas (a trail painted while `IA_POINTER` is held and the pointer sweeps, via
+  split into the two paths the synthetic-input layer can reach a world surface with: a STAMP canvas
+  (one dot per `click_entity`/`click_at`, placed at the event's own `hit.position`) and a STROKE
+  canvas (a trail painted while `IA_POINTER` is held and the pointer sweeps, via
   `PrimaryPointerInfo.worldRayDirection` + `raycastSystem`). A non-paintable DECOY strip under the
   stroke canvas proves the trail follows the pointer rather than the camera. The station reports a
-  single-dot stroke explicitly, so a drag whose press and release land in one drain window is
+  single-dot stroke explicitly, so a gesture whose press and release land in one drain window is
   visible as that rather than passing as a short stroke.
-- **One UI root.** `ReactEcsRenderer.setUiRenderer` may only be called once per scene, so both UI
-  stations now render through `src/stations/ui_root.tsx`. S8's panel is centered and S9's is
-  left-anchored so they cannot overlap -- an overlap would make `ui_click`'s occlusion pre-check
-  report one station's panel as a cover over the other's element.
-- **World coordinates rebased.** The first three live runs happened while the scene sat at base
-  parcel `34,20`, so every per-step world coordinate in `MCP_SHOWCASE.md` (and the spawn/reset
-  coordinates here) was still on the old `(544, 0, 320)` offset while the prose, `scene.json` and
-  `src/constants.ts` had all moved to `149,149`. All of them are now on `(2384, 0, 2384)`. The
-  `[INIT] MARK` log lines remain the authority -- they are computed from `toWorld()` at runtime.
 
 ## Substitutions from the original spec
 

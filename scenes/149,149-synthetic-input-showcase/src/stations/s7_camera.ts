@@ -53,7 +53,12 @@ export function setupS7Camera() {
       const toMarker = Vector3.normalize(Vector3.subtract(m.pos, camPos))
       const dot = Vector3.dot(forward, toMarker)
       const angleDeg = (Math.acos(Math.min(1, Math.max(-1, dot))) * 180) / Math.PI
-      const aimed = angleDeg <= C.S7_ANGLE_TOLERANCE_DEG
+      // Hysteresis: a tight cone to ENTER, a wider one to leave. Without the gap the settling
+      // third-person boom drifts back across a single threshold and the station flaps -- one aim
+      // logging enter/leave/enter and leaving the counter's parity wrong (see constants.ts).
+      const aimed = wasAimed[m.counterKey]
+        ? angleDeg <= C.S7_ANGLE_RELEASE_DEG
+        : angleDeg <= C.S7_ANGLE_TOLERANCE_DEG
 
       if (aimed && !wasAimed[m.counterKey]) {
         wasAimed[m.counterKey] = true

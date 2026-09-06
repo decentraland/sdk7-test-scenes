@@ -9,11 +9,27 @@ const IDLE_GRACE_SEC = 0.35
 const SPEED_SMOOTHING_SEC = 0.25 // EMA time constant: long enough to reject one-frame spikes, short enough to settle
 // A single-frame displacement no gait can produce: a move_to teleport, not locomotion (run tops out ~10.5 m/s)
 const TELEPORT_SPEED_MS = 20
-// Gait thresholds on the SUSTAINED speed. Measured live (2026-08-28 run): walk ~1.5-1.6; jog 5.5 (0.5s burst)
-// climbing to 8.2 (2s burst, the EMA converging on jog's true top speed); run 9.8-10.5. The jog/run boundary
-// must sit between a LONG jog (8.2) and a SHORT run (9.8), not at jog's short-burst reading.
+// Gait thresholds on the SUSTAINED speed. RECALIBRATED 2026-09-04 -- the client got faster and the old
+// pair (WALK 3 / JOG 9, measured 2026-08-28) had drifted BELOW the jog tier itself, so `bucket=` separated
+// no pair at all: a 1.2s jog read 10.20 and labelled `run`, as did a degraded in-zone run at 9.13 and a
+// free run at 12.75.
+//
+// Measured 2026-09-04, sustainedSpeed by burst length (the EMA needs ~1s to converge on a gait's top speed):
+//
+//   kind    0.4s    0.8s    1.2s    1.45s
+//   walk      --    1.81    1.96      --
+//   jog     6.77    9.04   10.20      --
+//   run       --   10.82   12.75    13.24
+//
+// So the converged tiers are walk ~2.0, jog ~10.2-11, run ~12.8-13.2, and the jog/run boundary belongs
+// between a LONG jog and a LONG run -- 12 leaves ~1.8 m/s of margin under it and ~0.75 above.
+//
+// KNOWN LIMIT, by design: a burst shorter than ~1s has not converged, so a 0.8s run (10.82) still reports
+// `jog`. No fixed threshold on this metric can fix that -- a short run is genuinely slower than a long jog.
+// Bursts of 1.2s or more (what S1 step 3 prescribes) label correctly; for the 0.8s comparisons S3 is forced
+// into by its 9m corridor, compare sustainedSpeed directly, as MCP_SHOWCASE.md instructs.
 const WALK_MAX_MS = 3
-const JOG_MAX_MS = 9
+const JOG_MAX_MS = 12
 
 export function setupS1Locomotion() {
   const sign = createSign(C.S1_SIGN, 'S1 -- LOCOMOTION LANE\nwalk / jog / run', COLORS.info)
