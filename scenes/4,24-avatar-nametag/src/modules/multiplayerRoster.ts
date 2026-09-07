@@ -28,8 +28,8 @@ export const ALL_PLAYERS_ROSTER: RosterEntry[] = [
   { label: 'Guest', labelColor: { r: 1, g: 1, b: 1 }, backgroundColor: { r: 0.35, g: 0.35, b: 0.35 } }
 ]
 
-// Set by the manual panel (src/ui.tsx) whenever the user applies something to the "Player" target
-// directly; while set, the auto-tag system below leaves the local player's AvatarNametag alone so
+// Set by the manual panel (src/ui.tsx) whenever the user applies or removes the "Player" target's
+// nametag directly; while set, the auto-tag system below leaves the local player's AvatarNametag alone so
 // it doesn't fight the panel. Cleared by the panel's "Clear (hide plate)" button, which hands
 // control of the local player back to the auto system.
 let playerManualOverride = false

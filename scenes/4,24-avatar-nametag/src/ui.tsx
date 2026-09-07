@@ -193,6 +193,13 @@ function removeComponent() {
   const target = currentTarget()
   AvatarNametag.deleteFrom(target.entity)
   target.componentRemoved = true
+
+  // Deleting is as manual as applying: without the override the auto-tag system would re-create
+  // the local player's plate on its next ~1s pass, silently undoing this button.
+  if (selectedTargetKey === 'player') {
+    setPlayerManualOverride(true)
+    console.log(`${UI_LOG_PREFIX} manual override SET for local player (panel remove)`)
+  }
 }
 
 // Covers the whole scene (player spawn + both NPCs) with an AMT_HIDE_NAMETAGS
