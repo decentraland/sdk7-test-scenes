@@ -93,7 +93,8 @@ normalized `center` inside 0..1 beside its `screenRect`.
 
    > **A UI-cover refusal leaks nothing to the scene root, unlike S4's ray misses.** S6's board read
    > `IA_POINTER: 0` immediately after both refusals above, while S4's three `x/y/z` ray misses each
-   > post an unmatched `PET_DOWN` to the root (`IA_POINTER: 3` there). The cover check runs *before*
+   > post one `PET_DOWN` to the root (`IA_POINTER: 3` there), matched by an `UP` on a later tick as
+   > S4's own blockquote describes. The cover check runs *before*
    > any edge is posted; a ray miss is refused *after*. So this check costs you no counter drift and
    > no S10 arming at all -- run it first, freely, and read S4's leak as specific to ray misses.
 2. **`screenshot` states the screen it downscaled from.** Its caption reads
