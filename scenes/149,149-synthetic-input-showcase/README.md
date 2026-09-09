@@ -41,7 +41,13 @@ DELIVERABLES
     a clear verdict on the pre-flight checks, and whether each Known open issue still
     reproduces.
   - Report anything the script itself got wrong -- stale coordinates, wrong expected log
-    lines, steps that no longer match the client -- and fix MCP_SHOWCASE.md.
+    lines, a step with no approach mark, steps that no longer match the client -- and fix
+    MCP_SHOWCASE.md. But read its "Non-deterministic values" section first and respect it:
+    gait speeds, turn rate per deltaX, dot counts, aim-cone angles and scene-UI crdtIds vary
+    by client and session, every step asserts on an ordering or a shape rather than an
+    absolute, and a measurement of yours that differs from a figure in the script is NOT a
+    finding. Put those numbers in MCP_SHOWCASE_RESULTS.md; do not edit the script to match
+    them, and do not add a dated note or a per-pass column to it.
   - If the unity-explorer-mcp skill told you something wrong or left a gap, report it in your
     final message -- do NOT edit the skill; I sync it to the sdk-skills repo myself.
 ```
@@ -148,11 +154,14 @@ makes the station silently stop proving anything.
   from every viewpoint the lane is actually walked from.
 - **S10's raycast callback returns early unless the pointer is still held**, its "no ray at all"
   branch is counted rather than silent (`no-ray samples` on the readout), and its single-dot
-  diagnostic branches on the hold's sample count -- a held pointer whose ray never moved reports
-  *"the ray never moved ... stayed parked where it was pressed"*, not *"the pointer was not held
-  across frames"*. Without the first, a late callback opens a phantom stroke and the next gesture is
-  silently merged into it; without the other two, "the ray missed" and "there was no ray" are
-  indistinguishable and the next session chases the wrong bug.
+  diagnostic branches on the hold's sample count (`samplesThisHold`): a hold that sampled once
+  reports *"the pointer was not held across frames"* (press and release inside one drain window),
+  while a hold that sampled many times with a stationary ray reports *"a single dot even though the
+  pointer was held across N ray samples -- the ray never moved, i.e. the camera did not turn while
+  the button was down"* and names MCP call serialisation as the cause. Without the early return, a
+  late callback opens a phantom stroke and the next gesture is silently merged into it; without the
+  other two, "the ray missed", "there was no ray" and "the ray never moved" are indistinguishable
+  and the next session chases the wrong bug.
 - **One UI root.** `ReactEcsRenderer.setUiRenderer` may only be called once per scene, so S8 and S9
   both render through `src/stations/ui_root.tsx`. S8's panel is centered and S9's is left-anchored
   so they cannot overlap -- an overlap makes `ui_click`'s occlusion pre-check report one station's
@@ -169,10 +178,13 @@ makes the station silently stop proving anything.
   split into the two paths the synthetic-input layer can reach a world surface with: a STAMP canvas
   (one dot per `click_entity`/`click_at`, placed at the event's own `hit.position`) and a STROKE
   canvas (a trail painted while `IA_POINTER` is held and the pointer sweeps, via
-  `PrimaryPointerInfo.worldRayDirection` + `raycastSystem`). A non-paintable DECOY strip under the
-  stroke canvas proves the trail follows the pointer rather than the camera. The station reports a
-  single-dot stroke explicitly, so a gesture whose press and release land in one drain window is
-  visible as that rather than passing as a short stroke.
+  `PrimaryPointerInfo.worldRayDirection` + `raycastSystem`). Because that ray is built from the
+  camera, a stroke is painted by holding the button and *turning* -- which is why `sweep_pointer`
+  is the only gesture that paints one. A non-paintable DECOY strip under the stroke canvas proves
+  the station paints at real ray/surface intersections rather than spraying a dot per sample at
+  whatever is in front of the camera: samples that leave the canvas onto the strip are counted and
+  painted nowhere. The station also reports a single-dot stroke explicitly, and distinguishes its
+  two causes (see the design notes), so neither passes as a short stroke.
 
 ## Substitutions from the original spec
 
