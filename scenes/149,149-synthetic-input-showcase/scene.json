@@ -1,0 +1,37 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "synthetic input showcase",
+    "description": "MCP-driveable showcase of the synthetic input simulation layer: walk/camera/click/hover/press_input/ui_* tools, station by station",
+    "navmapThumbnail": "images/scene-thumbnail.png"
+  },
+  "owner": "",
+  "contact": {
+    "name": "sdk-team",
+    "email": ""
+  },
+  "main": "bin/index.js",
+  "tags": [],
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [3, 5],
+        "y": [0, 0],
+        "z": [1, 2]
+      },
+      "cameraTarget": { "x": 4, "y": 1, "z": 10 }
+    }
+  ],
+  "featureToggles": {},
+  "scene": {
+    "base": "149,149",
+    "parcels": ["149,149", "150,149", "149,150", "150,150"]
+  },
+  "name": "synthetic input showcase",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}
