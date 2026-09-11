@@ -12,12 +12,13 @@ import ReactEcs, { ReactEcsRenderer, UiEntity, UiRendererOptions } from '@dcl/sd
  *
  * Expected with the fix: the rectangle whose renderer has the highest zIndex is
  * in front regardless of registration order, so initially A (20) covers B (10)
- * covers C (0). Renderers left at zIndex 0 keep the registration order, the last
- * registered one on top, which is also how they stacked before the fix.
+ * covers C (0). Renderers left at zIndex 0 keep the default order — the order
+ * they first rendered in, the main UI at the back — which is also how they
+ * stacked before the fix.
  *
  * Before the fix: the option does not exist and the SDK writes no order between
- * the renderers' roots, so the Explorer stacks them by registration order — C is
- * always in front and the buttons change nothing.
+ * the renderers' roots, so the Explorer stacks them in the order they were added
+ * — C is always in front and the buttons change nothing.
  */
 export function setupRendererStacking() {
   for (const panel of PANELS) registerPanel(panel)
