@@ -1,0 +1,27 @@
+{
+  "name": "explorer-ui-events",
+  "version": "1.0.0",
+  "description": "Test scene for the openExplorerUi verdict, the ExplorerUiEventsResult lifecycle stream with request_id correlation, the openExplorerUiAndWait helper, and stopEmote's boolean result.",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "build": "sdk-commands build",
+    "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
+    "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
+  },
+  "devDependencies": {
+    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/open-explorer-ui-and-wait-close/@dcl/js-runtime/dcl-js-runtime-7.28.1-34832208486.commit-2bfb1a8.tgz",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/open-explorer-ui-and-wait-close/dcl-sdk-7.28.1-34832208486.commit-2bfb1a8.tgz",
+    "@dcl/sdk-commands": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/open-explorer-ui-and-wait-close/dcl-sdk-commands-7.28.1-34832208486.commit-2bfb1a8.tgz"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  }
+}
