@@ -12,6 +12,9 @@ let selectedColor = Color4.Clear()
 let selectedOption = ''
 let enteredText = ''
 let buttonClicked = ''
+let selfDeleteInputAlive = true
+let selfDeleteStatus = 'Alive. Click the field and type.'
+let selfDeleteCount = 0
 
 export function setupUi() {
     ReactEcsRenderer.setUiRenderer(uiComponent)
@@ -23,6 +26,7 @@ const uiComponent = () => (
         InputExample(),
         DropdownExample(),
         ButtonExample(),
+        SelfDeletingInputExample(),
         CanvasInformationExample(),
     ]
 )
@@ -156,6 +160,98 @@ function InputExample() {
             }}
         />
     </UiEntity>
+}
+
+// Deletes its own <Input /> while the field still has keyboard focus, to check that the
+// explorer restores the Player/Camera/Shortcuts input maps that focus blocked.
+function SelfDeletingInputExample() {
+    return <UiEntity
+        uiTransform={{
+            width: 640,
+            height: 240,
+            positionType: 'absolute',
+            position: { top: '55%', left: '15%' },
+            flexDirection: 'column',
+            padding: 8,
+        }}
+        uiBackground={{ color: Color4.fromHexString("#4d544e") }}
+    >
+        <Label
+            value={'Self-deleting input'}
+            fontSize={24}
+            color={Color4.Yellow()}
+            textAlign={'middle-left'}
+            uiTransform={{ width: '100%', height: 32 }}
+        />
+        <Label
+            value={'Click the field, type, then press Enter: it deletes itself while focused.'}
+            fontSize={15}
+            color={Color4.White()}
+            textAlign={'middle-left'}
+            uiTransform={{ width: '100%', height: 24 }}
+        />
+        <Label
+            value={'Without using Enter: typing "del" deletes it the same way.'}
+            fontSize={15}
+            color={Color4.White()}
+            textAlign={'middle-left'}
+            uiTransform={{ width: '100%', height: 24 }}
+        />
+        {SelfDeletingInputSlot()}
+        <Label
+            value={selfDeleteStatus}
+            fontSize={16}
+            color={Color4.Yellow()}
+            textAlign={'middle-left'}
+            uiTransform={{ width: '100%', height: 26 }}
+        />
+        <Button
+            value={'Respawn input'}
+            variant={'secondary'}
+            fontSize={16}
+            uiTransform={{ width: 200, height: 36, margin: '4px 0 0 0' }}
+            onMouseDown={respawnSelfDeletingInput}
+        />
+    </UiEntity>
+}
+
+function SelfDeletingInputSlot() {
+    if (!selfDeleteInputAlive)
+        return <Label
+            value={'Input deleted. Try walking with WASD and opening chat with Enter.'}
+            fontSize={15}
+            color={Color4.fromHexString("#ff8080")}
+            textAlign={'middle-left'}
+            uiTransform={{ width: '100%', height: 50 }}
+        />
+
+    return <Input
+        onSubmit={() => deleteSelfDeletingInput('submitted')}
+        onChange={(value) => {
+            if (value.trim().toLowerCase() === 'del')
+                deleteSelfDeletingInput('typed del')
+        }}
+        fontSize={24}
+        placeholder={'Type here, then press Enter...'}
+        placeholderColor={Color4.Gray()}
+        color={Color4.Black()}
+        uiTransform={{ width: '100%', height: 50 }}
+        uiBackground={{ color: Color4.White() }}
+        disabled={false}
+    ></Input>
+}
+
+function deleteSelfDeletingInput(reason: string) {
+    if (!selfDeleteInputAlive) return
+
+    selfDeleteInputAlive = false
+    selfDeleteCount += 1
+    selfDeleteStatus = 'Deleted while focused (' + reason + '). Deletions: ' + selfDeleteCount
+}
+
+function respawnSelfDeletingInput() {
+    selfDeleteInputAlive = true
+    selfDeleteStatus = 'Alive. Click the field and type.'
 }
 
 function DropdownExample() {
