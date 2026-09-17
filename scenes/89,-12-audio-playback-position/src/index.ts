@@ -19,21 +19,26 @@
  * Press PLAY and listen. AUDIO lines up with the beeps. CLOCK runs early by the start delay. NAIVE is off by
  * the report's transport delay: a report says where the clip was at tick N but reaches the scene a few ticks
  * later, so comparing it with the clock at processing time is wrong by exactly that gap. That gap is why the
- * field is a tick and not a timestamp: the scene keeps its own clock per EngineInfo.tickNumber and looks the
- * report's tick up:
- *   lag = clockAtTick(report.tickNumber) - report.currentOffset * 1000
+ * field is a tick and not a timestamp: the scene clock has to be read at the tick the position was sampled in.
+ * The SDK keeps that history, so a scene never rebuilds it:
+ *   registerAudioPlaybackSampleEntity -> { report, sceneTime, offset }, sceneTime already at report.tickNumber
+ *   lag = (sceneTime - sceneTimeAtPlay) * 1000 - offset * 1000
  *
  * Buttons: PLAY (from 0, clock -> 0), SEEK 10s (currentTime = 10, clock -> 10 s; the next report shows where the
  * renderer actually landed), STOP. Corner buttons cover the rest of the API: LOOP toggles AudioSource.loop (the
  * offset wraps while the clock keeps counting), PUSH CB unregisters and re-registers the playback callback.
  *
  * API under test (audioEventsSystem from '@dcl/sdk/ecs'):
- *   - registerAudioPlaybackEntity / removeAudioPlaybackEntity: callback on EVERY report, position updates
- *     included (drives the readout)
+ *   - registerAudioPlaybackSampleEntity: report resolved against the scene clock at its own tick (drives AUDIO)
+ *   - registerAudioPlaybackEntity / removeAudioPlaybackEntity: newest report of the frame, unresolved, so the
+ *     scene can only time it on arrival (drives NAIVE, and the PUSH CB toggle)
+ *   - getSceneTimeAtTick(tick): the same per-tick lookup on its own, for raw reports and for video
  *   - getAudioPlayback(entity): latest report carrying currentOffset, or undefined (polled, shown in the side panel)
  *   - registerAudioEventsEntity (pre-existing): still fires ONLY on media-state changes (side panel counts both
  *     callbacks so the difference is visible)
  * Renderers that never send a position show "no position reports from this renderer" and only CLOCK flashes.
+ * Note the floor on accuracy: currentOffset is the decoder's playhead, and the output path adds tens of
+ * milliseconds more that no field carries, so AUDIO lands close to the beep rather than exactly on it.
  *
  * Until the protocol and SDK PRs merge this scene needs the branch build of @dcl/sdk pinned in package.json,
  * and only the Unity explorer branch produces position reports.
@@ -60,7 +65,6 @@ import { Color4, Vector3 } from '@dcl/sdk/math'
 // 30 s generated tone: a 120 ms beep on every whole second whose pitch rises 40 Hz per second, over a quiet hum.
 const CLIP = 'audio/tone-30s.mp3'
 const SEEK_TARGET_SECONDS = 10
-const TICK_HISTORY = 90 // ticks of scene clock kept for clockAtTick lookups (~3 s at 30 fps)
 const NO_REPORTS_AFTER_MS = 3000 // playing this long with AudioEvent state but no position => older renderer
 const BEAT_FLASH_MS = 120
 
@@ -121,31 +125,26 @@ const fmtSeconds = (value: number | undefined) => (value === undefined ? 'n/a' :
 // PLAY/SEEK. Recorded once per tick under EngineInfo.tickNumber so a report sampled at tick N is compared with
 // the clock at tick N, not with the clock when the report is processed.
 // ---------------------------------------------------------------------------
-let clockOriginWallMs: number | undefined // Date.now() at the last PLAY/SEEK; undefined until pressed
+let playSceneTimeS: number | undefined // SDK scene clock (s) at the last PLAY/SEEK; undefined until pressed
 let clockOffsetMs = 0 // 0 after PLAY, 10000 after SEEK
 let currentTick = -1
-const clockByTick = new Map<number, number>()
 
-function sceneClockMs(): number | undefined {
-  return clockOriginWallMs === undefined ? undefined : Date.now() - clockOriginWallMs + clockOffsetMs
-}
-
-function recordSceneClock(): void {
+// The SDK's own scene clock, in ms, for the tick being processed. The per-tick history behind it lives in
+// audioEventsSystem, which is the point of the feature: a scene does not keep one of its own.
+function sdkSceneTimeMs(): number | undefined {
   const tick = EngineInfo.getOrNull(engine.RootEntity)?.tickNumber
-  if (tick === undefined) return
+  if (tick === undefined) return undefined
   currentTick = tick
-  const clock = sceneClockMs()
-  if (clock === undefined) return
-  clockByTick.set(tick, clock)
-  while (clockByTick.size > TICK_HISTORY) {
-    const oldest = clockByTick.keys().next().value
-    if (oldest === undefined) break
-    clockByTick.delete(oldest)
-  }
+  const seconds = audioEventsSystem.getSceneTimeAtTick(tick)
+  return seconds === undefined ? undefined : seconds * 1000
 }
-// Higher priority runs first: this tick's clock must exist before the SDK's audio-events system (default
-// priority) delivers a report that may carry the current tickNumber.
-engine.addSystem(recordSceneClock, 200000, 'record-scene-clock')
+
+// Where the scene EXPECTS the clip to be, as if the renderer had reacted instantly to the last PLAY/SEEK.
+function sceneClockMs(): number | undefined {
+  const now = sdkSceneTimeMs()
+  if (now === undefined || playSceneTimeS === undefined) return undefined
+  return now - playSceneTimeS * 1000 + clockOffsetMs
+}
 
 // ---------------------------------------------------------------------------
 // Audio entity and measurements
@@ -154,7 +153,7 @@ const audioEntity = engine.addEntity()
 Transform.create(audioEntity, { position: Vector3.create(8, 1, 8) })
 AudioSource.create(audioEntity, { audioClipUrl: CLIP, playing: false, loop: false })
 
-let lagMs: number | undefined // clockAtTick(report.tickNumber) - offset: the correct figure
+let lagMs: number | undefined // resolved at the report's own tick: the correct figure
 let naiveLagMs: number | undefined // clock at processing time - offset: wrong by the transport delay
 let firstLagMs: number | undefined
 let lastReportWallMs: number | undefined
@@ -235,7 +234,7 @@ function renderPanel(): void {
         : 'waiting for the first position report...'
     )
   } else {
-    lines.push(`audio behind clock by ${fmtMs(lagMs)}   (correct: clock looked up at the report's tick)`)
+    lines.push(`audio behind clock by ${fmtMs(lagMs)}   (correct: resolved at the report's own tick)`)
     lines.push(`naive figure ${fmtMs(naiveLagMs)}   (clock at processing time; off by the transport delay)`)
     if (firstLagMs !== undefined) lines.push(`drift since first report ${fmtMs(lagMs - firstLagMs)}`)
   }
@@ -268,20 +267,25 @@ function renderSidePanel(playback: PBAudioEvent | undefined, state: PBAudioEvent
 // ---------------------------------------------------------------------------
 // Push API: every report, position updates included
 // ---------------------------------------------------------------------------
+// The naive half of the demo: a raw report carries the tick it was sampled in, but a scene that ignores it and
+// times the report on arrival is wrong by however long the report spent in transit.
 function onPlaybackReport(report: Readonly<PBAudioEvent>): void {
   playbackCallbackCount++
   lastReportWallMs = Date.now()
   if (report.currentOffset === undefined) return
-  positionReportCount++
-  const offsetMs = report.currentOffset * 1000
-  const clockAtTick = report.tickNumber === undefined ? undefined : clockByTick.get(report.tickNumber)
   const clockNow = sceneClockMs()
-  if (clockAtTick !== undefined) {
-    lagMs = clockAtTick - offsetMs
-    if (firstLagMs === undefined) firstLagMs = lagMs
-  }
-  if (clockNow !== undefined) naiveLagMs = clockNow - offsetMs
+  if (clockNow !== undefined) naiveLagMs = clockNow - report.currentOffset * 1000
 }
+
+// The correct half: the SDK resolves each report against the scene clock at its own tick, so the time the
+// report spent in transit never enters the result. This is the callback a scene should reach for.
+audioEventsSystem.registerAudioPlaybackSampleEntity(audioEntity, ({ sceneTime, offset }) => {
+  positionReportCount++
+  if (playSceneTimeS === undefined) return
+  const expectedAtTick = (sceneTime - playSceneTimeS) * 1000 + clockOffsetMs
+  lagMs = expectedAtTick - offset * 1000
+  if (firstLagMs === undefined) firstLagMs = lagMs
+})
 
 function setPushCallback(enabled: boolean): void {
   if (enabled) audioEventsSystem.registerAudioPlaybackEntity(audioEntity, onPlaybackReport)
@@ -301,14 +305,13 @@ audioEventsSystem.registerAudioEventsEntity(audioEntity, (event) => {
 // Buttons: three in front, two in the corner
 // ---------------------------------------------------------------------------
 function startClock(offsetMs: number): void {
-  clockOriginWallMs = Date.now()
+  const now = sdkSceneTimeMs()
+  playSceneTimeS = now === undefined ? undefined : now / 1000
   clockOffsetMs = offsetMs
-  clockByTick.clear()
   lagMs = undefined
   naiveLagMs = undefined
   firstLagMs = undefined
   for (const cube of [clockBeat, audioBeat, naiveBeat]) cube.lastSecond = -1
-  recordSceneClock()
 }
 
 function addButton(
@@ -370,7 +373,7 @@ addButton(
   Vector3.create(14.6, 0.8, 4),
   Color4.create(0.5, 0.5, 0.5, 1),
   'PUSH CB',
-  'registerAudioPlaybackEntity / removeAudioPlaybackEntity',
+  'registerAudioPlaybackSampleEntity / registerAudioPlaybackEntity / getSceneTimeAtTick',
   () => {
     setPushCallback(!pushCallbackRegistered)
   },
