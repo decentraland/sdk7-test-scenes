@@ -1,63 +1,43 @@
 /**
- * Audio Playback Position Reports Test Scene
+ * Audio Playback Position Reports
  *
- * Exercises the playback-position reports that renderers write into the AudioEvent component while an
- * AudioSource clip plays (protocol decentraland/protocol#488, SDK decentraland/js-sdk-toolchain#1624,
- * design record ADR-318 / decentraland/adr#324, Unity explorer decentraland/unity-explorer#10123).
+ * One idea, made visible: a renderer starts a clip 100-250 ms after being asked to, so a scene that trusts its own
+ * clock runs early against the sound. Renderers now report the clip position into the AudioEvent component while
+ * a clip plays (protocol decentraland/protocol#488, SDK decentraland/js-sdk-toolchain#1624, ADR-318
+ * decentraland/adr#324, Unity explorer decentraland/unity-explorer#10123), and a scene can correct itself.
+ *
  * PBAudioEvent gained three OPTIONAL fields:
  *   - tickNumber     scene tick (equals EngineInfo.tickNumber) in which the renderer sampled the position
  *   - currentOffset  clip playback position in seconds at that tick
  *   - clipLength     total clip length in seconds, when known
  * `state` (MediaState) and `timestamp` (a per-entity monotonic counter, NOT a time) are unchanged.
  *
- * Why it matters: a renderer starts a clip 100-250 ms after being asked to (the delay varies per start) and
- * AudioSource.currentTime is a write-only seek, so a scene could never learn where the audio actually is.
- * With tickNumber the scene records its own clock per EngineInfo.tickNumber and computes
+ * THE DEMO: three cubes behind the buttons, and a clip that beeps on every whole second.
+ *   CLOCK  flashes on each whole second of the scene clock (what the scene assumes the audio is doing)
+ *   AUDIO  flashes on each whole second of (clock - lag), lag measured through tickNumber
+ *   NAIVE  flashes on each whole second of (clock - naive lag), naive lag measured at processing time
+ * Press PLAY and listen. AUDIO lines up with the beeps. CLOCK runs early by the start delay. NAIVE is off by
+ * the report's transport delay: a report says where the clip was at tick N but reaches the scene a few ticks
+ * later, so comparing it with the clock at processing time is wrong by exactly that gap. That gap is why the
+ * field is a tick and not a timestamp: the scene keeps its own clock per EngineInfo.tickNumber and looks the
+ * report's tick up:
  *   lag = clockAtTick(report.tickNumber) - report.currentOffset * 1000
- * Comparing against the clock at the moment the report is PROCESSED would be wrong by the report's transport
- * delay (several ticks); the "naive" line shows that error in-world.
+ *
+ * Buttons: PLAY (from 0, clock -> 0), SEEK 10s (currentTime = 10, clock -> 10 s; the next report shows where the
+ * renderer actually landed), STOP. Corner buttons cover the rest of the API: LOOP toggles AudioSource.loop (the
+ * offset wraps while the clock keeps counting), PUSH CB unregisters and re-registers the playback callback.
  *
  * API under test (audioEventsSystem from '@dcl/sdk/ecs'):
- *   - registerAudioPlaybackEntity / removeAudioPlaybackEntity: callback on EVERY report, including the
- *     periodic position updates (push API)
- *   - getAudioPlayback(entity): latest report carrying currentOffset, or undefined (pull API)
- *   - registerAudioEventsEntity (pre-existing): still fires ONLY on media-state changes
- *
- * Buttons (front row, left to right):
- *   PLAY          playSound from 0 with the current loop mode; resets the scene clock to 0
- *   SEEK 10s      createOrReplace with currentTime = 10 and playing = true (always emits a PUT, even when
- *                 pressed twice); resets the scene clock to 10 s. The next report shows where the renderer
- *                 actually landed.
- *   STOP          stopSound (scene-initiated)
- *   TOGGLE LOOP   flips AudioSource.loop. With loop ON, currentOffset wraps to 0 while state stays MS_PLAYING
- *                 and the scene clock keeps counting, so lag grows by clipLength per wrap. Toggling re-sends
- *                 the whole component: a renderer that restarts on a same-URL PUT restarts from currentTime,
- *                 and the next report shows exactly that. Toggle before PLAY to see a clean wrap.
- *   PUSH CB       unregisters / re-registers the playback callback (removeAudioPlaybackEntity); while off the
- *                 push counter freezes but the pull panel keeps updating
- *
- * How to read the labels:
- *   CLOCK line    current EngineInfo tick, the scene clock (expected playback position in ms since the last
- *                 PLAY/SEEK), loop mode and AudioSource.playing
- *   PUSH panel    registerAudioPlaybackEntity: callback counts, the last report's state / timestamp /
- *                 tickNumber / currentOffset / clipLength, "audio behind clock by N ms" (correct lag via the
- *                 clock recorded at report.tickNumber), the naive lag computed with the clock at processing
- *                 time and their difference, report cadence (ms since the previous report) and transport
- *                 delay (current tick - report tick)
- *   PULL panel    getAudioPlayback(entity) polled every frame, with getAudioState for contrast
- *   DRIFT line    lag now vs lag at the first position report after PLAY/SEEK
- *   STATE LOG     registerAudioEventsEntity log plus both callback counts: the playback count keeps growing
- *                 while the state count only moves on state changes, so position reports do not trigger it
- *   BEAT cubes    the clip beeps on every whole second (pitch 440 Hz + 40 Hz per second, so a seek is
- *                 audible). The CLOCK cube flashes on each whole second of the scene clock; the AUDIO cube
- *                 flashes on each whole second of (clock - lag). The AUDIO cube should line up with what you
- *                 hear; the CLOCK cube runs early by the lag.
- *   Renderers that never send currentOffset show "no position reports from this renderer" instead of NaN.
+ *   - registerAudioPlaybackEntity / removeAudioPlaybackEntity: callback on EVERY report, position updates
+ *     included (drives the readout)
+ *   - getAudioPlayback(entity): latest report carrying currentOffset, or undefined (polled, shown in the side panel)
+ *   - registerAudioEventsEntity (pre-existing): still fires ONLY on media-state changes (side panel counts both
+ *     callbacks so the difference is visible)
+ * Renderers that never send a position show "no position reports from this renderer" and only CLOCK flashes.
  *
  * Until the protocol and SDK PRs merge this scene needs the branch build of @dcl/sdk pinned in package.json,
  * and only the Unity explorer branch produces position reports.
  */
-
 import {
   engine,
   Entity,
@@ -85,12 +65,11 @@ const NO_REPORTS_AFTER_MS = 3000 // playing this long with AudioEvent state but 
 const BEAT_FLASH_MS = 120
 
 // ---------------------------------------------------------------------------
-// Layout helpers
+// Helpers
 // ---------------------------------------------------------------------------
-
-function createButton(position: Vector3, color: Color4): Entity {
+function createButton(position: Vector3, color: Color4, scale = 1.2): Entity {
   const entity = engine.addEntity()
-  Transform.create(entity, { position, scale: Vector3.create(1.2, 1.2, 1.2) })
+  Transform.create(entity, { position, scale: Vector3.create(scale, scale, scale) })
   MeshRenderer.setBox(entity)
   MeshCollider.setBox(entity)
   Material.setPbrMaterial(entity, { albedoColor: color })
@@ -100,13 +79,7 @@ function createButton(position: Vector3, color: Color4): Entity {
 function createLabel(position: Vector3, fontSize = 2, color: Color4 = Color4.White(), text = ''): Entity {
   const entity = engine.addEntity()
   Transform.create(entity, { position })
-  TextShape.create(entity, {
-    text,
-    fontSize,
-    textColor: color,
-    outlineWidth: 0.1,
-    outlineColor: Color4.Black()
-  })
+  TextShape.create(entity, { text, fontSize, textColor: color, outlineWidth: 0.1, outlineColor: Color4.Black() })
   Billboard.create(entity, {})
   return entity
 }
@@ -140,28 +113,21 @@ function mediaStateName(state: MediaState): string {
   }
 }
 
-function fmtMs(value: number | undefined): string {
-  return value === undefined ? 'n/a' : `${Math.round(value)} ms`
-}
-
-function fmtSeconds(value: number | undefined): string {
-  return value === undefined ? 'n/a' : `${value.toFixed(3)} s`
-}
+const fmtMs = (value: number | undefined) => (value === undefined ? 'n/a' : `${Math.round(value)} ms`)
+const fmtSeconds = (value: number | undefined) => (value === undefined ? 'n/a' : `${value.toFixed(2)} s`)
 
 // ---------------------------------------------------------------------------
-// Scene clock: the playback position the scene EXPECTS, in ms, as if the renderer had reacted instantly
-// to the last PLAY/SEEK. Recorded once per tick under EngineInfo.tickNumber so a report sampled at tick N
-// can be compared with the clock at tick N, not with the clock when the report is processed.
+// Scene clock: the position the scene EXPECTS, in ms, as if the renderer had reacted instantly to the last
+// PLAY/SEEK. Recorded once per tick under EngineInfo.tickNumber so a report sampled at tick N is compared with
+// the clock at tick N, not with the clock when the report is processed.
 // ---------------------------------------------------------------------------
-
-let clockOriginWallMs: number | undefined // Date.now() at the last PLAY/SEEK press; undefined until pressed
+let clockOriginWallMs: number | undefined // Date.now() at the last PLAY/SEEK; undefined until pressed
 let clockOffsetMs = 0 // 0 after PLAY, 10000 after SEEK
 let currentTick = -1
-const clockByTick = new Map<number, number>() // tickNumber -> scene clock (ms) recorded in that tick
+const clockByTick = new Map<number, number>()
 
 function sceneClockMs(): number | undefined {
-  if (clockOriginWallMs === undefined) return undefined
-  return Date.now() - clockOriginWallMs + clockOffsetMs
+  return clockOriginWallMs === undefined ? undefined : Date.now() - clockOriginWallMs + clockOffsetMs
 }
 
 function recordSceneClock(): void {
@@ -171,193 +137,44 @@ function recordSceneClock(): void {
   const clock = sceneClockMs()
   if (clock === undefined) return
   clockByTick.set(tick, clock)
-  // Map keeps insertion order, so the first key is the oldest tick.
   while (clockByTick.size > TICK_HISTORY) {
     const oldest = clockByTick.keys().next().value
     if (oldest === undefined) break
     clockByTick.delete(oldest)
   }
 }
-
-// Higher priority runs first: this tick's clock must be recorded before the SDK's audio-events system
-// (default priority) delivers a report that may carry the current tickNumber.
+// Higher priority runs first: this tick's clock must exist before the SDK's audio-events system (default
+// priority) delivers a report that may carry the current tickNumber.
 engine.addSystem(recordSceneClock, 200000, 'record-scene-clock')
 
 // ---------------------------------------------------------------------------
-// Audio entity
+// Audio entity and measurements
 // ---------------------------------------------------------------------------
-
 const audioEntity = engine.addEntity()
 Transform.create(audioEntity, { position: Vector3.create(8, 1, 8) })
-AudioSource.create(audioEntity, {
-  audioClipUrl: CLIP,
-  playing: false,
-  loop: false
-})
+AudioSource.create(audioEntity, { audioClipUrl: CLIP, playing: false, loop: false })
 
-// Bookkeeping for the readout only (not ECS state).
-let playbackCallbackCount = 0 // registerAudioPlaybackEntity invocations (every report)
-let positionReportCount = 0 // ...of which carried currentOffset
-let stateCallbackCount = 0 // registerAudioEventsEntity invocations (state changes only)
+let lagMs: number | undefined // clockAtTick(report.tickNumber) - offset: the correct figure
+let naiveLagMs: number | undefined // clock at processing time - offset: wrong by the transport delay
+let firstLagMs: number | undefined
 let lastReportWallMs: number | undefined
-let firstLagMs: number | undefined // lag at the first position report after PLAY/SEEK
-let lastLagMs: number | undefined
+let playbackCallbackCount = 0
+let positionReportCount = 0
+let stateCallbackCount = 0
 let pushCallbackRegistered = false
 const stateLog: string[] = []
 
 // ---------------------------------------------------------------------------
-// Readout labels
+// The demo: three beat cubes, centre stage
 // ---------------------------------------------------------------------------
-
-const clockLabel = createLabel(Vector3.create(8, 5.6, 7), 2, Color4.Yellow(), 'tick n/a   scene clock not started')
-const pushLabel = createLabel(
-  Vector3.create(3.5, 3.6, 9),
-  1.5,
-  Color4.create(0.5, 0.9, 1, 1),
-  'registerAudioPlaybackEntity (push API, every report)\n(no report yet)'
-)
-const pullLabel = createLabel(
-  Vector3.create(8.5, 4.2, 9),
-  1.5,
-  Color4.create(0.6, 1, 0.6, 1),
-  'getAudioPlayback (pull API, polled every frame)\n(no report yet)'
-)
-const driftLabel = createLabel(Vector3.create(8.5, 2.6, 9), 1.5, Color4.create(1, 0.5, 0.2, 1), 'drift: n/a')
-const stateLogLabel = createLabel(
-  Vector3.create(13, 3.6, 9),
-  1.5,
-  Color4.create(1, 0.85, 0.5, 1),
-  'registerAudioEventsEntity (state changes only)\n(none yet)'
-)
-
-function renderStateLog(): void {
-  setLabel(
-    stateLogLabel,
-    [
-      'registerAudioEventsEntity (state changes only)',
-      `state callbacks ${stateCallbackCount}   playback callbacks ${playbackCallbackCount}`,
-      ...(stateLog.length > 0 ? stateLog : ['(none yet)'])
-    ].join('\n')
-  )
-}
-
-function renderDrift(): void {
-  if (firstLagMs === undefined || lastLagMs === undefined) {
-    setLabel(driftLabel, 'drift: waiting for the first position report after PLAY/SEEK')
-    return
-  }
-  setLabel(
-    driftLabel,
-    `drift: lag now ${fmtMs(lastLagMs)} vs first report ${fmtMs(firstLagMs)}  ->  ${fmtMs(lastLagMs - firstLagMs)}\n` +
-      '(positive = audio falling further behind the clock)'
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Push API: registerAudioPlaybackEntity fires on every report, position updates included
-// ---------------------------------------------------------------------------
-
-function onPlaybackReport(report: Readonly<PBAudioEvent>): void {
-  playbackCallbackCount++
-  if (report.currentOffset !== undefined) positionReportCount++
-  const wallNow = Date.now()
-  const cadenceMs = lastReportWallMs === undefined ? undefined : wallNow - lastReportWallMs
-  lastReportWallMs = wallNow
-  renderStateLog()
-
-  const header = [
-    'registerAudioPlaybackEntity (push API, every report)',
-    `callbacks ${playbackCallbackCount}   (with position ${positionReportCount})`,
-    `state ${mediaStateName(report.state)}   timestamp ${report.timestamp}`
-  ]
-
-  if (report.currentOffset === undefined) {
-    setLabel(
-      pushLabel,
-      [...header, 'no currentOffset in this report (state-only)', `cadence ${fmtMs(cadenceMs)}`].join('\n')
-    )
-    return
-  }
-
-  const offsetMs = report.currentOffset * 1000
-  const clockAtTick = report.tickNumber === undefined ? undefined : clockByTick.get(report.tickNumber)
-  const clockNow = sceneClockMs()
-  const lagMs = clockAtTick === undefined ? undefined : clockAtTick - offsetMs
-  const naiveLagMs = clockNow === undefined ? undefined : clockNow - offsetMs
-  const transportTicks = report.tickNumber === undefined ? undefined : currentTick - report.tickNumber
-
-  if (lagMs !== undefined) {
-    lastLagMs = lagMs
-    if (firstLagMs === undefined) firstLagMs = lagMs
-  }
-
-  let lagLine: string
-  if (lagMs !== undefined) {
-    lagLine = `audio behind clock by ${fmtMs(lagMs)}   (clock at tick ${report.tickNumber}: ${fmtMs(clockAtTick)})`
-  } else if (report.tickNumber === undefined) {
-    lagLine = 'audio behind clock by: n/a (report has no tickNumber)'
-  } else {
-    lagLine =
-      `audio behind clock by: n/a (tick ${report.tickNumber} not in clock history:\n` +
-      `sampled before PLAY/SEEK or older than ${TICK_HISTORY} ticks)`
-  }
-
-  const naiveLine =
-    lagMs !== undefined && naiveLagMs !== undefined
-      ? `naive (clock at processing time) ${fmtMs(naiveLagMs)}   difference ${fmtMs(naiveLagMs - lagMs)}`
-      : `naive (clock at processing time) ${fmtMs(naiveLagMs)}`
-
-  const lines = [
-    ...header,
-    `tickNumber ${report.tickNumber ?? 'n/a'}   currentOffset ${fmtSeconds(report.currentOffset)}   clipLength ${fmtSeconds(
-      report.clipLength
-    )}`,
-    lagLine,
-    naiveLine,
-    `cadence ${fmtMs(cadenceMs)}   transport delay ${transportTicks === undefined ? 'n/a' : `${transportTicks} ticks`}`
-  ]
-  if (AudioSource.get(audioEntity).loop) {
-    lines.push('loop ON: offset wraps while the clock keeps counting, so lag grows by clipLength per wrap')
-  }
-  setLabel(pushLabel, lines.join('\n'))
-  renderDrift()
-}
-
-function setPushCallback(enabled: boolean): void {
-  if (enabled) {
-    audioEventsSystem.registerAudioPlaybackEntity(audioEntity, onPlaybackReport)
-  } else {
-    audioEventsSystem.removeAudioPlaybackEntity(audioEntity)
-  }
-  pushCallbackRegistered = enabled
-}
-
-setPushCallback(true)
-
-// ---------------------------------------------------------------------------
-// State-change API: registerAudioEventsEntity must NOT fire for position reports that keep the same state
-// ---------------------------------------------------------------------------
-
-audioEventsSystem.registerAudioEventsEntity(audioEntity, (event) => {
-  stateCallbackCount++
-  const position = event.currentOffset === undefined ? '' : `  offset ${fmtSeconds(event.currentOffset)}`
-  stateLog.push(`${mediaStateName(event.state)} @ts ${event.timestamp}${position}`)
-  if (stateLog.length > 6) stateLog.shift()
-  renderStateLog()
-})
-
-// ---------------------------------------------------------------------------
-// Beat cubes: visual check of clock vs (clock - lag) against the audible beep on every whole second
-// ---------------------------------------------------------------------------
-
 type BeatCube = { entity: Entity; color: Color4; lastSecond: number; flashUntil: number; lit: boolean }
 
-function createBeatCube(position: Vector3, color: Color4, text: string): BeatCube {
+function createBeatCube(position: Vector3, color: Color4, caption: string): BeatCube {
   const entity = engine.addEntity()
-  Transform.create(entity, { position, scale: Vector3.create(0.8, 0.8, 0.8) })
+  Transform.create(entity, { position, scale: Vector3.create(2.2, 2.2, 2.2) })
   MeshRenderer.setBox(entity)
   Material.setPbrMaterial(entity, { albedoColor: color })
-  createLabel(Vector3.create(position.x, position.y + 1.1, position.z), 1.6, Color4.White(), text)
+  createLabel(Vector3.create(position.x, position.y + 1.9, position.z), 2.2, Color4.White(), caption)
   return { entity, color, lastSecond: -1, flashUntil: 0, lit: false }
 }
 
@@ -376,54 +193,155 @@ function updateBeat(cube: BeatCube, positionMs: number | undefined, wallNow: num
 }
 
 const clockBeat = createBeatCube(
-  Vector3.create(1.5, 1, 4),
-  Color4.create(0.6, 0.6, 0.1, 1),
-  'CLOCK beat\n(scene clock)'
+  Vector3.create(4, 2.6, 9),
+  Color4.create(0.75, 0.6, 0.1, 1),
+  'CLOCK\nwhat the scene assumes'
 )
 const audioBeat = createBeatCube(
-  Vector3.create(14.5, 1, 4),
-  Color4.create(0.1, 0.5, 0.6, 1),
-  'AUDIO beat\n(clock - lag)'
+  Vector3.create(8, 2.6, 9),
+  Color4.create(0.1, 0.6, 0.7, 1),
+  'AUDIO\nclock - lag (via tickNumber)'
+)
+const naiveBeat = createBeatCube(
+  Vector3.create(12, 2.6, 9),
+  Color4.create(0.7, 0.25, 0.25, 1),
+  'NAIVE\nclock - lag (at processing time)'
 )
 
 // ---------------------------------------------------------------------------
-// Buttons
+// Readouts: one headline under the cubes, one compact panel, one side panel for the rest of the API
 // ---------------------------------------------------------------------------
+const headline = createLabel(
+  Vector3.create(8, 6.4, 9),
+  2.6,
+  Color4.Yellow(),
+  'Press PLAY, then listen: which cube flashes with the beep?'
+)
+const panel = createLabel(Vector3.create(8, 5.1, 9), 1.6, Color4.create(0.85, 0.95, 1, 1), '')
+const sidePanel = createLabel(Vector3.create(14.6, 4.6, 6), 1.3, Color4.create(1, 0.85, 0.5, 1), '')
 
-// Restarts the scene clock at `offsetMs` (0 for PLAY, 10000 for SEEK) and forgets everything measured against
-// the previous origin.
+function renderPanel(): void {
+  const clock = sceneClockMs()
+  if (clock === undefined) {
+    setLabel(panel, 'scene clock: not started')
+    return
+  }
+  const lines = [`scene clock ${fmtMs(clock)}   tick ${currentTick}`]
+  if (lagMs === undefined) {
+    const sincePress = clock - clockOffsetMs
+    lines.push(
+      sincePress > NO_REPORTS_AFTER_MS && stateCallbackCount > 0
+        ? 'no position reports from this renderer (only CLOCK flashes)'
+        : 'waiting for the first position report...'
+    )
+  } else {
+    lines.push(`audio behind clock by ${fmtMs(lagMs)}   (correct: clock looked up at the report's tick)`)
+    lines.push(`naive figure ${fmtMs(naiveLagMs)}   (clock at processing time; off by the transport delay)`)
+    if (firstLagMs !== undefined) lines.push(`drift since first report ${fmtMs(lagMs - firstLagMs)}`)
+  }
+  setLabel(panel, lines.join('\n'))
+}
+
+function renderSidePanel(playback: PBAudioEvent | undefined, state: PBAudioEvent | undefined): void {
+  const lines = ['audioEventsSystem']
+  lines.push(`playback callbacks ${playbackCallbackCount} (${positionReportCount} with position)`)
+  lines.push(`state callbacks ${stateCallbackCount}   push callback ${pushCallbackRegistered ? 'ON' : 'OFF'}`)
+  lines.push(
+    playback === undefined
+      ? 'getAudioPlayback: undefined'
+      : `getAudioPlayback: tick ${playback.tickNumber ?? 'n/a'}  offset ${fmtSeconds(playback.currentOffset)}  ` +
+          `length ${fmtSeconds(playback.clipLength)}  age ${
+            playback.tickNumber === undefined ? 'n/a' : `${currentTick - playback.tickNumber} ticks`
+          }`
+  )
+  lines.push(
+    state === undefined
+      ? 'getAudioState: undefined'
+      : `getAudioState: ${mediaStateName(state.state)} @ts ${state.timestamp}`
+  )
+  lines.push(`loop ${AudioSource.get(audioEntity).loop ? 'ON' : 'OFF'}`)
+  lines.push('state log (registerAudioEventsEntity):')
+  lines.push(...(stateLog.length > 0 ? stateLog : ['(none yet)']))
+  setLabel(sidePanel, lines.join('\n'))
+}
+
+// ---------------------------------------------------------------------------
+// Push API: every report, position updates included
+// ---------------------------------------------------------------------------
+function onPlaybackReport(report: Readonly<PBAudioEvent>): void {
+  playbackCallbackCount++
+  lastReportWallMs = Date.now()
+  if (report.currentOffset === undefined) return
+  positionReportCount++
+  const offsetMs = report.currentOffset * 1000
+  const clockAtTick = report.tickNumber === undefined ? undefined : clockByTick.get(report.tickNumber)
+  const clockNow = sceneClockMs()
+  if (clockAtTick !== undefined) {
+    lagMs = clockAtTick - offsetMs
+    if (firstLagMs === undefined) firstLagMs = lagMs
+  }
+  if (clockNow !== undefined) naiveLagMs = clockNow - offsetMs
+}
+
+function setPushCallback(enabled: boolean): void {
+  if (enabled) audioEventsSystem.registerAudioPlaybackEntity(audioEntity, onPlaybackReport)
+  else audioEventsSystem.removeAudioPlaybackEntity(audioEntity)
+  pushCallbackRegistered = enabled
+}
+setPushCallback(true)
+
+// State-change API: must NOT fire for position reports that keep the same state
+audioEventsSystem.registerAudioEventsEntity(audioEntity, (event) => {
+  stateCallbackCount++
+  stateLog.push(`${mediaStateName(event.state)} @ts ${event.timestamp}`)
+  if (stateLog.length > 5) stateLog.shift()
+})
+
+// ---------------------------------------------------------------------------
+// Buttons: three in front, two in the corner
+// ---------------------------------------------------------------------------
 function startClock(offsetMs: number): void {
   clockOriginWallMs = Date.now()
   clockOffsetMs = offsetMs
   clockByTick.clear()
+  lagMs = undefined
+  naiveLagMs = undefined
   firstLagMs = undefined
-  lastLagMs = undefined
-  clockBeat.lastSecond = -1
-  audioBeat.lastSecond = -1
+  for (const cube of [clockBeat, audioBeat, naiveBeat]) cube.lastSecond = -1
   recordSceneClock()
-  renderDrift()
 }
 
-const btnPlay = createButton(Vector3.create(4, 1, 4), Color4.create(0.2, 0.8, 0.2, 1))
-createLabel(Vector3.create(4, 2.3, 4), 2, Color4.White(), 'PLAY')
-pointerEventsSystem.onPointerDown(
-  { entity: btnPlay, opts: { button: InputAction.IA_POINTER, hoverText: 'Play from 0 (resets the scene clock)' } },
-  () => {
-    AudioSource.playSound(audioEntity, CLIP, true)
-    startClock(0)
-  }
-)
+function addButton(
+  position: Vector3,
+  color: Color4,
+  caption: string,
+  hoverText: string,
+  onClick: () => void,
+  scale = 1.2
+): Entity {
+  const button = createButton(position, color, scale)
+  createLabel(
+    Vector3.create(position.x, position.y + scale + 0.4, position.z),
+    scale > 1 ? 2 : 1.5,
+    Color4.White(),
+    caption
+  )
+  pointerEventsSystem.onPointerDown({ entity: button, opts: { button: InputAction.IA_POINTER, hoverText } }, onClick)
+  return button
+}
 
-const btnSeek = createButton(Vector3.create(6, 1, 4), Color4.create(0.2, 0.4, 0.9, 1))
-createLabel(Vector3.create(6, 2.3, 4), 2, Color4.White(), `SEEK ${SEEK_TARGET_SECONDS}s`)
-pointerEventsSystem.onPointerDown(
-  {
-    entity: btnSeek,
-    opts: { button: InputAction.IA_POINTER, hoverText: `Seek to ${SEEK_TARGET_SECONDS}s and play (clock = 10 s)` }
-  },
+addButton(Vector3.create(5.5, 1, 4), Color4.create(0.2, 0.8, 0.2, 1), 'PLAY', 'Play from 0 (scene clock -> 0)', () => {
+  AudioSource.playSound(audioEntity, CLIP, true)
+  startClock(0)
+})
+addButton(
+  Vector3.create(8, 1, 4),
+  Color4.create(0.2, 0.4, 0.9, 1),
+  `SEEK ${SEEK_TARGET_SECONDS}s`,
+  `Seek to ${SEEK_TARGET_SECONDS}s and play (scene clock -> 10 s)`,
   () => {
-    // createOrReplace always emits a PUT, even when playing/currentTime are unchanged (SEEK pressed twice), so
-    // the renderer re-seeks every time. Hand-mutating via getMutable would be deduped when nothing changed.
+    // createOrReplace always emits a PUT, even when playing/currentTime are unchanged (SEEK pressed twice), so the
+    // renderer re-seeks every time. Hand-mutating via getMutable would be deduped when nothing changed.
     AudioSource.createOrReplace(audioEntity, {
       ...AudioSource.get(audioEntity),
       playing: true,
@@ -432,114 +350,69 @@ pointerEventsSystem.onPointerDown(
     startClock(SEEK_TARGET_SECONDS * 1000)
   }
 )
+addButton(Vector3.create(10.5, 1, 4), Color4.create(0.8, 0.2, 0.2, 1), 'STOP', 'Stop (scene-initiated)', () => {
+  AudioSource.stopSound(audioEntity, true)
+})
 
-const btnStop = createButton(Vector3.create(8, 1, 4), Color4.create(0.8, 0.2, 0.2, 1))
-createLabel(Vector3.create(8, 2.3, 4), 2, Color4.White(), 'STOP')
-pointerEventsSystem.onPointerDown(
-  { entity: btnStop, opts: { button: InputAction.IA_POINTER, hoverText: 'Stop (scene-initiated)' } },
-  () => {
-    AudioSource.stopSound(audioEntity, true)
-  }
-)
-
-const btnLoop = createButton(Vector3.create(10, 1, 4), Color4.create(0.7, 0.4, 0.9, 1))
-createLabel(Vector3.create(10, 2.3, 4), 2, Color4.White(), 'TOGGLE LOOP')
-pointerEventsSystem.onPointerDown(
-  { entity: btnLoop, opts: { button: InputAction.IA_POINTER, hoverText: 'Toggle AudioSource.loop' } },
+// Coverage controls, out of the way
+addButton(
+  Vector3.create(14.6, 0.8, 2.2),
+  Color4.create(0.6, 0.4, 0.8, 1),
+  'LOOP',
+  'Toggle AudioSource.loop',
   () => {
     const source = AudioSource.getMutable(audioEntity)
     source.loop = !source.loop
-  }
-)
-
-const btnPushCallback = createButton(Vector3.create(12, 1, 4), Color4.create(0.5, 0.5, 0.5, 1))
-const pushCallbackLabel = createLabel(Vector3.create(12, 2.3, 4), 2, Color4.White(), 'PUSH CB: ON')
-pointerEventsSystem.onPointerDown(
-  {
-    entity: btnPushCallback,
-    opts: { button: InputAction.IA_POINTER, hoverText: 'registerAudioPlaybackEntity / removeAudioPlaybackEntity' }
   },
+  0.8
+)
+addButton(
+  Vector3.create(14.6, 0.8, 4),
+  Color4.create(0.5, 0.5, 0.5, 1),
+  'PUSH CB',
+  'registerAudioPlaybackEntity / removeAudioPlaybackEntity',
   () => {
     setPushCallback(!pushCallbackRegistered)
-    setLabel(pushCallbackLabel, `PUSH CB: ${pushCallbackRegistered ? 'ON' : 'OFF'}`)
-  }
+  },
+  0.8
 )
 
 // ---------------------------------------------------------------------------
-// Per-frame readout: clock line, pull API, beat cubes
+// Per-frame: cubes and readouts
 // ---------------------------------------------------------------------------
-
 engine.addSystem(() => {
-  const source = AudioSource.get(audioEntity)
-  const playing = source.playing ?? false
+  const playing = AudioSource.get(audioEntity).playing ?? false
   const clock = sceneClockMs()
   const wallNow = Date.now()
-
-  setLabel(
-    clockLabel,
-    `tick ${currentTick}   scene clock ${clock === undefined ? 'not started (press PLAY)' : fmtMs(clock)}   ` +
-      `loop ${source.loop ? 'ON' : 'OFF'}   AudioSource.playing=${playing}`
-  )
-
-  const playback = audioEventsSystem.getAudioPlayback(audioEntity)
-  const state = audioEventsSystem.getAudioState(audioEntity)
-  const stateLine =
-    state === undefined
-      ? 'getAudioState(entity): undefined (no AudioEvent from the renderer yet)'
-      : `getAudioState(entity): ${mediaStateName(state.state)} @ts ${state.timestamp}`
-
-  const lines = ['getAudioPlayback (pull API, polled every frame)']
-  if (playback === undefined) {
-    const sincePressMs = clock === undefined ? undefined : clock - clockOffsetMs
-    lines.push('getAudioPlayback(entity): undefined')
-    if (clock === undefined) {
-      lines.push('press PLAY')
-    } else if (sincePressMs !== undefined && sincePressMs > NO_REPORTS_AFTER_MS && stateCallbackCount > 0) {
-      lines.push('no position reports from this renderer (older renderer)')
-    } else {
-      lines.push('waiting for the first position report...')
-    }
-  } else {
-    lines.push(
-      `getAudioPlayback(entity): tick ${playback.tickNumber ?? 'n/a'}   offset ${fmtSeconds(playback.currentOffset)}   ` +
-        `length ${fmtSeconds(playback.clipLength)}   ${mediaStateName(playback.state)}`
-    )
-    if (playback.tickNumber !== undefined) {
-      lines.push(`report age ${currentTick - playback.tickNumber} ticks (current tick ${currentTick})`)
-    }
-  }
-  lines.push(stateLine)
-  setLabel(pullLabel, lines.join('\n'))
-
   updateBeat(clockBeat, playing ? clock : undefined, wallNow)
+  updateBeat(audioBeat, playing && clock !== undefined && lagMs !== undefined ? clock - lagMs : undefined, wallNow)
   updateBeat(
-    audioBeat,
-    playing && clock !== undefined && lastLagMs !== undefined ? clock - lastLagMs : undefined,
+    naiveBeat,
+    playing && clock !== undefined && naiveLagMs !== undefined ? clock - naiveLagMs : undefined,
     wallNow
   )
+  setLabel(
+    headline,
+    lagMs === undefined
+      ? 'Press PLAY, then listen: which cube flashes with the beep?'
+      : `AUDIO flashes with the beep. CLOCK runs ${fmtMs(lagMs)} early. NAIVE is off by ${fmtMs((naiveLagMs ?? lagMs) - lagMs)}.`
+  )
+  renderPanel()
+  renderSidePanel(audioEventsSystem.getAudioPlayback(audioEntity), audioEventsSystem.getAudioState(audioEntity))
 })
 
 // ---------------------------------------------------------------------------
-// Scene setup
+// Scene dressing
 // ---------------------------------------------------------------------------
+const ground = engine.addEntity()
+Transform.create(ground, { position: Vector3.create(8, -0.05, 8), scale: Vector3.create(16, 0.1, 16) })
+MeshRenderer.setBox(ground)
+Material.setPbrMaterial(ground, { albedoColor: Color4.create(0.15, 0.15, 0.15, 1) })
 
-function addGround(): void {
-  const ground = engine.addEntity()
-  Transform.create(ground, { position: Vector3.create(8, -0.05, 8), scale: Vector3.create(16, 0.1, 16) })
-  MeshRenderer.setBox(ground)
-  Material.setPbrMaterial(ground, { albedoColor: Color4.create(0.15, 0.15, 0.15, 1) })
-}
-
-function addTitle(): void {
-  createLabel(
-    Vector3.create(8, 7.2, 8),
-    2.5,
-    Color4.White(),
-    'Audio Playback Position Reports Test\n' +
-      'PLAY, then compare "audio behind clock" (via tickNumber) with the naive value.\n' +
-      'SEEK 10s shows where the renderer lands; TOGGLE LOOP before PLAY shows currentOffset wrapping.'
-  )
-}
-
-addGround()
-addTitle()
+createLabel(
+  Vector3.create(8, 7.8, 9),
+  2.2,
+  Color4.White(),
+  'Audio Playback Position Reports\nThe renderer starts a clip late. Reports with a tickNumber let the scene measure by how much.'
+)
+void lastReportWallMs
