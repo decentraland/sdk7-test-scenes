@@ -21,7 +21,7 @@
  * later, so comparing it with the clock at processing time is wrong by exactly that gap. That gap is why the
  * field is a tick and not a timestamp: the scene clock has to be read at the tick the position was sampled in.
  * The SDK keeps that history, so a scene never rebuilds it:
- *   registerAudioPlaybackSampleEntity -> { report, sceneTime, offset }, sceneTime already at report.tickNumber
+ *   registerAudioPlaybackEntity -> { report, sceneTime, offset }, sceneTime already at report.tickNumber
  *   lag = (sceneTime - sceneTimeAtPlay) * 1000 - offset * 1000
  *
  * Buttons: PLAY (from 0, clock -> 0), SEEK 10s (currentTime = 10, clock -> 10 s; the next report shows where the
@@ -29,9 +29,9 @@
  * offset wraps while the clock keeps counting), PUSH CB unregisters and re-registers the playback callback.
  *
  * API under test (audioEventsSystem from '@dcl/sdk/ecs'):
- *   - registerAudioPlaybackSampleEntity: report resolved against the scene clock at its own tick (drives AUDIO)
- *   - registerAudioPlaybackEntity / removeAudioPlaybackEntity: newest report of the frame, unresolved, so the
- *     scene can only time it on arrival (drives NAIVE, and the PUSH CB toggle)
+ *   - registerAudioPlaybackEntity / removeAudioPlaybackEntity: the newest position report of the frame, already
+ *     resolved against the scene clock at its own tick. Drives AUDIO; the same reading timed on arrival instead
+ *     drives NAIVE, so one callback shows both. Also behind the PUSH CB toggle.
  *   - getSceneTimeAtTick(tick): the same per-tick lookup on its own, for raw reports and for video
  *   - getAudioPlayback(entity): latest report carrying currentOffset, or undefined (polled, shown in the side panel)
  *   - registerAudioEventsEntity (pre-existing): still fires ONLY on media-state changes (side panel counts both
@@ -57,6 +57,7 @@ import {
   audioEventsSystem,
   MediaState,
   PBAudioEvent,
+  AudioPlaybackSample,
   pointerEventsSystem,
   InputAction
 } from '@dcl/sdk/ecs'
@@ -157,7 +158,6 @@ let lagMs: number | undefined // resolved at the report's own tick: the correct 
 let naiveLagMs: number | undefined // clock at processing time - offset: wrong by the transport delay
 let firstLagMs: number | undefined
 let lastReportWallMs: number | undefined
-let playbackCallbackCount = 0
 let positionReportCount = 0
 let stateCallbackCount = 0
 let pushCallbackRegistered = false
@@ -243,7 +243,7 @@ function renderPanel(): void {
 
 function renderSidePanel(playback: PBAudioEvent | undefined, state: PBAudioEvent | undefined): void {
   const lines = ['audioEventsSystem']
-  lines.push(`playback callbacks ${playbackCallbackCount} (${positionReportCount} with position)`)
+  lines.push(`position reports delivered ${positionReportCount}`)
   lines.push(`state callbacks ${stateCallbackCount}   push callback ${pushCallbackRegistered ? 'ON' : 'OFF'}`)
   lines.push(
     playback === undefined
@@ -267,28 +267,24 @@ function renderSidePanel(playback: PBAudioEvent | undefined, state: PBAudioEvent
 // ---------------------------------------------------------------------------
 // Push API: every report, position updates included
 // ---------------------------------------------------------------------------
-// The naive half of the demo: a raw report carries the tick it was sampled in, but a scene that ignores it and
-// times the report on arrival is wrong by however long the report spent in transit.
-function onPlaybackReport(report: Readonly<PBAudioEvent>): void {
-  playbackCallbackCount++
-  lastReportWallMs = Date.now()
-  if (report.currentOffset === undefined) return
-  const clockNow = sceneClockMs()
-  if (clockNow !== undefined) naiveLagMs = clockNow - report.currentOffset * 1000
-}
-
-// The correct half: the SDK resolves each report against the scene clock at its own tick, so the time the
-// report spent in transit never enters the result. This is the callback a scene should reach for.
-audioEventsSystem.registerAudioPlaybackSampleEntity(audioEntity, ({ sceneTime, offset }) => {
+// One reading, timed two ways. The SDK hands over `sceneTime` already resolved against the tick the renderer
+// sampled in, so the time the report spent in transit never enters the correct figure. Timing the same reading
+// on arrival instead is the mistake this scene exists to show, and it is off by exactly that transit time.
+function onPlaybackSample({ sceneTime, offset }: AudioPlaybackSample): void {
   positionReportCount++
+  lastReportWallMs = Date.now()
   if (playSceneTimeS === undefined) return
+
   const expectedAtTick = (sceneTime - playSceneTimeS) * 1000 + clockOffsetMs
   lagMs = expectedAtTick - offset * 1000
   if (firstLagMs === undefined) firstLagMs = lagMs
-})
+
+  const clockNow = sceneClockMs()
+  if (clockNow !== undefined) naiveLagMs = clockNow - offset * 1000
+}
 
 function setPushCallback(enabled: boolean): void {
-  if (enabled) audioEventsSystem.registerAudioPlaybackEntity(audioEntity, onPlaybackReport)
+  if (enabled) audioEventsSystem.registerAudioPlaybackEntity(audioEntity, onPlaybackSample)
   else audioEventsSystem.removeAudioPlaybackEntity(audioEntity)
   pushCallbackRegistered = enabled
 }
@@ -373,7 +369,7 @@ addButton(
   Vector3.create(14.6, 0.8, 4),
   Color4.create(0.5, 0.5, 0.5, 1),
   'PUSH CB',
-  'registerAudioPlaybackSampleEntity / registerAudioPlaybackEntity / getSceneTimeAtTick',
+  'registerAudioPlaybackEntity / removeAudioPlaybackEntity / getSceneTimeAtTick',
   () => {
     setPushCallback(!pushCallbackRegistered)
   },
