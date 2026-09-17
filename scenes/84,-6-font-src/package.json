@@ -1,0 +1,23 @@
+{
+  "name": "font-src-test",
+  "version": "1.0.0",
+  "description": "Custom fonts on TextShape, UiText, UiInput and UiDropdown",
+  "scripts": {
+    "start": "sdk-commands start",
+    "build": "sdk-commands build",
+    "deploy": "sdk-commands deploy",
+    "font:protocol": "node scripts/sync-font-protocol.cjs",
+    "postinstall": "npm run font:protocol",
+    "start:fonts": "node --require ./scripts/font-delay.cjs ./node_modules/@dcl/sdk-commands/dist/index.js start --local-scene --position 84,-6 --no-browser"
+  },
+  "config": {
+    "protocVersion": "22.2"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "7.29.0",
+    "@protobuf-ts/protoc": "2.11.1"
+  },
+  "dependencies": {
+    "@dcl/protocol": "https://sdk-team-cdn.decentraland.org/@dcl/protocol/branch//dcl-protocol-1.0.0-35133806160.commit-1767aed.tgz"
+  }
+}
