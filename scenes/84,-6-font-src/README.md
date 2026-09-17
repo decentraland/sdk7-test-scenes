@@ -63,7 +63,7 @@ Slow fixtures are generated locally, ignored by Git and excluded from deployment
 
 ## What this scene cannot prove
 
-Visual checks do not establish absence of memory leaks or network requests. Verifying that a rejected URL was never fetched requires native logs/network inspection. Exact resource cleanup, deferred deletion and cancellation immediately after a cache hit remain covered by Unity tests, including [Explorer PR #10144](https://github.com/decentraland/unity-explorer/pull/10144).
+Visual checks do not establish absence of memory leaks or network requests. Verifying that a rejected URL was never fetched requires native logs/network inspection. Resource cleanup and deferred deletion are checked separately by the Explorer Unity tests.
 
 JavaScript logs report requested component state and executed steps, not native font download or rendering success.
 ## Temporary protocol pin
@@ -72,7 +72,7 @@ This scene uses published SDK `7.29.0` and the exact test package from [protocol
 
 The SDK does not yet serialize `fontSrc`. `npm install` runs `scripts/sync-font-protocol.cjs`, which regenerates only TextShape, UiText, UiInput and UiDropdown inside this scene's installed SDK. It checks the protobuf field numbers and verifies both encoding directions against the pinned protocol. The compiler is installed through `@protobuf-ts/protoc`; no sibling repository or machine-specific path is needed. The first install needs internet access to download the compiler and packages.
 
-Before merging, replace this temporary bridge with a published SDK version that supports `fontSrc`, then remove the generation script/compiler dependency and rebuild. Merge the protocol and Explorer feature first; the shared-loader fix is tracked separately in Explorer #10144.
+Before merging, replace this temporary bridge with a published SDK version that supports `fontSrc`, then remove the generation script/compiler dependency and rebuild. Merge the protocol and Explorer feature first.
 
 ## Bundled font fixtures
 
