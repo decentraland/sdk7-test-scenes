@@ -7,4 +7,5 @@
 export enum EntityNames {
   Ground = "Ground",
   Tile_1 = "Tile 1",
+  Admin_Tools = "Admin Tools",
 } 
