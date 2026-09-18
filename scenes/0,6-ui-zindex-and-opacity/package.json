@@ -20,6 +20,7 @@
     "trailingComma": "none"
   },
   "devDependencies": {
+    "@dcl/asset-packs": "https://sdk-team-cdn.decentraland.org/creator-hub/branch/chore/admin-toolkit-ui-renderer-z-index/@dcl/asset-packs/dcl-asset-packs-2.21.1-commit-7de29163b3c24aedd6d72954aa06b2077ba1f0f5.tgz",
     "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/fix/add-ui-renderer-z-index/dcl-sdk-7.28.1-34544103967.commit-8cedd39.tgz"
   }
 }
