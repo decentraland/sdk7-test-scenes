@@ -164,9 +164,9 @@ function mouseLookSystem() {
   if (!cameraActive || !isLocked) return
 
   yaw += dx * SENSITIVITY
-  // NOTE: verify pitch sign in-engine — mouse up should look up, so a negative screenDelta.y
-  // (cursor moving toward the top of the screen) must increase pitch.
-  pitch = clamp(pitch - dy * SENSITIVITY, -85, 85)
+  // screenDelta has a top-left origin with y growing downwards, so moving the mouse up reports a
+  // negative y; adding it lowers pitch, and a lower pitch tilts the camera up.
+  pitch = clamp(pitch + dy * SENSITIVITY, -85, 85)
 
   state.yaw = yaw
   state.pitch = pitch
