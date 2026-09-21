@@ -12,6 +12,14 @@
  *   - clipLength     total clip length in seconds, when known
  * `state` (MediaState) and `timestamp` (a per-entity monotonic counter, NOT a time) are unchanged.
  *
+ * PBAudioSource gained one OPTIONAL field, and it is the gate for all of the above:
+ *   - reportPlaybackPosition  opt in to position reports (default false)
+ * Media-state changes are reported either way; positions are NOT. A scene that registers a playback callback
+ * without setting this flag on its AudioSource receives nothing, silently. It is opt-in because a position is
+ * written whenever the playhead moves - far more often than a state changes - a scene can hold many sources, and
+ * AudioEvent is a grow-only set capped at 100 entries per entity, so one always-on source fills its own buffer in
+ * under two seconds.
+ *
  * THE DEMO: three cubes behind the buttons, and a clip that beeps on every whole second.
  *   CLOCK  flashes on each whole second of the scene clock (what the scene assumes the audio is doing)
  *   AUDIO  flashes on each whole second of (clock - lag), lag measured through tickNumber
@@ -29,6 +37,8 @@
  * offset wraps while the clock keeps counting), PUSH CB unregisters and re-registers the playback callback.
  *
  * API under test (audioEventsSystem from '@dcl/sdk/ecs'):
+ *   - AudioSource.reportPlaybackPosition: true - REQUIRED. Nothing below delivers a position without it, and
+ *     there is no error to tell you: the callback simply never runs.
  *   - registerAudioPlaybackEntity / removeAudioPlaybackEntity: the newest position report of the frame, already
  *     resolved against the scene clock at its own tick. Drives AUDIO; the same reading timed on arrival instead
  *     drives NAIVE, so one callback shows both. Also behind the PUSH CB toggle.
@@ -36,7 +46,8 @@
  *   - getAudioPlayback(entity): latest report carrying currentOffset, or undefined (polled, shown in the side panel)
  *   - registerAudioEventsEntity (pre-existing): still fires ONLY on media-state changes (side panel counts both
  *     callbacks so the difference is visible)
- * Renderers that never send a position show "no position reports from this renderer" and only CLOCK flashes.
+ * Renderers that never send a position show "no position reports" and only CLOCK flashes - as does forgetting
+ * reportPlaybackPosition, which is why the message names both.
  * Note the floor on accuracy: currentOffset is the decoder's playhead, and the output path adds tens of
  * milliseconds more that no field carries, so AUDIO lands close to the beep rather than exactly on it.
  *
@@ -152,7 +163,9 @@ function sceneClockMs(): number | undefined {
 // ---------------------------------------------------------------------------
 const audioEntity = engine.addEntity()
 Transform.create(audioEntity, { position: Vector3.create(8, 1, 8) })
-AudioSource.create(audioEntity, { audioClipUrl: CLIP, playing: false, loop: false })
+// reportPlaybackPosition is the opt-in: without it the renderer reports media-state changes only, and the
+// registerAudioPlaybackEntity callback below never fires.
+AudioSource.create(audioEntity, { audioClipUrl: CLIP, playing: false, loop: false, reportPlaybackPosition: true })
 
 let lagMs: number | undefined // resolved at the report's own tick: the correct figure
 let naiveLagMs: number | undefined // clock at processing time - offset: wrong by the transport delay
@@ -230,7 +243,7 @@ function renderPanel(): void {
     const sincePress = clock - clockOffsetMs
     lines.push(
       sincePress > NO_REPORTS_AFTER_MS && stateCallbackCount > 0
-        ? 'no position reports from this renderer (only CLOCK flashes)'
+        ? 'no position reports: older renderer, or reportPlaybackPosition not set (only CLOCK flashes)'
         : 'waiting for the first position report...'
     )
   } else {

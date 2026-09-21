@@ -18,7 +18,7 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/audio-event-playback-position/dcl-sdk-7.29.1-35265276424.commit-b686d72.tgz",
-    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/audio-event-playback-position/@dcl/js-runtime/dcl-js-runtime-7.29.1-35265276424.commit-b686d72.tgz"
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/audio-event-playback-position/dcl-sdk-7.29.1-35640312842.commit-7ee164e.tgz",
+    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/audio-event-playback-position/@dcl/js-runtime/dcl-js-runtime-7.29.1-35640312842.commit-7ee164e.tgz"
   }
 }
