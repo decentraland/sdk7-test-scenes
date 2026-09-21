@@ -20,6 +20,7 @@
     "trailingComma": "none"
   },
   "devDependencies": {
+    "@dcl/asset-packs": "^2.21.1",
     "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/fix/add-ui-renderer-z-index/dcl-sdk-7.28.1-34544103967.commit-8cedd39.tgz"
   }
 }
