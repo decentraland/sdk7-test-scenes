@@ -10,6 +10,12 @@ import ReactEcs, {
 const src = 'img.png'
 const centeredImage = 'img.png'
 
+// img.png is an RGBA sprite sheet with large transparent regions, so anything painted behind it
+// shows through its own alpha. The padding cases below compare against a magenta backdrop, which
+// only works with a fully opaque texture - hence this one (RGB, no alpha channel). Its 10px white
+// frame also makes the painted quad's edges readable at a glance.
+const opaqueSrc = 'opaque.png'
+
 let dt = 0
 let userId: string | undefined
 
@@ -178,7 +184,7 @@ const options = [
             >
                 <UiEntity
                     uiTransform={{ width: boxWidth, height: boxHeight, padding: 36 }}
-                    uiBackground={{ texture: { src }, textureMode: 'stretch' }}
+                    uiBackground={{ texture: { src: opaqueSrc }, textureMode: 'stretch' }}
                 >
                     <Label
                         value={
@@ -210,7 +216,7 @@ const options = [
                         positionType: 'absolute',
                         position: { top: 0, left: 0 }
                     }}
-                    uiBackground={{ texture: { src: centeredImage }, textureMode: 'center' }}
+                    uiBackground={{ texture: { src: opaqueSrc }, textureMode: 'center' }}
                 />
                 {/* Fixed crosshair marking the TRUE center of the box (ignores padding). */}
                 <UiEntity
@@ -267,7 +273,7 @@ const options = [
             >
                 <UiEntity
                     uiTransform={{ width: boxWidth, height: boxHeight, padding: 36 }}
-                    uiBackground={{ texture: { src: centeredImage }, textureMode: 'nine-slices' }}
+                    uiBackground={{ texture: { src: opaqueSrc }, textureMode: 'nine-slices' }}
                 >
                     <Label
                         value={
@@ -323,7 +329,7 @@ const options = [
                         borderWidth: 8,
                         borderColor: Color4.Green()
                     }}
-                    uiBackground={{ texture: { src }, textureMode: 'stretch' }}
+                    uiBackground={{ texture: { src: opaqueSrc }, textureMode: 'stretch' }}
                 >
                     <Label
                         value={
