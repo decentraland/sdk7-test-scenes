@@ -406,13 +406,16 @@ function GetCanvasInfo() : string {
 // examples.
 
 const PANEL_BG = Color4.fromHexString('#2a2a2a')
-const PANEL_WIDTH = 800
-const PANEL_HEIGHT = 200
+const PANEL_WIDTH = 740
+const PANEL_HEIGHT = 176
 const BOX_WIDTH = 80
 const BOX_HEIGHT = 80
 
+// The box column is 320 wide because the box grows to 300 in the "flexBasis" phase and must not
+// be clipped. It is the outer column so that empty track reads as room to grow rather than as a
+// gap in the middle of the panel.
 function FlexBasisPanel(props: {
-    left: `${number}%`
+    side: 'left' | 'right'
     title: string
     state: string
     description: string
@@ -424,38 +427,43 @@ function FlexBasisPanel(props: {
             height: PANEL_HEIGHT,
             flexDirection: 'row',
             positionType: 'absolute',
-            position: { bottom: '2%', left: props.left },
+            position: props.side === 'left'
+                ? { bottom: '2%', left: '2%' }
+                : { bottom: '2%', right: '2%' },
             padding: 12
         }}
         uiBackground={{ color: PANEL_BG }}
     >
-        <UiEntity uiTransform={{ width: 330, height: 176, flexDirection: 'column' }}>
-            <UiEntity uiTransform={{ width: '100%', height: BOX_HEIGHT, flexDirection: 'row' }}>
-                {props.box}
-            </UiEntity>
-            <UiEntity uiTransform={{ width: '100%', height: 34, flexDirection: 'row' }}>
-                <UiEntity uiTransform={{ width: BOX_WIDTH, height: 26, borderWidth: 2, borderColor: Color4.White() }} />
-            </UiEntity>
-        </UiEntity>
-        <UiEntity uiTransform={{ width: 420, height: 176, flexDirection: 'column', margin: { left: 12 } }}>
+        <UiEntity uiTransform={{ width: 380, height: 152, flexDirection: 'column' }}>
             <Label
                 value={props.title}
                 fontSize={15}
                 color={Color4.White()}
-                uiTransform={{ width: '100%', height: 26 }}
+                textAlign="middle-left"
+                uiTransform={{ width: '100%', height: 24 }}
             />
             <Label
                 value={props.state}
                 fontSize={15}
                 color={Color4.Yellow()}
-                uiTransform={{ width: '100%', height: 48 }}
+                textAlign="middle-left"
+                uiTransform={{ width: '100%', height: 44 }}
             />
             <Label
                 value={props.description}
                 fontSize={13}
                 color={Color4.fromHexString('#cccccc')}
-                uiTransform={{ width: '100%', height: 80 }}
+                textAlign="middle-left"
+                uiTransform={{ width: '100%', height: 84 }}
             />
+        </UiEntity>
+        <UiEntity uiTransform={{ width: 320, height: 152, flexDirection: 'column', margin: { left: 12 } }}>
+            <UiEntity uiTransform={{ width: '100%', height: BOX_HEIGHT, flexDirection: 'row' }}>
+                {props.box}
+            </UiEntity>
+            <UiEntity uiTransform={{ width: '100%', height: 30, flexDirection: 'row' }}>
+                <UiEntity uiTransform={{ width: BOX_WIDTH, height: 26, borderWidth: 2, borderColor: Color4.White() }} />
+            </UiEntity>
         </UiEntity>
     </UiEntity>
 }
@@ -464,7 +472,7 @@ function FlexBasisPanel(props: {
 function FlexBasisPersistentToggleExample() {
     const on = isFlexBasisOn()
     return <FlexBasisPanel
-        left="22%"
+        side="left"
         title={'flex-basis -- same entity, updated in place'}
         state={`sending: ${on ? 'flexBasis = 300' : 'no flexBasis (width 80)'}`}
         description={'Broken: the box stays wide forever.\nFixed: it snaps back onto the outline.'}
@@ -483,7 +491,7 @@ function FlexBasisPersistentToggleExample() {
 function FlexBasisPoolingToggleExample() {
     const on = isFlexBasisOn()
     return <FlexBasisPanel
-        left="52%"
+        side="right"
         title={'flex-basis -- fresh entity each toggle'}
         state={`mounting: ${on ? 'a new child WITH flexBasis = 300' : 'a different child, no flexBasis'}`}
         description={'Broken: the new child still renders 300 wide,\ninherited from the pooled element.\nFixed: it matches the outline.'}
