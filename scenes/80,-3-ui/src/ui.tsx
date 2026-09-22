@@ -419,7 +419,7 @@ function FlexBasisPersistentToggleExample() {
             height: PANEL_HEIGHT,
             flexDirection: 'column',
             positionType: 'absolute',
-            position: { top: '8%', left: '55%' },
+            position: { top: '8%', left: '60%' },
             padding: 14
         }}
         uiBackground={{ color: PANEL_BG }}
@@ -470,7 +470,7 @@ function FlexBasisPoolingToggleExample() {
             height: PANEL_HEIGHT,
             flexDirection: 'column',
             positionType: 'absolute',
-            position: { top: '42%', left: '55%' },
+            position: { top: '26%', left: '60%' },
             padding: 14
         }}
         uiBackground={{ color: PANEL_BG }}
