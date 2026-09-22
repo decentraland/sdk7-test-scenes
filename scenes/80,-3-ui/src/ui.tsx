@@ -2,7 +2,6 @@ import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity, Input, Dropdown, Button } from '@dcl/sdk/react-ecs'
 import { engine, UiCanvasInformation } from '@dcl/sdk/ecs'
 import { openNftDialog } from "~system/RestrictedActions";
-import { isFlexBasisOn } from './systems'
 
 const description = "This is an example of a text that is too long to fit in a single line. It will be broken into multiple lines.\n\nBelow is an example of a static background."
 const Max_Chars = 45
@@ -29,8 +28,6 @@ const uiComponent = () => (
         ButtonExample(),
         SelfDeletingInputExample(),
         CanvasInformationExample(),
-        FlexBasisPersistentToggleExample(),
-        FlexBasisPoolingToggleExample(),
     ]
 )
 
@@ -394,119 +391,6 @@ function GetCanvasInfo() : string {
     return 'CANVAS INFORMATION' + '\n\n' + 
         'Size: ' + canvasInfo.width + 'x' + canvasInfo.height + '\n' +
         'Device Pixel Ratio: ' + canvasInfo.devicePixelRatio
-}
-
-// Regression coverage for unity-explorer#10207: Unity never wrote StyleKeyword.Null for
-// flex-basis when the SDK stopped sending it, so a VisualElement kept whatever flex-basis it
-// was last given. `isFlexBasisOn()` (from `src/systems.ts`) flips every ~2s.
-//
-// Both panels put an 80px reference outline directly under the coloured box, so the verdict is
-// an edge comparison rather than a measurement: in the "no flexBasis" phase the box's right
-// edge must land on the outline's right edge. They sit along the bottom, clear of the other
-// examples.
-
-const PANEL_BG = Color4.fromHexString('#2a2a2a')
-const PANEL_WIDTH = 740
-const PANEL_HEIGHT = 176
-const BOX_WIDTH = 80
-const BOX_HEIGHT = 80
-
-// The box column is 320 wide because the box grows to 300 in the "flexBasis" phase and must not
-// be clipped. It is the outer column so that empty track reads as room to grow rather than as a
-// gap in the middle of the panel.
-function FlexBasisPanel(props: {
-    side: 'left' | 'right'
-    title: string
-    state: string
-    description: string
-    box: ReactEcs.JSX.Element
-}) {
-    return <UiEntity
-        uiTransform={{
-            width: PANEL_WIDTH,
-            height: PANEL_HEIGHT,
-            flexDirection: 'row',
-            positionType: 'absolute',
-            position: props.side === 'left'
-                ? { bottom: '2%', left: '13%' }
-                : { bottom: '2%', right: '2%' },
-            padding: 12
-        }}
-        uiBackground={{ color: PANEL_BG }}
-    >
-        <UiEntity uiTransform={{ width: 380, height: 152, flexDirection: 'column' }}>
-            <Label
-                value={props.title}
-                fontSize={15}
-                color={Color4.White()}
-                textAlign="middle-left"
-                uiTransform={{ width: '100%', height: 24 }}
-            />
-            <Label
-                value={props.state}
-                fontSize={15}
-                color={Color4.Yellow()}
-                textAlign="middle-left"
-                uiTransform={{ width: '100%', height: 44 }}
-            />
-            <Label
-                value={props.description}
-                fontSize={13}
-                color={Color4.fromHexString('#cccccc')}
-                textAlign="middle-left"
-                uiTransform={{ width: '100%', height: 84 }}
-            />
-        </UiEntity>
-        <UiEntity uiTransform={{ width: 320, height: 152, flexDirection: 'column', margin: { left: 12 } }}>
-            <UiEntity uiTransform={{ width: '100%', height: BOX_HEIGHT, flexDirection: 'row' }}>
-                {props.box}
-            </UiEntity>
-            <UiEntity uiTransform={{ width: '100%', height: 30, flexDirection: 'row' }}>
-                <UiEntity uiTransform={{ width: BOX_WIDTH, height: 26, borderWidth: 2, borderColor: Color4.White() }} />
-            </UiEntity>
-        </UiEntity>
-    </UiEntity>
-}
-
-// The SAME entity every render: width stays 80 while flexBasis is added and removed on it.
-function FlexBasisPersistentToggleExample() {
-    const on = isFlexBasisOn()
-    return <FlexBasisPanel
-        side="left"
-        title={'flex-basis -- same entity, updated in place'}
-        state={`sending: ${on ? 'flexBasis = 300' : 'no flexBasis (width 80)'}`}
-        description={'Broken: the box stays wide forever.\nFixed: it snaps back onto the outline.'}
-        box={
-            <UiEntity
-                uiTransform={{ width: BOX_WIDTH, height: BOX_HEIGHT, ...(on ? { flexBasis: 300 } : {}) }}
-                uiBackground={{ color: Color4.fromHexString('#00b7ff') }}
-            />
-        }
-    />
-}
-
-// Pooling variant: two children under different `key`s, so react-ecs unmounts the old entity
-// and mounts a brand-new one each toggle instead of patching it in place. A freshly created
-// VisualElement out of Unity's pool must not inherit flex-basis from its previous tenant.
-function FlexBasisPoolingToggleExample() {
-    const on = isFlexBasisOn()
-    return <FlexBasisPanel
-        side="right"
-        title={'flex-basis -- fresh entity each toggle'}
-        state={`mounting: ${on ? 'a new child WITH flexBasis = 300' : 'a different child, no flexBasis'}`}
-        description={'Broken: the new child still renders 300 wide,\ninherited from the pooled element.\nFixed: it matches the outline.'}
-        box={on
-            ? <UiEntity
-                key="flex-basis-pool-with-basis"
-                uiTransform={{ width: BOX_WIDTH, height: BOX_HEIGHT, flexBasis: 300 }}
-                uiBackground={{ color: Color4.fromHexString('#ff7a00') }}
-            />
-            : <UiEntity
-                key="flex-basis-pool-without-basis"
-                uiTransform={{ width: BOX_WIDTH, height: BOX_HEIGHT }}
-                uiBackground={{ color: Color4.fromHexString('#ff7a00') }}
-            />}
-    />
 }
 
 function GitHubLinkUi() {

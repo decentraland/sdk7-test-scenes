@@ -3,7 +3,8 @@ import { } from '@dcl/sdk/math'
 import { engine } from '@dcl/sdk/ecs'
 
 import { setupRawTextWrapTest } from './raw-text-wrap'
-import { changeColorSystem, circularSystem, flexBasisToggleSystem } from './systems'
+import { changeColorSystem, circularSystem } from './systems'
+import { flexBasisToggleSystem, setupFlexBasisTest } from './flex-basis'
 import { setupUi } from './ui'
 
 export function main() {
@@ -11,6 +12,7 @@ export function main() {
   engine.addSystem(circularSystem)
   engine.addSystem(changeColorSystem)
   engine.addSystem(flexBasisToggleSystem)
+  setupFlexBasisTest()
 
   // draw UI. Here is the logic to spawn cubes.
   setupUi()
