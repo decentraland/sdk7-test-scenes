@@ -342,8 +342,8 @@ function CanvasInformationExample() {
             alignItems: 'center',
             justifyContent: 'space-between',
             positionType: 'absolute',
-            position: { right: "3%", bottom: '3%' },
-            margin: '0 0 130 0'
+            position: { right: "3%", top: '42%' },
+            margin: '0'
         }}
         uiBackground={{ color: Color4.fromHexString("#4d544e") }}
     >
@@ -406,7 +406,7 @@ function GetCanvasInfo() : string {
 // examples.
 
 const PANEL_BG = Color4.fromHexString('#2a2a2a')
-const PANEL_WIDTH = 760
+const PANEL_WIDTH = 800
 const PANEL_HEIGHT = 200
 const BOX_WIDTH = 80
 const BOX_HEIGHT = 80
@@ -437,16 +437,16 @@ function FlexBasisPanel(props: {
                 <UiEntity uiTransform={{ width: BOX_WIDTH, height: 26, borderWidth: 2, borderColor: Color4.White() }} />
             </UiEntity>
         </UiEntity>
-        <UiEntity uiTransform={{ width: 390, height: 176, flexDirection: 'column', margin: { left: 12 } }}>
+        <UiEntity uiTransform={{ width: 420, height: 176, flexDirection: 'column', margin: { left: 12 } }}>
             <Label
                 value={props.title}
-                fontSize={17}
+                fontSize={15}
                 color={Color4.White()}
                 uiTransform={{ width: '100%', height: 26 }}
             />
             <Label
                 value={props.state}
-                fontSize={17}
+                fontSize={15}
                 color={Color4.Yellow()}
                 uiTransform={{ width: '100%', height: 48 }}
             />
