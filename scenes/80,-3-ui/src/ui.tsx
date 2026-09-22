@@ -427,10 +427,8 @@ function FlexBasisPanel(props: {
             height: PANEL_HEIGHT,
             flexDirection: 'row',
             positionType: 'absolute',
-            // 24% is the least that clears the Explorer's left sidebar and chat input, which are
-            // drawn over the scene UI and would otherwise sit on the panel's description.
             position: props.side === 'left'
-                ? { bottom: '2%', left: '24%' }
+                ? { bottom: '2%', left: '13%' }
                 : { bottom: '2%', right: '2%' },
             padding: 12
         }}
