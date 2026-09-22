@@ -38,3 +38,25 @@ export function changeColorSystem() {
     }
   }
 }
+
+/**
+ * Regression coverage for unity-explorer#10207: Unity never cleared `flex-basis` when the
+ * SDK stopped sending it, so a pooled VisualElement kept a stale basis from a previous
+ * entity. This system flips a shared boolean every ~2 seconds; `ui.tsx` uses it to alternate
+ * a `flexBasis` prop on and off so a reviewer can watch it oscillate (fixed) or stick
+ * (broken).
+ */
+let flexBasisElapsedSeconds = 0
+let flexBasisToggleOn = true
+
+export function flexBasisToggleSystem(dt: number) {
+  flexBasisElapsedSeconds += dt
+  if (flexBasisElapsedSeconds >= 2) {
+    flexBasisElapsedSeconds = 0
+    flexBasisToggleOn = !flexBasisToggleOn
+  }
+}
+
+export function isFlexBasisOn(): boolean {
+  return flexBasisToggleOn
+}
