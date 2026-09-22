@@ -400,116 +400,105 @@ function GetCanvasInfo() : string {
 // flex-basis when the SDK stopped sending it, so a VisualElement kept whatever flex-basis it
 // was last given. `isFlexBasisOn()` (from `src/systems.ts`) flips every ~2s.
 //
-// Both cases below put an 80px reference outline directly under the coloured box, so the
-// verdict is an edge comparison rather than a measurement: in the "no flexBasis" phase the
-// box's right edge must land on the outline's right edge.
+// Both panels put an 80px reference outline directly under the coloured box, so the verdict is
+// an edge comparison rather than a measurement: in the "no flexBasis" phase the box's right
+// edge must land on the outline's right edge. They sit along the bottom, clear of the other
+// examples.
 
 const PANEL_BG = Color4.fromHexString('#2a2a2a')
-const PANEL_WIDTH = 620
-const PANEL_HEIGHT = 340
+const PANEL_WIDTH = 760
+const PANEL_HEIGHT = 200
 const BOX_WIDTH = 80
+const BOX_HEIGHT = 80
 
-// This case updates the SAME entity in place: width stays 80 while flexBasis is added and
-// removed on that one entity.
-function FlexBasisPersistentToggleExample() {
-    const sendingFlexBasis = isFlexBasisOn()
+function FlexBasisPanel(props: {
+    left: `${number}%`
+    title: string
+    state: string
+    description: string
+    box: ReactEcs.JSX.Element
+}) {
     return <UiEntity
         uiTransform={{
             width: PANEL_WIDTH,
             height: PANEL_HEIGHT,
-            flexDirection: 'column',
+            flexDirection: 'row',
             positionType: 'absolute',
-            position: { top: '8%', left: '60%' },
-            padding: 14
+            position: { bottom: '2%', left: props.left },
+            padding: 12
         }}
         uiBackground={{ color: PANEL_BG }}
     >
-        <Label
-            value={'flex-basis clearing -- same entity, updated in place'}
-            fontSize={18}
-            color={Color4.White()}
-            uiTransform={{ width: '100%', height: 28 }}
-        />
-        <Label
-            value={`Scene is sending: ${sendingFlexBasis ? 'flexBasis = 300' : 'no flexBasis (width = 80 only)'}`}
-            fontSize={18}
-            color={Color4.Yellow()}
-            uiTransform={{ width: '100%', height: 28 }}
-        />
-        <UiEntity uiTransform={{ width: '100%', height: 76, flexDirection: 'row' }}>
-            <UiEntity
-                uiTransform={{
-                    width: BOX_WIDTH,
-                    height: 76,
-                    ...(sendingFlexBasis ? { flexBasis: 300 } : {})
-                }}
-                uiBackground={{ color: Color4.fromHexString('#00b7ff') }}
+        <UiEntity uiTransform={{ width: 330, height: 176, flexDirection: 'column' }}>
+            <UiEntity uiTransform={{ width: '100%', height: BOX_HEIGHT, flexDirection: 'row' }}>
+                {props.box}
+            </UiEntity>
+            <UiEntity uiTransform={{ width: '100%', height: 34, flexDirection: 'row' }}>
+                <UiEntity uiTransform={{ width: BOX_WIDTH, height: 26, borderWidth: 2, borderColor: Color4.White() }} />
+            </UiEntity>
+        </UiEntity>
+        <UiEntity uiTransform={{ width: 390, height: 176, flexDirection: 'column', margin: { left: 12 } }}>
+            <Label
+                value={props.title}
+                fontSize={17}
+                color={Color4.White()}
+                uiTransform={{ width: '100%', height: 26 }}
+            />
+            <Label
+                value={props.state}
+                fontSize={17}
+                color={Color4.Yellow()}
+                uiTransform={{ width: '100%', height: 48 }}
+            />
+            <Label
+                value={props.description}
+                fontSize={13}
+                color={Color4.fromHexString('#cccccc')}
+                uiTransform={{ width: '100%', height: 80 }}
             />
         </UiEntity>
-        <UiEntity uiTransform={{ width: '100%', height: 34, flexDirection: 'row' }}>
-            <UiEntity uiTransform={{ width: BOX_WIDTH, height: 26, borderWidth: 2, borderColor: Color4.White() }} />
-        </UiEntity>
-        <Label
-            value={'Broken: the box sticks at the wide size forever.\nFixed: it snaps back onto the outline above whenever\nthe label says "no flexBasis".'}
-            fontSize={14}
-            color={Color4.fromHexString('#cccccc')}
-            uiTransform={{ width: '100%', height: 110 }}
-        />
     </UiEntity>
 }
 
-// Pooling variant: alternates between two children under different `key`s, so react-ecs
-// unmounts the old entity and mounts a brand-new one each toggle instead of patching it in
-// place. A freshly created VisualElement handed out of Unity's pool must not inherit
-// flex-basis from whatever entity used that pooled element before.
+// The SAME entity every render: width stays 80 while flexBasis is added and removed on it.
+function FlexBasisPersistentToggleExample() {
+    const on = isFlexBasisOn()
+    return <FlexBasisPanel
+        left="22%"
+        title={'flex-basis -- same entity, updated in place'}
+        state={`sending: ${on ? 'flexBasis = 300' : 'no flexBasis (width 80)'}`}
+        description={'Broken: the box stays wide forever.\nFixed: it snaps back onto the outline.'}
+        box={
+            <UiEntity
+                uiTransform={{ width: BOX_WIDTH, height: BOX_HEIGHT, ...(on ? { flexBasis: 300 } : {}) }}
+                uiBackground={{ color: Color4.fromHexString('#00b7ff') }}
+            />
+        }
+    />
+}
+
+// Pooling variant: two children under different `key`s, so react-ecs unmounts the old entity
+// and mounts a brand-new one each toggle instead of patching it in place. A freshly created
+// VisualElement out of Unity's pool must not inherit flex-basis from its previous tenant.
 function FlexBasisPoolingToggleExample() {
-    const sendingFlexBasis = isFlexBasisOn()
-    return <UiEntity
-        uiTransform={{
-            width: PANEL_WIDTH,
-            height: PANEL_HEIGHT,
-            flexDirection: 'column',
-            positionType: 'absolute',
-            position: { top: '26%', left: '60%' },
-            padding: 14
-        }}
-        uiBackground={{ color: PANEL_BG }}
-    >
-        <Label
-            value={'flex-basis clearing -- fresh entity each toggle'}
-            fontSize={18}
-            color={Color4.White()}
-            uiTransform={{ width: '100%', height: 28 }}
-        />
-        <Label
-            value={`Scene is mounting: ${sendingFlexBasis ? 'a new child WITH flexBasis = 300' : 'a different new child, no flexBasis'}`}
-            fontSize={18}
-            color={Color4.Yellow()}
-            uiTransform={{ width: '100%', height: 28 }}
-        />
-        <UiEntity uiTransform={{ width: '100%', height: 76, flexDirection: 'row' }}>
-            {sendingFlexBasis
-                ? <UiEntity
-                    key="flex-basis-pool-with-basis"
-                    uiTransform={{ width: BOX_WIDTH, height: 76, flexBasis: 300 }}
-                    uiBackground={{ color: Color4.fromHexString('#ff7a00') }}
-                />
-                : <UiEntity
-                    key="flex-basis-pool-without-basis"
-                    uiTransform={{ width: BOX_WIDTH, height: 76 }}
-                    uiBackground={{ color: Color4.fromHexString('#ff7a00') }}
-                />}
-        </UiEntity>
-        <UiEntity uiTransform={{ width: '100%', height: 34, flexDirection: 'row' }}>
-            <UiEntity uiTransform={{ width: BOX_WIDTH, height: 26, borderWidth: 2, borderColor: Color4.White() }} />
-        </UiEntity>
-        <Label
-            value={'Broken: the freshly mounted child still renders 300 wide,\ninherited from the pooled element.\nFixed: it matches the outline above.'}
-            fontSize={14}
-            color={Color4.fromHexString('#cccccc')}
-            uiTransform={{ width: '100%', height: 110 }}
-        />
-    </UiEntity>
+    const on = isFlexBasisOn()
+    return <FlexBasisPanel
+        left="52%"
+        title={'flex-basis -- fresh entity each toggle'}
+        state={`mounting: ${on ? 'a new child WITH flexBasis = 300' : 'a different child, no flexBasis'}`}
+        description={'Broken: the new child still renders 300 wide,\ninherited from the pooled element.\nFixed: it matches the outline.'}
+        box={on
+            ? <UiEntity
+                key="flex-basis-pool-with-basis"
+                uiTransform={{ width: BOX_WIDTH, height: BOX_HEIGHT, flexBasis: 300 }}
+                uiBackground={{ color: Color4.fromHexString('#ff7a00') }}
+            />
+            : <UiEntity
+                key="flex-basis-pool-without-basis"
+                uiTransform={{ width: BOX_WIDTH, height: BOX_HEIGHT }}
+                uiBackground={{ color: Color4.fromHexString('#ff7a00') }}
+            />}
+    />
 }
 
 function GitHubLinkUi() {
