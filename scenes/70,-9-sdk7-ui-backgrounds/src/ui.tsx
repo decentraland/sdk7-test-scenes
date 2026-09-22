@@ -362,18 +362,18 @@ export const ui = () => {
                 width: '100%',
                 height: '50%',
                 flexDirection: 'column',
-                margin: { left: 300 }
+                margin: { left: 500 }
             }}
             uiBackground={{ color: Color4.Black() }}
         >
-            <Label value="Select an example from below" fontSize={28} uiTransform={{ height: 40 }} />
+            <Renderer />
+            <Label value="Select an example above" fontSize={28} uiTransform={{ height: 40, margin: { top: 24 } }} />
             <Dropdown
                 options={options.map(($) => $.name)}
                 onChange={selectOption}
                 fontSize={28}
                 uiTransform={{ width: 560, height: 52 }}
             />
-            <Renderer />
         </UiEntity>
     )
 }
