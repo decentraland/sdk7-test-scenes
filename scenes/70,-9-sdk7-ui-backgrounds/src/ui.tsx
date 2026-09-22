@@ -16,6 +16,8 @@ const centeredImage = 'img.png'
 // frame also makes the painted quad's edges readable at a glance.
 const opaqueSrc = 'opaque.png'
 
+const CROSSHAIR_COLOR = Color4.fromHexString('#00ff66ff')
+
 let dt = 0
 let userId: string | undefined
 
@@ -218,24 +220,26 @@ const options = [
                     }}
                     uiBackground={{ texture: { src: opaqueSrc }, textureMode: 'center' }}
                 />
-                {/* Fixed crosshair marking the TRUE center of the box (ignores padding). */}
+                {/* Fixed crosshair marking the TRUE center of the box (ignores padding). It is drawn
+                    after the texture so it sits on top of it, and in lime because the texture's body
+                    is dark navy - a dark crosshair disappears into it. */}
                 <UiEntity
                     uiTransform={{
-                        width: 4,
-                        height: 28,
+                        width: 6,
+                        height: 44,
                         positionType: 'absolute',
-                        position: { top: boxHeight / 2 - 14, left: boxWidth / 2 - 2 }
+                        position: { top: boxHeight / 2 - 22, left: boxWidth / 2 - 3 }
                     }}
-                    uiBackground={{ color: Color4.Black() }}
+                    uiBackground={{ color: CROSSHAIR_COLOR }}
                 />
                 <UiEntity
                     uiTransform={{
-                        width: 28,
-                        height: 4,
+                        width: 44,
+                        height: 6,
                         positionType: 'absolute',
-                        position: { top: boxHeight / 2 - 2, left: boxWidth / 2 - 14 }
+                        position: { top: boxHeight / 2 - 3, left: boxWidth / 2 - 22 }
                     }}
-                    uiBackground={{ color: Color4.Black() }}
+                    uiBackground={{ color: CROSSHAIR_COLOR }}
                 />
                 <UiEntity
                     uiTransform={{
