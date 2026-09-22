@@ -366,8 +366,13 @@ export const ui = () => {
             }}
             uiBackground={{ color: Color4.Black() }}
         >
-            <Label value="Select an example from below" />
-            <Dropdown options={options.map(($) => $.name)} onChange={selectOption} />
+            <Label value="Select an example from below" fontSize={28} uiTransform={{ height: 40 }} />
+            <Dropdown
+                options={options.map(($) => $.name)}
+                onChange={selectOption}
+                fontSize={28}
+                uiTransform={{ width: 560, height: 52 }}
+            />
             <Renderer />
         </UiEntity>
     )
