@@ -10,9 +10,9 @@
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/open-explorer-ui-and-wait-close/@dcl/js-runtime/dcl-js-runtime-7.28.1-34832208486.commit-2bfb1a8.tgz",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/open-explorer-ui-and-wait-close/dcl-sdk-7.28.1-34832208486.commit-2bfb1a8.tgz",
-    "@dcl/sdk-commands": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/open-explorer-ui-and-wait-close/dcl-sdk-commands-7.28.1-34832208486.commit-2bfb1a8.tgz"
+    "@dcl/js-runtime": "^7.29.1-35917671376.commit-046b268",
+    "@dcl/sdk": "^7.29.1-35917671376.commit-046b268",
+    "@dcl/sdk-commands": "^7.29.1-35917671376.commit-046b268"
   },
   "engines": {
     "node": ">=16.0.0",
