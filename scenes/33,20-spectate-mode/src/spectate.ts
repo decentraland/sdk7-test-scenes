@@ -237,8 +237,9 @@ function spectateInputSystem(dt: number) {
     const delta = PrimaryPointerInfo.getOrNull(engine.RootEntity)?.screenDelta
     if (delta) {
       yaw = (yaw + delta.x * MOUSE_SENSITIVITY) % 360
-      // delta.y is subtracted so mouse-up tilts the camera up (same sign convention as 32,20)
-      pitch = clamp(pitch - delta.y * MOUSE_SENSITIVITY, PITCH_MIN, PITCH_MAX)
+      // delta.y has a top-left origin and grows downwards, so mouse-up reports a negative value;
+      // adding it lowers pitch and tilts the camera up, matching IA_FORWARD below (same as 32,20)
+      pitch = clamp(pitch + delta.y * MOUSE_SENSITIVITY, PITCH_MIN, PITCH_MAX)
     }
   }
 
