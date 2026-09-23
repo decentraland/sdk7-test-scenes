@@ -105,11 +105,10 @@ boolean the protocol promises — the bug this row exists to catch.
 
 ## SDK pin
 
-This scene is pinned to a **branch build** of `@dcl/sdk`, because `openExplorerUiAndWait`, the
-`requestId` field and the `ExplorerUiEventsResult` component are not in a published release yet.
-The pin must move to a published version once
-[js-sdk-toolchain#1543](https://github.com/decentraland/js-sdk-toolchain/pull/1543) lands.
+Pinned to `7.29.1-35917671376.commit-046b268`, the first published build carrying
+`openExplorerUiAndWait` ([js-sdk-toolchain#1543](https://github.com/decentraland/js-sdk-toolchain/pull/1543)).
+It can move to a plain version range once that lands in a stable release.
 
-The explorer side lives in
-[unity-explorer#10096](https://github.com/decentraland/unity-explorer/pull/10096); against a build
-without it, scenarios 4, 7 and 8 fail and the request ids in the left HUD all read `0`.
+The explorer side ([unity-explorer#10096](https://github.com/decentraland/unity-explorer/pull/10096))
+is on `dev`. Against a client without it, scenarios 4, 7 and 8 fail and the request ids in the left
+HUD all read `0`.
