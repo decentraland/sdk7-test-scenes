@@ -99,7 +99,10 @@ normalized `center` inside 0..1 beside its `screenRect`.
    > no S10 arming at all -- run it first, freely, and read S4's leak as specific to ray misses.
 2. **`screenshot` states the screen it downscaled from.** Its caption reads
    `1280x720 (screen 2188x1231)`, and that `screen` matches `ui_list`'s exactly. Try a second
-   `maxWidth` to confirm only the capture size moves.
+   `maxWidth` to confirm only the capture size moves -- **in a separate call, not the same batch**:
+   two `screenshot`s issued together collide, and the second fails with `"Another screenshot
+   capture is already in progress; retry when it completes."` That is the capture guard, not a
+   failed check.
 
 If either check fails, stop and report it before running the stations -- every later positional
 step inherits the same coordinate space.
@@ -210,7 +213,9 @@ emit `IA_FORWARD`.
    Expected result: `endPosition` stops at/near world z `2402.5` (the wall face) even though
    6 seconds at run speed would cover much more distance in the open -- **collision applied**.
    Screenshot: player pressed up against the wall, past the "16m" marker.
-5. Press forward the "wrong" way to show the `IA_FORWARD` divergence:
+5. Press forward the "wrong" way to show the `IA_FORWARD` divergence. Step 4 left you pressed
+   against the end wall, so **`move_to` the 0 m marker `(2388, 0, 2385)` and `look_at 2388, 1, 2400`
+   first** -- the burst needs room:
    ```
    walk  directionX: 0  directionY: 1  seconds: 1
    ```
@@ -219,7 +224,7 @@ emit `IA_FORWARD`.
    `global IA_FORWARD count: 0 (see S6)`. `walk` moved the player but the counter stayed at 0.
    (An omitted `kind` is **jog**, not walk -- that is the tool's documented default: measured 6.87 m
    in 1 s, `sustainedSpeed 9.90`, `bucket=jog`. It does not matter here -- the assertion holds for
-   any gait -- but start from the 0 m mark so the burst has room.)
+   any gait.)
 6. Now:
    ```
    press_input  action: forward
@@ -590,16 +595,20 @@ Proves: **(6)** real `PET_HOVER_ENTER`/`PET_HOVER_LEAVE` + `hoverText`, distance
    look_at       x: 2412  y: 1  z: 2403
    hover_entity  x: 2412  y: 1  z: 2403  seconds: 2
    ```
-   Expected result: `hit: true`, `distance` around 1.2m. Log:
+   Expected result: `hit: true`. Log:
    `[S5-HOVER] C: PET_HOVER_ENTER (#1) -- only reachable within 2m`.
-   The `look_at` is not optional: the "~1.8m" in the table is the player-to-target distance, but
-   the 2m gate is measured to where the *camera ray enters* C's collider, so a camera pose left
-   over from step 2 makes the same call read `hit: false` / `out of range (hit distance 2.08m)`.
+   Aim the camera first anyway: the gate is judged from the current camera pose, and a pose left
+   over from step 2 has refused this same call.
+
+   > **Do not assert on the reported `distance`, and do not read it against `maxDistance`.** The
+   > number in the result (and in a refusal's `hit distance`) is not the quantity the gate
+   > compares: on current clients it tracks the camera-to-hit ray, so a *successful* hover on this
+   > 2 m target can report several metres, and S4 step 3's long-range hit can report a hair over
+   > its `maxDistance: 16`. `hit` / `out of range` is the gate's verdict; the distance is context.
 4. Walk to the far mark `(2412, 0, 2408)` and repeat the same call. Expected result: `hit: false`
-   (out of the 2m gate) -- no `PET_HOVER_ENTER` log for C this time, proving the distance gate.
-   `look_at` the target again first, so the refusal can only be the distance gate and not a stale
-   orbit: the refusal then reads `out of range (hit distance 4.56m)` against
-   the same aim that hit at `1.22m` from the near mark.
+   with `out of range (hit distance <N>m)` -- no `PET_HOVER_ENTER` log for C this time, proving the
+   distance gate. `look_at` the target again first, so the refusal can only be the distance gate
+   and not a stale orbit.
 
    > **A refused hover reports `rootBroadcast: true` too, and unlike S4's click misses it costs you
    > nothing.** The field is not click-only -- this out-of-range hover carries it (measured
@@ -1200,7 +1209,7 @@ Layout (world; local = world - `(2384, 0, 2384)`):
    This path is the fallback for everything below -- if the drag path turns out not to hold the
    pointer, a stepped run of `click_entity` calls still draws a legible dotted stroke.
 
-   > **The middle coordinate is `2394`, not `2394.0`.** Written with the trailing zero it is
+   > **The middle coordinate is `2394`, not `2394.0`.** Written with the trailing zero it can be
    > *refused* by the trailing-`.0` trap in **Driving notes** (`x arrived as string "2394.0", not a
    > number`). The other four stamps have real decimals and are fine. If a whole-number coordinate
    > anywhere in this script ever carries a `.0`, it is a typo, not a coordinate.
@@ -1383,12 +1392,12 @@ Layout (world; local = world - `(2384, 0, 2384)`):
 |---|---|---|
 | Frozen `walk` in zone A | `walk directionY:1 seconds:2` while inside zone A | `distance` ~0, no burst log |
 | Escape the freeze | same call + `ignoreInputModifiers: true` | `distance` > 0 |
-| `disableRun` degrades the tier | `walk seconds:0.8 kind:run` inside zone B vs two controls outside | in-zone `sustainedSpeed` lands on the free **jog** control and ~1.7-2 m/s below the free **run**. Compare sustained speeds -- **not** distances (all ~5 m) and **not** `bucket=`, which reads `run` for all three (see **Known open issues**) |
+| `disableRun` degrades the tier | `walk seconds:0.8 kind:run` inside zone B vs two controls outside | in-zone `sustainedSpeed` lands on the free **jog** control and clearly below the free **run**. Compare sustained speeds -- **not** distances (all ~5 m) and **not** `bucket=`, which reads the same for all three (see S3 step 5) |
 | Short-range miss from far mark | `click_entity x:2407 y:1 z:2387` from `(2408.25,0,2399)` | `hit:false`, reason names the range (+ a root pointer leak, see below) |
 | Occluded click | `click_entity x:2401 y:1 z:2394` from the blocked-shot mark | `hit:false` + `blockedByEntityId`/`blockedByCrdtId`/`blockedByCollider` naming the occluder (+ a root pointer leak) |
 | Offset-pivot miss | `click_entity x:2410 y:1 z:2397` (the pivot, no collider) | `hit:false` (+ a root pointer leak) |
 | Any `x/y/z` click that misses | the three rows above | each result carries `rootBroadcast: true` and posts **one `PET_DOWN` to the scene root**: S6's `IA_POINTER` counter +1. It arms and releases S10 in the same frame (`hold ended without painting -- 1 ray samples`), so no stall and no phantom stroke; a `... down for 6s with no release` line means the release is not arriving (see S4's tripwire). Client behaviour, not a scene fault -- see the blockquote at the top of S4 |
-| A refused **hover** also reports `rootBroadcast: true` | `hover_entity x:2412 y:1 z:2403` from the far mark | `hit:false` + `out of range (hit distance 4.56m)` **and** `rootBroadcast: true` -- but S6's `IA_POINTER` stays put. A refused hover posts a hover edge to the root, not the `PET_DOWN` a refused click posts, so no counter moves and S10 is not armed. Do not read it as the S4 leak |
+| A refused **hover** also reports `rootBroadcast: true` | `hover_entity x:2412 y:1 z:2403` from the far mark | `hit:false` + `out of range (hit distance <N>m)` **and** `rootBroadcast: true` -- but S6's `IA_POINTER` stays put. A refused hover posts a hover edge to the root, not the `PET_DOWN` a refused click posts, so no counter moves and S10 is not armed. Do not read it as the S4 leak |
 | `IA_FORWARD` stays at 0 after `walk` | S1 readout after any `walk` | `global IA_FORWARD count: 0` until `press_input action:forward` |
 | Unaimed `press_input` reaches the scene root | `press_input action:primary` with no aim, **reticle resting on geometry with no `PointerEvents`** | `entityBound:false` + `hint`; scene-root counter increments, entity counter does not. With the reticle over an interactable it binds to that entity instead -- see S6 note 1 |
 | Scene-root broadcast suppressed | `press_input action:primary x:2404 y:1 z:2413` | `entityBound:true`; entity counter +1, scene-root counter unchanged |
@@ -1406,7 +1415,7 @@ Layout (world; local = world - `(2384, 0, 2384)`):
 | A world drag reaches no UI | `ui_drag path:device` over the STROKE canvas | no stroke either way. With a free cursor: `ok:true` with `pointerOver: {start:"world", end:"world"}` and an `info` line saying no UI element received it (`ok` verifies no target); camera unmoved. If the drag engages the camera pan instead, it fails with "the drag panned the camera instead of dragging" |
 | A half-readable aim is refused, not degraded | `press_input action:primary x:2404 z:2413` (no `y`) | fails with "x, y and z must all be numbers to aim at a world point; omit all three for a scene-root broadcast." — and **no** `[S6-GLOBAL]` root-broadcast log, i.e. it did not silently fall back |
 | An uppercase action name is refused | `press_input action:PRIMARY` | fails with "action does not accept string \"PRIMARY\"; the values are lowercase, one of: pointer, primary, secondary, jump, forward, backward, right, left, action_3, action_4, action_5, action_6, walk, modifier." — the *server* rejects it, and it **is** reachable from Claude Code (the harness forwards the enum string unvalidated). Use lowercase. **No `[S6-GLOBAL]` log follows**, i.e. it did not silently fall back to a root broadcast |
-| A rejected number names itself | `click_entity x:2393 y:3.0 z:2393` | `"x, y and z must all be numbers to aim at a world point. (y arrived as string \"3.0\", not a number)"` — **reachable from Claude Code's native tools**, reproducible first try; see **Driving notes** |
+| A rejected number names itself | `click_entity x:2393 y:3.0 z:2393` | `"x, y and z must all be numbers to aim at a world point. (y arrived as string \"3.0\", not a number)"` — **when your client sends `3.0` as a string**, which depends on the client; see **Driving notes**. That aim is a live point on S10's STAMP canvas: if the value arrives as a number the call *succeeds and paints a dot*, so read S10's counts as deltas afterwards |
 
 ---
 
@@ -1452,13 +1461,14 @@ broadcast, that a cover refuses a click, that a disabled input refuses a write.
 > as one session's observation and never append a second. A table with one column per pass is the
 > smell this section exists to prevent.
 
-- **Never write a coordinate with a trailing `.0`.** `click_entity x:2393 y:3.0 z:2393` arrives as
-  the *string* `"3.0"` and the aim is refused:
+- **Never write a coordinate with a trailing `.0`.** `click_entity x:2393 y:3.0 z:2393` can arrive
+  as the *string* `"3.0"`, and then the aim is refused:
   `"x, y and z must all be numbers to aim at a world point. (y arrived as string \"3.0\", not a
-  number)"`. Write `3`, not `3.0`. **This trap IS reachable from Claude Code's native MCP tools** --
-  reproducible first try by writing `y: 3.0` in an ordinary `click_entity` call: the harness
-  serializes the literal `3.0` and the coercion to a string happens on the way out, before the
-  request exists. **Do not rely on your client to normalize it for you.** The message names the
+  number)"`. Write `3`, not `3.0`. **Whether it arrives as a string depends on your client**, not
+  on the server: some Claude Code sessions have sent the literal `3.0` as a string on the first
+  try, others send it as the number `3` and the call simply succeeds. So the negative-case row is
+  drivable only where the coercion happens -- a success there is not a server regression, and **do
+  not rely on your client to normalize it for you** when writing real coordinates. The message names the
   offending argument and what arrived, so read it as a wrong *type* rather than a missing argument;
   an older client instead opens with `"Provide entityId, or a full x/y/z world aim point, or both."`,
   which points at the wrong cause.
@@ -1497,7 +1507,9 @@ broadcast, that a cover refuses a click, that a disabled input refuses a write.
   A `press_input ... holdSeconds: 2` and a `camera_look` in one batch run one after the other, with
   the camera stationary for the whole hold. This is why `sweep_pointer` exists and why the split
   gesture cannot paint a stroke (S10 step 3). It also means you cannot measure the overlap from
-  inside your own calls -- only a detached background poller can.
+  inside your own calls -- only a detached background poller can. (`screenshot` is the exception
+  that shows it is not every tool: two captures in one batch collide and the second is refused --
+  see the Pre-flight's check 2.)
 - **`look_at`'s rig-limit warning is noisy at small angles.** It emits *"the camera stopped short of
   the point (a rig limit, e.g. the third-person pitch clamp)"* on close, slightly-downward aims that
   are in fact fine -- seen at `aimErrorDegrees` of 3.1, 5.5, 5.6 and 9.9 on the S8 toggle, the offset
