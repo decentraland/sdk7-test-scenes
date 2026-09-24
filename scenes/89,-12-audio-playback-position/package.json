@@ -1,0 +1,24 @@
+{
+  "name": "audio-playback-position",
+  "version": "1.0.0",
+  "description": "Test scene for AudioEvent playback-position reports (tickNumber / currentOffset / clipLength) and audioEventsSystem.registerAudioPlaybackEntity / getAudioPlayback",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "build": "sdk-commands build"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/audio-event-playback-position/dcl-sdk-7.29.1-35640312842.commit-7ee164e.tgz",
+    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/audio-event-playback-position/@dcl/js-runtime/dcl-js-runtime-7.29.1-35640312842.commit-7ee164e.tgz"
+  }
+}
