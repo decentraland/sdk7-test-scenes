@@ -2,6 +2,7 @@ import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity, Input, Dropdown, Button } from '@dcl/sdk/react-ecs'
 import { engine, UiCanvasInformation } from '@dcl/sdk/ecs'
 import { openNftDialog } from "~system/RestrictedActions";
+import { fixProbesPanel } from './fix-probes'
 
 const description = "This is an example of a text that is too long to fit in a single line. It will be broken into multiple lines.\n\nBelow is an example of a static background."
 const Max_Chars = 45
@@ -28,6 +29,7 @@ const uiComponent = () => (
         ButtonExample(),
         SelfDeletingInputExample(),
         CanvasInformationExample(),
+        fixProbesPanel(),
     ]
 )
 
