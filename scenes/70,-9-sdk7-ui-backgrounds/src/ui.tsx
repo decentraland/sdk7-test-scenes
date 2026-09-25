@@ -353,6 +353,22 @@ const options = [
     }
 ]
 
+// `sdk-commands deploy` rebuilds with --production, which strips the names off these function
+// expressions, so deriving the labels from Function.name leaves the deployed dropdown blank.
+const optionLabels = [
+    'StretchAndTint',
+    'NineSlicesAndTint',
+    'NineSlicesAndTintVertical',
+    'NineSlicesAndMargin',
+    'Center',
+    'AvatarTexture',
+    'PaddingStretch',
+    'PaddingCenter',
+    'PaddingNineSlices',
+    'PaddingColor',
+    'PaddingAndBorder'
+]
+
 function selectOption(index: number) {
     currentValue = index
 }
@@ -373,7 +389,7 @@ export const ui = () => {
             <Renderer />
             <Label value="Select an example above" fontSize={28} uiTransform={{ height: 40, margin: { top: 24 } }} />
             <Dropdown
-                options={options.map(($) => $.name)}
+                options={optionLabels}
                 onChange={selectOption}
                 fontSize={28}
                 uiTransform={{ width: 560, height: 52 }}
