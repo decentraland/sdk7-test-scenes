@@ -8,6 +8,11 @@ import { Vector3, Color4 } from '@dcl/sdk/math'
 import ReactEcs, { ReactEcsRenderer, UiEntity, Button, Label } from '@dcl/sdk/react-ecs'
 
 const sample = 'Hamburgefonts 0123 !?'
+const glyphBurst = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789\n' +
+  '!"#$%&\'()*+,-./:;=?@[\\]^_`{|}~ ¡¿«»€£¥©®°±§¶\n' +
+  'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ абвгдеёжзийклмнопрстуфхцчшщъыьэюя\n' +
+  'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæçèéêëìíîïñòóôõöøùúûüýÿ'
+const styledGlyphBurst = glyphBurst + '\n<b>' + glyphBurst + '</b>\n<i>' + glyphBurst + '</i>\n<b><i>' + glyphBurst + '</i></b>'
 const modes = [
   { label: 'Azeret Mono', src: 'assets/fonts/AzeretMono-Medium.ttf', expected: 'Custom monospaced face on all four components.' },
   { label: 'Bungee Shade TTF', src: 'assets/fonts/BungeeShade-Regular.ttf', expected: 'Decorative outlined Latin letters with a dimensional shadow.' },
@@ -98,6 +103,14 @@ function setSource(src: string | undefined) {
   if (active[2]) UiInput.getMutable(input).fontSrc = src
   if (active[3]) UiDropdown.getMutable(dropdown).fontSrc = src
   logTest('source-requested', { source: src ?? null, label: sourceLabel })
+}
+
+function setText(text: string) {
+  if (active[0]) TextShape.getMutable(worldText).text = text
+  if (active[1]) UiText.getMutable(label).value = 'UiText: ' + text
+  if (active[2]) UiInput.getMutable(input).placeholder = text
+  if (active[3]) UiDropdown.getMutable(dropdown).options = [text, 'Second option: café', 'Третий вариант']
+  logTest('text-requested', { characters: text.length })
 }
 
 function removeOne(index: number) {
@@ -244,6 +257,16 @@ function runBoundary() {
   ])
 }
 
+function runPerf() {
+  begin('Perf / cold load + glyph burst', [
+    { seconds: 5, text: 'Perf 1/5: built-in font, glyph burst. Baseline for glyph lookup cost.', action: () => { setSource(undefined); setText(glyphBurst) } },
+    { seconds: 6, text: 'Perf 2/5: cold Azeret TTF, short sample. Download + font asset creation.', action: () => { setSource(modes[0].src); setText(sample) } },
+    { seconds: 5, text: 'Perf 3/5: glyph burst on loaded Azeret. Dynamic atlas rasterization.', action: () => setText(glyphBurst) },
+    { seconds: 12, text: 'Perf 4/5: cold Lora family (4 faces), short sample. Fontsource download + 8 font assets.', action: () => { setSource('Lora'); setText(sample) } },
+    { seconds: 6, text: 'Perf 5/5: styled glyph burst on Lora. Rasterization across all four faces.', action: () => setText(styledGlyphBurst) }
+  ])
+}
+
 function uiBox(top: number, height: number): Entity {
   const entity = engine.addEntity()
   fixtures.push(entity)
@@ -379,7 +402,7 @@ export function setupFontTests(options: { delayedLoads: boolean }) {
         ['1. Lora: four styles', runStyles], ['2. Shared font: remove owners', runShared],
         ['3. Fallbacks + recovery', runFallbacks], ['4. Recreate x20', runChurn],
         [delayedLoadsEnabled ? '5. Delayed load: switch' : '5. Switch while loading (local only)', () => runDelayed(false)], [delayedLoadsEnabled ? '6. Delayed load: remove' : '6. Remove while loading (local only)', () => runDelayed(true)],
-        ['7. Scene boundary', runBoundary], ['Stop / reset', resetScenario]
+        ['7. Scene boundary', runBoundary], ['8. Perf: cold load + glyph burst', runPerf], ['Stop / reset', resetScenario]
       ].map(([title, action]) => <Button key={title as string} value={title as string} fontSize={15}
         uiTransform={{ height: 34, margin: 2 }} onMouseDown={action as () => void} />)}
       <Label value={(delayedLoadsEnabled ? 'Local delay enabled. Fresh URLs left: ' + (slowFileCount - slowSlot) : 'Cases 5 and 6: local preview only; unavailable on zone.') + '\nVisual inspection required; memory/deferred deletion use Unity tests.'}
