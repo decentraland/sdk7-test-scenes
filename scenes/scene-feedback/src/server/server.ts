@@ -1,0 +1,214 @@
+import { Entity, PlayerIdentityData, engine } from '@dcl/sdk/ecs'
+import { syncEntity } from '@dcl/sdk/network'
+import { Storage } from '@dcl/sdk/server'
+import { getSceneInformation } from '~system/Runtime'
+import { HEARTBEAT_MS, MAX_COMMENT_LENGTH, MAX_RATING, findQuestion } from '../shared/questions'
+import { room } from '../shared/messages'
+import { ServerHeartbeat } from '../shared/schemas'
+import { CSV_HEADER, CsvRow, formatRow, hasRow, sanitizeId, utf8Length } from './csv'
+
+// Responses are buffered in memory and flushed into a CSV kept in scene Storage as
+// numbered parts (fb:csv:0001, fb:csv:0002, …). The owner copies a part from the
+// storage UI and pastes it into a spreadsheet.
+//
+// Flush when something is pending and FLUSH_COOLDOWN_MS has passed since the last
+// flush, or immediately when the last player leaves: the server keeps running
+// ~2 min after that, and there is no shutdown hook.
+const PART_PREFIX = 'fb:csv:'
+const CURRENT_PART_KEY = 'fb:csv-current'
+const PART_MAX_BYTES = 400 * 1024 // Storage caps one value at 512 KB
+const FLUSH_COOLDOWN_MS = 60_000
+const LOAD_RETRY_MS = 5_000
+
+// id → formatted row, received and acked but not yet in Storage.
+const pending = new Map<string, string>()
+// ids already acked this session, so a client resend is re-acked, not re-added.
+const seen = new Set<string>()
+
+let currentPart = 0 // 0 = not loaded yet: responses are not accepted
+let flushing = false
+let lastFlushAt = 0
+let playerCount = 0
+let sceneVersion = ''
+
+let heartbeatEntity: Entity
+
+export async function startServer(): Promise<void> {
+  heartbeatEntity = engine.addEntity()
+  ServerHeartbeat.create(heartbeatEntity, { beatAt: Date.now() })
+  syncEntity(heartbeatEntity, [ServerHeartbeat.componentId])
+  engine.addSystem(heartbeatSystem)
+  engine.addSystem(flushSystem)
+
+  room.onMessage('submitResponse', (data, context) => {
+    if (context) receiveResponse(data, context.from)
+  })
+
+  sceneVersion = await readSceneVersion()
+  await loadCurrentPart()
+  console.log(`[SERVER] Feedback server ready, version ${sceneVersion}, writing ${partKey(currentPart)}, ${countPlayers()} player(s)`)
+}
+
+// The deployed entity id changes on every deploy, so rows from different builds
+// never mix. Only its tail is kept: every CID starts with the same "bafkrei".
+async function readSceneVersion(): Promise<string> {
+  try {
+    const { urn } = await getSceneInformation({})
+    console.log(`[SERVER] Scene urn: ${urn}`)
+    // Local preview reports a base64 of the project path, not a deployment.
+    if (urn.startsWith('b64-')) return 'preview'
+    const entityId = urn.split(':').pop()?.split('?')[0] ?? ''
+    return entityId.slice(-10)
+  } catch (e) {
+    console.log('[SERVER] Could not read the scene version:', e)
+    return ''
+  }
+}
+
+// Until this succeeds no response is accepted: starting from an empty CSV would
+// overwrite the stored one on the first flush.
+async function loadCurrentPart(): Promise<void> {
+  for (;;) {
+    try {
+      currentPart = Math.max(1, (await Storage.get<number>(CURRENT_PART_KEY, { fresh: true })) ?? 1)
+      return
+    } catch (e) {
+      console.log('[SERVER] Could not read the current CSV part, retrying:', e)
+      await sleep(LOAD_RETRY_MS)
+    }
+  }
+}
+
+function receiveResponse(
+  data: {
+    requestId: string
+    questionId: string
+    trigger: string
+    rating: number
+    comment: string
+    secondsInScene: number
+    platform: string
+  },
+  from: string
+): void {
+  // Not loaded yet: no ack, the client keeps resending.
+  if (currentPart === 0) return
+  const ack = (ok: boolean) => void room.send('responseSaved', { requestId: data.requestId, ok }, { to: [from] })
+
+  const id = sanitizeId(data.requestId)
+  if (seen.has(id)) return ack(true)
+
+  const question = findQuestion(data.questionId)
+  if (!question || id === '') return ack(false)
+
+  const rating = Number.isInteger(data.rating) && data.rating >= 1 && data.rating <= MAX_RATING ? data.rating : null
+  const comment = data.comment.trim().slice(0, MAX_COMMENT_LENGTH)
+  const address = from.toLowerCase()
+  const row: CsvRow = {
+    id,
+    serverTs: Date.now(),
+    version: sceneVersion,
+    questionId: question.id,
+    questionText: question.text,
+    trigger: data.trigger.slice(0, 40),
+    rating,
+    comment,
+    secondsInScene: Math.max(0, data.secondsInScene),
+    playersInScene: countPlayers(),
+    address,
+    isGuest: findIsGuest(address),
+    platform: data.platform
+  }
+
+  seen.add(id)
+  pending.set(id, formatRow(row))
+  console.log(`[SERVER] ${question.id} rating=${rating ?? '-'} from ${address}, ${pending.size} pending`)
+  ack(true)
+}
+
+// Re-reads the part right before writing and merges by id, so an overlapping
+// server instance (both run briefly after a redeploy) doesn't wipe our rows.
+async function flush(): Promise<void> {
+  if (flushing || pending.size === 0) return
+  flushing = true
+  lastFlushAt = Date.now()
+  const batch = [...pending.entries()]
+  try {
+    const storedPart = (await Storage.get<number>(CURRENT_PART_KEY, { fresh: true })) ?? 1
+    currentPart = Math.max(currentPart, storedPart)
+
+    let csv = (await Storage.get<string>(partKey(currentPart), { fresh: true })) ?? CSV_HEADER
+    const rows = batch.filter(([id]) => !hasRow(csv, id)).map(([, row]) => row)
+    const appended = rows.length > 0 ? `${csv}\n${rows.join('\n')}` : csv
+
+    // A part written with other columns (older code) is never appended to.
+    const otherColumns = csv.split('\n', 1)[0] !== CSV_HEADER
+    const full = utf8Length(appended) > PART_MAX_BYTES && csv !== CSV_HEADER
+    if (rows.length > 0 && (otherColumns || full)) {
+      currentPart += 1
+      csv = `${CSV_HEADER}\n${rows.join('\n')}`
+      if (!(await Storage.set(CURRENT_PART_KEY, currentPart))) throw new Error('could not advance the part index')
+      console.log(`[SERVER] ${otherColumns ? 'Columns changed' : 'Part full'}, rolled over to ${partKey(currentPart)}`)
+    } else {
+      csv = appended
+    }
+
+    if (!(await Storage.set(partKey(currentPart), csv))) throw new Error('Storage.set returned false')
+    for (const [id] of batch) pending.delete(id)
+    console.log(`[SERVER] Flushed ${rows.length} row(s) to ${partKey(currentPart)} (${utf8Length(csv)} B)`)
+  } catch (e) {
+    // Rows stay pending; the next cooldown retries them.
+    console.log('[SERVER] Flush failed:', e)
+  } finally {
+    flushing = false
+  }
+}
+
+function flushSystem(): void {
+  if (currentPart === 0) return
+
+  const count = countPlayers()
+  const lastPlayerLeft = playerCount > 0 && count === 0
+  playerCount = count
+
+  if (pending.size === 0) return
+  if (lastPlayerLeft || Date.now() - lastFlushAt >= FLUSH_COOLDOWN_MS) void flush()
+}
+
+function countPlayers(): number {
+  let count = 0
+  for (const _ of engine.getEntitiesWith(PlayerIdentityData)) count++
+  return count
+}
+
+function partKey(index: number): string {
+  return `${PART_PREFIX}${String(index).padStart(4, '0')}`
+}
+
+function findIsGuest(address: string): boolean | null {
+  for (const [, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
+    if (identity.address.toLowerCase() === address) return identity.isGuest
+  }
+  return null
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    let elapsed = 0
+    const system = (dt: number) => {
+      elapsed += dt * 1000
+      if (elapsed < ms) return
+      engine.removeSystem(system)
+      resolve()
+    }
+    engine.addSystem(system)
+  })
+}
+
+let heartbeatAcc = 0
+function heartbeatSystem(dt: number): void {
+  heartbeatAcc += dt
+  if (heartbeatAcc < HEARTBEAT_MS / 1000) return
+  heartbeatAcc = 0
+  ServerHeartbeat.getMutable(heartbeatEntity).beatAt = Date.now()
+}
