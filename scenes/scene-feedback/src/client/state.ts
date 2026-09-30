@@ -113,8 +113,9 @@ export function closeFeedback(): void {
   feedback.question = undefined
 }
 
-function send(): void {
+function send(kind: 'send' | 'resend' = 'send'): void {
   if (!feedback.question) return
+  console.log(`[FEEDBACK] ${kind} ${requestId} ${feedback.question.id}`)
   lastSentAt = Date.now()
   void room.send('submitResponse', {
     requestId,
@@ -129,6 +130,7 @@ function send(): void {
 
 export function setupFeedbackState(): void {
   room.onMessage('responseSaved', (data) => {
+    console.log(`[FEEDBACK] ack ${data.requestId} ok=${data.ok}`)
     if (feedback.phase !== 'sending' || data.requestId !== requestId) return
     if (data.ok) {
       feedback.phase = 'saved'
@@ -142,8 +144,11 @@ export function setupFeedbackState(): void {
     pollHeartbeat()
     const now = Date.now()
     if (feedback.phase === 'sending') {
-      if (now - firstSentAt > GIVE_UP_MS) feedback.phase = 'failed'
-      else if (now - lastSentAt > RESEND_MS && isServerAlive()) send()
+      if (now - firstSentAt > GIVE_UP_MS) {
+        console.log(`[FEEDBACK] no ack for ${requestId} after ${GIVE_UP_MS / 1000} s, giving up`)
+        feedback.phase = 'failed'
+      }
+      else if (now - lastSentAt > RESEND_MS && isServerAlive()) send('resend')
     } else if (feedback.phase === 'saved' && now - savedAt > SAVED_HOLD_MS + SAVED_FADE_MS) {
       closeFeedback()
     }

@@ -103,16 +103,17 @@ function questionPanel() {
   )
 }
 
-// Unselected stars are the same emoji, dimmed.
+// Unselected stars are the same emoji, dimmed with opacity: a colour emoji
+// ignores the Label's colour tint.
 function star(value: number, editable: boolean) {
   const lit = value <= feedback.rating
   return (
     <UiEntity
       key={value}
-      uiTransform={{ width: 72, height: 72, margin: 6, justifyContent: 'center', alignItems: 'center' }}
+      uiTransform={{ width: 72, height: 72, margin: 6, justifyContent: 'center', alignItems: 'center', opacity: lit ? 1 : 0.25 }}
       onMouseDown={editable ? () => setRating(value) : undefined}
     >
-      <Label value="⭐" fontSize={48} color={lit ? Color4.White() : Color4.create(1, 1, 1, 0.25)} />
+      <Label value="⭐" fontSize={48} />
     </UiEntity>
   )
 }

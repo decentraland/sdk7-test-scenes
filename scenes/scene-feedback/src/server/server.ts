@@ -44,9 +44,10 @@ export async function startServer(): Promise<void> {
     if (context) receiveResponse(data, context.from)
   })
 
-  sceneVersion = await readSceneVersion()
+  // Not awaited: readiness must never hang on a runtime call that isn't Storage.
+  void readSceneVersion().then((version) => (sceneVersion = version))
   await loadCurrentPart()
-  console.log(`[SERVER] Feedback server ready, version ${sceneVersion}, writing ${partKey(currentPart)}, ${countPlayers()} player(s)`)
+  console.log(`[SERVER] Feedback server ready, writing ${partKey(currentPart)}, ${countPlayers()} player(s)`)
 }
 
 // The deployed entity id changes on every deploy, so rows from different builds
@@ -70,7 +71,10 @@ async function readSceneVersion(): Promise<string> {
 async function loadCurrentPart(): Promise<void> {
   for (;;) {
     try {
-      currentPart = Math.max(1, (await Storage.get<number>(CURRENT_PART_KEY, { fresh: true })) ?? 1)
+      const stored = await Storage.get<number>(CURRENT_PART_KEY, { fresh: true })
+      currentPart = Math.max(1, stored ?? 1)
+      // Written once so later flushes don't hit a 404 (the SDK logs each as an ERROR).
+      if (stored === null) await Storage.set(CURRENT_PART_KEY, currentPart)
       return
     } catch (e) {
       console.log('[SERVER] Could not read the current CSV part, retrying:', e)
