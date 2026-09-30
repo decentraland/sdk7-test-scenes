@@ -1,13 +1,18 @@
 import ReactEcs, { ReactEcsRenderer, UiEntity, Label, Button } from '@dcl/sdk/react-ecs'
 import { Color4 } from '@dcl/sdk/math'
-import { engine, Material, Skybox, TextureWrapMode } from '@dcl/sdk/ecs'
+import { engine, Material, Skybox, SkyboxTime, TextureWrapMode, ColorGradient } from '@dcl/sdk/ecs'
 
 // Selected source for each slot. 'none' means the field is left unset on the component.
 type SkySelection = 'none' | 'a' | 'b'
 type ReflectionSelection = 'none' | 'a' | 'b' | 'invalid'
+type EnvironmentSelection = 'default' | 'mars' | 'clearNight' | 'storm' | 'dayRamp' | 'trueDarkness'
+type TimeSelection = 'six' | 'twelve' | 'eighteen' | 'midnight' | 'live'
 
 let skySelection: SkySelection = 'none'
 let reflectionSelection: ReflectionSelection = 'none'
+let environmentSelection: EnvironmentSelection = 'default'
+let timeSelection: TimeSelection = 'live'
+let sunVisible = true
 
 const skyTextureSrc: Record<Exclude<SkySelection, 'none'>, string> = {
   a: 'images/sky-a.png',
@@ -20,13 +25,131 @@ const reflectionTextureSrc: Record<Exclude<ReflectionSelection, 'none'>, string>
   invalid: 'images/does-not-exist.png'
 }
 
-// Composes the currently selected sky/reflection sources into a single
-// Skybox.createOrReplace call (only the selected fields are set), or removes the
-// component entirely when both slots are 'none' so the scene falls back to defaults.
+// The PBSkybox groups (sun/skyColors/fog/clouds/stars) aren't exported as a standalone type
+// from @dcl/ecs, only the `Skybox` component definition itself is. Derive the payload shape
+// from its own `createOrReplace` signature instead of redefining it here.
+type SkyboxValue = NonNullable<Parameters<typeof Skybox.createOrReplace>[1]>
+type EnvironmentPreset = Partial<Pick<SkyboxValue, 'sun' | 'skyColors' | 'fog' | 'clouds' | 'stars'>>
+
+// One-key gradient: a constant color across the whole day.
+function constant(color: Color4): ColorGradient {
+  return { keys: [{ time: 0, color }] }
+}
+
+// Multi-key gradient from (normalizedTimeOfDay, color) pairs.
+function ramp(...keys: [number, Color4][]): ColorGradient {
+  return { keys: keys.map(([time, color]) => ({ time, color })) }
+}
+
+// Environment presets. 'default' means no groups are sent (procedural sky stays at its
+// time-of-day defaults). All non-default presets are inert while a `skyboxTexture` is
+// selected, except `sun`/`fog` (and the ambient light `skyColors` derives), which keep
+// applying even with a sky texture set.
+const presets: Record<Exclude<EnvironmentSelection, 'default'>, EnvironmentPreset> = {
+  mars: {
+    skyColors: {
+      zenith: constant(Color4.create(0.55, 0.25, 0.12)),
+      horizon: constant(Color4.create(0.95, 0.55, 0.3)),
+      nadir: constant(Color4.create(0.35, 0.15, 0.08))
+    },
+    sun: { color: constant(Color4.create(1.0, 0.65, 0.4)) },
+    fog: { color: constant(Color4.create(0.85, 0.5, 0.3)) },
+    clouds: { opacity: 0.3, color: constant(Color4.create(0.9, 0.6, 0.4)) }
+  },
+  clearNight: {
+    clouds: { opacity: 0 },
+    stars: { brightness: 12 },
+    sun: { color: constant(Color4.create(0.6, 0.7, 1.0)) }
+  },
+  storm: {
+    skyColors: {
+      zenith: constant(Color4.create(0.15, 0.15, 0.17)),
+      horizon: constant(Color4.create(0.28, 0.28, 0.31)),
+      nadir: constant(Color4.create(0.1, 0.1, 0.12))
+    },
+    clouds: { opacity: 1, speed: 0.1, color: constant(Color4.create(0.2, 0.2, 0.22)) },
+    fog: { color: constant(Color4.create(0.4, 0.42, 0.45)) },
+    sun: { color: constant(Color4.create(0.35, 0.35, 0.4)) }
+  },
+  dayRamp: {
+    // Horizon and fog trace the same 5-key gradient so the horizon band and the fog agree.
+    skyColors: {
+      horizon: ramp(
+        [0, Color4.create(0.05, 0.05, 0.25)],
+        [0.25, Color4.create(0.95, 0.55, 0.45)],
+        [0.5, Color4.create(0.75, 0.9, 0.95)],
+        [0.75, Color4.create(0.95, 0.4, 0.25)],
+        [1, Color4.create(0.05, 0.05, 0.25)]
+      )
+    },
+    fog: {
+      color: ramp(
+        [0, Color4.create(0.05, 0.05, 0.25)],
+        [0.25, Color4.create(0.95, 0.55, 0.45)],
+        [0.5, Color4.create(0.75, 0.9, 0.95)],
+        [0.75, Color4.create(0.95, 0.4, 0.25)],
+        [1, Color4.create(0.05, 0.05, 0.25)]
+      )
+    },
+    // Noon key is HDR (>1) on purpose, to exercise unclamped gradient values.
+    sun: {
+      color: ramp(
+        [0, Color4.create(0.2, 0.25, 0.5)],
+        [0.25, Color4.create(1.0, 0.6, 0.25)],
+        [0.5, Color4.create(2.0, 1.9, 1.7)],
+        [0.75, Color4.create(1.0, 0.5, 0.2)],
+        [1, Color4.create(0.2, 0.25, 0.5)]
+      )
+    }
+  },
+  // Everything the sky contributes goes black: no sun/moon/flare, black directional light, black sky
+  // colors (so the derived ambient is black too), black fog, no clouds, no stars. Only the scene's
+  // own LightSource illuminates anything.
+  trueDarkness: {
+    sun: { color: constant(Color4.Black()), visible: false },
+    skyColors: {
+      zenith: constant(Color4.Black()),
+      horizon: constant(Color4.Black()),
+      nadir: constant(Color4.Black())
+    },
+    fog: { color: constant(Color4.Black()) },
+    clouds: { opacity: 0 },
+    stars: { brightness: 0 }
+  }
+}
+
+const timeFixedSeconds: Record<Exclude<TimeSelection, 'live'>, number> = {
+  six: 6 * 3600,
+  twelve: 12 * 3600,
+  eighteen: 18 * 3600,
+  midnight: 0
+}
+
+const environmentLabels: Record<EnvironmentSelection, string> = {
+  default: 'Default',
+  mars: 'Mars',
+  clearNight: 'Clear night',
+  storm: 'Storm',
+  dayRamp: 'Day ramp',
+  trueDarkness: 'True darkness'
+}
+
+const timeLabels: Record<TimeSelection, string> = {
+  six: '06:00',
+  twelve: '12:00',
+  eighteen: '18:00',
+  midnight: '00:00',
+  live: 'Live'
+}
+
+// Composes the currently selected sky/reflection sources and environment preset into a
+// single Skybox.createOrReplace call (only the selected fields are set), or removes the
+// component entirely when sky, reflection AND environment are all at their 'none'/'default'
+// value, so the scene falls back to defaults.
 function applySkybox() {
-  if (skySelection === 'none' && reflectionSelection === 'none') {
+  if (skySelection === 'none' && reflectionSelection === 'none' && environmentSelection === 'default' && sunVisible) {
     Skybox.deleteFrom(engine.RootEntity)
-    console.log('Skybox removed: back to default procedural sky and reflections')
+    console.log('Skybox removed: back to default procedural sky, reflections and environment')
     return
   }
 
@@ -40,13 +163,21 @@ function applySkybox() {
       ? undefined
       : Material.Texture.Common({ src: reflectionTextureSrc[reflectionSelection], wrapMode: TextureWrapMode.TWM_REPEAT })
 
+  const environment: EnvironmentPreset = environmentSelection === 'default' ? {} : presets[environmentSelection]
+
+  // sun.visible hides the sun and moon discs and the lens flare (also over a sky texture); the light is unaffected.
+  // It merges with the preset's sun color so both can be set independently.
+  const sun = sunVisible ? environment.sun : { ...environment.sun, visible: false }
+
   Skybox.createOrReplace(engine.RootEntity, {
     skyboxTexture,
-    reflectionMap
+    reflectionMap,
+    ...environment,
+    sun
   })
 
   console.log(
-    `Skybox updated: sky=${skySelection}, reflection=${reflectionSelection}` +
+    `Skybox updated: sky=${skySelection}, reflection=${reflectionSelection}, environment=${environmentSelection}, sun=${sunVisible ? 'visible' : 'hidden'}` +
       (reflectionSelection === 'invalid' ? ' (intentionally invalid src, exercising the failure path)' : '')
   )
 }
@@ -61,6 +192,32 @@ function setReflection(selection: ReflectionSelection) {
   applySkybox()
 }
 
+function setEnvironment(selection: EnvironmentSelection) {
+  environmentSelection = selection
+  applySkybox()
+}
+
+function setSunVisible(visible: boolean) {
+  sunVisible = visible
+  applySkybox()
+}
+
+// SkyboxTime is a separate component from Skybox: it drives the time-of-day clock that the
+// procedural sky/lighting (and any environment gradient set above) is evaluated against.
+// 'Live' removes the override so the day/night cycle resumes advancing on its own.
+function setTime(selection: TimeSelection) {
+  timeSelection = selection
+
+  if (selection === 'live') {
+    SkyboxTime.deleteFrom(engine.RootEntity)
+    console.log('SkyboxTime removed: time of day is live again')
+    return
+  }
+
+  SkyboxTime.createOrReplace(engine.RootEntity, { fixedTime: timeFixedSeconds[selection] })
+  console.log(`SkyboxTime set: fixedTime=${timeFixedSeconds[selection]}s (${selection})`)
+}
+
 function statusText() {
   const skyLabel = skySelection === 'none' ? 'None (procedural)' : `Sky ${skySelection.toUpperCase()}`
   const reflectionLabel =
@@ -71,7 +228,7 @@ function statusText() {
       : reflectionSelection === 'invalid'
         ? 'Invalid src'
         : `Reflection ${reflectionSelection.toUpperCase()}`
-  return `Sky: ${skyLabel}  |  Reflection: ${reflectionLabel}`
+  return `Sky: ${skyLabel}  |  Reflection: ${reflectionLabel}\nEnvironment: ${environmentLabels[environmentSelection]}  |  Sun: ${sunVisible ? 'Visible' : 'Hidden'}  |  Time: ${timeLabels[timeSelection]}`
 }
 
 function selectButtonVariant(active: boolean): 'primary' | 'secondary' {
@@ -81,10 +238,10 @@ function selectButtonVariant(active: boolean): 'primary' | 'secondary' {
 const Panel = () => (
   <UiEntity
     uiTransform={{
-      width: 320,
+      width: 340,
       height: 'auto',
       positionType: 'absolute',
-      position: { top: '10%', right: 20 },
+      position: { top: '6%', right: 20 },
       flexDirection: 'column',
       padding: 20
     }}
@@ -164,6 +321,126 @@ const Panel = () => (
       uiTransform={{ width: '100%', height: 36, margin: { bottom: 15 } }}
       onMouseDown={() => setReflection('invalid')}
     />
+
+    <Label
+      value="Environment"
+      fontSize={14}
+      color={Color4.fromHexString('#AAAAAA')}
+      uiTransform={{ width: '100%', height: 20, margin: { bottom: 5 } }}
+    />
+    <UiEntity uiTransform={{ width: '100%', height: 36, flexDirection: 'row', justifyContent: 'space-between', margin: { bottom: 8 } }}>
+      <Button
+        value="Default"
+        variant={selectButtonVariant(environmentSelection === 'default')}
+        fontSize={11}
+        uiTransform={{ width: '32%', height: '100%' }}
+        onMouseDown={() => setEnvironment('default')}
+      />
+      <Button
+        value="Mars"
+        variant={selectButtonVariant(environmentSelection === 'mars')}
+        fontSize={11}
+        uiTransform={{ width: '32%', height: '100%' }}
+        onMouseDown={() => setEnvironment('mars')}
+      />
+      <Button
+        value="Clear night"
+        variant={selectButtonVariant(environmentSelection === 'clearNight')}
+        fontSize={11}
+        uiTransform={{ width: '32%', height: '100%' }}
+        onMouseDown={() => setEnvironment('clearNight')}
+      />
+    </UiEntity>
+    <UiEntity uiTransform={{ width: '100%', height: 36, flexDirection: 'row', justifyContent: 'space-between', margin: { bottom: 15 } }}>
+      <Button
+        value="Storm"
+        variant={selectButtonVariant(environmentSelection === 'storm')}
+        fontSize={11}
+        uiTransform={{ width: '32%', height: '100%' }}
+        onMouseDown={() => setEnvironment('storm')}
+      />
+      <Button
+        value="Day ramp"
+        variant={selectButtonVariant(environmentSelection === 'dayRamp')}
+        fontSize={11}
+        uiTransform={{ width: '32%', height: '100%' }}
+        onMouseDown={() => setEnvironment('dayRamp')}
+      />
+      <Button
+        value="True darkness"
+        variant={selectButtonVariant(environmentSelection === 'trueDarkness')}
+        fontSize={11}
+        uiTransform={{ width: '32%', height: '100%' }}
+        onMouseDown={() => setEnvironment('trueDarkness')}
+      />
+    </UiEntity>
+
+    <Label
+      value="Sun & moon"
+      fontSize={14}
+      color={Color4.fromHexString('#AAAAAA')}
+      uiTransform={{ width: '100%', height: 20, margin: { bottom: 5 } }}
+    />
+    <UiEntity uiTransform={{ width: '100%', height: 36, flexDirection: 'row', justifyContent: 'space-between', margin: { bottom: 8 } }}>
+      <Button
+        value="Visible"
+        variant={selectButtonVariant(sunVisible)}
+        fontSize={11}
+        uiTransform={{ width: '48%', height: '100%' }}
+        onMouseDown={() => setSunVisible(true)}
+      />
+      <Button
+        value="Hidden"
+        variant={selectButtonVariant(!sunVisible)}
+        fontSize={11}
+        uiTransform={{ width: '48%', height: '100%' }}
+        onMouseDown={() => setSunVisible(false)}
+      />
+    </UiEntity>
+
+    <Label
+      value="Time"
+      fontSize={14}
+      color={Color4.fromHexString('#AAAAAA')}
+      uiTransform={{ width: '100%', height: 20, margin: { bottom: 5 } }}
+    />
+    <UiEntity uiTransform={{ width: '100%', height: 36, flexDirection: 'row', justifyContent: 'space-between', margin: { bottom: 15 } }}>
+      <Button
+        value="06:00"
+        variant={selectButtonVariant(timeSelection === 'six')}
+        fontSize={11}
+        uiTransform={{ width: '18%', height: '100%' }}
+        onMouseDown={() => setTime('six')}
+      />
+      <Button
+        value="12:00"
+        variant={selectButtonVariant(timeSelection === 'twelve')}
+        fontSize={11}
+        uiTransform={{ width: '18%', height: '100%' }}
+        onMouseDown={() => setTime('twelve')}
+      />
+      <Button
+        value="18:00"
+        variant={selectButtonVariant(timeSelection === 'eighteen')}
+        fontSize={11}
+        uiTransform={{ width: '18%', height: '100%' }}
+        onMouseDown={() => setTime('eighteen')}
+      />
+      <Button
+        value="00:00"
+        variant={selectButtonVariant(timeSelection === 'midnight')}
+        fontSize={11}
+        uiTransform={{ width: '18%', height: '100%' }}
+        onMouseDown={() => setTime('midnight')}
+      />
+      <Button
+        value="Live"
+        variant={selectButtonVariant(timeSelection === 'live')}
+        fontSize={11}
+        uiTransform={{ width: '18%', height: '100%' }}
+        onMouseDown={() => setTime('live')}
+      />
+    </UiEntity>
 
     <Label
       value={statusText()}

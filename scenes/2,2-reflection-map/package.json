@@ -23,7 +23,7 @@
     "@dcl/ecs": "file:../../../js-sdk-toolchain/packages/@dcl/ecs",
     "@dcl/js-runtime": "7.0.0",
     "@dcl/react-ecs": "file:../../../js-sdk-toolchain/packages/@dcl/react-ecs",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/reflection-map/dcl-sdk-7.29.1-36433312171.commit-2026499.tgz",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/reflection-map/dcl-sdk-7.29.1-36706989499.commit-ad4820d.tgz",
     "@dcl/sdk-commands": "file:../../../js-sdk-toolchain/packages/@dcl/sdk-commands"
   }
 }
