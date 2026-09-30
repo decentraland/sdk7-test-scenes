@@ -1,29 +1,39 @@
 import ReactEcs, { ReactEcsRenderer, UiEntity, Label, Button } from '@dcl/sdk/react-ecs'
 import { Color4 } from '@dcl/sdk/math'
-import { engine, Material, Skybox, SkyboxTime, TextureWrapMode, ColorGradient } from '@dcl/sdk/ecs'
+import { Entity, engine, Material, Skybox, SkyboxTime, TextureWrapMode, ColorGradient } from '@dcl/sdk/ecs'
 
 // Selected source for each slot. 'none' means the field is left unset on the component.
-type SkySelection = 'none' | 'a' | 'b'
-type ReflectionSelection = 'none' | 'a' | 'b' | 'invalid'
+// 'video' (Sky/Reflection/Clouds) samples the scene's looping VideoPlayer entity live via
+// Material.Texture.Video instead of a file texture.
+type SkySelection = 'none' | 'a' | 'b' | 'video'
+type ReflectionSelection = 'none' | 'a' | 'b' | 'invalid' | 'video'
+type CloudsTextureSelection = 'none' | 'texture' | 'video'
 type EnvironmentSelection = 'default' | 'mars' | 'clearNight' | 'storm' | 'dayRamp' | 'trueDarkness'
 type TimeSelection = 'six' | 'twelve' | 'eighteen' | 'midnight' | 'live'
 
 let skySelection: SkySelection = 'none'
 let reflectionSelection: ReflectionSelection = 'none'
+let cloudsTextureSelection: CloudsTextureSelection = 'none'
 let environmentSelection: EnvironmentSelection = 'default'
 let timeSelection: TimeSelection = 'live'
 let sunVisible = true
 
-const skyTextureSrc: Record<Exclude<SkySelection, 'none'>, string> = {
+// Set once by initializeUI(videoPlayerEntity). Passed in rather than imported from './index' to
+// avoid a circular module import between index.ts and ui.tsx.
+let videoPlayerEntity: Entity
+
+const skyTextureSrc: Record<Exclude<SkySelection, 'none' | 'video'>, string> = {
   a: 'images/sky-a.png',
   b: 'images/sky-b.png'
 }
 
-const reflectionTextureSrc: Record<Exclude<ReflectionSelection, 'none'>, string> = {
+const reflectionTextureSrc: Record<Exclude<ReflectionSelection, 'none' | 'video'>, string> = {
   a: 'images/env-a.png',
   b: 'images/env-b.png',
   invalid: 'images/does-not-exist.png'
 }
+
+const cloudsTextureSrc = 'images/clouds-a.png'
 
 // The PBSkybox groups (sun/skyColors/fog/clouds/stars) aren't exported as a standalone type
 // from @dcl/ecs, only the `Skybox` component definition itself is. Derive the payload shape
@@ -142,12 +152,18 @@ const timeLabels: Record<TimeSelection, string> = {
   live: 'Live'
 }
 
-// Composes the currently selected sky/reflection sources and environment preset into a
+// Composes the currently selected sky/reflection/clouds sources and environment preset into a
 // single Skybox.createOrReplace call (only the selected fields are set), or removes the
-// component entirely when sky, reflection AND environment are all at their 'none'/'default'
-// value, so the scene falls back to defaults.
+// component entirely when sky, reflection, clouds texture AND environment are all at their
+// neutral value, so the scene falls back to defaults.
 function applySkybox() {
-  if (skySelection === 'none' && reflectionSelection === 'none' && environmentSelection === 'default' && sunVisible) {
+  if (
+    skySelection === 'none' &&
+    reflectionSelection === 'none' &&
+    cloudsTextureSelection === 'none' &&
+    environmentSelection === 'default' &&
+    sunVisible
+  ) {
     Skybox.deleteFrom(engine.RootEntity)
     console.log('Skybox removed: back to default procedural sky, reflections and environment')
     return
@@ -156,12 +172,23 @@ function applySkybox() {
   const skyboxTexture =
     skySelection === 'none'
       ? undefined
-      : Material.Texture.Common({ src: skyTextureSrc[skySelection], wrapMode: TextureWrapMode.TWM_REPEAT })
+      : skySelection === 'video'
+        ? Material.Texture.Video({ videoPlayerEntity })
+        : Material.Texture.Common({ src: skyTextureSrc[skySelection], wrapMode: TextureWrapMode.TWM_REPEAT })
 
   const reflectionMap =
     reflectionSelection === 'none'
       ? undefined
-      : Material.Texture.Common({ src: reflectionTextureSrc[reflectionSelection], wrapMode: TextureWrapMode.TWM_REPEAT })
+      : reflectionSelection === 'video'
+        ? Material.Texture.Video({ videoPlayerEntity })
+        : Material.Texture.Common({ src: reflectionTextureSrc[reflectionSelection], wrapMode: TextureWrapMode.TWM_REPEAT })
+
+  const cloudsTexture =
+    cloudsTextureSelection === 'none'
+      ? undefined
+      : cloudsTextureSelection === 'video'
+        ? Material.Texture.Video({ videoPlayerEntity })
+        : Material.Texture.Common({ src: cloudsTextureSrc })
 
   const environment: EnvironmentPreset = environmentSelection === 'default' ? {} : presets[environmentSelection]
 
@@ -169,15 +196,20 @@ function applySkybox() {
   // It merges with the preset's sun color so both can be set independently.
   const sun = sunVisible ? environment.sun : { ...environment.sun, visible: false }
 
+  // Merge the clouds texture into whatever clouds properties the preset already set
+  // (opacity/speed/color), rather than replacing the group outright.
+  const clouds = environment.clouds || cloudsTexture !== undefined ? { ...environment.clouds, texture: cloudsTexture } : undefined
+
   Skybox.createOrReplace(engine.RootEntity, {
     skyboxTexture,
     reflectionMap,
     ...environment,
-    sun
+    sun,
+    clouds
   })
 
   console.log(
-    `Skybox updated: sky=${skySelection}, reflection=${reflectionSelection}, environment=${environmentSelection}, sun=${sunVisible ? 'visible' : 'hidden'}` +
+    `Skybox updated: sky=${skySelection}, reflection=${reflectionSelection}, clouds=${cloudsTextureSelection}, environment=${environmentSelection}, sun=${sunVisible ? 'visible' : 'hidden'}` +
       (reflectionSelection === 'invalid' ? ' (intentionally invalid src, exercising the failure path)' : '')
   )
 }
@@ -189,6 +221,11 @@ function setSky(selection: SkySelection) {
 
 function setReflection(selection: ReflectionSelection) {
   reflectionSelection = selection
+  applySkybox()
+}
+
+function setCloudsTexture(selection: CloudsTextureSelection) {
+  cloudsTextureSelection = selection
   applySkybox()
 }
 
@@ -219,7 +256,8 @@ function setTime(selection: TimeSelection) {
 }
 
 function statusText() {
-  const skyLabel = skySelection === 'none' ? 'None (procedural)' : `Sky ${skySelection.toUpperCase()}`
+  const skyLabel =
+    skySelection === 'none' ? 'None (procedural)' : skySelection === 'video' ? 'Video' : `Sky ${skySelection.toUpperCase()}`
   const reflectionLabel =
     reflectionSelection === 'none'
       ? skySelection === 'none'
@@ -227,8 +265,16 @@ function statusText() {
         : 'None (derived from sky)'
       : reflectionSelection === 'invalid'
         ? 'Invalid src'
-        : `Reflection ${reflectionSelection.toUpperCase()}`
-  return `Sky: ${skyLabel}  |  Reflection: ${reflectionLabel}\nEnvironment: ${environmentLabels[environmentSelection]}  |  Sun: ${sunVisible ? 'Visible' : 'Hidden'}  |  Time: ${timeLabels[timeSelection]}`
+        : reflectionSelection === 'video'
+          ? 'Video'
+          : `Reflection ${reflectionSelection.toUpperCase()}`
+  const cloudsLabel =
+    cloudsTextureSelection === 'none'
+      ? 'None (procedural)'
+      : cloudsTextureSelection === 'video'
+        ? 'Video'
+        : 'Texture'
+  return `Sky: ${skyLabel}  |  Reflection: ${reflectionLabel}\nEnvironment: ${environmentLabels[environmentSelection]}  |  Sun: ${sunVisible ? 'Visible' : 'Hidden'}  |  Time: ${timeLabels[timeSelection]}\nClouds texture: ${cloudsLabel}`
 }
 
 function selectButtonVariant(active: boolean): 'primary' | 'secondary' {
@@ -265,21 +311,28 @@ const Panel = () => (
         value="A"
         variant={selectButtonVariant(skySelection === 'a')}
         fontSize={12}
-        uiTransform={{ width: '30%', height: '100%' }}
+        uiTransform={{ width: '22%', height: '100%' }}
         onMouseDown={() => setSky('a')}
       />
       <Button
         value="B"
         variant={selectButtonVariant(skySelection === 'b')}
         fontSize={12}
-        uiTransform={{ width: '30%', height: '100%' }}
+        uiTransform={{ width: '22%', height: '100%' }}
         onMouseDown={() => setSky('b')}
+      />
+      <Button
+        value="Video"
+        variant={selectButtonVariant(skySelection === 'video')}
+        fontSize={12}
+        uiTransform={{ width: '22%', height: '100%' }}
+        onMouseDown={() => setSky('video')}
       />
       <Button
         value="None"
         variant={selectButtonVariant(skySelection === 'none')}
         fontSize={12}
-        uiTransform={{ width: '30%', height: '100%' }}
+        uiTransform={{ width: '22%', height: '100%' }}
         onMouseDown={() => setSky('none')}
       />
     </UiEntity>
@@ -295,21 +348,28 @@ const Panel = () => (
         value="A"
         variant={selectButtonVariant(reflectionSelection === 'a')}
         fontSize={12}
-        uiTransform={{ width: '30%', height: '100%' }}
+        uiTransform={{ width: '22%', height: '100%' }}
         onMouseDown={() => setReflection('a')}
       />
       <Button
         value="B"
         variant={selectButtonVariant(reflectionSelection === 'b')}
         fontSize={12}
-        uiTransform={{ width: '30%', height: '100%' }}
+        uiTransform={{ width: '22%', height: '100%' }}
         onMouseDown={() => setReflection('b')}
+      />
+      <Button
+        value="Video"
+        variant={selectButtonVariant(reflectionSelection === 'video')}
+        fontSize={12}
+        uiTransform={{ width: '22%', height: '100%' }}
+        onMouseDown={() => setReflection('video')}
       />
       <Button
         value="None"
         variant={selectButtonVariant(reflectionSelection === 'none')}
         fontSize={12}
-        uiTransform={{ width: '30%', height: '100%' }}
+        uiTransform={{ width: '22%', height: '100%' }}
         onMouseDown={() => setReflection('none')}
       />
     </UiEntity>
@@ -321,6 +381,36 @@ const Panel = () => (
       uiTransform={{ width: '100%', height: 36, margin: { bottom: 15 } }}
       onMouseDown={() => setReflection('invalid')}
     />
+
+    <Label
+      value="Clouds texture"
+      fontSize={14}
+      color={Color4.fromHexString('#AAAAAA')}
+      uiTransform={{ width: '100%', height: 20, margin: { bottom: 5 } }}
+    />
+    <UiEntity uiTransform={{ width: '100%', height: 40, flexDirection: 'row', justifyContent: 'space-between', margin: { bottom: 15 } }}>
+      <Button
+        value="None"
+        variant={selectButtonVariant(cloudsTextureSelection === 'none')}
+        fontSize={12}
+        uiTransform={{ width: '30%', height: '100%' }}
+        onMouseDown={() => setCloudsTexture('none')}
+      />
+      <Button
+        value="Texture"
+        variant={selectButtonVariant(cloudsTextureSelection === 'texture')}
+        fontSize={12}
+        uiTransform={{ width: '30%', height: '100%' }}
+        onMouseDown={() => setCloudsTexture('texture')}
+      />
+      <Button
+        value="Video"
+        variant={selectButtonVariant(cloudsTextureSelection === 'video')}
+        fontSize={12}
+        uiTransform={{ width: '30%', height: '100%' }}
+        onMouseDown={() => setCloudsTexture('video')}
+      />
+    </UiEntity>
 
     <Label
       value="Environment"
@@ -452,6 +542,9 @@ const Panel = () => (
   </UiEntity>
 )
 
-export function initializeUI() {
+// `entity` is the scene's looping VideoPlayer entity (created in index.ts); it's passed in
+// rather than imported, to avoid a circular module import between index.ts and ui.tsx.
+export function initializeUI(entity: Entity) {
+  videoPlayerEntity = entity
   ReactEcsRenderer.setUiRenderer(Panel)
 }

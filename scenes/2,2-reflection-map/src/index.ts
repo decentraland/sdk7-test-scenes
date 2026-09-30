@@ -3,17 +3,19 @@ import { Color3, Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import {
   ColliderLayer,
   engine,
+  Entity,
   GltfContainer,
   LightSource,
   Material,
   MeshRenderer,
-  Transform
+  Transform,
+  VideoPlayer
 } from '@dcl/sdk/ecs'
 import { initializeUI } from './ui'
 
 export function main() {
   setupScene()
-  initializeUI()
+  initializeUI(videoPlayerEntity)
 }
 
 function setupScene() {
@@ -22,6 +24,7 @@ function setupScene() {
   createMirror()
   createMaterialCubes()
   createLight()
+  createVideoScreen()
 }
 
 // Reuses the glossy floor asset pack from `0,6-ui-zindex-and-opacity` so reflections
@@ -80,6 +83,32 @@ function createMirror() {
     metallic: 1,
     roughness: 0,
     albedoColor: Color4.White()
+  })
+}
+
+// A small looping video screen on the west wall, mirroring the mirror plane's placement on the
+// east wall (opposite rotation, same room-facing convention). Exported so `ui.tsx` can reference
+// `videoPlayerEntity` for the Sky/Reflection/Clouds "Video" buttons via Material.Texture.Video.
+export const videoPlayerEntity: Entity = engine.addEntity()
+
+function createVideoScreen() {
+  Transform.create(videoPlayerEntity, {
+    position: Vector3.create(2, 1.6, 8),
+    scale: Vector3.create(2, 1.125, 1),
+    rotation: Quaternion.fromEulerDegrees(0, 90, 0)
+  })
+
+  MeshRenderer.setPlane(videoPlayerEntity)
+
+  VideoPlayer.create(videoPlayerEntity, {
+    src: 'assets/video/video-example.mp4',
+    playing: true,
+    loop: true,
+    volume: 0
+  })
+
+  Material.setBasicMaterial(videoPlayerEntity, {
+    texture: Material.Texture.Video({ videoPlayerEntity })
   })
 }
 

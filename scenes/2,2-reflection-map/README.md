@@ -15,7 +15,10 @@ Skybox.deleteFrom(engine.RootEntity) // back to defaults
 - `reflectionMap` replaces the reflection cubemap used by every reflective material in the
   scene (also equirectangular 2:1). If it is unset but `skyboxTexture` is set, reflections
   are derived from the skybox texture instead of the default environment.
-- Only `Texture` (file) sources are supported for both fields.
+- Both fields accept `Texture` (file) **and `VideoTexture`** sources
+  (`Material.Texture.Video({ videoPlayerEntity })`); `AvatarTexture` is ignored. A video
+  source is sampled live — reflections derived from a video follow it with a few frames of
+  delay.
 
 ## Environment groups (procedural sky)
 
@@ -26,7 +29,7 @@ to `skyboxTexture`, which replaces it outright):
 sun?: { color?: ColorGradient; visible?: boolean }
 skyColors?: { zenith?: ColorGradient; horizon?: ColorGradient; nadir?: ColorGradient }
 fog?: { color?: ColorGradient }
-clouds?: { opacity?: number; speed?: number }  // defaults 1 / 0.01
+clouds?: { opacity?: number; speed?: number; texture?: TextureUnion }  // opacity/speed default 1 / 0.01
 stars?: { brightness?: number }                 // default 4.62, only visible at night
 ```
 
@@ -45,6 +48,11 @@ stars?: { brightness?: number }                 // default 4.62, only visible at
 - `skyColors`, `clouds` and `stars` are **inert while `skyboxTexture` is set** (the panorama
   replaces the procedural sky and stars/clouds live on it). `sun` and `fog` (and the ambient
   light they/`skyColors` drive) keep applying regardless of `skyboxTexture`.
+- `clouds.texture` replaces the default procedural cloud layer with an equirectangular 2:1
+  image (also inert while `skyboxTexture` is set — see below). It accepts `Texture` and
+  `VideoTexture` sources. Channels: **R** = cloud tint intensity (multiplied by `clouds.color`),
+  **G** = opacity/coverage, **B** = a sun-highlight mask; a plain grayscale image works as a
+  simple cloud mask (equal R/G, no highlight). Unset = default procedural clouds.
 - Every override — texture or procedural group — resets to the default time-of-day skybox
   when the player leaves the scene, the component is removed, or a field/group is unset.
 
@@ -67,8 +75,12 @@ SkyboxTime.deleteFrom(engine.RootEntity) // back to the live/realm clock
 ## Scene content
 
 A glossy tile floor, four metallic spheres of increasing roughness, a vertical mirror plane, four
-material test cubes near spawn (matte white, glossy red, brushed gold, emissive blue) and **one point
-`LightSource`** (warm, 8000 cd, 14 m range, shadows) with a small emissive sphere as its marker. The
+material test cubes near spawn (matte white, glossy red, brushed gold, emissive blue), **one point
+`LightSource`** (warm, 8000 cd, 14 m range, shadows) with a small emissive sphere as its marker, and
+one small looping **`VideoPlayer`** screen (`assets/video/video-example.mp4`, muted, looping,
+`MeshRenderer.setPlane` at `(2, 1.6, 8)` on the west wall, mirroring the mirror plane's placement on
+the east wall) so the video source used by the Sky/Reflection/Clouds "Video" buttons is also visible
+playing directly on a screen. The
 light **orbits the player** (radius 3 m, 2.5 m up, ~0.8 rad/s) via a scene system, so in True
 darkness it lights up whatever you walk towards; the cubes show diffuse falloff, a travelling
 specular highlight, a metallic sheen and an unlit emissive reference side by side.
@@ -76,20 +88,40 @@ There is no in-world sign; the UI panel is the only control surface.
 
 ## What the scene demonstrates
 
-The right-hand panel has four independent controls: **Sky** (A/B/None), **Reflection**
-(A/B/None + an Invalid-src button), **Environment** (a preset selector) and **Time** (a
-fixed-time selector). Every click composes the *current* selection of all four into a
-single `Skybox.createOrReplace` call (only the selected fields/groups are included) plus a
-separate `SkyboxTime` call, or calls `Skybox.deleteFrom` when Sky, Reflection **and**
-Environment are all at their neutral value (`None`/`None`/`Default`):
+The right-hand panel has five independent controls: **Sky** (A/B/Video/None), **Reflection**
+(A/B/Video/None + an Invalid-src button), **Clouds texture** (None/Texture/Video),
+**Environment** (a preset selector) and **Time** (a fixed-time selector). Every click composes
+the *current* selection of all of these into a single `Skybox.createOrReplace` call (only the
+selected fields/groups are included) plus a separate `SkyboxTime` call, or calls
+`Skybox.deleteFrom` when Sky, Reflection, Clouds texture **and** Environment are all at their
+neutral value (`None`/`None`/`None`/`Default`):
 
 | Sky      | Reflection  | Result                                                                |
 |----------|-------------|------------------------------------------------------------------------|
 | A or B   | None        | Custom sky, reflections **derived from the sky texture**               |
 | None     | A or B      | Default procedural sky, custom reflection map                          |
 | A or B   | A or B      | Custom sky and an independent, unrelated reflection map                |
-| None     | None        | `Skybox.deleteFrom` (only if Environment is also `Default`) — default procedural sky and default reflections |
+| None     | None        | `Skybox.deleteFrom` (only if Reflection/Clouds/Environment are also neutral) — default procedural sky and default reflections |
 | any      | Invalid src | `reflectionMap` points at a non-existent file, to exercise the failure/fallback path |
+| Video    | any         | `skyboxTexture` samples the scene's `VideoPlayer` entity live (`Material.Texture.Video`) |
+| any      | Video       | `reflectionMap` samples the same `VideoPlayer` entity live |
+
+### Clouds texture row
+
+`None` / `Texture` (`images/clouds-a.png`) / `Video` (the same `VideoPlayer` entity). Sets
+`clouds.texture` while preserving whatever `clouds.opacity`/`speed`/`color` the current
+Environment preset already sets (e.g. Mars + Clouds Texture keeps Mars' dusty tint and
+0.3 opacity, but replaces the cloud shape with `clouds-a.png`'s mask). Only visible with
+Sky = None (`clouds` is inert while `skyboxTexture` is set — see above); with Sky = Video,
+selecting Clouds = Video maps the same live video into the cloud layer, with the mask's G
+channel controlling how much of it shows through as coverage.
+
+Expect: `Texture` shows two clusters of soft cloud-like blobs concentrated in the upper sky,
+clearly different from the default Genesis cloud shapes. `Video` maps the raw video frame into
+the cloud layer — since the video has no G-channel mask authored for this purpose, expect
+either a faint/uneven cloud coverage or full-frame coverage depending on the video's own
+green-channel content; it's meant to exercise the video-as-clouds-texture code path, not to look
+like a natural sky.
 
 ### Environment presets (`src/ui.tsx`)
 
@@ -104,6 +136,16 @@ Environment are all at their neutral value (`None`/`None`/`Default`):
 
 Environment presets (except `sun`/`fog`) are inert while a Sky texture (A/B) is also
 selected — pick Sky = None to see them clearly.
+
+### Video sky / reflection
+
+Sky = Video shows the scene's looping `assets/video/video-example.mp4` mapped as the visible
+sky (equirect-stretched — it will look distorted since the source clip isn't an equirect
+panorama, that's expected). Reflection = None while Sky = Video derives reflections from that
+same video frame, so the metallic spheres/mirror/floor show a blurry, delayed copy of the
+video; Reflection = Video maps it directly instead (same source, no derivation step). In both
+cases reflections update live but trail the sky by a few frames — that lag is the thing this
+row is meant to demonstrate.
 
 ### Sun & moon row
 
@@ -140,6 +182,15 @@ rather than to be direction-checked.
 `env-a.png` is a warm indoor-style reflection map (orange/brown bands with bright "window"
 rectangles) and `env-b.png` is a cold studio-style reflection map (grey with bright white
 softbox rectangles) — both are meant to be visually distinct on the metallic surfaces.
+
+`clouds-a.png` is a 2048×1024 equirect clouds-texture test image (generated deterministically,
+seed `20260930`, well under 1 MB): a black background with ~25 soft elliptical cloud blobs,
+positioned with `v` (normalized zenith-to-nadir, image top = zenith = `v=1`) in the `0.55..0.9`
+band — i.e. above the horizon but not at the zenith pole — so the pattern reads unmistakably as
+an override of the default procedural clouds. Per blob: **G** (opacity/coverage) is a soft
+Gaussian falloff; **R** (tint intensity) is the same falloff × 0.9; **B** (sun-highlight mask)
+is a smaller Gaussian ellipse offset toward the blob's top-left (smaller column, smaller row).
+The image wraps seamlessly at the `u=0/1` seam.
 
 ## Running the scene
 
