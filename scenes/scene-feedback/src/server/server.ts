@@ -15,7 +15,7 @@ import { CSV_HEADER, CsvRow, formatRow, hasRow, sanitizeId, utf8Length } from '.
 // flush, or immediately when the last player leaves: the server keeps running
 // ~2 min after that, and there is no shutdown hook.
 const PART_PREFIX = 'fb:csv:'
-const CURRENT_PART_KEY = 'fb:csv-current'
+const CURRENT_PART_KEY = 'fb:csv-writing-part'
 const PART_MAX_BYTES = 400 * 1024 // Storage caps one value at 512 KB
 const FLUSH_COOLDOWN_MS = 60_000
 const LOAD_RETRY_MS = 5_000

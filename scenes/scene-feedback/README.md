@@ -26,7 +26,7 @@ not to production Storage.
 ## Stored CSV
 
 `fb:csv:0001`, `fb:csv:0002`, … — each part up to 400 KB (~2 500 rows; Storage caps a value at
-512 KB), `fb:csv-current` holds the part being written. The World's scene Storage is 10 MB in
+512 KB), `fb:csv-writing-part` holds the number of the part being written. The World's scene Storage is 10 MB in
 total, shared by all its scenes.
 
 ```csv
