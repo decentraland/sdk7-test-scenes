@@ -40,7 +40,7 @@ export async function startServer(): Promise<void> {
   engine.addSystem(heartbeatSystem)
   engine.addSystem(flushSystem)
 
-  room.onMessage('submitResponse', (data, context) => {
+  room.onMessage('feedbackSubmit', (data, context) => {
     if (context) receiveResponse(data, context.from)
   })
 
@@ -97,7 +97,7 @@ function receiveResponse(
 ): void {
   // Not loaded yet: no ack, the client keeps resending.
   if (currentPart === 0) return
-  const ack = (ok: boolean) => void room.send('responseSaved', { requestId: data.requestId, ok }, { to: [from] })
+  const ack = (ok: boolean) => void room.send('feedbackSaved', { requestId: data.requestId, ok }, { to: [from] })
 
   const id = sanitizeId(data.requestId)
   if (seen.has(id)) return ack(true)

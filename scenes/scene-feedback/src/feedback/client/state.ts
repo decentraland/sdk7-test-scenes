@@ -27,6 +27,70 @@ export function isServerAlive(): boolean {
   return Date.now() - lastBeatSeenAt < HEARTBEAT_FRESHNESS_MS
 }
 
+// --- Asking ------------------------------------------------------------------------
+// 'not-shown': asked before at this Trigger this visit, or the server never came up.
+export type AskResult = 'submitted' | 'skipped' | 'failed' | 'not-shown'
+
+export type AskOptions = {
+  // Show again even if the player already saw this Question at this Trigger.
+  repeat?: boolean
+}
+
+type Ask = {
+  question: Question
+  trigger: string
+  resolve: (result: AskResult) => void
+  askedAt: number
+}
+
+// Questions wait here while another one is open or the server is still waking up.
+const queue: Ask[] = []
+// The Ask on screen now.
+let current: Ask | undefined
+// "id|trigger" of every Question shown this visit.
+const shown = new Set<string>()
+// A queued Question gives up if the server stays down this long.
+const SERVER_WAIT_MS = 120_000
+
+// trigger labels the moment the Question was asked, e.g. 'after-first-round',
+// so answers given at different moments can be told apart.
+export function askQuestion(questionId: string, trigger: string, options: AskOptions = {}): Promise<AskResult> {
+  const question = findQuestion(questionId)
+  if (!question) {
+    console.log(`[FEEDBACK] unknown question ${questionId}`)
+    return Promise.resolve('not-shown')
+  }
+  const key = `${question.id}|${trigger}`
+  const pending = current?.question.id === question.id && current.trigger === trigger
+  const queued = queue.some((a) => a.question.id === question.id && a.trigger === trigger)
+  if (!options.repeat && (shown.has(key) || pending || queued)) return Promise.resolve('not-shown')
+
+  return new Promise((resolve) => queue.push({ question, trigger, resolve, askedAt: Date.now() }))
+}
+
+// Opens the next queued Question once nothing is on screen and the server is up.
+function processQueue(): void {
+  const alive = isServerAlive()
+  if (!alive) {
+    for (let i = queue.length - 1; i >= 0; i--) {
+      if (Date.now() - queue[i].askedAt < SERVER_WAIT_MS) continue
+      console.log(`[FEEDBACK] server not up after ${SERVER_WAIT_MS / 1000} s, not showing ${queue[i].question.id}`)
+      queue.splice(i, 1)[0].resolve('not-shown')
+    }
+    return
+  }
+  if (feedback.phase !== 'idle' || queue.length === 0) return
+
+  const next = queue.shift()!
+  current = next
+  shown.add(`${next.question.id}|${next.trigger}`)
+  feedback.phase = 'open'
+  feedback.question = next.question
+  feedback.trigger = next.trigger
+  feedback.rating = 0
+  feedback.comment = ''
+}
+
 // --- The Question currently on screen ----------------------------------------------
 // idle → open → sending → saved (auto-closes) | failed (player can retry or close)
 export type Phase = 'idle' | 'open' | 'sending' | 'saved' | 'failed'
@@ -46,22 +110,11 @@ export const feedback = {
 }
 
 let requestId = ''
+let sentAnswer = false
 let firstSentAt = 0
 let lastSentAt = 0
 let savedAt = 0
 const enteredAt = Date.now()
-
-// trigger labels the moment the Question was asked, e.g. 'after-first-round',
-// so answers given at different moments can be told apart.
-export function askQuestion(questionId: string, trigger: string): void {
-  const question = findQuestion(questionId)
-  if (!question || !isServerAlive()) return
-  feedback.phase = 'open'
-  feedback.question = question
-  feedback.trigger = trigger
-  feedback.rating = 0
-  feedback.comment = ''
-}
 
 export function setRating(value: number): void {
   // Tapping the selected star again clears the rating.
@@ -80,6 +133,7 @@ export function hasAnswer(): boolean {
 export function sendResponse(): void {
   if (!feedback.question) return
   requestId = newRequestId()
+  sentAnswer = hasAnswer()
   firstSentAt = Date.now()
   feedback.phase = 'sending'
   send()
@@ -93,7 +147,7 @@ export function dismissFeedback(): void {
   feedback.comment = ''
   requestId = newRequestId()
   send()
-  closeFeedback()
+  closeFeedback('skipped')
 }
 
 function newRequestId(): string {
@@ -108,16 +162,18 @@ export function panelOpacity(): number {
   return fading <= 0 ? 1 : Math.max(0, 1 - fading / SAVED_FADE_MS)
 }
 
-export function closeFeedback(): void {
+export function closeFeedback(result: AskResult): void {
   feedback.phase = 'idle'
   feedback.question = undefined
+  current?.resolve(result)
+  current = undefined
 }
 
 function send(kind: 'send' | 'resend' = 'send'): void {
   if (!feedback.question) return
   console.log(`[FEEDBACK] ${kind} ${requestId} ${feedback.question.id}`)
   lastSentAt = Date.now()
-  void room.send('submitResponse', {
+  void room.send('feedbackSubmit', {
     requestId,
     questionId: feedback.question.id,
     trigger: feedback.trigger,
@@ -129,7 +185,7 @@ function send(kind: 'send' | 'resend' = 'send'): void {
 }
 
 export function setupFeedbackState(): void {
-  room.onMessage('responseSaved', (data) => {
+  room.onMessage('feedbackSaved', (data) => {
     console.log(`[FEEDBACK] ack ${data.requestId} ok=${data.ok}`)
     if (feedback.phase !== 'sending' || data.requestId !== requestId) return
     if (data.ok) {
@@ -150,7 +206,8 @@ export function setupFeedbackState(): void {
       }
       else if (now - lastSentAt > RESEND_MS && isServerAlive()) send('resend')
     } else if (feedback.phase === 'saved' && now - savedAt > SAVED_HOLD_MS + SAVED_FADE_MS) {
-      closeFeedback()
+      closeFeedback(sentAnswer ? 'submitted' : 'skipped')
     }
+    processQueue()
   })
 }

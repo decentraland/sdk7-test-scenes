@@ -1,7 +1,8 @@
+import { engine } from '@dcl/sdk/ecs'
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Input, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { isMobile } from '@dcl/sdk/platform'
-import { MAX_RATING, QUESTIONS } from '../shared/questions'
+import { MAX_RATING, allQuestions } from '../shared/questions'
 import {
   askQuestion,
   closeFeedback,
@@ -22,21 +23,21 @@ const BUTTON_BG = Color4.fromHexString('#3a6df0ff')
 const DEBUG_BG = Color4.create(0.2, 0.2, 0.25, 0.9)
 const WARN = Color4.fromHexString('#ff9d3aff')
 
-export function setupUi(): void {
-  ReactEcsRenderer.setUiRenderer(uiComponent, {
+// Own renderer next to the scene's: setUiRenderer stays free for the creator's UI.
+export function setupUi(debug: boolean): void {
+  const ui = () => (
+    <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute' }}>
+      {debug && debugPanel()}
+      {feedback.phase !== 'idle' && questionPanel()}
+    </UiEntity>
+  )
+  ReactEcsRenderer.addUiRenderer(engine.addEntity(), ui, {
     virtualWidth: isMobile() ? 1600 : 1920,
     virtualHeight: isMobile() ? 720 : 1080
   })
 }
 
-const uiComponent = () => (
-  <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute' }}>
-    {debugPanel()}
-    {feedback.phase !== 'idle' && questionPanel()}
-  </UiEntity>
-)
-
-// --- Debug: one button per Question. For us, not for players. ----------------------
+// --- Debug: one button per Question. For the creator, not for players. -------------
 function debugPanel() {
   const alive = isServerAlive()
   return (
@@ -55,8 +56,8 @@ function debugPanel() {
         color={alive ? Color4.Green() : WARN}
         uiTransform={{ height: 26 }}
       />
-      {QUESTIONS.map((q) =>
-        button(`Ask ${q.id}`, () => askQuestion(q.id, 'debug'), alive && feedback.phase === 'idle', q.id)
+      {allQuestions().map((q) =>
+        button(`Ask ${q.id}`, () => void askQuestion(q.id, 'debug', { repeat: true }), alive && feedback.phase === 'idle', q.id)
       )}
     </UiEntity>
   )
@@ -149,7 +150,7 @@ function footer(editable: boolean) {
           <Label value="Could not save. Try again?" fontSize={18} color={WARN} uiTransform={{ height: 28 }} />
           <UiEntity uiTransform={{ flexDirection: 'row' }}>
             {button('Try again', sendResponse, true, 'retry')}
-            {button('Close', closeFeedback, true, 'close')}
+            {button('Close', () => closeFeedback('failed'), true, 'close')}
           </UiEntity>
         </UiEntity>
       )

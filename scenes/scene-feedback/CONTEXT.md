@@ -12,6 +12,14 @@ _Avoid_: survey item, form field
 The ordered set of **Questions** a creator configures for a scene. Not shown as one form: the creator decides when each **Question** appears (e.g. one at arrival, the next after the core mechanic).
 _Avoid_: survey, questionnaire
 
+**Question bank**:
+The default **Questions** we ship, each with a fixed id. A creator builds a **Question series** by picking from it and adding their own.
+_Avoid_: presets, templates
+
+**Trigger**:
+The creator's label for the gameplay moment a **Question** is asked at, e.g. `after-first-round`. The same **Question** asked at different **Triggers** yields separately comparable **Responses**. By default a player sees a **Question** at most once per visit for the same **Trigger**.
+_Avoid_: event, moment
+
 **Response**:
 The record of one player's reaction to one shown **Question**: either _submitted_ (a rating, a comment, or both) or _skipped_ (neither — Skip pressed, or the panel closed, which discards anything entered). Every shown **Question** yields exactly one **Response**, and every **Response** is persisted.
 _Avoid_: answer (ambiguous with a submitted-only reaction), feedback
