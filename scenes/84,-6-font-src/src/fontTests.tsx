@@ -8,11 +8,15 @@ import { Vector3, Color4 } from '@dcl/sdk/math'
 import ReactEcs, { ReactEcsRenderer, UiEntity, Button, Label } from '@dcl/sdk/react-ecs'
 
 const sample = 'Hamburgefonts 0123 !?'
-const glyphBurst = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789\n' +
-  '!"#$%&\'()*+,-./:;=?@[\\]^_`{|}~ ¡¿«»€£¥©®°±§¶\n' +
-  'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ абвгдеёжзийклмнопрстуфхцчшщъыьэюя\n' +
+const ptSerif = 'assets/fonts/PTSerif-Regular.ttf'
+const abrilFatface = 'assets/fonts/AbrilFatface-Regular.ttf'
+// Latin burst: only characters the converter pre-fills (ASCII, smart punctuation, euro, Latin-1 letters)
+const latinBurst = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789\n' +
+  '!"#$%&\'()*+,-./:;=?@[\]^_`{|}~ ‘’“”–—… €\n' +
   'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæçèéêëìíîïñòóôõöøùúûüýÿ'
-const styledGlyphBurst = glyphBurst + '\n<b>' + glyphBurst + '</b>\n<i>' + glyphBurst + '</i>\n<b><i>' + glyphBurst + '</i></b>'
+// Cyrillic burst: outside the pre-filled set, so it is rasterized at runtime on every path
+const cyrillicBurst = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ ЄІЇҐ\n' +
+  'абвгдеёжзийклмнопрстуфхцчшщъыьэюя єіїґ'
 const modes = [
   { label: 'Azeret Mono', src: 'assets/fonts/AzeretMono-Medium.ttf', expected: 'Custom monospaced face on all four components.' },
   { label: 'Bungee Shade TTF', src: 'assets/fonts/BungeeShade-Regular.ttf', expected: 'Decorative outlined Latin letters with a dimensional shadow.' },
@@ -258,12 +262,15 @@ function runBoundary() {
 }
 
 function runPerf() {
-  begin('Perf / cold load + glyph burst', [
-    { seconds: 5, text: 'Perf 1/5: built-in font, glyph burst. Baseline for glyph lookup cost.', action: () => { setSource(undefined); setText(glyphBurst) } },
-    { seconds: 6, text: 'Perf 2/5: cold Azeret TTF, short sample. Download + font asset creation.', action: () => { setSource(modes[0].src); setText(sample) } },
-    { seconds: 5, text: 'Perf 3/5: glyph burst on loaded Azeret. Dynamic atlas rasterization.', action: () => setText(glyphBurst) },
-    { seconds: 12, text: 'Perf 4/5: cold Lora family (4 faces), short sample. Fontsource download + 8 font assets.', action: () => { setSource('Lora'); setText(sample) } },
-    { seconds: 6, text: 'Perf 5/5: styled glyph burst on Lora. Rasterization across all four faces.', action: () => setText(styledGlyphBurst) }
+  // PT Serif and Abril Fatface are used only here, so both are cold on the first run of a session.
+  // Azeret Mono is attached at scene start and is never measured here.
+  begin('Perf / cold load + glyph bursts', [
+    { seconds: 5, text: 'Perf 1/6: built-in font, Latin burst. Baseline.', action: () => { setSource(undefined); setText(latinBurst) } },
+    { seconds: 5, text: 'Perf 2/6: built-in font, Cyrillic burst. Baseline.', action: () => setText(cyrillicBurst) },
+    { seconds: 6, text: 'Perf 3/6: cold PT Serif TTF, short sample. Load + font asset creation or bundle load.', action: () => { setSource(ptSerif); setText(sample) } },
+    { seconds: 5, text: 'Perf 4/6: Latin burst on PT Serif. Pre-filled glyphs on the bundle path.', action: () => setText(latinBurst) },
+    { seconds: 5, text: 'Perf 5/6: Cyrillic burst on PT Serif. Runtime rasterization on every path.', action: () => setText(cyrillicBurst) },
+    { seconds: 6, text: 'Perf 6/6: cold Abril Fatface TTF straight into the Latin burst.', action: () => { setSource(abrilFatface); setText(latinBurst) } }
   ])
 }
 
