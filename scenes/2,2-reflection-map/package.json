@@ -19,7 +19,11 @@
     "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
     "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next"
   },
-  "dependencies": {
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/reflection-map/dcl-sdk-7.29.1-36723215233.commit-eecc0ff.tgz"
+  "devDependencies": {
+    "@dcl/ecs": "file:../../../js-sdk-toolchain/packages/@dcl/ecs",
+    "@dcl/js-runtime": "7.0.0",
+    "@dcl/react-ecs": "file:../../../js-sdk-toolchain/packages/@dcl/react-ecs",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/reflection-map/dcl-sdk-7.29.1-37054745105.commit-00dae12.tgz",
+    "@dcl/sdk-commands": "file:../../../js-sdk-toolchain/packages/@dcl/sdk-commands"
   }
 }

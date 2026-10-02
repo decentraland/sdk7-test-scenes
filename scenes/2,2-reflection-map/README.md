@@ -28,7 +28,7 @@ to `skyboxTexture`, which replaces it outright):
 ```ts
 sun?: { color?: ColorGradient; visible?: boolean }
 skyColors?: { zenith?: ColorGradient; horizon?: ColorGradient; nadir?: ColorGradient }
-fog?: { color?: ColorGradient }
+fog?: { color?: ColorGradient; density?: number; startDistance?: number; endDistance?: number }  // density default 0.0005 (exponential: 1/density ~= 63% fog distance, 0.02 ~= 50 m, 0 = no visible fog)
 clouds?: { opacity?: number; speed?: number; texture?: TextureUnion }  // opacity/speed default 1 / 0.01
 stars?: { brightness?: number }                 // default 4.62, only visible at night
 ```
@@ -88,13 +88,13 @@ There is no in-world sign; the UI panel is the only control surface.
 
 ## What the scene demonstrates
 
-The right-hand panel has five independent controls: **Sky** (A/B/Video/None), **Reflection**
+The right-hand panel has six independent controls: **Sky** (A/B/Video/None), **Reflection**
 (A/B/Video/None + an Invalid-src button), **Clouds texture** (None/Texture/Video),
-**Environment** (a preset selector) and **Time** (a fixed-time selector). Every click composes
-the *current* selection of all of these into a single `Skybox.createOrReplace` call (only the
-selected fields/groups are included) plus a separate `SkyboxTime` call, or calls
-`Skybox.deleteFrom` when Sky, Reflection, Clouds texture **and** Environment are all at their
-neutral value (`None`/`None`/`None`/`Default`):
+**Environment** (a preset selector), **Fog density** (Default/Thick/Ultra-thick/Clear) and **Time**
+(a fixed-time selector). Every click composes the *current* selection of all of these into a
+single `Skybox.createOrReplace` call (only the selected fields/groups are included) plus a
+separate `SkyboxTime` call, or calls `Skybox.deleteFrom` when Sky, Reflection, Clouds texture,
+Environment **and** Fog density are all at their neutral value (`None`/`None`/`None`/`Default`/`Default`):
 
 | Sky      | Reflection  | Result                                                                |
 |----------|-------------|------------------------------------------------------------------------|
@@ -130,12 +130,22 @@ like a natural sky.
 | Default      | No groups sent — procedural sky stays at its ordinary time-of-day look.                                | Normal DCL sky. |
 | Mars         | Constant warm orange/rust `skyColors` + `sun`, rust `fog`, `clouds.opacity = 0.3` with a dusty `clouds.color`. | Dusty rust-orange sky and horizon all day (the horizon rim follows the horizon color), thin sand-colored clouds, warm ambient. |
 | Clear night  | `clouds.opacity = 0`, `stars.brightness = 12`, cool blue `sun.color`.                                  | No clouds, very bright stars once night falls (pair with Time = 00:00 to see it immediately). |
-| Storm        | Dark grey constant `skyColors`, `clouds.opacity = 1` + slow `speed = 0.1` + dark `clouds.color`, grey `fog`, dim `sun`. | Heavy overcast dark-grey sky, clouds and fog all day, dim lighting, slow-drifting clouds. |
+| Storm        | Dark grey constant `skyColors`, `clouds.opacity = 1` + slow `speed = 0.1` + dark `clouds.color`, grey `fog`, `fog.density = 0.01`, dim `sun`. | Heavy overcast dark-grey sky, clouds and fog all day, dim lighting, slow-drifting clouds, thicker fog (~100 m). |
 | Day ramp     | Multi-key `skyColors.horizon`, `sun.color` and `fog.color` gradients (dawn → noon → dusk → night), with an HDR (>1) noon sun key. | Colors visibly shift as `Time` moves through 00:00 → 06:00 → 12:00 → 18:00 → 00:00: deep blue night, pink-orange dawn/dusk, pale cyan/bright noon. |
 | True darkness | Black `sun.color` + `sun.visible = false`, black `skyColors` (so the derived ambient and the horizon rim are black), black `fog`, `clouds.opacity = 0`, `stars.brightness = 0`. | Pitch black sky and lighting; the only illumination is the scene's own point `LightSource` (warm bulb at 8,3,8, shadows on) on the floor and spheres. |
 
 Environment presets (except `sun`/`fog`) are inert while a Sky texture (A/B) is also
 selected — pick Sky = None to see them clearly.
+
+### Fog density row
+
+`Default` / `Thick (0.02)` / `Ultra-thick (0.1)` / `Clear (0)` set `fog.density` (≈ 50 m and ≈ 10 m until ~63% of the view is fogged). It merges with
+whatever `fog.color` the active Environment preset already sets (e.g. Storm + Thick keeps
+Storm's grey fog tint but overrides its own `0.01` density), the same way the Clouds texture
+row merges with the preset's clouds properties. `Default` leaves `density` unset, falling back
+to the SDK default (`0.0005`, ≈ 2 km until ~63% of the view is fogged); `Clear` sets `0` (no
+visible fog regardless of distance). Whether fog renders at all remains a player quality
+setting — with fog disabled in Settings, none of these buttons have a visible effect.
 
 ### Video sky / reflection
 

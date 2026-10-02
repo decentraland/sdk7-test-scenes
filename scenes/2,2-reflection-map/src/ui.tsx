@@ -10,6 +10,9 @@ type ReflectionSelection = 'none' | 'a' | 'b' | 'invalid' | 'video'
 type CloudsTextureSelection = 'none' | 'texture' | 'video'
 type EnvironmentSelection = 'default' | 'mars' | 'clearNight' | 'storm' | 'dayRamp' | 'trueDarkness'
 type TimeSelection = 'six' | 'twelve' | 'eighteen' | 'midnight' | 'live'
+// 'default' leaves fog.density unset (SDK default 0.0005, exponential: 1/density ~= the distance
+// at which ~63% of the view is fogged, so ~2 km by default).
+type FogDensitySelection = 'default' | 'thick' | 'ultraThick' | 'clear'
 
 let skySelection: SkySelection = 'none'
 let reflectionSelection: ReflectionSelection = 'none'
@@ -17,6 +20,7 @@ let cloudsTextureSelection: CloudsTextureSelection = 'none'
 let environmentSelection: EnvironmentSelection = 'default'
 let timeSelection: TimeSelection = 'live'
 let sunVisible = true
+let fogDensitySelection: FogDensitySelection = 'default'
 
 // Set once by initializeUI(videoPlayerEntity). Passed in rather than imported from './index' to
 // avoid a circular module import between index.ts and ui.tsx.
@@ -78,7 +82,7 @@ const presets: Record<Exclude<EnvironmentSelection, 'default'>, EnvironmentPrese
       nadir: constant(Color4.create(0.1, 0.1, 0.12))
     },
     clouds: { opacity: 1, speed: 0.1, color: constant(Color4.create(0.2, 0.2, 0.22)) },
-    fog: { color: constant(Color4.create(0.4, 0.42, 0.45)) },
+    fog: { color: constant(Color4.create(0.4, 0.42, 0.45)), density: 0.01 },
     sun: { color: constant(Color4.create(0.35, 0.35, 0.4)) }
   },
   dayRamp: {
@@ -152,6 +156,19 @@ const timeLabels: Record<TimeSelection, string> = {
   live: 'Live'
 }
 
+const fogDensityValue: Record<Exclude<FogDensitySelection, 'default'>, number> = {
+  thick: 0.02,
+  ultraThick: 0.1,
+  clear: 0
+}
+
+const fogDensityLabels: Record<FogDensitySelection, string> = {
+  default: 'Default',
+  thick: 'Thick (0.02)',
+  ultraThick: 'Ultra-thick (0.1)',
+  clear: 'Clear (0)'
+}
+
 // Composes the currently selected sky/reflection/clouds sources and environment preset into a
 // single Skybox.createOrReplace call (only the selected fields are set), or removes the
 // component entirely when sky, reflection, clouds texture AND environment are all at their
@@ -162,7 +179,8 @@ function applySkybox() {
     reflectionSelection === 'none' &&
     cloudsTextureSelection === 'none' &&
     environmentSelection === 'default' &&
-    sunVisible
+    sunVisible &&
+    fogDensitySelection === 'default'
   ) {
     Skybox.deleteFrom(engine.RootEntity)
     console.log('Skybox removed: back to default procedural sky, reflections and environment')
@@ -200,16 +218,22 @@ function applySkybox() {
   // (opacity/speed/color), rather than replacing the group outright.
   const clouds = environment.clouds || cloudsTexture !== undefined ? { ...environment.clouds, texture: cloudsTexture } : undefined
 
+  // Merge the fog density override into whatever fog.color the preset already set, rather than
+  // replacing the group outright (same pattern as clouds above).
+  const fogDensity = fogDensitySelection === 'default' ? undefined : fogDensityValue[fogDensitySelection]
+  const fog = environment.fog || fogDensity !== undefined ? { ...environment.fog, density: fogDensity } : undefined
+
   Skybox.createOrReplace(engine.RootEntity, {
     skyboxTexture,
     reflectionMap,
     ...environment,
     sun,
-    clouds
+    clouds,
+    fog
   })
 
   console.log(
-    `Skybox updated: sky=${skySelection}, reflection=${reflectionSelection}, clouds=${cloudsTextureSelection}, environment=${environmentSelection}, sun=${sunVisible ? 'visible' : 'hidden'}` +
+    `Skybox updated: sky=${skySelection}, reflection=${reflectionSelection}, clouds=${cloudsTextureSelection}, environment=${environmentSelection}, sun=${sunVisible ? 'visible' : 'hidden'}, fog=${fogDensitySelection}` +
       (reflectionSelection === 'invalid' ? ' (intentionally invalid src, exercising the failure path)' : '')
   )
 }
@@ -236,6 +260,11 @@ function setEnvironment(selection: EnvironmentSelection) {
 
 function setSunVisible(visible: boolean) {
   sunVisible = visible
+  applySkybox()
+}
+
+function setFogDensity(selection: FogDensitySelection) {
+  fogDensitySelection = selection
   applySkybox()
 }
 
@@ -274,7 +303,7 @@ function statusText() {
       : cloudsTextureSelection === 'video'
         ? 'Video'
         : 'Texture'
-  return `Sky: ${skyLabel}  |  Reflection: ${reflectionLabel}\nEnvironment: ${environmentLabels[environmentSelection]}  |  Sun: ${sunVisible ? 'Visible' : 'Hidden'}  |  Time: ${timeLabels[timeSelection]}\nClouds texture: ${cloudsLabel}`
+  return `Sky: ${skyLabel}  |  Reflection: ${reflectionLabel}\nEnvironment: ${environmentLabels[environmentSelection]}  |  Sun: ${sunVisible ? 'Visible' : 'Hidden'}  |  Time: ${timeLabels[timeSelection]}\nClouds texture: ${cloudsLabel}  |  Fog: ${fogDensityLabels[fogDensitySelection]}`
 }
 
 function selectButtonVariant(active: boolean): 'primary' | 'secondary' {
@@ -485,6 +514,47 @@ const Panel = () => (
         fontSize={11}
         uiTransform={{ width: '48%', height: '100%' }}
         onMouseDown={() => setSunVisible(false)}
+      />
+    </UiEntity>
+
+    {/* fog.density is an exponential falloff per meter (SDK default 0.0005, ~2 km until ~63%
+        fogged); it merges with whatever fog.color the active Environment preset sets. Whether
+        fog renders at all remains a player quality setting, so with fog disabled in Settings
+        these buttons have no visible effect. */}
+    <Label
+      value="Fog density"
+      fontSize={14}
+      color={Color4.fromHexString('#AAAAAA')}
+      uiTransform={{ width: '100%', height: 20, margin: { bottom: 5 } }}
+    />
+    <UiEntity uiTransform={{ width: '100%', height: 36, flexDirection: 'row', justifyContent: 'space-between', margin: { bottom: 8 } }}>
+      <Button
+        value="Default"
+        variant={selectButtonVariant(fogDensitySelection === 'default')}
+        fontSize={11}
+        uiTransform={{ width: '22%', height: '100%' }}
+        onMouseDown={() => setFogDensity('default')}
+      />
+      <Button
+        value="Thick (0.02)"
+        variant={selectButtonVariant(fogDensitySelection === 'thick')}
+        fontSize={11}
+        uiTransform={{ width: '22%', height: '100%' }}
+        onMouseDown={() => setFogDensity('thick')}
+      />
+      <Button
+        value="Ultra-thick (0.1)"
+        variant={selectButtonVariant(fogDensitySelection === 'ultraThick')}
+        fontSize={11}
+        uiTransform={{ width: '22%', height: '100%' }}
+        onMouseDown={() => setFogDensity('ultraThick')}
+      />
+      <Button
+        value="Clear (0)"
+        variant={selectButtonVariant(fogDensitySelection === 'clear')}
+        fontSize={11}
+        uiTransform={{ width: '22%', height: '100%' }}
+        onMouseDown={() => setFogDensity('clear')}
       />
     </UiEntity>
 
