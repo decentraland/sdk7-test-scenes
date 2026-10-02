@@ -12,7 +12,7 @@ import {
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { feedback } from './feedback-questions'
+import { feedback } from './feedback'
 
 // A tiny coin hunt, only here to show feedback.ask() at different moments of play:
 //   first coin of the visit  → COIN01 (mid-round, the round keeps going)

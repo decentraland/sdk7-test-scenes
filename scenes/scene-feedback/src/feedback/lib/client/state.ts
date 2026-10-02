@@ -2,8 +2,9 @@ import { engine } from '@dcl/sdk/ecs'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import { getPlatform } from '@dcl/sdk/platform'
 import { room } from '../shared/messages'
-import { HEARTBEAT_FRESHNESS_MS, MAX_COMMENT_LENGTH, Question, findQuestion } from '../shared/questions'
+import { HEARTBEAT_FRESHNESS_MS, MAX_COMMENT_LENGTH, Question, findQuestion } from '../shared/series'
 import { ServerHeartbeat } from '../shared/schemas'
+import { sinceLoad } from '../shared/clock'
 
 // --- Server liveness -------------------------------------------------------------
 // Track when the heartbeat value last *changed* on the client clock: a stale CRDT
@@ -14,6 +15,7 @@ let lastBeatSeenAt = 0
 function pollHeartbeat(): void {
   for (const [, hb] of engine.getEntitiesWith(ServerHeartbeat)) {
     if (hb.beatAt !== lastBeatValue) {
+      if (lastBeatSeenAt === 0) console.log(`[FEEDBACK] first server heartbeat at +${sinceLoad()}`)
       lastBeatValue = hb.beatAt
       lastBeatSeenAt = Date.now()
     }

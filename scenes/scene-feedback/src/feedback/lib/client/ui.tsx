@@ -2,7 +2,7 @@ import { engine } from '@dcl/sdk/ecs'
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Input, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { isMobile } from '@dcl/sdk/platform'
-import { MAX_RATING, allQuestions } from '../shared/questions'
+import { MAX_RATING, allQuestions } from '../shared/series'
 import {
   askQuestion,
   closeFeedback,

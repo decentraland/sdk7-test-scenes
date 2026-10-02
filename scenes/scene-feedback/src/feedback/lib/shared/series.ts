@@ -1,10 +1,10 @@
-// The scene's Question series, set once by createFeedback() at module load, so the
+// The scene's Question series (questions.ts), set once at module load, so the
 // client and the server (same code, both run it) see the same Questions.
 
 export type QuestionSpec = {
   text: string
-  // Placeholder of the comment field; DEFAULT_COMMENT_PROMPT when omitted.
-  commentPrompt?: string
+  // Placeholder of the comment field.
+  commentPrompt: string
 }
 
 export type Question = {
@@ -13,15 +13,13 @@ export type Question = {
   commentPrompt: string
 }
 
-export const DEFAULT_COMMENT_PROMPT = 'What most affected your rating? (optional)'
-
 let series: Question[] = []
 
 export function setQuestions(specs: Record<string, QuestionSpec>): void {
   series = Object.keys(specs).map((id) => ({
     id,
     text: specs[id].text,
-    commentPrompt: specs[id].commentPrompt ?? DEFAULT_COMMENT_PROMPT
+    commentPrompt: specs[id].commentPrompt
   }))
 }
 

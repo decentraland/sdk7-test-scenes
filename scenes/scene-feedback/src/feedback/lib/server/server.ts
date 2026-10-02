@@ -2,9 +2,10 @@ import { Entity, PlayerIdentityData, engine } from '@dcl/sdk/ecs'
 import { syncEntity } from '@dcl/sdk/network'
 import { Storage } from '@dcl/sdk/server'
 import { getSceneInformation } from '~system/Runtime'
-import { HEARTBEAT_MS, MAX_COMMENT_LENGTH, MAX_RATING, findQuestion } from '../shared/questions'
+import { HEARTBEAT_MS, MAX_COMMENT_LENGTH, MAX_RATING, findQuestion } from '../shared/series'
 import { room } from '../shared/messages'
 import { ServerHeartbeat } from '../shared/schemas'
+import { sinceLoad } from '../shared/clock'
 import { CSV_HEADER, CsvRow, formatRow, hasRow, sanitizeId, utf8Length } from './csv'
 
 // Responses are buffered in memory and flushed into a CSV kept in scene Storage as
@@ -47,7 +48,7 @@ export async function startServer(): Promise<void> {
   // Not awaited: readiness must never hang on a runtime call that isn't Storage.
   void readSceneVersion().then((version) => (sceneVersion = version))
   await loadCurrentPart()
-  console.log(`[SERVER] Feedback server ready, writing ${partKey(currentPart)}, ${countPlayers()} player(s)`)
+  console.log(`[SERVER] Feedback server ready at +${sinceLoad()}, writing ${partKey(currentPart)}, ${countPlayers()} player(s)`)
 }
 
 // The deployed entity id changes on every deploy, so rows from different builds

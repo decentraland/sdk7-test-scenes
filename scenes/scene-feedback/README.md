@@ -13,40 +13,38 @@ mid-round, after a round, and as a two-Question series.
 Requires `@dcl/sdk@auth-server` and `"authoritativeMultiplayer": true` in `scene.json` (client
 code cannot write Storage; see [research-storage-options.md](research-storage-options.md)).
 
-1. Copy [src/feedback/](src/feedback) into your `src/`. Don't edit it, so a newer version can be
-   copied over it.
-2. Create your Question series, e.g. `src/feedback-questions.ts`:
+1. Copy the [src/feedback/](src/feedback) folder into your `src/`.
+2. Edit [src/feedback/questions.ts](src/feedback/questions.ts) — the only file to touch:
 
    ```ts
-   import { QUESTION_BANK, createFeedback } from './feedback'
+   export const DEBUG = true // "Ask <id>" buttons top-left; turn off before release
 
-   export const feedback = createFeedback({
-     questions: {
-       T01: QUESTION_BANK.T01, // from the bank, as is
-       SHOP01: { text: 'How easy or difficult was it to buy an upgrade?' } // your own
-     },
-     debug: true // "Ask <id>" buttons top-left; turn off before release
-   })
+   export const QUESTIONS = {
+     T01: QUESTION_BANK.T01, // from the bank, as is
+     SHOP01: {               // your own
+       text: 'How easy or difficult was it to buy an upgrade?',
+       commentPrompt: 'What most affected your rating? (optional)'
+     }
+   } satisfies Record<string, QuestionSpec>
    ```
 
-3. In `main()`, on the client and the server alike:
+3. Ask wherever the moment happens. Importing `feedback` is the whole setup: it starts by
+   itself on the client and the server, no call in `main()` needed. The trigger names the
+   moment and goes to the CSV:
 
    ```ts
-   export async function main() {
-     feedback.start()
-     if (isServer()) return
-     // …your scene
-   }
-   ```
+   import { feedback } from './feedback'
 
-4. Ask wherever the moment happens. The trigger names that moment and goes to the CSV:
-
-   ```ts
    void feedback.ask('SHOP01', 'after-first-purchase')
 
    // or wait for the player, e.g. to chain a series
    const result = await feedback.ask('T01', 'round-2-complete')
    ```
+
+With `authoritativeMultiplayer` your `main()` runs on the server too. If your scene has no
+server logic, start it with `if (isServer()) return` so the scene code runs only for players.
+
+To update to a newer version, replace `src/feedback/lib/` with the new one; `questions.ts` stays yours.
 
 `ask()` queues the Question and shows it once nothing else is on screen and the server is up
 (~15 s on a cold start). It resolves to `submitted`, `skipped`, `failed` (could not be saved) or
@@ -57,7 +55,7 @@ The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` sta
 
 ## Question bank
 
-[src/feedback/bank.ts](src/feedback/bank.ts): 20 Questions selected for the pilot, with the
+[src/feedback/lib/bank.ts](src/feedback/lib/bank.ts): 20 Questions selected for the pilot, with the
 moment each is meant for. Use them as they are; to reword one, copy it into your series under
 your own id. Never change a live Question's text under the same id — answers to different
 wordings would share it. The full research bank:
