@@ -1,0 +1,26 @@
+{
+  "name": "authoritative-server-badges",
+  "version": "1.0.0",
+  "description": "Authoritative Server scene badge award proof scene",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "build": "sdk-commands build",
+    "server-logs": "sdk-commands sdk-server-logs"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  },
+  "devDependencies": {
+    "@dcl/js-runtime": "7.0.0",
+    "@dcl/sdk": "file:../../../js-sdk-toolchain-badges-preview/packages/@dcl/sdk",
+    "@dcl/sdk-commands": "file:../../../js-sdk-toolchain-badges-preview/packages/@dcl/sdk-commands"
+  }
+}
