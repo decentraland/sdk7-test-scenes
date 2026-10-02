@@ -1,64 +1,68 @@
 import { QuestionSpec } from './shared/series'
 
 // Default Questions, selected for the Wk 4–6 pilot from the research bank, grouped by what they ask about:
-//   P06: QUESTION_BANK.coreLoop.P06
-// Sections are only for finding Questions; ids stay unique across the bank. Use them as they are: to reword one,
-// copy it into your series under your own id, so answers to different wordings
-// never share an id.
+//   repeatLoop: QUESTION_BANK.coreLoop.repeatLoop
+// Sections are only for finding Questions; ids stay unique across the bank.
 //
-// Each comment: the rating scale, then when to ask — the player must have
-// encountered the situation, not necessarily succeeded.
+// Each comment: the rating scale · when to ask (the player must have encountered the
+// situation, not necessarily succeeded) · what the answer tells you · the Question's code in
+// the research doc.
+//
+// Generic words in the texts — the main activity, the goal, the rewards, the important
+// objects — are meant to be swapped for your game's own. A reworded Question goes into
+// your series under your own id (see README, Tips), so answers to different wordings never
+// share an id.
 //
 // Comment prompts are tailored per Question but stay neutral, open to both good
 // and bad experiences: asking only for problems skews the comments. The research
 // doc's generic fallback is "What most affected your rating? (optional)".
 export const QUESTION_BANK = {
-  
+
   // ---- CORE MECHANIC ----
-  // The main action: how to succeed, reading the result, getting better at it
+  // The main action: how to succeed, reading the result, getting better at it (response to an action, challenge and learning)
   coreMechanic: {
-    // EASE · after receiving performance feedback (score, success)
-    E04: {
+    // EASE · after a score or success was shown · learns: are score/success cues noticed, or missed · E04
+    scoreCues: {
       text: 'How easy or difficult was it to tell how well you were doing?',
       commentPrompt: 'What showed you how well you were doing, or what was missing? (optional)'
     },
-    // CLEAR · after facing a challenge
-    H02: {
+    // CLEAR · after facing a challenge · learns: is the win condition taught, or guessed · H02
+    winCondition: {
       text: 'How clear was what you needed to do to succeed?',
       commentPrompt: 'What helped or confused you about how to succeed? (optional)'
     },
-    // AMOUNT · after several attempts
-    H04: {
+    // AMOUNT · after several attempts · learns: does it feel like skill, or like luck · H04
+    improvement: {
       text: 'How much did you feel you improved while playing?',
       commentPrompt: 'What, if anything, did you get better at? (optional)'
     },
-    // EASE · when important objects had to be told apart
-    Q07: {
+    // EASE · when key objects had to be told apart · learns: do key objects need more visual contrast · Q07
+    objectContrast: {
       text: 'How easy or difficult was it to tell the important objects apart?',
       commentPrompt: 'Which objects were easy or hard to tell apart? (optional)'
     }
   },
-  
+
   // ---- CORE LOOP ----
-  // Progress, rewards, repetition, what comes next
+  // Progress, pace, rewards, repetition, what comes next
   coreLoop: {
-    // CLEAR · while working toward a goal
-    P03: {
+    // CLEAR · while working toward a goal · learns: is a progress indicator missing · P03
+    progressVisible: {
       text: 'How clear was your progress toward the goal?',
       commentPrompt: 'What showed your progress, or what would have helped? (optional)'
     },
-    // SATISFY · after receiving rewards
-    P05: {
+    // SATISFY · after receiving rewards · learns: do rewards match the effort they cost · P05
+    rewards: {
       text: 'How satisfying were the rewards you received?',
       commentPrompt: 'Which reward stood out, for better or worse? (optional)'
     },
-    // ENJOY · after repeating the main activity
-    P06: {
+    // ENJOY · after repeating the main activity · learns: does the loop wear thin, how fast · P06
+    repeatLoop: {
       text: 'How enjoyable was repeating the main activity?',
       commentPrompt: 'What made repeating it more or less fun? (optional)'
     },
-    // CLEAR · after completing a goal, when more play is intended
-    P10: {
+    // CLEAR · after completing a goal, when more play is intended · learns: do players stall or leave here · P10
+    nextGoal: {
       text: 'After completing a goal, how clear was what to do next?',
       commentPrompt: 'What did you think you should do next? (optional)'
     }
@@ -67,23 +71,23 @@ export const QUESTION_BANK = {
   // ---- SOCIAL ----
   // Playing with others, and on your own
   social: {
-    // EASE · after seeing other players doing an activity
-    S01: {
+    // EASE · after seeing other players doing an activity · learns: can bystanders learn it by watching · S01
+    othersReadable: {
       text: 'How easy or difficult was it to tell what other players were doing?',
       commentPrompt: "What made other players' actions easy or hard to follow? (optional)"
     },
-    // EASE · after trying to join, including unsuccessful attempts
-    S03: {
+    // EASE · after trying to join, including unsuccessful attempts · learns: is an explicit join flow needed · S03
+    joining: {
       text: 'How easy or difficult was it to join an activity with other players?',
       commentPrompt: 'What happened when you tried to join? (optional)'
     },
-    // ENJOY · after actual shared play
-    S06: {
+    // ENJOY · after actual shared play · learns: does multiplayer add value, or friction · S06
+    playingTogether: {
       text: 'How enjoyable was playing with other people?',
       commentPrompt: 'What made playing with others better or worse? (optional)'
     },
-    // ENJOY · after actual solo play (others merely being visible is not shared play)
-    S09: {
+    // ENJOY · after actual solo play (others merely visible is not shared play) · learns: is it viable when empty · S09
+    playingAlone: {
       text: 'How enjoyable was playing on your own?',
       commentPrompt: 'What made playing on your own better or worse? (optional)'
     }
@@ -92,28 +96,28 @@ export const QUESTION_BANK = {
   // ---- MOTIVATION ----
   // Wanting more now, coming back, inviting friends, worth the visit
   motivation: {
-    // INTEREST · at a pause
-    T01: {
+    // INTEREST · at a pause · learns: do sessions end too soon, or drag · T01
+    playMore: {
       text: 'How interested are you in playing more right now?',
       commentPrompt: 'What makes you want to keep playing, or stop? (optional)'
     },
-    // INTEREST · near the end of a visit, if revisits matter
-    T02: {
+    // INTEREST · near the end of a visit, if revisits matter · learns: is there a reason to come back · T02
+    comeBack: {
       text: 'How interested are you in coming back another day?',
       commentPrompt: 'What, if anything, would bring you back? (optional)'
     },
-    // CLEAR · when repeatable content exists
-    T03: {
+    // CLEAR · when repeatable content exists · learns: is the repeatable content signposted · T03
+    nextVisit: {
       text: 'How clear is what you could do on another visit?',
       commentPrompt: 'What would you do on your next visit? (optional)'
     },
-    // INTEREST · after something worth sharing
-    T08: {
+    // INTEREST · after something worth sharing · learns: is there a word-of-mouth hook · T08
+    inviteFriend: {
       text: 'How interested are you in inviting a friend to play?',
       commentPrompt: 'What would you tell a friend about it? (optional)'
     },
-    // WORTH · at a stopping point
-    T09: {
+    // WORTH · at a stopping point · learns: the overall verdict, comparable across builds · T09
+    worthIt: {
       text: 'How worthwhile did this visit feel?',
       commentPrompt: 'What made the visit worth your time, or not? (optional)'
     }
@@ -122,8 +126,8 @@ export const QUESTION_BANK = {
   // ---- WORLD ----
   // The space and its mood
   world: {
-    // ENJOY · after experiencing the space
-    W04: {
+    // ENJOY · after experiencing the space · learns: do art and sound land as intended · W04
+    atmosphere: {
       text: 'How enjoyable was the atmosphere?',
       commentPrompt: 'What shaped the atmosphere for you? (optional)'
     }
@@ -132,13 +136,13 @@ export const QUESTION_BANK = {
   // ---- TECHNICAL ----
   // How smoothly it ran, getting unstuck
   technical: {
-    // SATISFIED · after actually playing
-    Q01: {
+    // SATISFIED · after actually playing · learns: is performance a felt problem · Q01
+    smoothness: {
       text: 'How satisfied were you with how smoothly the game ran?',
       commentPrompt: 'Where, if anywhere, did it slow down or stutter? (optional)'
     },
-    // EASE · after getting stuck
-    Q04: {
+    // EASE · after getting stuck · learns: is a reset or respawn missing · Q04
+    gettingUnstuck: {
       text: 'After getting stuck, how easy or difficult was it to get back to playing?',
       commentPrompt: 'What got you stuck, and how did you get out? (optional)'
     }

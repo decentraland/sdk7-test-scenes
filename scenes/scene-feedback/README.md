@@ -20,8 +20,8 @@ code cannot write Storage; see [research-storage-options.md](research-storage-op
    export const DEBUG = true // "Ask <id>" buttons top-left; turn off before release
 
    export const QUESTIONS = {
-     T01: QUESTION_BANK.motivation.T01, // from the bank, as is
-     SHOP01: {               // your own
+     playMore: QUESTION_BANK.motivation.playMore, // from the bank, as is
+     buyingUpgrade: {                             // your own
        text: 'How easy or difficult was it to buy an upgrade?',
        commentPrompt: 'What most affected your rating? (optional)'
      }
@@ -35,10 +35,10 @@ code cannot write Storage; see [research-storage-options.md](research-storage-op
    ```ts
    import { feedback } from './feedback'
 
-   void feedback.ask('SHOP01', 'after-first-purchase')
+   void feedback.ask('buyingUpgrade', 'after-first-purchase')
 
    // or wait for the player, e.g. to chain a series
-   const result = await feedback.ask('T01', 'round-2-complete')
+   const result = await feedback.ask('playMore', 'round-2-complete')
    ```
 
 With `authoritativeMultiplayer` your `main()` runs on the server too. If your scene has no
@@ -55,12 +55,37 @@ The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` sta
 
 ## Question bank
 
-[src/feedback/lib/bank.ts](src/feedback/lib/bank.ts): 20 Questions selected for the pilot, in sections (`coreMechanic`, `coreLoop`, `social`,
-`motivation`, `world`, `technical`), with the
-moment each is meant for. Use them as they are; to reword one, copy it into your series under
-your own id. Never change a live Question's text under the same id — answers to different
-wordings would share it. The full research bank:
-[player-feedback-question-bank-2026-09.md](player-feedback-question-bank-2026-09.md).
+[src/feedback/lib/bank.ts](src/feedback/lib/bank.ts): 20 Questions selected for the pilot, in
+sections (`coreMechanic`, `coreLoop`, `social`, `motivation`, `world`, `technical`). Each comes
+with its rating scale, the moment it is meant for, what the answer tells you, and its code in the research doc. The full
+research bank: [player-feedback-question-bank-2026-09.md](player-feedback-question-bank-2026-09.md).
+
+## Tips
+
+- **Make it about your game.** Bank texts use generic words — *the main activity*, *the goal*,
+  *the rewards*, *the important objects*. Players answer better when they recognise what is
+  asked, so swap them for your own. A reworded Question goes under your own id, with its own
+  `commentPrompt` (it usually repeats the same generic word):
+
+  ```ts
+  // bank: repeatLoop 'How enjoyable was repeating the main activity?'
+  coinRounds: {
+    text: 'How enjoyable was collecting coins round after round?',
+    commentPrompt: 'What made the later rounds more or less fun? (optional)'
+  }
+  ```
+
+  The demo does this: `coinSpotting` in [questions.ts](src/feedback/questions.ts) is bank
+  `objectContrast` about coins.
+- **Never change a live Question's text under the same id** — answers to different wordings
+  would share it. New wording, new id.
+- **Ask at a natural pause**: after a round, a purchase, a death screen — not mid-jump or
+  mid-fight. The demo asks `coinSpotting` after the first coin on purpose, to show a mid-round call;
+  pick calmer moments for real Questions.
+- **Not only winners.** Players who gave up or lost are the ones you learn the most from; trigger
+  on leaving or failing too, not just on completing.
+- **Few Questions per visit**: one outcome Question (`playMore`, `comeBack` or `worthIt`) plus two or three
+  focused ones. Never all 20.
 
 ## Test
 
@@ -83,7 +108,7 @@ total, shared by all its scenes.
 
 ```csv
 id,timeUtc,version,questionId,questionText,trigger,rating,comment,secondsInScene,playersInScene,address,isGuest,platform
-mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,F01,How easy or difficult was it to work out what to do first?,debug,5,kind of yes,42,1,0x…,true,desktop
+mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in playing more right now?,debug,5,kind of yes,42,1,0x…,true,desktop
 ```
 
 - Empty `rating` and `comment`: the player pressed Skip or closed the panel.

@@ -10,11 +10,12 @@ export const DEBUG = true
 // Once live, never change a Question's text under the same id — give it a new one,
 // so answers to different wordings never mix.
 export const QUESTIONS = {
-  COIN01: {
+  // Bank objectContrast ("the important objects") reworded for this game: own id, own prompt.
+  coinSpotting: {
     text: 'How easy or difficult was it to spot the coins?',
     commentPrompt: 'What made them easy or hard to spot? (optional)'
   },
-  P10: QUESTION_BANK.coreLoop.P10,
-  P06: QUESTION_BANK.coreLoop.P06,
-  T01: QUESTION_BANK.motivation.T01
+  nextGoal: QUESTION_BANK.coreLoop.nextGoal,
+  repeatLoop: QUESTION_BANK.coreLoop.repeatLoop,
+  playMore: QUESTION_BANK.motivation.playMore
 } satisfies Record<string, QuestionSpec>
