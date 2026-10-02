@@ -14,7 +14,7 @@ export const QUESTIONS = {
     text: 'How easy or difficult was it to spot the coins?',
     commentPrompt: 'What made them easy or hard to spot? (optional)'
   },
-  P10: QUESTION_BANK.P10,
-  P06: QUESTION_BANK.P06,
-  T01: QUESTION_BANK.T01
+  P10: QUESTION_BANK.coreLoop.P10,
+  P06: QUESTION_BANK.coreLoop.P06,
+  T01: QUESTION_BANK.motivation.T01
 } satisfies Record<string, QuestionSpec>

@@ -20,7 +20,7 @@ code cannot write Storage; see [research-storage-options.md](research-storage-op
    export const DEBUG = true // "Ask <id>" buttons top-left; turn off before release
 
    export const QUESTIONS = {
-     T01: QUESTION_BANK.T01, // from the bank, as is
+     T01: QUESTION_BANK.motivation.T01, // from the bank, as is
      SHOP01: {               // your own
        text: 'How easy or difficult was it to buy an upgrade?',
        commentPrompt: 'What most affected your rating? (optional)'
@@ -55,7 +55,8 @@ The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` sta
 
 ## Question bank
 
-[src/feedback/lib/bank.ts](src/feedback/lib/bank.ts): 20 Questions selected for the pilot, with the
+[src/feedback/lib/bank.ts](src/feedback/lib/bank.ts): 20 Questions selected for the pilot, in sections (`coreMechanic`, `coreLoop`, `social`,
+`motivation`, `world`, `technical`), with the
 moment each is meant for. Use them as they are; to reword one, copy it into your series under
 your own id. Never change a live Question's text under the same id — answers to different
 wordings would share it. The full research bank:
