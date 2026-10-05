@@ -11,6 +11,16 @@ export type QuestionSpec = {
   commentPrompt?: string
 }
 
+// The Intro: asks the player once per visit whether they want to give feedback at all,
+// before the first Question the game asks.
+export type IntroSpec = {
+  title: string
+  text: string
+  // Optional picture above the title, e.g. the creator's avatar: a path in the scene
+  // ('images/creator.png') or a URL.
+  image?: string
+}
+
 export type Question = {
   id: string
   text: string

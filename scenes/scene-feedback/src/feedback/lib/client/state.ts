@@ -2,7 +2,7 @@ import { engine } from '@dcl/sdk/ecs'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import { getPlatform } from '@dcl/sdk/platform'
 import { room } from '../shared/messages'
-import { HEARTBEAT_FRESHNESS_MS, MAX_COMMENT_LENGTH, Question, findQuestion } from '../shared/series'
+import { HEARTBEAT_FRESHNESS_MS, IntroSpec, MAX_COMMENT_LENGTH, Question, findQuestion } from '../shared/series'
 import { ServerHeartbeat } from '../shared/schemas'
 import { sinceLoad } from '../shared/clock'
 
@@ -41,7 +41,13 @@ export type AskOptions = {
   // or a list of ids — only those. It can only hide the field: a Question without
   // commentPrompt never shows one.
   comment?: boolean | readonly string[]
+  // Who asked. 'game' (default): goes through the Intro. 'player' (Leave feedback):
+  // no Intro, and it counts as a yes for the rest of the visit. 'debug': no Intro,
+  // the player's answer to it is left alone.
+  source?: AskSource
 }
+
+export type AskSource = 'game' | 'player' | 'debug'
 
 // One ask() call: a Group of Questions shown one after another in one panel.
 type Ask = {
@@ -49,6 +55,7 @@ type Ask = {
   // comment: whether this step shows the comment field.
   steps: { question: Question; slot: number; comment: boolean }[]
   trigger: string
+  source: AskSource
   // One per id passed to ask(), in the same order; 'not-shown' until answered.
   results: AskResult[]
   resolve: (results: AskResult[]) => void
@@ -71,6 +78,11 @@ const SERVER_WAIT_MS = 120_000
 export function askQuestions(questionIds: readonly string[], trigger: string, options: AskOptions = {}): Promise<AskResult[]> {
   const results: AskResult[] = questionIds.map(() => 'not-shown')
   const steps: Ask['steps'] = []
+  const source = options.source ?? 'game'
+  if (consent === 'declined' && source === 'game') {
+    console.log(`[FEEDBACK] player declined feedback this visit, not showing ${questionIds.join(', ')}`)
+    return Promise.resolve(results)
+  }
   questionIds.forEach((id, slot) => {
     const question = findQuestion(id)
     if (!question) return console.log(`[FEEDBACK] unknown question ${id}`)
@@ -81,7 +93,7 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
   if (steps.length === 0) return Promise.resolve(results)
 
   return new Promise((resolve) =>
-    queue.push({ steps, trigger, results, resolve, askedAt: Date.now() })
+    queue.push({ steps, trigger, source, results, resolve, askedAt: Date.now() })
   )
 }
 
@@ -111,8 +123,48 @@ function processQueue(): void {
   }
   if (feedback.phase !== 'idle' || queue.length === 0) return
 
+  if (intro && consent === 'unknown' && queue[0].source === 'game') {
+    feedback.phase = 'intro'
+    return
+  }
   current = queue.shift()!
+  if (current.source === 'player') consent = 'given'
   showStep(0)
+}
+
+// --- The Intro ---------------------------------------------------------------------
+// Once per visit, before the first Group the game asks: yes opens it, no (Skip or x)
+// drops it and every later ask() this visit. Leave feedback still works after a no.
+let intro: IntroSpec | null = null
+let consent: 'unknown' | 'given' | 'declined' = 'unknown'
+
+export function introSpec(): IntroSpec | null {
+  return intro
+}
+
+export function acceptIntro(): void {
+  if (feedback.phase !== 'intro') return
+  console.log('[FEEDBACK] intro accepted')
+  consent = 'given'
+  feedback.phase = 'idle'
+  processQueue()
+}
+
+export function declineIntro(): void {
+  if (feedback.phase !== 'intro') return
+  console.log('[FEEDBACK] intro declined')
+  consent = 'declined'
+  feedback.phase = 'idle'
+  for (let i = queue.length - 1; i >= 0; i--) {
+    if (queue[i].source !== 'game') continue
+    const [dropped] = queue.splice(i, 1)
+    dropped.resolve(dropped.results)
+  }
+}
+
+// Debug: forget the answer, so the next ask() shows the Intro again.
+export function resetIntro(): void {
+  consent = 'unknown'
 }
 
 function showStep(index: number): void {
@@ -132,7 +184,7 @@ function showStep(index: number): void {
 
 // --- The Question currently on screen ----------------------------------------------
 // idle → open → sending → (next step: open) | saved (auto-closes) | failed (retry or close)
-export type Phase = 'idle' | 'open' | 'sending' | 'saved' | 'failed'
+export type Phase = 'idle' | 'intro' | 'open' | 'sending' | 'saved' | 'failed'
 
 const RESEND_MS = 3000
 const GIVE_UP_MS = 30000
@@ -244,7 +296,8 @@ function send(kind: 'send' | 'resend' = 'send'): void {
   })
 }
 
-export function setupFeedbackState(): void {
+export function setupFeedbackState(introSpec: IntroSpec | null): void {
+  intro = introSpec
   room.onMessage('feedbackSaved', (data) => {
     console.log(`[FEEDBACK] ack ${data.requestId} ok=${data.ok}`)
     if (feedback.phase !== 'sending' || data.requestId !== requestId) return

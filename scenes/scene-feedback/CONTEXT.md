@@ -20,6 +20,10 @@ _Avoid_: survey, questionnaire
 **Questions** asked together at one **Trigger** (`feedback.ask([...ids], trigger)`): one panel, one **Question** after another, with a progress bar ("1/3"). Skip or Next moves on; closing the panel ends the **Group**, and the **Questions** not reached get no **Response**. A single **Question** is a **Group** of one, shown without the bar.
 _Avoid_: series (that is the whole set in `questions.ts`), page, survey
 
+**Intro**:
+The once-per-visit opt-in shown before the first **Question** the game asks: the creator introduces themselves and asks for feedback. **Give feedback** lets the game's **Questions** through; **Skip** (or closing) silences them for the rest of the visit. Not shown, and not needed, when the player opens a **Question** themselves with Leave feedback. Not recorded as a **Response**.
+_Avoid_: consent form, opt-in dialog
+
 **Question bank**:
 The default **Questions** we ship, each with a fixed id. A creator builds a **Question series** by picking from it and adding their own.
 _Avoid_: presets, templates

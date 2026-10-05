@@ -1,10 +1,18 @@
 import { QUESTION_BANK } from './lib/bank'
-import { QuestionSpec } from './lib/shared/series'
+import { IntroSpec, QuestionSpec } from './lib/shared/series'
 
 // ── The only file to edit ──────────────────────────────────────────────────────────
 
 // Shows one "Ask <id>" button per Question (top-left). Turn off before release.
 export const DEBUG = true
+
+// Asked once per visit before the first Question the game asks: Give feedback goes on,
+// Skip or x means no Questions this visit (Leave feedback still works). null: no Intro.
+// image (optional): a picture above the title, e.g. 'images/creator.png'.
+export const INTRO: IntroSpec | null = {
+  title: "Hi, we're the Coin Hunt team!",
+  text: "We're testing a new experience and would love to hear what you think. Your feedback will help us make it better."
+}
 
 // This scene's Questions. Once live, never change a Question's text under the same id —
 // give it a new one, so answers to different wordings never mix.

@@ -5,7 +5,7 @@ import { registerValidators } from './shared/schemas'
 import { sinceLoad } from './shared/clock'
 import { AskResult, askQuestions, setupFeedbackState } from './client/state'
 import { setupUi } from './client/ui'
-import { DEBUG, FEEDBACK_BUTTON, QUESTIONS } from '../questions'
+import { DEBUG, FEEDBACK_BUTTON, INTRO, QUESTIONS } from '../questions'
 
 // Static side-effect import: registerMessages() defines a component under the
 // hood, so it must run at module load, before the engine seals.
@@ -28,7 +28,7 @@ function startOnFirstTick(): void {
     void import('./server/server').then(({ startServer }) => startServer())
     return
   }
-  setupFeedbackState()
+  setupFeedbackState(INTRO)
   setupUi(DEBUG, FEEDBACK_BUTTON)
 }
 engine.addSystem(startOnFirstTick)

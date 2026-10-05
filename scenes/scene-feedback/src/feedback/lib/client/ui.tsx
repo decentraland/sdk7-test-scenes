@@ -5,14 +5,18 @@ import { isMobile } from '@dcl/sdk/platform'
 import { MAX_RATING, allQuestions } from '../shared/series'
 import { scaleLabels } from '../shared/scales'
 import {
+  acceptIntro,
   askQuestions,
+  declineIntro,
   dismissFeedback,
   feedback,
   giveUpFeedback,
   hasAnswer,
+  introSpec,
   isLastStep,
   isServerAlive,
   panelOpacity,
+  resetIntro,
   sendResponse,
   setComment,
   setRating
@@ -25,6 +29,7 @@ const BUTTON_BG = Color4.fromHexString('#3a6df0ff')
 const DEBUG_BG = Color4.create(0.2, 0.2, 0.25, 0.9)
 const WARN = Color4.fromHexString('#ff9d3aff')
 const PROGRESS = Color4.fromHexString('#f2a65aff')
+const SKIP_BG = Color4.create(1, 1, 1, 0.15)
 
 // Own renderer next to the scene's: setUiRenderer stays free for the creator's UI.
 export function setupUi(debug: boolean, buttonQuestionId: string | null): void {
@@ -32,7 +37,8 @@ export function setupUi(debug: boolean, buttonQuestionId: string | null): void {
     <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute' }}>
       {debug && debugPanel()}
       {buttonQuestionId !== null && feedbackButton(buttonQuestionId)}
-      {feedback.phase !== 'idle' && questionPanel()}
+      {feedback.phase === 'intro' && introPanel()}
+      {feedback.phase !== 'idle' && feedback.phase !== 'intro' && questionPanel()}
     </UiEntity>
   )
   ReactEcsRenderer.addUiRenderer(engine.addEntity(), ui, {
@@ -63,11 +69,12 @@ function debugPanel() {
       {allQuestions().map((q) =>
         button(
           `Ask ${q.id}`,
-          () => void askQuestions([q.id], 'debug', { repeat: true }),
+          () => void askQuestions([q.id], 'debug', { repeat: true, source: 'debug' }),
           alive && feedback.phase === 'idle',
           q.id
         )
       )}
+      {introSpec() !== null && button('Reset intro', resetIntro, feedback.phase === 'idle', 'reset-intro')}
     </UiEntity>
   )
 }
@@ -90,9 +97,45 @@ function feedbackButton(questionId: string) {
         alignItems: 'center'
       }}
       uiBackground={{ color: enabled ? BUTTON_BG : DISABLED }}
-      onMouseDown={enabled ? () => void askQuestions([questionId], 'feedback-button', { repeat: true }) : undefined}
+      onMouseDown={enabled ? () => void askQuestions([questionId], 'feedback-button', { repeat: true, source: 'player' }) : undefined}
     >
       <Label value="Leave feedback" fontSize={20} color={enabled ? Color4.White() : MUTED} />
+    </UiEntity>
+  )
+}
+
+// --- The Intro: once per visit, before the first Question the game asks -------------
+function introPanel() {
+  const intro = introSpec()
+  if (!intro) return null
+  return (
+    <UiEntity
+      uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', justifyContent: 'center', alignItems: 'center' }}
+    >
+      <UiEntity
+        uiTransform={{ width: 720, flexDirection: 'column', alignItems: 'center', padding: 28 }}
+        uiBackground={{ color: PANEL_BG }}
+      >
+        {closeButton(declineIntro)}
+        {intro.image !== undefined && (
+          <UiEntity
+            uiTransform={{ width: 96, height: 96, margin: { top: 16, bottom: 8 } }}
+            uiBackground={{ textureMode: 'stretch', texture: { src: intro.image } }}
+          />
+        )}
+        <Label
+          value={intro.title}
+          fontSize={28}
+          color={Color4.White()}
+          textWrap="wrap"
+          uiTransform={{ width: 600, height: 60, margin: { top: 16 } }}
+        />
+        <Label value={intro.text} fontSize={20} color={Color4.White()} textWrap="wrap" uiTransform={{ width: 600, height: 80 }} />
+        <UiEntity uiTransform={{ flexDirection: 'row', margin: { top: 16 } }}>
+          {button('Skip', declineIntro, true, 'intro-skip', SKIP_BG)}
+          {button('Give feedback', acceptIntro, true, 'intro-yes')}
+        </UiEntity>
+      </UiEntity>
     </UiEntity>
   )
 }
@@ -118,7 +161,7 @@ function questionPanel() {
         uiTransform={{ width: 720, flexDirection: 'column', alignItems: 'center', padding: 28 }}
         uiBackground={{ color: PANEL_BG }}
       >
-        {editable && closeButton()}
+        {editable && closeButton(dismissFeedback)}
         {feedback.steps > 1 && progressBar()}
         <Label
           value={q.text}
@@ -195,7 +238,7 @@ function star(value: number, label: string, editable: boolean) {
 }
 
 // × is U+00D7 (Latin-1), present in every font — no tofu risk.
-function closeButton() {
+function closeButton(onClick: () => void) {
   return (
     <UiEntity
       uiTransform={{
@@ -206,7 +249,7 @@ function closeButton() {
         justifyContent: 'center',
         alignItems: 'center'
       }}
-      onMouseDown={dismissFeedback}
+      onMouseDown={onClick}
     >
       <Label value="×" fontSize={34} color={MUTED} />
     </UiEntity>
@@ -242,12 +285,12 @@ function status(text: string, color: Color4) {
   return <Label value={text} fontSize={20} color={color} uiTransform={{ height: 44, margin: { top: 16 } }} />
 }
 
-function button(text: string, onClick: () => void, enabled: boolean, key: string) {
+function button(text: string, onClick: () => void, enabled: boolean, key: string, color: Color4 = BUTTON_BG) {
   return (
     <UiEntity
       key={key}
       uiTransform={{ width: 180, height: 48, margin: 6, justifyContent: 'center', alignItems: 'center' }}
-      uiBackground={{ color: enabled ? BUTTON_BG : DISABLED }}
+      uiBackground={{ color: enabled ? color : DISABLED }}
       onMouseDown={enabled ? onClick : undefined}
     >
       <Label value={text} fontSize={20} color={enabled ? Color4.White() : MUTED} />

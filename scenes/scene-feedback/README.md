@@ -73,8 +73,13 @@ it off:
   void feedback.ask(['nextGoal', 'playMore', 'worthIt'], 'hunt-complete', { comment: ['playMore'] })
   ```
 
+Before the first Question the game asks, an **Intro** asks the player once per visit whether
+they want to give feedback at all. **Give feedback** goes on. **Skip** or × means no Questions
+this visit: queued and later `ask()` calls resolve to `not-shown`. Set its title, text and an
+optional picture with `INTRO` in `questions.ts`, or set it to `null` to skip it.
+
 A **Leave feedback** button (top-right) lets players open one Question themselves, any time
-and as often as they like (trigger `feedback-button`). Pick it with `FEEDBACK_BUTTON` in
+and as often as they like (trigger `feedback-button`), with no Intro, even after a Skip. Pick it with `FEEDBACK_BUTTON` in
 `questions.ts`, or set it to `null` to hide the button.
 
 The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` stays yours.
