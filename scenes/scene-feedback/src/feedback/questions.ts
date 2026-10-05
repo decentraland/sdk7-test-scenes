@@ -13,6 +13,7 @@ export const QUESTIONS = {
   nextGoal: QUESTION_BANK.coreLoop.nextGoal,
   repeatLoop: QUESTION_BANK.coreLoop.repeatLoop,
   playMore: QUESTION_BANK.motivation.playMore,
+  worthIt: QUESTION_BANK.motivation.worthIt,
 
   // Your own Question inspired by the bank and a shared scale: 
   coinSpotting: {
@@ -29,3 +30,7 @@ export const QUESTIONS = {
     commentPrompt: 'What helped you find the next coin, or what got in the way? (optional)'
   }
 } satisfies Record<string, QuestionSpec>
+
+// The "Leave feedback" button (top-right): the Question it opens whenever the player
+// wants, as often as they want. null hides the button.
+export const FEEDBACK_BUTTON: keyof typeof QUESTIONS | null = 'worthIt'

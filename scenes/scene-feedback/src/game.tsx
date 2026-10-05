@@ -15,7 +15,7 @@ import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { feedback } from './feedback'
 
 // A tiny coin hunt, only here to show feedback.ask() at different moments of play:
-//   first coin of the visit  → coinSpotting (mid-round, the round keeps going)
+//   first coin of the visit  → coinSpotting (mid-round, rating only, the round keeps going)
 //   round 1 complete         → nextGoal
 //   round 2 complete         → repeatLoop, then playMore once repeatLoop is answered or skipped
 //   round 3 complete         → nextCoinKnown
@@ -82,7 +82,8 @@ function collect(coin: Entity, disc: Entity): void {
   totalCollected++
 
   // Mid-round: not awaited, the player keeps playing while the Question is up.
-  if (totalCollected === 1) void feedback.ask('coinSpotting', 'first-coin')
+  // Rating only, no comment field: a quick tap, not a pause to type.
+  if (totalCollected === 1) void feedback.ask('coinSpotting', 'first-coin', { comment: false })
 
   if (collected < COINS_PER_ROUND) return
   if (round === 1) void feedback.ask('nextGoal', 'round-1-complete')

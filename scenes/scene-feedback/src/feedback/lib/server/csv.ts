@@ -1,7 +1,7 @@
 // Row formatting for the feedback CSV. Pure functions, no Storage access.
 
 // An empty rating and comment means the player skipped or closed the Question.
-export const CSV_HEADER = 'id,timeUtc,version,questionId,questionText,trigger,rating,ratingLabel,scale,comment,secondsInScene,playersInScene,address,isGuest,platform'
+export const CSV_HEADER = 'id,timeUtc,version,questionId,questionText,trigger,rating,ratingLabel,scale,commentPrompt,comment,secondsInScene,playersInScene,address,isGuest,platform'
 
 export type CsvRow = {
   id: string
@@ -13,6 +13,7 @@ export type CsvRow = {
   rating: number | null
   ratingLabel: string
   scale: string
+  commentPrompt: string
   comment: string
   secondsInScene: number
   playersInScene: number
@@ -33,6 +34,7 @@ export function formatRow(row: CsvRow): string {
     row.rating === null ? '' : `${row.rating}`,
     field(row.ratingLabel),
     field(row.scale),
+    field(row.commentPrompt),
     field(row.comment),
     `${row.secondsInScene}`,
     `${row.playersInScene}`,

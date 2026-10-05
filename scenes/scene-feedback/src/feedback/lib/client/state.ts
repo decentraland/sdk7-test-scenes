@@ -36,11 +36,15 @@ export type AskResult = 'submitted' | 'skipped' | 'failed' | 'not-shown'
 export type AskOptions = {
   // Show again even if the player already saw this Question at this Trigger.
   repeat?: boolean
+  // Show the comment field (default true). false: rating only, for a quick tap
+  // mid-play; the CSV's commentPrompt stays empty, so "no comment" reads as "not offered".
+  comment?: boolean
 }
 
 type Ask = {
   question: Question
   trigger: string
+  comment: boolean
   resolve: (result: AskResult) => void
   askedAt: number
 }
@@ -67,7 +71,7 @@ export function askQuestion(questionId: string, trigger: string, options: AskOpt
   const queued = queue.some((a) => a.question.id === question.id && a.trigger === trigger)
   if (!options.repeat && (shown.has(key) || pending || queued)) return Promise.resolve('not-shown')
 
-  return new Promise((resolve) => queue.push({ question, trigger, resolve, askedAt: Date.now() }))
+  return new Promise((resolve) => queue.push({ question, trigger, comment: options.comment ?? true, resolve, askedAt: Date.now() }))
 }
 
 // Opens the next queued Question once nothing is on screen and the server is up.
@@ -89,6 +93,7 @@ function processQueue(): void {
   feedback.phase = 'open'
   feedback.question = next.question
   feedback.trigger = next.trigger
+  feedback.withComment = next.comment
   feedback.rating = 0
   feedback.comment = ''
 }
@@ -107,6 +112,7 @@ export const feedback = {
   phase: 'idle' as Phase,
   question: undefined as Question | undefined,
   trigger: '',
+  withComment: true,
   rating: 0, // 0 = no rating
   comment: ''
 }
@@ -180,7 +186,8 @@ function send(kind: 'send' | 'resend' = 'send'): void {
     questionId: feedback.question.id,
     trigger: feedback.trigger,
     rating: feedback.rating,
-    comment: feedback.comment,
+    comment: feedback.withComment ? feedback.comment : '',
+    commentShown: feedback.withComment,
     secondsInScene: Math.round((Date.now() - enteredAt) / 1000),
     platform: getPlatform() ?? 'unknown'
   })

@@ -39,6 +39,9 @@ code cannot write Storage; see [research-storage-options.md](research-storage-op
 
    void feedback.ask('buyingUpgrade', 'after-first-purchase')
 
+   // rating only, without the comment field
+   void feedback.ask('buyingUpgrade', 'after-first-purchase', { comment: false })
+
    // or wait for the player, e.g. to chain a series
    const result = await feedback.ask('playMore', 'round-2-complete')
    ```
@@ -51,7 +54,12 @@ To update to a newer version, replace `src/feedback/lib/` with the new one; `que
 `ask()` queues the Question and shows it once nothing else is on screen and the server is up
 (~15 s on a cold start). It resolves to `submitted`, `skipped`, `failed` (could not be saved) or
 `not-shown`: already shown at this trigger this visit (pass `{ repeat: true }` to allow it), or
-the server did not come up within 2 minutes. A typo in the id is a compile error.
+the server did not come up within 2 minutes. A typo in the id is a compile error. Pass
+`{ comment: false }` to show the rating without the comment field, e.g. mid-play.
+
+A **Leave feedback** button (top-right) lets players open one Question themselves, any time
+and as often as they like (trigger `feedback-button`). Pick it with `FEEDBACK_BUTTON` in
+`questions.ts`, or set it to `null` to hide the button.
 
 The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` stays yours.
 
@@ -112,8 +120,8 @@ not to production Storage.
 total, shared by all its scenes.
 
 ```csv
-id,timeUtc,version,questionId,questionText,trigger,rating,ratingLabel,scale,comment,secondsInScene,playersInScene,address,isGuest,platform
-mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in playing more right now?,debug,5,Extremely,INTEREST,kind of yes,42,1,0x…,true,desktop
+id,timeUtc,version,questionId,questionText,trigger,rating,ratingLabel,scale,commentPrompt,comment,secondsInScene,playersInScene,address,isGuest,platform
+mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in playing more right now?,debug,5,Extremely,INTEREST,What makes you want to keep playing, or stop? (optional),kind of yes,42,1,0x…,true,desktop
 ```
 
 - Empty `rating` and `comment`: the player pressed Skip or closed the panel.
@@ -121,7 +129,10 @@ mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in p
 - `questionText`: the wording the server shipped with, so edited Questions never mix with old answers.
 - `ratingLabel`, `scale`: the label the player picked and the scale it came from (a code, or the
   custom labels joined with ` | `), so a rating is read with the words that were on screen.
-- `trigger`: the label passed to `feedback.ask(questionId, trigger)` (`debug` for the debug buttons).
+- `commentPrompt`: the comment field's prompt as shown; empty when the Question was asked with
+  `{ comment: false }`, so an empty comment there means "not offered", not "left blank".
+- `trigger`: the label passed to `feedback.ask(questionId, trigger)` (`debug` for the debug buttons,
+  `feedback-button` for the Leave feedback button).
 - `secondsInScene`: from the player's scene load to the answer, reported by the client.
 - `playersInScene`: players in the scene when the server received the answer (solo vs group).
 - `id` dedupes client resends and merges rows when two server instances overlap after a redeploy.

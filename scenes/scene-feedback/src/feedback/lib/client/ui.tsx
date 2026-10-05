@@ -25,10 +25,11 @@ const DEBUG_BG = Color4.create(0.2, 0.2, 0.25, 0.9)
 const WARN = Color4.fromHexString('#ff9d3aff')
 
 // Own renderer next to the scene's: setUiRenderer stays free for the creator's UI.
-export function setupUi(debug: boolean): void {
+export function setupUi(debug: boolean, buttonQuestionId: string | null): void {
   const ui = () => (
     <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute' }}>
       {debug && debugPanel()}
+      {buttonQuestionId !== null && feedbackButton(buttonQuestionId)}
       {feedback.phase !== 'idle' && questionPanel()}
     </UiEntity>
   )
@@ -58,8 +59,38 @@ function debugPanel() {
         uiTransform={{ height: 26 }}
       />
       {allQuestions().map((q) =>
-        button(`Ask ${q.id}`, () => void askQuestion(q.id, 'debug', { repeat: true }), alive && feedback.phase === 'idle', q.id)
+        button(
+          `Ask ${q.id}`,
+          () => void askQuestion(q.id, 'debug', { repeat: true }),
+          alive && feedback.phase === 'idle',
+          q.id
+        )
       )}
+    </UiEntity>
+  )
+}
+
+// --- "Leave feedback": the player asks for the Question themselves ------------------
+// Hidden while a Question is on screen; dimmed until the server is up, so a press
+// always opens the Question right away. repeat: the player chose to answer, so every
+// press counts. Below the explorer's top-right HUD, level with the debug panel.
+function feedbackButton(questionId: string) {
+  if (feedback.phase !== 'idle') return null
+  const enabled = isServerAlive()
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { top: 120, right: 24 },
+        width: 200,
+        height: 48,
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}
+      uiBackground={{ color: enabled ? BUTTON_BG : DISABLED }}
+      onMouseDown={enabled ? () => void askQuestion(questionId, 'feedback-button', { repeat: true }) : undefined}
+    >
+      <Label value="Leave feedback" fontSize={20} color={enabled ? Color4.White() : MUTED} />
     </UiEntity>
   )
 }
@@ -81,23 +112,34 @@ function questionPanel() {
         opacity: panelOpacity()
       }}
     >
-      <UiEntity uiTransform={{ width: 720, flexDirection: 'column', alignItems: 'center', padding: 28 }} uiBackground={{ color: PANEL_BG }}>
+      <UiEntity
+        uiTransform={{ width: 720, flexDirection: 'column', alignItems: 'center', padding: 28 }}
+        uiBackground={{ color: PANEL_BG }}
+      >
         {editable && closeButton()}
-        <Label value={q.text} fontSize={26} color={Color4.White()} textWrap="wrap" uiTransform={{ width: 660, height: 80 }} />
+        <Label
+          value={q.text}
+          fontSize={26}
+          color={Color4.White()}
+          textWrap="wrap"
+          uiTransform={{ width: 660, height: 80 }}
+        />
 
         <UiEntity uiTransform={{ flexDirection: 'row', margin: { top: 12, bottom: 16 } }}>
           {Array.from({ length: MAX_RATING }, (_, i) => star(i + 1, scaleLabels(q.scale)[i], editable))}
         </UiEntity>
 
-        <Input
-          placeholder={q.commentPrompt}
-          value={feedback.comment}
-          onChange={setComment}
-          disabled={!editable}
-          fontSize={20}
-          uiTransform={{ width: 660, height: 90 }}
-          uiBackground={{ color: Color4.create(1, 1, 1, 0.95) }}
-        />
+        {feedback.withComment && (
+          <Input
+            placeholder={q.commentPrompt}
+            value={feedback.comment}
+            onChange={setComment}
+            disabled={!editable}
+            fontSize={20}
+            uiTransform={{ width: 660, height: 90 }}
+            uiBackground={{ color: Color4.create(1, 1, 1, 0.95) }}
+          />
+        )}
 
         {footer(editable)}
       </UiEntity>
@@ -116,7 +158,9 @@ function star(value: number, label: string, editable: boolean) {
       uiTransform={{ width: 120, flexDirection: 'column', alignItems: 'center', margin: { left: 4, right: 4 } }}
       onMouseDown={editable ? () => setRating(value) : undefined}
     >
-      <UiEntity uiTransform={{ width: 72, height: 72, justifyContent: 'center', alignItems: 'center', opacity: lit ? 1 : 0.25 }}>
+      <UiEntity
+        uiTransform={{ width: 72, height: 72, justifyContent: 'center', alignItems: 'center', opacity: lit ? 1 : 0.25 }}
+      >
         <Label value="⭐" fontSize={48} />
       </UiEntity>
       <Label

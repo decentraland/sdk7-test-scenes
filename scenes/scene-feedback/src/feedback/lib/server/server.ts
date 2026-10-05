@@ -92,6 +92,7 @@ function receiveResponse(
     trigger: string
     rating: number
     comment: string
+    commentShown: boolean
     secondsInScene: number
     platform: string
   },
@@ -108,7 +109,7 @@ function receiveResponse(
   if (!question || id === '') return ack(false)
 
   const rating = Number.isInteger(data.rating) && data.rating >= 1 && data.rating <= MAX_RATING ? data.rating : null
-  const comment = data.comment.trim().slice(0, MAX_COMMENT_LENGTH)
+  const comment = data.commentShown ? data.comment.trim().slice(0, MAX_COMMENT_LENGTH) : ''
   const address = from.toLowerCase()
   const row: CsvRow = {
     id,
@@ -120,6 +121,7 @@ function receiveResponse(
     rating,
     ratingLabel: rating === null ? '' : scaleLabels(question.scale)[rating - 1],
     scale: scaleName(question.scale),
+    commentPrompt: data.commentShown ? question.commentPrompt : '',
     comment,
     secondsInScene: Math.max(0, data.secondsInScene),
     playersInScene: countPlayers(),

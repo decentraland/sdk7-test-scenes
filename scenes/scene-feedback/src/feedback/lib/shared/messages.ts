@@ -13,6 +13,8 @@ export const Messages = {
     trigger: Schemas.String,
     rating: Schemas.Int,
     comment: Schemas.String,
+    // Whether the comment field was on screen (feedback.ask's comment option).
+    commentShown: Schemas.Boolean,
     secondsInScene: Schemas.Int,
     platform: Schemas.String
   }),
