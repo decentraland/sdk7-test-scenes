@@ -90,7 +90,11 @@ function observeUiResults() {
   const dropdownResult = active[3] ? UiDropdownResult.getOrNull(dropdown) : null
   const nextInput = inputResult ? JSON.stringify(inputResult) : undefined
   const nextDropdown = dropdownResult ? JSON.stringify(dropdownResult) : undefined
-  if (nextInput !== lastInputResult && inputResult) logTest('input-result-observed', { result: inputResult })
+  if (nextInput !== lastInputResult && inputResult) {
+    logTest('input-result-observed', { result: inputResult })
+    // Keep the typed text in the component, so later updates (e.g. a font_src change) don't reset it
+    UiInput.getMutable(input).value = inputResult.value
+  }
   if (nextDropdown !== lastDropdownResult && dropdownResult) logTest('dropdown-result-observed', { result: dropdownResult })
   lastInputResult = nextInput
   lastDropdownResult = nextDropdown
