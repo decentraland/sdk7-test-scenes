@@ -3,6 +3,7 @@ import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Input, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { isMobile } from '@dcl/sdk/platform'
 import { MAX_RATING, allQuestions } from '../shared/series'
+import { scaleLabels } from '../shared/scales'
 import {
   askQuestion,
   closeFeedback,
@@ -85,7 +86,7 @@ function questionPanel() {
         <Label value={q.text} fontSize={26} color={Color4.White()} textWrap="wrap" uiTransform={{ width: 660, height: 80 }} />
 
         <UiEntity uiTransform={{ flexDirection: 'row', margin: { top: 12, bottom: 16 } }}>
-          {Array.from({ length: MAX_RATING }, (_, i) => star(i + 1, editable))}
+          {Array.from({ length: MAX_RATING }, (_, i) => star(i + 1, scaleLabels(q.scale)[i], editable))}
         </UiEntity>
 
         <Input
@@ -104,17 +105,28 @@ function questionPanel() {
   )
 }
 
-// Unselected stars are the same emoji, dimmed with opacity: a colour emoji
-// ignores the Label's colour tint.
-function star(value: number, editable: boolean) {
+// A star with its scale label underneath. Unselected stars are the same emoji,
+// dimmed with opacity: a colour emoji ignores the Label's colour tint.
+function star(value: number, label: string, editable: boolean) {
   const lit = value <= feedback.rating
+  const selected = value === feedback.rating
   return (
     <UiEntity
       key={value}
-      uiTransform={{ width: 72, height: 72, margin: 6, justifyContent: 'center', alignItems: 'center', opacity: lit ? 1 : 0.25 }}
+      uiTransform={{ width: 120, flexDirection: 'column', alignItems: 'center', margin: { left: 4, right: 4 } }}
       onMouseDown={editable ? () => setRating(value) : undefined}
     >
-      <Label value="⭐" fontSize={48} />
+      <UiEntity uiTransform={{ width: 72, height: 72, justifyContent: 'center', alignItems: 'center', opacity: lit ? 1 : 0.25 }}>
+        <Label value="⭐" fontSize={48} />
+      </UiEntity>
+      <Label
+        value={label}
+        fontSize={15}
+        color={selected ? Color4.White() : MUTED}
+        textAlign="middle-center"
+        textWrap="wrap"
+        uiTransform={{ width: 120, height: 40 }}
+      />
     </UiEntity>
   )
 }

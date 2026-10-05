@@ -1,8 +1,11 @@
 // The scene's Question series (questions.ts), set once at module load, so the
 // client and the server (same code, both run it) see the same Questions.
+import { Scale } from './scales'
 
 export type QuestionSpec = {
   text: string
+  // Labels of the five answers: a code from shared/scales.ts, or your own five labels.
+  scale: Scale
   // Placeholder of the comment field.
   commentPrompt: string
 }
@@ -10,6 +13,7 @@ export type QuestionSpec = {
 export type Question = {
   id: string
   text: string
+  scale: Scale
   commentPrompt: string
 }
 
@@ -19,6 +23,7 @@ export function setQuestions(specs: Record<string, QuestionSpec>): void {
   series = Object.keys(specs).map((id) => ({
     id,
     text: specs[id].text,
+    scale: specs[id].scale,
     commentPrompt: specs[id].commentPrompt
   }))
 }

@@ -5,8 +5,12 @@ In-world player feedback for Decentraland scenes: a creator asks players questio
 ## Language
 
 **Question**:
-One creator-defined prompt: text, a 1–5 rating, and an optional comment. Shown to the player one at a time.
+One creator-defined prompt: text, a 1–5 rating on a **Scale**, and an optional comment. Shown to the player one at a time.
 _Avoid_: survey item, form field
+
+**Scale**:
+The five labels a **Question**'s rating is read with (1 → 5), e.g. EASE: Very difficult … Very easy. Shared across **Questions** by code; a **Question** may also carry five labels of its own. Stored with every **Response**.
+_Avoid_: stars (the visual, not the meaning), options
 
 **Question series**:
 The ordered set of **Questions** a creator configures for a scene. Not shown as one form: the creator decides when each **Question** appears (e.g. one at arrival, the next after the core mechanic).

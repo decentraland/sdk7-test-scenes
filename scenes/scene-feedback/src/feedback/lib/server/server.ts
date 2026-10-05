@@ -4,6 +4,7 @@ import { Storage } from '@dcl/sdk/server'
 import { getSceneInformation } from '~system/Runtime'
 import { HEARTBEAT_MS, MAX_COMMENT_LENGTH, MAX_RATING, findQuestion } from '../shared/series'
 import { room } from '../shared/messages'
+import { scaleLabels, scaleName } from '../shared/scales'
 import { ServerHeartbeat } from '../shared/schemas'
 import { sinceLoad } from '../shared/clock'
 import { CSV_HEADER, CsvRow, formatRow, hasRow, sanitizeId, utf8Length } from './csv'
@@ -117,6 +118,8 @@ function receiveResponse(
     questionText: question.text,
     trigger: data.trigger.slice(0, 40),
     rating,
+    ratingLabel: rating === null ? '' : scaleLabels(question.scale)[rating - 1],
+    scale: scaleName(question.scale),
     comment,
     secondsInScene: Math.max(0, data.secondsInScene),
     playersInScene: countPlayers(),

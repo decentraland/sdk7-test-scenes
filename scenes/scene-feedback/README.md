@@ -1,12 +1,13 @@
 # Scene Feedback
 
-Asks players a Question with a 1–5 rating and an optional comment, at moments the creator
-picks. **Skip** turns into **Submit** once a rating or a comment is entered. Every Response —
+Asks players a Question with a labelled 1–5 rating and an optional comment, at moments the
+creator picks. **Skip** turns into **Submit** once a rating or a comment is entered. Every Response —
 submitted or skipped — ends up as a row of a CSV that the Authoritative Server keeps in scene
 Storage. Vocabulary: [CONTEXT.md](CONTEXT.md).
 
 This scene is the example: a tiny coin hunt ([src/game.tsx](src/game.tsx)) that asks Questions
-mid-round, after a round, and as a two-Question series.
+mid-round, after a round, and as a two-Question series. Its [questions.ts](src/feedback/questions.ts)
+shows the three kinds of Question: from the bank, your own on a shared scale, your own on your own scale.
 
 ## Add it to your scene
 
@@ -23,6 +24,7 @@ code cannot write Storage; see [research-storage-options.md](research-storage-op
      playMore: QUESTION_BANK.motivation.playMore, // from the bank, as is
      buyingUpgrade: {                             // your own
        text: 'How easy or difficult was it to buy an upgrade?',
+       scale: 'EASE', // labels of the five answers: a code from lib/shared/scales.ts, or your own five
        commentPrompt: 'What most affected your rating? (optional)'
      }
    } satisfies Record<string, QuestionSpec>
@@ -57,7 +59,9 @@ The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` sta
 
 [src/feedback/lib/bank.ts](src/feedback/lib/bank.ts): 20 Questions selected for the pilot, in
 sections (`coreMechanic`, `coreLoop`, `social`, `motivation`, `world`, `technical`). Each comes
-with its rating scale, the moment it is meant for, what the answer tells you, and its code in the research doc. The full
+with its rating scale, the moment it is meant for, what the answer tells you, and its code in the
+research doc. The scales are in [src/feedback/lib/shared/scales.ts](src/feedback/lib/shared/scales.ts):
+the research doc's 14, shortened to fit under a tile. A Question can also carry five labels of its own. The full
 research bank: [player-feedback-question-bank-2026-09.md](player-feedback-question-bank-2026-09.md).
 
 ## Tips
@@ -71,6 +75,7 @@ research bank: [player-feedback-question-bank-2026-09.md](player-feedback-questi
   // bank: repeatLoop 'How enjoyable was repeating the main activity?'
   coinRounds: {
     text: 'How enjoyable was collecting coins round after round?',
+    scale: 'ENJOY',
     commentPrompt: 'What made the later rounds more or less fun? (optional)'
   }
   ```
@@ -107,13 +112,15 @@ not to production Storage.
 total, shared by all its scenes.
 
 ```csv
-id,timeUtc,version,questionId,questionText,trigger,rating,comment,secondsInScene,playersInScene,address,isGuest,platform
-mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in playing more right now?,debug,5,kind of yes,42,1,0x…,true,desktop
+id,timeUtc,version,questionId,questionText,trigger,rating,ratingLabel,scale,comment,secondsInScene,playersInScene,address,isGuest,platform
+mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in playing more right now?,debug,5,Extremely,INTEREST,kind of yes,42,1,0x…,true,desktop
 ```
 
 - Empty `rating` and `comment`: the player pressed Skip or closed the panel.
 - `version`: tail of the deployed entity id, new on every deploy (`preview` locally).
 - `questionText`: the wording the server shipped with, so edited Questions never mix with old answers.
+- `ratingLabel`, `scale`: the label the player picked and the scale it came from (a code, or the
+  custom labels joined with ` | `), so a rating is read with the words that were on screen.
 - `trigger`: the label passed to `feedback.ask(questionId, trigger)` (`debug` for the debug buttons).
 - `secondsInScene`: from the player's scene load to the answer, reported by the client.
 - `playersInScene`: players in the scene when the server received the answer (solo vs group).

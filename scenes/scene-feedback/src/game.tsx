@@ -18,6 +18,7 @@ import { feedback } from './feedback'
 //   first coin of the visit  → coinSpotting (mid-round, the round keeps going)
 //   round 1 complete         → nextGoal
 //   round 2 complete         → repeatLoop, then playMore once repeatLoop is answered or skipped
+//   round 3 complete         → nextCoinKnown
 const COINS_PER_ROUND = 5
 
 let round = 1
@@ -86,6 +87,7 @@ function collect(coin: Entity, disc: Entity): void {
   if (collected < COINS_PER_ROUND) return
   if (round === 1) void feedback.ask('nextGoal', 'round-1-complete')
   if (round === 2) void askAfterRepeat()
+  if (round === 3) void feedback.ask('nextCoinKnown', 'round-3-complete')
   round++
   spawnRound()
 }
