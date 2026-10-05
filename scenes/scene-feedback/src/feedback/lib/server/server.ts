@@ -109,7 +109,9 @@ function receiveResponse(
   if (!question || id === '') return ack(false)
 
   const rating = Number.isInteger(data.rating) && data.rating >= 1 && data.rating <= MAX_RATING ? data.rating : null
-  const comment = data.commentShown ? data.comment.trim().slice(0, MAX_COMMENT_LENGTH) : ''
+  // No comment field on screen (no commentPrompt, or the call turned it off): nothing to keep.
+  const commentShown = data.commentShown && question.commentPrompt !== undefined
+  const comment = commentShown ? data.comment.trim().slice(0, MAX_COMMENT_LENGTH) : ''
   const address = from.toLowerCase()
   const row: CsvRow = {
     id,
@@ -121,7 +123,7 @@ function receiveResponse(
     rating,
     ratingLabel: rating === null ? '' : scaleLabels(question.scale)[rating - 1],
     scale: scaleName(question.scale),
-    commentPrompt: data.commentShown ? question.commentPrompt : '',
+    commentPrompt: commentShown ? question.commentPrompt ?? '' : '',
     comment,
     secondsInScene: Math.max(0, data.secondsInScene),
     playersInScene: countPlayers(),

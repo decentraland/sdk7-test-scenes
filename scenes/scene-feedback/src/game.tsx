@@ -14,16 +14,18 @@ import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { feedback } from './feedback'
 
-// A tiny coin hunt, only here to show feedback.ask() at different moments of play:
-//   first coin of the visit  → coinSpotting (mid-round, rating only, the round keeps going)
-//   round 1 complete         → nextGoal
-//   round 2 complete         → repeatLoop, then playMore once repeatLoop is answered or skipped
-//   round 3 complete         → nextCoinKnown
+// A tiny coin hunt of three rounds, only here to show feedback.ask() at different moments:
+//   first coin of the visit  → coinSpotting (one Question, mid-round, rating only: no commentPrompt)
+//   round 1 complete         → nextGoal, playMore (a Group of two)
+//   hunt complete            → repeatLoop, nextCoinKnown, worthIt (a Group of three), then a new hunt
+// A second hunt asks nothing: each Question is shown once per visit per trigger.
 const COINS_PER_ROUND = 5
+const ROUNDS = 3
 
 let round = 1
 let collected = 0
 let totalCollected = 0
+let huntOver = false
 const coins: Entity[] = []
 
 export function setupGame(): void {
@@ -82,21 +84,23 @@ function collect(coin: Entity, disc: Entity): void {
   totalCollected++
 
   // Mid-round: not awaited, the player keeps playing while the Question is up.
-  // Rating only, no comment field: a quick tap, not a pause to type.
-  if (totalCollected === 1) void feedback.ask('coinSpotting', 'first-coin', { comment: false })
+  if (totalCollected === 1) void feedback.ask('coinSpotting', 'first-coin')
 
   if (collected < COINS_PER_ROUND) return
-  if (round === 1) void feedback.ask('nextGoal', 'round-1-complete')
-  if (round === 2) void askAfterRepeat()
-  if (round === 3) void feedback.ask('nextCoinKnown', 'round-3-complete')
+  if (round === 1) void feedback.ask(['nextGoal', 'playMore'], 'round-1-complete')
+  if (round === ROUNDS) return void endHunt()
   round++
   spawnRound()
 }
 
-// A short series: the follow-up waits for the player to finish the first Question.
-async function askAfterRepeat(): Promise<void> {
-  const result = await feedback.ask('repeatLoop', 'round-2-complete')
-  if (result === 'submitted' || result === 'skipped') void feedback.ask('playMore', 'after-round-2')
+// Awaited: the next hunt starts once the player is done with the Group.
+async function endHunt(): Promise<void> {
+  huntOver = true
+  const results = await feedback.ask(['repeatLoop', 'nextCoinKnown', 'worthIt'], 'hunt-complete')
+  console.log(`[SCENE] end-of-hunt feedback: ${results.join(', ')}`)
+  huntOver = false
+  round = 1
+  spawnRound()
 }
 
 function spinSystem(dt: number): void {
@@ -114,7 +118,7 @@ const hud = () => (
       uiTransform={{ padding: { left: 20, right: 20 }, justifyContent: 'center', alignItems: 'center' }}
       uiBackground={{ color: Color4.create(0, 0, 0, 0.5) }}
     >
-      <Label value={`Round ${round} · Coins ${collected}/${COINS_PER_ROUND}`} fontSize={22} color={Color4.White()} />
+      <Label value={huntOver ? 'Hunt complete!' : `Round ${round}/${ROUNDS} · Coins ${collected}/${COINS_PER_ROUND}`} fontSize={22} color={Color4.White()} />
     </UiEntity>
   </UiEntity>
 )

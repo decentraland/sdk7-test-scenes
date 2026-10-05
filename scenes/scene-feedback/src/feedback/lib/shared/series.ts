@@ -6,15 +6,16 @@ export type QuestionSpec = {
   text: string
   // Labels of the five answers: a code from shared/scales.ts, or your own five labels.
   scale: Scale
-  // Placeholder of the comment field.
-  commentPrompt: string
+  // Placeholder of the comment field. Leave it out for a rating-only Question, e.g. a
+  // quick tap mid-play: no comment field is shown.
+  commentPrompt?: string
 }
 
 export type Question = {
   id: string
   text: string
   scale: Scale
-  commentPrompt: string
+  commentPrompt?: string
 }
 
 let series: Question[] = []

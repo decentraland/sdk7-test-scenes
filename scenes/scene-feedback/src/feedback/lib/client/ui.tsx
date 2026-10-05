@@ -5,11 +5,12 @@ import { isMobile } from '@dcl/sdk/platform'
 import { MAX_RATING, allQuestions } from '../shared/series'
 import { scaleLabels } from '../shared/scales'
 import {
-  askQuestion,
-  closeFeedback,
+  askQuestions,
   dismissFeedback,
   feedback,
+  giveUpFeedback,
   hasAnswer,
+  isLastStep,
   isServerAlive,
   panelOpacity,
   sendResponse,
@@ -23,6 +24,7 @@ const DISABLED = Color4.create(1, 1, 1, 0.12)
 const BUTTON_BG = Color4.fromHexString('#3a6df0ff')
 const DEBUG_BG = Color4.create(0.2, 0.2, 0.25, 0.9)
 const WARN = Color4.fromHexString('#ff9d3aff')
+const PROGRESS = Color4.fromHexString('#f2a65aff')
 
 // Own renderer next to the scene's: setUiRenderer stays free for the creator's UI.
 export function setupUi(debug: boolean, buttonQuestionId: string | null): void {
@@ -61,7 +63,7 @@ function debugPanel() {
       {allQuestions().map((q) =>
         button(
           `Ask ${q.id}`,
-          () => void askQuestion(q.id, 'debug', { repeat: true }),
+          () => void askQuestions([q.id], 'debug', { repeat: true }),
           alive && feedback.phase === 'idle',
           q.id
         )
@@ -88,7 +90,7 @@ function feedbackButton(questionId: string) {
         alignItems: 'center'
       }}
       uiBackground={{ color: enabled ? BUTTON_BG : DISABLED }}
-      onMouseDown={enabled ? () => void askQuestion(questionId, 'feedback-button', { repeat: true }) : undefined}
+      onMouseDown={enabled ? () => void askQuestions([questionId], 'feedback-button', { repeat: true }) : undefined}
     >
       <Label value="Leave feedback" fontSize={20} color={enabled ? Color4.White() : MUTED} />
     </UiEntity>
@@ -117,6 +119,7 @@ function questionPanel() {
         uiBackground={{ color: PANEL_BG }}
       >
         {editable && closeButton()}
+        {feedback.steps > 1 && progressBar()}
         <Label
           value={q.text}
           fontSize={26}
@@ -143,6 +146,22 @@ function questionPanel() {
 
         {footer(editable)}
       </UiEntity>
+    </UiEntity>
+  )
+}
+
+// "1/3": where the player is in the Group. Only for Groups of two or more.
+const PROGRESS_WIDTH = 600
+function progressBar() {
+  return (
+    <UiEntity uiTransform={{ width: 660, height: 32, flexDirection: 'row', alignItems: 'center', margin: { top: 24, bottom: 8 } }}>
+      <UiEntity uiTransform={{ width: PROGRESS_WIDTH, height: 10 }} uiBackground={{ color: DISABLED }}>
+        <UiEntity
+          uiTransform={{ width: (PROGRESS_WIDTH * feedback.step) / feedback.steps, height: 10 }}
+          uiBackground={{ color: PROGRESS }}
+        />
+      </UiEntity>
+      <Label value={`${feedback.step}/${feedback.steps}`} fontSize={20} color={Color4.White()} uiTransform={{ width: 60 }} />
     </UiEntity>
   )
 }
@@ -206,14 +225,14 @@ function footer(editable: boolean) {
           <Label value="Could not save. Try again?" fontSize={18} color={WARN} uiTransform={{ height: 28 }} />
           <UiEntity uiTransform={{ flexDirection: 'row' }}>
             {button('Try again', sendResponse, true, 'retry')}
-            {button('Close', () => closeFeedback('failed'), true, 'close')}
+            {button('Close', giveUpFeedback, true, 'close')}
           </UiEntity>
         </UiEntity>
       )
     default:
       return (
         <UiEntity uiTransform={{ margin: { top: 16 } }}>
-          {button(hasAnswer() ? 'Submit' : 'Skip', sendResponse, editable, 'send')}
+          {button(hasAnswer() ? (isLastStep() ? 'Submit' : 'Next') : 'Skip', sendResponse, editable, 'send')}
         </UiEntity>
       )
   }

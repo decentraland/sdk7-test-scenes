@@ -30,81 +30,113 @@ export function isServerAlive(): boolean {
 }
 
 // --- Asking ------------------------------------------------------------------------
-// 'not-shown': asked before at this Trigger this visit, or the server never came up.
+// 'not-shown': asked before at this Trigger this visit, the server never came up, or
+// the player closed the Group before reaching this Question.
 export type AskResult = 'submitted' | 'skipped' | 'failed' | 'not-shown'
 
 export type AskOptions = {
   // Show again even if the player already saw this Question at this Trigger.
   repeat?: boolean
-  // Show the comment field (default true). false: rating only, for a quick tap
-  // mid-play; the CSV's commentPrompt stays empty, so "no comment" reads as "not offered".
-  comment?: boolean
+  // Which Questions of this call show the comment field: true (default) all, false none,
+  // or a list of ids — only those. It can only hide the field: a Question without
+  // commentPrompt never shows one.
+  comment?: boolean | readonly string[]
 }
 
+// One ask() call: a Group of Questions shown one after another in one panel.
 type Ask = {
-  question: Question
+  // The Questions to show, each with its position in the ids passed to ask().
+  // comment: whether this step shows the comment field.
+  steps: { question: Question; slot: number; comment: boolean }[]
   trigger: string
-  comment: boolean
-  resolve: (result: AskResult) => void
+  // One per id passed to ask(), in the same order; 'not-shown' until answered.
+  results: AskResult[]
+  resolve: (results: AskResult[]) => void
   askedAt: number
 }
 
-// Questions wait here while another one is open or the server is still waking up.
+// Groups wait here while another one is open or the server is still waking up.
 const queue: Ask[] = []
-// The Ask on screen now.
+// The Group on screen now, and the index of its step on screen.
 let current: Ask | undefined
+let step = 0
 // "id|trigger" of every Question shown this visit.
 const shown = new Set<string>()
-// A queued Question gives up if the server stays down this long.
+// A queued Group gives up if the server stays down this long.
 const SERVER_WAIT_MS = 120_000
 
-// trigger labels the moment the Question was asked, e.g. 'after-first-round',
-// so answers given at different moments can be told apart.
-export function askQuestion(questionId: string, trigger: string, options: AskOptions = {}): Promise<AskResult> {
-  const question = findQuestion(questionId)
-  if (!question) {
-    console.log(`[FEEDBACK] unknown question ${questionId}`)
-    return Promise.resolve('not-shown')
-  }
-  const key = `${question.id}|${trigger}`
-  const pending = current?.question.id === question.id && current.trigger === trigger
-  const queued = queue.some((a) => a.question.id === question.id && a.trigger === trigger)
-  if (!options.repeat && (shown.has(key) || pending || queued)) return Promise.resolve('not-shown')
+// trigger labels the moment the Questions were asked, e.g. 'after-first-round',
+// so answers given at different moments can be told apart. Questions already shown
+// (or waiting) at this trigger are dropped from the Group unless options.repeat.
+export function askQuestions(questionIds: readonly string[], trigger: string, options: AskOptions = {}): Promise<AskResult[]> {
+  const results: AskResult[] = questionIds.map(() => 'not-shown')
+  const steps: Ask['steps'] = []
+  questionIds.forEach((id, slot) => {
+    const question = findQuestion(id)
+    if (!question) return console.log(`[FEEDBACK] unknown question ${id}`)
+    if (!options.repeat && isTaken(question.id, trigger)) return
+    if (steps.some((s) => s.question.id === question.id)) return
+    steps.push({ question, slot, comment: commentAllowed(question, options.comment) })
+  })
+  if (steps.length === 0) return Promise.resolve(results)
 
-  return new Promise((resolve) => queue.push({ question, trigger, comment: options.comment ?? true, resolve, askedAt: Date.now() }))
+  return new Promise((resolve) =>
+    queue.push({ steps, trigger, results, resolve, askedAt: Date.now() })
+  )
 }
 
-// Opens the next queued Question once nothing is on screen and the server is up.
+function commentAllowed(question: Question, comment: AskOptions['comment'] = true): boolean {
+  if (question.commentPrompt === undefined) return false
+  return typeof comment === 'boolean' ? comment : comment.includes(question.id)
+}
+
+// Shown this visit, on screen now, or waiting in the queue, at this trigger.
+function isTaken(questionId: string, trigger: string): boolean {
+  const same = (a: Ask) => a.trigger === trigger && a.steps.some((s) => s.question.id === questionId)
+  return shown.has(`${questionId}|${trigger}`) || (current !== undefined && same(current)) || queue.some(same)
+}
+
+// Opens the next queued Group once nothing is on screen and the server is up.
 function processQueue(): void {
   const alive = isServerAlive()
   if (!alive) {
     for (let i = queue.length - 1; i >= 0; i--) {
       if (Date.now() - queue[i].askedAt < SERVER_WAIT_MS) continue
-      console.log(`[FEEDBACK] server not up after ${SERVER_WAIT_MS / 1000} s, not showing ${queue[i].question.id}`)
-      queue.splice(i, 1)[0].resolve('not-shown')
+      const ids = queue[i].steps.map((s) => s.question.id).join(', ')
+      console.log(`[FEEDBACK] server not up after ${SERVER_WAIT_MS / 1000} s, not showing ${ids}`)
+      const [expired] = queue.splice(i, 1)
+      expired.resolve(expired.results)
     }
     return
   }
   if (feedback.phase !== 'idle' || queue.length === 0) return
 
-  const next = queue.shift()!
-  current = next
-  shown.add(`${next.question.id}|${next.trigger}`)
+  current = queue.shift()!
+  showStep(0)
+}
+
+function showStep(index: number): void {
+  if (!current) return
+  step = index
+  const { question, comment } = current.steps[index]
+  shown.add(`${question.id}|${current.trigger}`)
   feedback.phase = 'open'
-  feedback.question = next.question
-  feedback.trigger = next.trigger
-  feedback.withComment = next.comment
+  feedback.question = question
+  feedback.trigger = current.trigger
+  feedback.withComment = comment
+  feedback.step = index + 1
+  feedback.steps = current.steps.length
   feedback.rating = 0
   feedback.comment = ''
 }
 
 // --- The Question currently on screen ----------------------------------------------
-// idle → open → sending → saved (auto-closes) | failed (player can retry or close)
+// idle → open → sending → (next step: open) | saved (auto-closes) | failed (retry or close)
 export type Phase = 'idle' | 'open' | 'sending' | 'saved' | 'failed'
 
 const RESEND_MS = 3000
 const GIVE_UP_MS = 30000
-// After the ack: show 'Thanks' briefly, then fade the panel out.
+// After the last ack of a Group: show 'Thanks' briefly, then fade the panel out.
 const SAVED_HOLD_MS = 300
 const SAVED_FADE_MS = 200
 
@@ -113,6 +145,9 @@ export const feedback = {
   question: undefined as Question | undefined,
   trigger: '',
   withComment: true,
+  // Position in the Group, 1-based: "step of steps" in the progress bar.
+  step: 1,
+  steps: 1,
   rating: 0, // 0 = no rating
   comment: ''
 }
@@ -137,7 +172,11 @@ export function hasAnswer(): boolean {
   return feedback.rating > 0 || feedback.comment.trim() !== ''
 }
 
-// Submit and Skip are the same action: an empty Response is recorded as skipped.
+export function isLastStep(): boolean {
+  return feedback.step >= feedback.steps
+}
+
+// Submit, Next and Skip are the same action: an empty Response is recorded as skipped.
 export function sendResponse(): void {
   if (!feedback.question) return
   requestId = newRequestId()
@@ -147,15 +186,21 @@ export function sendResponse(): void {
   send()
 }
 
-// The close button: recorded like Skip, whatever was entered is discarded.
-// Sent once without waiting for the ack — the player shouldn't wait to close.
+// The close button: the Question on screen is recorded like Skip, whatever was entered
+// is discarded, and the rest of the Group is not shown. Sent once without waiting for
+// the ack — the player shouldn't wait to close.
 export function dismissFeedback(): void {
   if (!feedback.question) return
   feedback.rating = 0
   feedback.comment = ''
   requestId = newRequestId()
   send()
-  closeFeedback('skipped')
+  finishStep('skipped', false)
+}
+
+// The Close button after a failed save: ends the Group.
+export function giveUpFeedback(): void {
+  finishStep('failed', false)
 }
 
 function newRequestId(): string {
@@ -170,11 +215,17 @@ export function panelOpacity(): number {
   return fading <= 0 ? 1 : Math.max(0, 1 - fading / SAVED_FADE_MS)
 }
 
-export function closeFeedback(result: AskResult): void {
+// Records the step's result, then opens the next step or closes the Group.
+function finishStep(result: AskResult, next: boolean): void {
+  if (!current) return
+  current.results[current.steps[step].slot] = result
+  if (next && step + 1 < current.steps.length) return showStep(step + 1)
+
   feedback.phase = 'idle'
   feedback.question = undefined
-  current?.resolve(result)
+  const done = current
   current = undefined
+  done.resolve(done.results)
 }
 
 function send(kind: 'send' | 'resend' = 'send'): void {
@@ -197,11 +248,14 @@ export function setupFeedbackState(): void {
   room.onMessage('feedbackSaved', (data) => {
     console.log(`[FEEDBACK] ack ${data.requestId} ok=${data.ok}`)
     if (feedback.phase !== 'sending' || data.requestId !== requestId) return
-    if (data.ok) {
+    if (!data.ok) {
+      feedback.phase = 'failed'
+    } else if (!isLastStep()) {
+      // Mid-Group: straight to the next Question, no 'Thanks'.
+      finishStep(sentAnswer ? 'submitted' : 'skipped', true)
+    } else {
       feedback.phase = 'saved'
       savedAt = Date.now()
-    } else {
-      feedback.phase = 'failed'
     }
   })
 
@@ -212,10 +266,9 @@ export function setupFeedbackState(): void {
       if (now - firstSentAt > GIVE_UP_MS) {
         console.log(`[FEEDBACK] no ack for ${requestId} after ${GIVE_UP_MS / 1000} s, giving up`)
         feedback.phase = 'failed'
-      }
-      else if (now - lastSentAt > RESEND_MS && isServerAlive()) send('resend')
+      } else if (now - lastSentAt > RESEND_MS && isServerAlive()) send('resend')
     } else if (feedback.phase === 'saved' && now - savedAt > SAVED_HOLD_MS + SAVED_FADE_MS) {
-      closeFeedback(sentAnswer ? 'submitted' : 'skipped')
+      finishStep(sentAnswer ? 'submitted' : 'skipped', true)
     }
     processQueue()
   })

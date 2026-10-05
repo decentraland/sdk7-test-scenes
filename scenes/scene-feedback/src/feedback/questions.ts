@@ -19,7 +19,7 @@ export const QUESTIONS = {
   coinSpotting: {
     text: 'How easy or difficult was it to spot the coins?', // bank's "the important objects" replaced by "coins" 
     scale: 'EASE', // a shared scale: code from lib/shared/scales.ts (EASE, CLEAR, ENJOY, …).
-    commentPrompt: 'What made them easy or hard to spot? (optional)'
+    // No commentPrompt: rating only, no comment field. Asked mid-round — a quick tap, not a pause to type.
   },
 
   // Your own Question on your own scale: five labels, 1 → 5, 5 being the best. A frequency

@@ -25,7 +25,7 @@ code cannot write Storage; see [research-storage-options.md](research-storage-op
      buyingUpgrade: {                             // your own
        text: 'How easy or difficult was it to buy an upgrade?',
        scale: 'EASE', // labels of the five answers: a code from lib/shared/scales.ts, or your own five
-       commentPrompt: 'What most affected your rating? (optional)'
+       commentPrompt: 'What most affected your rating? (optional)' // leave out for rating only
      }
    } satisfies Record<string, QuestionSpec>
    ```
@@ -39,10 +39,10 @@ code cannot write Storage; see [research-storage-options.md](research-storage-op
 
    void feedback.ask('buyingUpgrade', 'after-first-purchase')
 
-   // rating only, without the comment field
-   void feedback.ask('buyingUpgrade', 'after-first-purchase', { comment: false })
+   // a Group: one panel, one Question after another, with a "1/3" progress bar
+   void feedback.ask(['nextGoal', 'playMore', 'worthIt'], 'hunt-complete')
 
-   // or wait for the player, e.g. to chain a series
+   // or wait for the player, e.g. to resume the game afterwards
    const result = await feedback.ask('playMore', 'round-2-complete')
    ```
 
@@ -53,9 +53,25 @@ To update to a newer version, replace `src/feedback/lib/` with the new one; `que
 
 `ask()` queues the Question and shows it once nothing else is on screen and the server is up
 (~15 s on a cold start). It resolves to `submitted`, `skipped`, `failed` (could not be saved) or
-`not-shown`: already shown at this trigger this visit (pass `{ repeat: true }` to allow it), or
-the server did not come up within 2 minutes. A typo in the id is a compile error. Pass
-`{ comment: false }` to show the rating without the comment field, e.g. mid-play.
+`not-shown`: already shown at this trigger this visit (pass `{ repeat: true }` to allow it),
+the server did not come up within 2 minutes, or the player closed the Group before reaching it.
+A Group resolves to one result per id, in the same order. In a Group, Skip and Next move on to
+the next Question, × closes the whole Group. A typo in the id is a compile error.
+
+The comment field is shown when the Question has a `commentPrompt` and the call does not turn
+it off:
+
+- A Question without `commentPrompt` is always rating only, e.g. one meant for a quick tap
+  mid-play. A Group can mix such Questions with commented ones.
+- The call's `comment` option picks the Questions that show it: `false` for none, or a list of
+  ids for only those. The same Question can be asked with a comment at one trigger and without
+  at another:
+
+  ```ts
+  void feedback.ask('playMore', 'mid-round', { comment: false })
+  // a Group where only playMore shows the comment field
+  void feedback.ask(['nextGoal', 'playMore', 'worthIt'], 'hunt-complete', { comment: ['playMore'] })
+  ```
 
 A **Leave feedback** button (top-right) lets players open one Question themselves, any time
 and as often as they like (trigger `feedback-button`). Pick it with `FEEDBACK_BUTTON` in
@@ -129,8 +145,9 @@ mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in p
 - `questionText`: the wording the server shipped with, so edited Questions never mix with old answers.
 - `ratingLabel`, `scale`: the label the player picked and the scale it came from (a code, or the
   custom labels joined with ` | `), so a rating is read with the words that were on screen.
-- `commentPrompt`: the comment field's prompt as shown; empty when the Question was asked with
-  `{ comment: false }`, so an empty comment there means "not offered", not "left blank".
+- `commentPrompt`: the comment field's prompt as shown; empty for a rating-only Question, so an
+  empty comment there means "not offered", not "left blank". Also empty when the call's `comment`
+  option left the field out.
 - `trigger`: the label passed to `feedback.ask(questionId, trigger)` (`debug` for the debug buttons,
   `feedback-button` for the Leave feedback button).
 - `secondsInScene`: from the player's scene load to the answer, reported by the client.
