@@ -25,9 +25,7 @@ const modes = [
   { label: 'Missing file', src: 'assets/fonts/missing.ttf', expected: 'Built-in sans-serif; no disappearing text or broken input.' },
   { label: 'Invalid file', src: 'assets/fonts/invalid.ttf', expected: 'Built-in sans-serif; a font warning is expected.' },
   { label: 'Empty source', src: '', expected: 'Same as an unset source: built-in sans-serif.' },
-  { label: 'External URL', src: 'https://raw.githubusercontent.com/google/fonts/main/ofl/bungeeshade/BungeeShade-Regular.ttf', expected: 'Rejected: built-in sans-serif, no external font download.' },
-  { label: 'Lora family (4 faces)', src: 'Lora', expected: 'True regular, bold, italic and bold italic faces from Fontsource.' },
-  { label: 'Family name', src: 'Bungee Shade', expected: 'Fontsource: decorative Bungee Shade face, loaded by family name.' }
+  { label: 'External URL', src: 'https://raw.githubusercontent.com/google/fonts/main/ofl/bungeeshade/BungeeShade-Regular.ttf', expected: 'Rejected: built-in sans-serif, no external font download.' }
 ]
 let mode = 0
 let sourceLabel = modes[0].label
@@ -190,14 +188,6 @@ function runShared() {
     })),
     { seconds: 4, text: 'All consumers removed. Nothing should still render except controls.' },
     { seconds: 6, text: 'All recreated with Bungee Shade. Input/selection reset is expected here.', action: () => { mode = 1; attachComponents() } }
-  ])
-}
-
-function runStyles() {
-  begin('Lora / real style variants', [
-    { seconds: 15, text: 'Loading Lora: compare regular, bold, italic and both in UiText and 3D. Inspect input/dropdown too.', action: () => setSource('Lora') },
-    { seconds: 5, text: 'Built-in control for comparison.', action: () => setSource(undefined) },
-    { seconds: 10, text: 'Lora again from cache. All style runs must return.', action: () => setSource('Lora') }
   ])
 }
 
@@ -406,7 +396,7 @@ export function setupFontTests(options: { delayedLoads: boolean }) {
       <Label value={steps.length ? 'Step ' + (stepIndex + 1) + '/' + steps.length + ' | ' + Math.max(0, Math.ceil(remaining)) + 's' : 'Idle / finished'} fontSize={15} uiTransform={{ height: 24 }} />
       <Label value={instruction} fontSize={15} textAlign='middle-left' uiTransform={{ height: 92 }} />
       {[
-        ['1. Lora: four styles', runStyles], ['2. Shared font: remove owners', runShared],
+        ['2. Shared font: remove owners', runShared],
         ['3. Fallbacks + recovery', runFallbacks], ['4. Recreate x20', runChurn],
         [delayedLoadsEnabled ? '5. Delayed load: switch' : '5. Switch while loading (local only)', () => runDelayed(false)], [delayedLoadsEnabled ? '6. Delayed load: remove' : '6. Remove while loading (local only)', () => runDelayed(true)],
         ['7. Scene boundary', runBoundary], ['8. Perf: cold load + glyph burst', runPerf], ['Stop / reset', resetScenario]

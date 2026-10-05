@@ -17,7 +17,6 @@ The PR deploys this scene to `sdk7testscenes.dcl.eth` on zone. Wait for the **De
 
 1. Click **Bungee Shade TTF**. All four samples should use the very distinctive outlined, shaded font. Type into the input and open the dropdown: their text should use it too.
 2. Select a different dropdown option and type a short word. Switch between **Azeret Mono**, **Bungee Shade TTF**, and **Built-in**. Only the font should change; your word and selected option should remain.
-3. Click **Family name**. Bungee Shade should load by name and look like the bundled version. This needs an internet connection.
 
 The test uses Latin text to identify each font. Some fonts do not contain Cyrillic letters; those letters may use a fallback font.
 
@@ -25,9 +24,10 @@ The test uses Latin text to identify each font. Some fonts do not contain Cyrill
 
 Click one scenario at a time in the right panel. Watch the instruction and countdown, then wait for **Finished** before starting another. Do not change fonts manually during a scenario: that stops it.
 
+Button numbering starts at 2; the gap is expected.
+
 | Button | What QA should see |
 | --- | --- |
-| **1. Lora: four styles** | A serif font appears, with visible regular, bold, italic and bold-italic text. The scene switches to built-in and then back to Lora. Text stays readable. |
 | **2. Shared font: remove owners** | Four Bungee Shade samples disappear one at a time. The remaining samples keep their font. At the end all four return and the input/dropdown work. |
 | **3. Fallbacks + recovery** | Each invalid source switches all samples to built-in: OTF, missing file, invalid file, empty source and external URL. Between cases and at the end, Bungee Shade returns. No missing text or broken input/dropdown. Warnings for rejected sources are expected. |
 | **4. Recreate x20** | The samples are recreated 20 times. At the end there is exactly one of each, using Bungee Shade. The input/dropdown work. Resetting their values during this test is expected. |
@@ -81,4 +81,4 @@ Before merging, replace this temporary bridge with a published SDK version that 
 - Bungee Shade OTF: [Bungee v1.2.1](https://github.com/djrrb/Bungee/blob/fc391285f3a5eb0968f0171a61d09112bc83d0c8/fonts/Bungee_Desktop/Bungee/Bungee-Shade.otf), license included. This is a real unsupported OpenType/CFF fixture, not a renamed TTF.
 - `invalid.ttf` intentionally contains plain text; `missing.ttf` is intentionally absent.
 
-Lora and the **Family name** option are requested from Fontsource at runtime. Arbitrary URL fonts remain rejected.
+Fonts load from the asset bundle the converter (abgen) builds for this scene's deployment, so the deployed scene shows them only after abgen has processed that deployment. A local preview without a local asset bundle converter (`--local-ab`) shows the built-in font instead. Arbitrary URL fonts remain rejected.
