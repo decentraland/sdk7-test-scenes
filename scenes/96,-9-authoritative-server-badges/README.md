@@ -5,9 +5,9 @@ Proof scene for scene badge awards. One authoritative scene, two pads, two layer
 | Pad | Message | What it proves |
 | --- | --- | --- |
 | **Try award** (blue, click from anywhere) | `tryAward` | Platform layer. The server calls `Badges.award` for the sender and for an address that is never in the room, with no validation of its own. The engine signs only the first (presence gate); the badges service rejects the second. |
-| **Claim badge** (yellow, stand next to it) | `claimBadge` | Scene layer. The server awards only if *its own* copy of your position is within `CLAIM_RADIUS` of the pad, and only once per player. A click from afar, or a replayed message, never produces a request. |
+| **Claim badge** (yellow, stand next to it) | `claimBadge` | Scene layer. The server awards only if *its own* replicated copy of your position is within `CLAIM_RADIUS` of the pad (horizontal distance), with at most one claim in flight per player. A click from afar never produces a request; repeats are deduplicated by the badges service (`200`). |
 
-Results arrive as `awardResult` messages (server → sender only) and are shown on the RESULTS sign and in the console.
+Results arrive as `awardResult` messages (server → sender only) and are shown on the RESULTS sign and in the console. **Try award** has no cooldown: every click is two signed award requests, which is fine for a test world.
 
 ## Expected
 
@@ -18,7 +18,7 @@ Results arrive as `awardResult` messages (server → sender only) and are shown 
 | Claim badge, from spawn | rejected before any request | nothing | `[claim] NO — too far: N.Nm` |
 | Claim badge, twice on the pad | signs both; the service decides | `201` then `200` | `[claim] OK` twice; one toast |
 
-The third row is the anti-cheat proof: the service column is empty because a forged intent dies inside the worker.
+The third row is the anti-cheat proof: the service column is empty because the worker rejects the claim before any request, using its own replicated copy of the player position rather than the message. It proves a stock client cannot claim from afar; a modified client that spoofs its own movement updates is outside this scene's scope.
 
 ## Requirements
 
@@ -29,11 +29,11 @@ The third row is the anti-cheat proof: the service column is empty because a for
 ## Run locally
 
 1. SDK: in `js-sdk-toolchain-badges-preview`, `make install && make build`.
-2. Delegation: in `scene-badges-award-stub`, `node mint-delegation.mjs --scene <this folder>`. It writes `.delegation.env` and the dev root key `.dev-root-key.json`, and is bound to this scene's preview entity id, `b64-` + base64(`<absolute scene dir>-<hostname>`).
+2. Delegation: in `scene-badges-award-stub` (a local helper folder, not a published repo: in production the orchestrator mints this), `node mint-delegation.mjs --scene <this folder>`. It writes `.delegation.env` and the dev root key `.dev-root-key.json`, and is bound to this scene's preview entity id, `b64-` + base64(`<absolute scene dir>-<hostname>`), so re-mint after moving or renaming the folder.
 3. Badges service: in `badges`, follow "Local end-to-end with the preview" in `docs/scene-badges.md`. In short:
 
    ```sh
-   docker compose up -d postgres
+   # a local Postgres: `docker compose up -d postgres`, or brew's postgresql@16 with `createdb badges`
    yarn install
    yarn workspace @badges/common build && yarn workspace @badges/api build
    # PG_COMPONENT_PSQL_CONNECTION_STRING, HTTP_SERVER_PORT=4000, ENV=dev,

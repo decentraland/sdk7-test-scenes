@@ -6,6 +6,7 @@ import { room } from '../shared/messages'
 
 // Players with a TARGET_BADGE award in flight, so a fast resend can't produce two at once.
 // Who already holds the badge is the badges service's call: a repeat award answers 200.
+// tryAward has no cooldown on purpose: every click is two signed award requests.
 const inFlight = new Set<string>()
 
 export function startServer(): void {
@@ -30,7 +31,10 @@ export function startServer(): void {
 
   // --- Layer 2: scene anti-cheat proof. ----------------------------------------
   // context.from is injected by the host from the verified LiveKit identity. The
-  // payload is untrusted and unused. The position is the SERVER's copy.
+  // payload is untrusted and unused. The position is the server's replicated copy of
+  // the player, not anything in the message: a stock client cannot claim from afar.
+  // (The replicated Transform still originates from that player's movement updates, so
+  // a modified client that lies about its position is out of scope for this proof.)
   room.onMessage('claimBadge', async (_data, context) => {
     if (!context) return
     const sender = context.from.toLowerCase()
@@ -41,12 +45,18 @@ export function startServer(): void {
     const position = positionOf(sender)
     if (!position) return reject('unknown position')
 
-    const distance = Vector3.distance(position, TARGET_POSITION)
+    // Horizontal distance only: the pad sits at y 1.2 while the replicated player y is at
+    // foot level, which would eat most of CLAIM_RADIUS in a 3D distance.
+    const distance = Math.hypot(position.x - TARGET_POSITION.x, position.z - TARGET_POSITION.z)
     if (distance > CLAIM_RADIUS) return reject(`too far: ${distance.toFixed(1)}m`)
 
     inFlight.add(sender)
-    const ok = await Badges.award(sender, TARGET_BADGE)
-    inFlight.delete(sender)
+    let ok = false
+    try {
+      ok = await Badges.award(sender, TARGET_BADGE)
+    } finally {
+      inFlight.delete(sender)
+    }
     room.send('awardResult', { kind: 'claim', ok, reason: ok ? '' : 'service rejected' }, { to: [context.from] })
 
     console.log(`[SERVER] claimBadge from ${sender} at ${distance.toFixed(1)}m: ${ok}`)
@@ -56,7 +66,8 @@ export function startServer(): void {
 }
 
 // Where the server believes a player is, from PlayerIdentityData + Transform. Scene-local
-// metres, the same frame TARGET_POSITION lives in. Never anything the client reported.
+// metres, the same frame TARGET_POSITION lives in. Read from the replicated world, never
+// from the message payload.
 function positionOf(address: string): Vector3 | null {
   for (const [entity, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
     if (identity.address.toLowerCase() !== address) continue
