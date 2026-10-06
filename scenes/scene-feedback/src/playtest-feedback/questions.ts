@@ -8,7 +8,9 @@ export const DEBUG = true
 
 // Asked once per visit before the first Question the game asks: Give feedback goes on,
 // Skip or x means no Questions this visit (Leave feedback still works). null: no Intro.
-// image (optional): a picture above the title, e.g. 'images/creator.png'.
+// avatar (optional): above the title, in a circle. Left out: the scene owner's avatar face
+// (scene.json "owner", else the World's owner). Another wallet address: that avatar's face.
+// A picture: a path in the scene ('assets/images/creator-avatar.png') or a URL. null: none.
 // Dynamic mode: true — the game's ask() shows Questions only to playtest participants:
 // players who said yes to the Intro (feedback.intro()) or whom you enrolled
 // (feedback.enroll()). false — to everyone, except players who said no to the Intro.

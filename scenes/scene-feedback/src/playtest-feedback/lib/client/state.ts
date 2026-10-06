@@ -13,6 +13,7 @@ import {
 } from '../shared/series'
 import { ServerHeartbeat } from '../shared/schemas'
 import { sinceLoad } from '../shared/clock'
+import { findSceneOwner } from './owner'
 
 // --- Server liveness -------------------------------------------------------------
 // Track when the heartbeat value last *changed* on the client clock: a stale CRDT
@@ -205,6 +206,14 @@ let intro: IntroSpec | null = null
 
 export function introSpec(): IntroSpec | null {
   return intro
+}
+
+// The picture in the Intro's circle: INTRO.avatar, or by default the scene owner's
+// wallet once found (null until then, or if there is none).
+let sceneOwner: string | null = null
+export function introAvatar(): string | null {
+  if (!intro) return null
+  return intro.avatar === undefined ? sceneOwner : intro.avatar
 }
 
 export type IntroResult = 'accepted' | 'declined' | 'not-shown'
@@ -530,6 +539,7 @@ function updateSubmission(): void {
 }
 
 export function setupFeedbackState(): void {
+  if (intro && intro.avatar === undefined) void findSceneOwner().then((owner) => (sceneOwner = owner))
   room.onMessage('feedbackSaved', (data) => {
     console.log(`[FEEDBACK] ack ${data.requestId} ok=${data.ok}`)
     if (!outbox.delete(data.requestId)) return

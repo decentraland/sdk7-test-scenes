@@ -14,7 +14,8 @@ shows the three kinds of Question: from the bank, your own on a shared scale, yo
 Requires `@dcl/sdk@auth-server` and `"authoritativeMultiplayer": true` in `scene.json` (client
 code cannot write Storage; see [research-storage-options.md](research-storage-options.md)).
 
-1. Copy the [src/playtest-feedback/](src/playtest-feedback) folder into your `src/`.
+1. Copy the [src/playtest-feedback/](src/playtest-feedback) folder into your `src/`, and the
+   [assets/playtest-feedback/](assets/playtest-feedback) folder (the panel's images) into your `assets/`.
 2. Edit [src/playtest-feedback/questions.ts](src/playtest-feedback/questions.ts) — the only file to touch:
 
    ```ts
@@ -52,7 +53,8 @@ code cannot write Storage; see [research-storage-options.md](research-storage-op
 With `authoritativeMultiplayer` your `main()` runs on the server too. If your scene has no
 server logic, start it with `if (isServer()) return` so the scene code runs only for players.
 
-To update to a newer version, replace `src/playtest-feedback/lib/` with the new one; `questions.ts` stays yours.
+To update to a newer version, replace `src/playtest-feedback/lib/` and `assets/playtest-feedback/` with the new
+ones; `questions.ts` stays yours.
 
 `ask()` queues the Question and shows it once nothing else is on screen and the server is up
 (~15 s on a cold start). It resolves to `submitted`, `skipped`, `failed` (could not be saved) or

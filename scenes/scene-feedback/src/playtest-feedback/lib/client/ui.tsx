@@ -12,6 +12,7 @@ import {
   feedback,
   giveUpGroup,
   hasAnswer,
+  introAvatar,
   introSpec,
   isCompleted,
   isFirstStep,
@@ -27,15 +28,42 @@ import {
   skipStep,
   submitGroup
 } from './state'
+import { isWallet } from './owner'
 
-const PANEL_BG = Color4.create(0.05, 0.08, 0.16, 0.92)
-const MUTED = Color4.create(1, 1, 1, 0.6)
-const DISABLED = Color4.create(1, 1, 1, 0.12)
-const BUTTON_BG = Color4.fromHexString('#3a6df0ff')
+// The designer's palette (Figma: MVP Creators Feedback, DCL design system), as seen in
+// the design's renders. Opaque on purpose: the explorer blends translucent colours in
+// linear space, so the design's Black 40% / White 10% come out much lighter in game.
+const PANEL = Color4.fromHexString('#481a77ff')
+const SNOW = Color4.fromHexString('#fcfcfcff') // text
+const RUBY = Color4.fromHexString('#e84c59ff') // primary button
+const MYTHIC = Color4.fromHexString('#ff4bedff') // avatar circle
+const SILVER = Color4.fromHexString('#a09ba8ff') // secondary text, placeholders
+const SECONDARY = Color4.fromHexString('#3c1752ff') // secondary button
+const TILE = Color4.fromHexString('#592f84ff') // tiles, empty bar
+const WHITE_50 = Color4.create(1, 1, 1, 0.5) // avatar border
+const TILE_SELECTED = Color4.fromHexString('#6e4596ff')
+// The glow images at full strength come out over twice as bright as in the design.
+const GLOW_TINT = Color4.create(1, 1, 1, 0.4)
+const INK = Color4.fromHexString('#161518ff') // text typed in the input
+const TRANSPARENT = Color4.create(0, 0, 0, 0)
+const DISABLED_OPACITY = 0.5
+// Not in the design yet.
 const DEBUG_BG = Color4.create(0.2, 0.2, 0.25, 0.9)
 const WARN = Color4.fromHexString('#ff9d3aff')
-const PROGRESS = Color4.fromHexString('#f2a65aff')
-const SKIP_BG = Color4.create(1, 1, 1, 0.15)
+const COMPLETED = Color4.fromHexString('#34ce77ff')
+
+// Images live outside src/: the scene's .dclignore leaves src/ out of the deploy.
+const ASSETS = 'assets/playtest-feedback/'
+// Bottom-right, as in the design's 1920x1080 frame.
+const PANEL_POSITION = { right: 25, bottom: 54 }
+// Textures that fill a rounded element: nine-slices, not stretch. The explorer draws a
+// stretch texture on its own, ignoring the element's border radius and padding; nine-slices
+// is the element's own background. Zero slices: the whole image, stretched.
+const FILL = { top: 0, bottom: 0, left: 0, right: 0 }
+// Measured against the design: the explorer draws top-aligned text ~5 px lower than
+// Figma, and an Input adds its own inner padding (~10 left, ~8 top).
+const TEXT_NUDGE = 5
+const INPUT_INSET = { left: 10, top: 8 }
 
 // Own renderer next to the scene's: setUiRenderer stays free for the creator's UI.
 export function setupUi(debug: boolean): void {
@@ -84,38 +112,129 @@ function debugPanel() {
   )
 }
 
-// --- The Intro: once per visit, before the first Question the game asks -------------
+// --- The panel: the design's purple card, bottom-right ------------------------------
+// The shell both panels share: background, the two glows, the close button.
+function panel(
+  key: string,
+  padding: { top: number; bottom: number },
+  onClose: (() => void) | null,
+  children: ReactEcs.JSX.Element[],
+  opacity = 1
+) {
+  return (
+    <UiEntity
+      key={key}
+      uiTransform={{
+        positionType: 'absolute',
+        position: PANEL_POSITION,
+        width: 600,
+        borderRadius: 24,
+        overflow: 'hidden',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: { top: padding.top, bottom: padding.bottom, left: 50, right: 50 },
+        opacity
+      }}
+      uiBackground={{ color: PANEL }}
+    >
+      {glow('glow-top.png', 226, 182, { top: 0, right: 0 })}
+      {glow('glow-bottom.png', 600, 273, { bottom: 0, left: 0 })}
+      {children}
+      {onClose && iconClose(onClose)}
+    </UiEntity>
+  )
+}
+
+// The design's soft glows, exported as images: there are no gradients in scene UI.
+function glow(file: string, width: number, height: number, position: { top?: number; right?: number; bottom?: number; left?: number }) {
+  return (
+    <UiEntity
+      key={file}
+      uiTransform={{ positionType: 'absolute', position, width, height }}
+      uiBackground={{ textureMode: 'stretch', texture: { src: ASSETS + file }, color: GLOW_TINT }}
+    />
+  )
+}
+
+// The design's close button: 40x40 in the top-right corner, a 20x20 icon.
+function iconClose(onClick: () => void) {
+  return (
+    <UiEntity
+      key="close"
+      uiTransform={{
+        positionType: 'absolute',
+        position: { top: 7, right: 7 },
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center'
+      }}
+      onMouseDown={onClick}
+    >
+      <UiEntity
+        uiTransform={{ width: 20, height: 20 }}
+        uiBackground={{ textureMode: 'stretch', texture: { src: ASSETS + 'close.png' } }}
+      />
+    </UiEntity>
+  )
+}
+
+// --- The Intro: before the Questions, asks whether the player wants to give feedback --
 function introPanel() {
   const intro = introSpec()
   if (!intro) return null
+  // Without a picture (none set, or the owner not found yet) the circle keeps its place.
+  const picture = introAvatar()
+  const withAvatar = intro.avatar !== null
+  return panel('intro', { top: 50, bottom: 50 }, declineIntro, [
+    withAvatar ? avatar(picture) : spacer('no-avatar', 0),
+    <Label
+      key="title"
+      value={intro.title}
+      fontSize={20}
+      color={SNOW}
+      textAlign="middle-center"
+      textWrap="wrap"
+      uiTransform={{ width: 500, minHeight: 24, margin: { top: withAvatar ? 24 : 0 } }}
+    />,
+    <Label
+      key="text"
+      value={intro.text}
+      fontSize={16}
+      color={SNOW}
+      textAlign="middle-center"
+      textWrap="wrap"
+      uiTransform={{ width: 500, minHeight: 38, margin: { top: 32 } }}
+    />,
+    <UiEntity key="ctas" uiTransform={{ flexDirection: 'row', justifyContent: 'center', margin: { top: 44 } }}>
+      {cta('skip', declineIntro, { kind: 'secondary', width: 190, key: 'intro-skip' })}
+      {spacer('intro-gap', 20)}
+      {cta('give feedback', acceptIntro, { kind: 'primary', width: 190, arrow: 'right', key: 'intro-yes' })}
+    </UiEntity>
+  ])
+}
+
+// The creator's picture in a circle, as the design's ProfilePic. A wallet address: the
+// explorer fetches that profile's face itself; anything else is an image path or URL.
+function avatar(source: string | null) {
+  const texture =
+    source === null
+      ? null
+      : isWallet(source)
+        ? { avatarTexture: { userId: source.toLowerCase() } }
+        : { texture: { src: source } }
   return (
     <UiEntity
-      uiTransform={{ width: '100%', height: '100%', positionType: 'absolute', justifyContent: 'center', alignItems: 'center' }}
+      key="avatar"
+      uiTransform={{ width: 60, height: 60, borderRadius: 30, borderWidth: 3, borderColor: WHITE_50 }}
+      uiBackground={{ color: MYTHIC }}
     >
-      <UiEntity
-        uiTransform={{ width: 720, flexDirection: 'column', alignItems: 'center', padding: 28 }}
-        uiBackground={{ color: PANEL_BG }}
-      >
-        {closeButton(declineIntro)}
-        {intro.image !== undefined && (
-          <UiEntity
-            uiTransform={{ width: 96, height: 96, margin: { top: 16, bottom: 8 } }}
-            uiBackground={{ textureMode: 'stretch', texture: { src: intro.image } }}
-          />
-        )}
-        <Label
-          value={intro.title}
-          fontSize={28}
-          color={Color4.White()}
-          textWrap="wrap"
-          uiTransform={{ width: 600, height: 60, margin: { top: 16 } }}
+      {texture && (
+        <UiEntity
+          uiTransform={{ width: '100%', height: '100%', borderRadius: 27 }}
+          uiBackground={{ textureMode: 'nine-slices', textureSlices: FILL, ...texture }}
         />
-        <Label value={intro.text} fontSize={20} color={Color4.White()} textWrap="wrap" uiTransform={{ width: 600, height: 80 }} />
-        <UiEntity uiTransform={{ flexDirection: 'row', margin: { top: 16 } }}>
-          {button('Skip', declineIntro, true, 'intro-skip', SKIP_BG)}
-          {button('Give feedback', acceptIntro, true, 'intro-yes')}
-        </UiEntity>
-      </UiEntity>
+      )}
     </UiEntity>
   )
 }
@@ -125,68 +244,59 @@ function questionPanel() {
   const q = feedback.question
   if (!q) return null
   const editable = feedback.phase === 'open'
+  const onClose = feedback.phase === 'open' ? closeGroup : feedback.phase === 'failed' ? giveUpGroup : null
+  const labels = scaleLabels(q.scale)
 
-  return (
-    <UiEntity
-      uiTransform={{
-        width: '100%',
-        height: '100%',
-        positionType: 'absolute',
-        justifyContent: 'center',
-        alignItems: 'center',
-        opacity: panelOpacity()
-      }}
-    >
-      <UiEntity
-        uiTransform={{ width: 720, flexDirection: 'column', alignItems: 'center', padding: 28 }}
-        uiBackground={{ color: PANEL_BG }}
-      >
-        {feedback.phase === 'open' && closeButton(closeGroup)}
-        {feedback.phase === 'failed' && closeButton(giveUpGroup)}
-        {feedback.steps > 1 && (isCompleted() ? completedLabel() : progressBar())}
-        <Label
-          value={q.text}
-          fontSize={26}
-          color={Color4.White()}
-          textWrap="wrap"
-          uiTransform={{ width: 660, height: 80 }}
-        />
-
-        <UiEntity uiTransform={{ flexDirection: 'row', margin: { top: 12, bottom: 16 } }}>
-          {Array.from({ length: MAX_RATING }, (_, i) => star(i + 1, scaleLabels(q.scale)[i], editable))}
-        </UiEntity>
-        {feedback.offerNotExperienced && notExperiencedToggle(editable)}
-
-        {feedback.withComment && (
-          <Input
-            placeholder={q.commentPrompt}
-            value={feedback.comment}
-            onChange={setComment}
-            disabled={!editable}
-            fontSize={20}
-            uiTransform={{ width: 660, height: 90 }}
-            uiBackground={{ color: Color4.create(1, 1, 1, 0.95) }}
-          />
-        )}
-
-        {footer(editable)}
-      </UiEntity>
-    </UiEntity>
+  return panel(
+    'question',
+    { top: 60, bottom: 50 },
+    onClose,
+    [
+      ...(feedback.steps > 1 ? [isCompleted() ? completedLabel() : progressBar()] : []),
+      <Label
+        key="title"
+        value={q.text}
+        fontSize={20}
+        color={SNOW}
+        textAlign="top-left"
+        textWrap="wrap"
+        uiTransform={{ width: 500, minHeight: 24, margin: { top: (feedback.steps > 1 ? 32 : 0) - TEXT_NUDGE } }}
+      />,
+      <UiEntity key="tiles" uiTransform={{ width: 500, flexDirection: 'row', margin: { top: 40 + TEXT_NUDGE } }}>
+        {Array.from({ length: MAX_RATING }, (_, i) => tile(i + 1, labels[i], editable))}
+      </UiEntity>,
+      ...(feedback.offerNotExperienced ? [notExperiencedToggle(editable)] : []),
+      ...(feedback.withComment ? [commentField(q.commentPrompt ?? '', editable)] : []),
+      footer(editable)
+    ],
+    panelOpacity()
   )
 }
 
 // "1/3": where the player is in the Group. Only for Groups of two or more.
-const PROGRESS_WIDTH = 600
+const PROGRESS_WIDTH = 465
 function progressBar() {
   return (
-    <UiEntity uiTransform={{ width: 660, height: 32, flexDirection: 'row', alignItems: 'center', margin: { top: 24, bottom: 8 } }}>
-      <UiEntity uiTransform={{ width: PROGRESS_WIDTH, height: 10 }} uiBackground={{ color: DISABLED }}>
+    <UiEntity
+      key="progress"
+      uiTransform={{ width: 500, height: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+    >
+      <UiEntity
+        uiTransform={{ width: PROGRESS_WIDTH, height: 10, borderRadius: 5 }}
+        uiBackground={{ color: TILE }}
+      >
         <UiEntity
-          uiTransform={{ width: (PROGRESS_WIDTH * feedback.step) / feedback.steps, height: 10 }}
-          uiBackground={{ color: PROGRESS }}
+          uiTransform={{ width: (PROGRESS_WIDTH * feedback.step) / feedback.steps, height: 10, borderRadius: 5 }}
+          uiBackground={{ textureMode: 'nine-slices', textureSlices: FILL, texture: { src: ASSETS + 'progress-fill.png' } }}
         />
       </UiEntity>
-      <Label value={`${feedback.step}/${feedback.steps}`} fontSize={20} color={Color4.White()} uiTransform={{ width: 60 }} />
+      <Label
+        value={`${feedback.step}/${feedback.steps}`}
+        fontSize={16}
+        color={SNOW}
+        textAlign="middle-right"
+        uiTransform={{ width: 30 }}
+      />
     </UiEntity>
   )
 }
@@ -194,8 +304,47 @@ function progressBar() {
 // Replaces the progress bar on a Group's last step once it is answered: only Submit is left.
 function completedLabel() {
   return (
-    <UiEntity uiTransform={{ width: 660, height: 32, alignItems: 'center', margin: { top: 24, bottom: 8 } }}>
-      <Label value="COMPLETED" fontSize={18} color={Color4.Green()} />
+    <UiEntity key="completed" uiTransform={{ width: 500, height: 24, alignItems: 'center' }}>
+      <Label value="✔ COMPLETED" fontSize={14} color={COMPLETED} textAlign="middle-left" />
+    </UiEntity>
+  )
+}
+
+// A tile: the face and its scale label. The selected one gets a border and a bold label;
+// every tile keeps a border, transparent when not selected, so nothing shifts.
+const FACES = ['😞', '🙁', '😐', '🙂', '🤩']
+// An emoji glyph renders ~1.3x its font size: 23 shows as the design's 30.
+const FACE_SIZE = 23
+function tile(value: number, label: string, editable: boolean) {
+  const selected = value === feedback.rating
+  return (
+    <UiEntity
+      key={value}
+      uiTransform={{
+        flexGrow: 1,
+        flexBasis: 0,
+        height: 84,
+        margin: { left: value === 1 ? 0 : 16 },
+        flexDirection: 'column',
+        alignItems: 'center',
+        // The design's 12 a side is too narrow for "Moderately" in the explorer's SemiBold.
+        padding: { top: 6, bottom: 2, left: 2, right: 2 },
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: selected ? SNOW : TRANSPARENT
+      }}
+      uiBackground={{ color: selected ? TILE_SELECTED : TILE }}
+      onMouseDown={editable ? () => setRating(value) : undefined}
+    >
+      <Label value={FACES[value - 1]} fontSize={FACE_SIZE} textAlign="middle-center" uiTransform={{ width: 30, height: 30 }} />
+      <Label
+        value={selected ? `<b>${label}</b>` : label}
+        fontSize={14}
+        color={SNOW}
+        textAlign="top-center"
+        textWrap="wrap"
+        uiTransform={{ width: '100%', height: 34, margin: { top: 8 - TEXT_NUDGE } }}
+      />
     </UiEntity>
   )
 }
@@ -205,107 +354,171 @@ function notExperiencedToggle(editable: boolean) {
   const selected = feedback.rating === NOT_EXPERIENCED
   return (
     <UiEntity
-      uiTransform={{ height: 36, padding: { left: 16, right: 16 }, margin: { bottom: 12 }, justifyContent: 'center', alignItems: 'center' }}
-      uiBackground={{ color: selected ? BUTTON_BG : SKIP_BG }}
-      onMouseDown={editable ? () => setRating(NOT_EXPERIENCED) : undefined}
-    >
-      <Label value={NOT_EXPERIENCED_LABEL} fontSize={16} color={selected ? Color4.White() : MUTED} />
-    </UiEntity>
-  )
-}
-
-// A star with its scale label underneath. Unselected stars are the same emoji,
-// dimmed with opacity: a colour emoji ignores the Label's colour tint.
-function star(value: number, label: string, editable: boolean) {
-  const lit = value <= feedback.rating
-  const selected = value === feedback.rating
-  return (
-    <UiEntity
-      key={value}
-      uiTransform={{ width: 120, flexDirection: 'column', alignItems: 'center', margin: { left: 4, right: 4 } }}
-      onMouseDown={editable ? () => setRating(value) : undefined}
-    >
-      <UiEntity
-        uiTransform={{ width: 72, height: 72, justifyContent: 'center', alignItems: 'center', opacity: lit ? 1 : 0.25 }}
-      >
-        <Label value="⭐" fontSize={48} />
-      </UiEntity>
-      <Label
-        value={label}
-        fontSize={15}
-        color={selected ? Color4.White() : MUTED}
-        textAlign="middle-center"
-        textWrap="wrap"
-        uiTransform={{ width: 120, height: 40 }}
-      />
-    </UiEntity>
-  )
-}
-
-// × is U+00D7 (Latin-1), present in every font — no tofu risk.
-function closeButton(onClick: () => void) {
-  return (
-    <UiEntity
+      key="not-experienced"
       uiTransform={{
-        positionType: 'absolute',
-        position: { top: 8, right: 8 },
-        width: 44,
-        height: 44,
+        height: 32,
+        padding: { left: 16, right: 16 },
+        margin: { top: 16 },
+        borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center'
       }}
-      onMouseDown={onClick}
+      uiBackground={{ color: selected ? RUBY : TILE }}
+      onMouseDown={editable ? () => setRating(NOT_EXPERIENCED) : undefined}
     >
-      <Label value="×" fontSize={34} color={MUTED} />
+      <Label value={NOT_EXPERIENCED_LABEL} fontSize={14} color={SNOW} />
     </UiEntity>
+  )
+}
+
+// The design's input: white, rounded, the prompt as placeholder.
+function commentField(prompt: string, editable: boolean) {
+  return (
+    <Input
+      key="comment"
+      placeholder={prompt}
+      placeholderColor={SILVER}
+      color={INK}
+      value={feedback.comment}
+      onChange={setComment}
+      disabled={!editable}
+      fontSize={16}
+      textAlign="top-left"
+      uiTransform={{
+        width: 500,
+        height: 86,
+        margin: { top: 24 },
+        padding: { top: 13 - INPUT_INSET.top, left: 16 - INPUT_INSET.left, right: 16 - INPUT_INSET.left },
+        borderRadius: 12,
+        borderWidth: 0,
+        borderColor: TRANSPARENT
+      }}
+      uiBackground={{ color: SNOW }}
+    />
   )
 }
 
 function footer(editable: boolean) {
+  const row = (children: ReactEcs.JSX.Element[]) => (
+    <UiEntity
+      key="footer"
+      uiTransform={{
+        width: 500,
+        height: 46,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        margin: { top: 44 }
+      }}
+    >
+      {children}
+    </UiEntity>
+  )
   switch (feedback.phase) {
     case 'sending':
-      return status('Sending…', MUTED)
+      return row([status('Sending…', SILVER)])
     case 'saved':
-      return status('Thanks for your feedback!', Color4.Green())
+      return row([status('Thanks for your feedback!', SNOW)])
     case 'failed':
-      return (
-        <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center', margin: { top: 16 } }}>
-          <Label value="Could not save. Try again?" fontSize={18} color={WARN} uiTransform={{ height: 28 }} />
-          <UiEntity uiTransform={{ flexDirection: 'row' }}>
-            {button('Try again', retryGroup, true, 'retry')}
-            {button('Close', giveUpGroup, true, 'close')}
-          </UiEntity>
+      return row([
+        status('Could not save.', WARN),
+        <UiEntity key="retry-row" uiTransform={{ flexDirection: 'row' }}>
+          {cta('close', giveUpGroup, { kind: 'secondary', key: 'close' })}
+          {spacer('retry-gap', 16)}
+          {cta('try again', retryGroup, { kind: 'primary', key: 'retry' })}
         </UiEntity>
-      )
+      ])
     default:
-      return (
-        // Left: Skip on the first step (this Question only), Back on later ones.
-        // Right: Next, or Submit on the last step; both need a rating or a comment.
-        <UiEntity uiTransform={{ width: 660, flexDirection: 'row', justifyContent: 'space-between', margin: { top: 16 } }}>
-          {isFirstStep()
-            ? button('Skip', skipStep, editable, 'skip', SKIP_BG)
-            : button('Back', previousStep, editable, 'back', SKIP_BG)}
-          {isLastStep()
-            ? button('Submit', submitGroup, editable && hasAnswer(), 'submit')
-            : button('Next', nextStep, editable && hasAnswer(), 'next')}
-        </UiEntity>
-      )
+      // Left: Skip on the first step (this Question only), Back on later ones.
+      // Right: Next, or Submit on the last step; both need a rating or a comment.
+      return row([
+        isFirstStep()
+          ? cta('skip', skipStep, { kind: 'secondary', width: 125, enabled: editable, key: 'skip' })
+          : cta('back', previousStep, { kind: 'secondary', width: 125, arrow: 'left', enabled: editable, key: 'back' }),
+        isLastStep()
+          ? cta('submit', submitGroup, { kind: 'primary', enabled: editable && hasAnswer(), key: 'submit' })
+          : cta('next', nextStep, { kind: 'primary', arrow: 'right', enabled: editable && hasAnswer(), key: 'next' })
+      ])
   }
 }
 
 function status(text: string, color: Color4) {
-  return <Label value={text} fontSize={20} color={color} uiTransform={{ height: 44, margin: { top: 16 } }} />
+  return <Label key="status" value={text} fontSize={16} color={color} textAlign="middle-left" uiTransform={{ height: 46 }} />
 }
 
-function button(text: string, onClick: () => void, enabled: boolean, key: string, color: Color4 = BUTTON_BG) {
+// --- Building blocks ----------------------------------------------------------------
+
+// The design's buttons, 46 high: primary (ruby, bold) and secondary (dark). Without a
+// width, as wide as the text plus 29 a side. Disabled: half opacity.
+type CtaOptions = {
+  kind: 'primary' | 'secondary'
+  key: string
+  width?: number
+  arrow?: 'left' | 'right'
+  enabled?: boolean
+}
+function cta(text: string, onClick: () => void, { kind, key, width, arrow, enabled = true }: CtaOptions) {
+  const caps = text.toUpperCase()
   return (
     <UiEntity
       key={key}
-      uiTransform={{ width: 180, height: 48, margin: 6, justifyContent: 'center', alignItems: 'center' }}
-      uiBackground={{ color: enabled ? color : DISABLED }}
+      uiTransform={{
+        width,
+        height: 46,
+        padding: width === undefined ? { left: 29, right: 29 } : undefined,
+        borderRadius: 12,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        opacity: enabled ? 1 : DISABLED_OPACITY
+      }}
+      uiBackground={{ color: kind === 'primary' ? RUBY : SECONDARY }}
       onMouseDown={enabled ? onClick : undefined}
     >
-      <Label value={text} fontSize={20} color={enabled ? Color4.White() : MUTED} />
+      {arrow === 'left' && arrowIcon('left')}
+      <Label value={kind === 'primary' ? `<b>${caps}</b>` : caps} fontSize={14} color={SNOW} />
+      {arrow === 'right' && arrowIcon('right')}
+    </UiEntity>
+  )
+}
+
+// One chevron image; the left one is it mirrored through its UVs.
+const MIRRORED = [1, 0, 1, 1, 0, 1, 0, 0]
+function arrowIcon(side: 'left' | 'right') {
+  return (
+    <UiEntity
+      uiTransform={{ width: 8, height: 13, margin: side === 'right' ? { left: 20 } : { right: 20 } }}
+      uiBackground={{
+        textureMode: 'stretch',
+        texture: { src: ASSETS + 'arrow-right.png' },
+        uvs: side === 'left' ? MIRRORED : undefined
+      }}
+    />
+  )
+}
+
+function spacer(key: string, width: number) {
+  return <UiEntity key={key} uiTransform={{ width, height: 1 }} />
+}
+
+// Debug buttons only.
+function button(text: string, onClick: () => void, enabled: boolean, key: string) {
+  return (
+    <UiEntity
+      key={key}
+      uiTransform={{
+        width: 180,
+        height: 40,
+        margin: 4,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        opacity: enabled ? 1 : DISABLED_OPACITY
+      }}
+      uiBackground={{ color: RUBY }}
+      onMouseDown={enabled ? onClick : undefined}
+    >
+      <Label value={text} fontSize={16} color={SNOW} />
     </UiEntity>
   )
 }

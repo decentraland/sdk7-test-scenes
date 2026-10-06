@@ -16,9 +16,11 @@ export type QuestionSpec = {
 export type IntroSpec = {
   title: string
   text: string
-  // Optional picture above the title, e.g. the creator's avatar: a path in the scene
-  // ('images/creator.png') or a URL.
-  image?: string
+  // The picture above the title, in a circle. Left out: the scene owner's avatar face
+  // (scene.json "owner", else the World's owner). A wallet address: that avatar's face.
+  // Else a picture: a path in the scene ('assets/images/creator-avatar.png') or a URL.
+  // null: no picture.
+  avatar?: string | null
 }
 
 export type Question = {
