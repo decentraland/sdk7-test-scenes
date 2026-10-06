@@ -32,15 +32,15 @@ export const QUESTIONS = {
   coinSpotting: {
     text: 'How easy or difficult was it to spot the coins?', // bank's "the important objects" replaced by "coins" 
     scale: 'EASE', // a shared scale: code from lib/shared/scales.ts (EASE, CLEAR, ENJOY, …).
-    // No commentPrompt: rating only, no comment field. Asked mid-round — a quick tap, not a pause to type.
+    commentPrompt: 'What made them easy or hard to spot? (optional)' // leave it out for a rating-only Question
   },
 
   // Your own Question on your own scale: five labels, 1 → 5, 5 being the best. A frequency
   // scale like this one is not in lib/shared/scales.ts, so it is spelled out here.
   nextCoinKnown: {
     text: 'How often did you know where the next coin was?',
-    scale: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'],
-    commentPrompt: 'What helped you find the next coin, or what got in the way? (optional)'
+    scale: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always']
+    // No commentPrompt: always rating only, wherever it is asked — no comment field.
   }
 } satisfies Record<string, QuestionSpec>
 

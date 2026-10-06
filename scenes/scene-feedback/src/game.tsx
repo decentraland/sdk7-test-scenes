@@ -16,7 +16,7 @@ import { feedback } from './feedback'
 import { LeaveFeedbackButton, setupLeaveFeedback } from './leave-feedback'
 
 // A tiny coin hunt of three rounds, only here to show feedback.ask() at different moments:
-//   first coin of the visit  → coinSpotting (one Question, mid-round, rating only: no commentPrompt)
+//   first coin of the visit  → coinSpotting (one Question, mid-round, with a comment field)
 //   entering the scene       → the Intro (Give feedback / Skip)
 //   round 1 complete         → nextGoal, playMore (a Group of two: rating only, then with a comment)
 //   hunt complete            → repeatLoop, nextCoinKnown, worthIt (a Group of three, ratings only),
