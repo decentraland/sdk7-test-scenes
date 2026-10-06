@@ -1,0 +1,65 @@
+# Authoritative Server — Badges
+
+Proof scene for scene badge awards. One authoritative scene, two pads, two layers.
+
+| Pad | Message | What it proves |
+| --- | --- | --- |
+| **Try award** (blue, click from anywhere) | `tryAward` | Platform layer. The server calls `Badges.award` for the sender and for an address that is never in the room, with no validation of its own. The engine signs only the first (presence gate); the badges service rejects the second. |
+| **Claim badge** (yellow, stand next to it) | `claimBadge` | Scene layer. The server awards only if *its own* copy of your position is within `CLAIM_RADIUS` of the pad, and only once per player. A click from afar, or a replayed message, never produces a request. |
+
+Results arrive as `awardResult` messages (server → sender only) and are shown on the RESULTS sign and in the console.
+
+## Expected
+
+| Action | Server | Badges service | Client sees |
+| --- | --- | --- | --- |
+| Try award, from anywhere | signs award for you; guest-signs for `0x…dEaD` | accepts you · rejects the guest signature | `[present] OK` · `[absent] NO — refused, as expected` |
+| Claim badge, standing on the pad | validation passes, signs award | `201` | `[claim] OK` |
+| Claim badge, from spawn | rejected before any request | nothing | `[claim] NO — too far: N.Nm` |
+| Claim badge, twice on the pad | signs both; the service decides | `201` then `200` | `[claim] OK` twice; one toast |
+
+The third row is the anti-cheat proof: the service column is empty because a forged intent dies inside the worker.
+
+## Requirements
+
+- `@dcl/sdk`, `@dcl/sdk-commands` and `@dcl/js-runtime` linked from a local `js-sdk-toolchain` checkout of `feat/badges-award` (see `package.json`; expected as a sibling of this repo at `../js-sdk-toolchain-badges-preview`).
+- A scene worker (Bevy headless) that signs badge awards with the scene delegation, gated on presence, and accepts `--badges`.
+- The `badges` service (api only) with its dev seed, which creates `bdg_000000000001` and `bdg_000000000002` for `sdk7testscenes.dcl.eth` and trusts the orchestrator's root address.
+
+## Run locally
+
+1. SDK: in `js-sdk-toolchain-badges-preview`, `make install && make build`.
+2. Delegation: in `scene-badges-award-stub`, `node mint-delegation.mjs --scene <this folder>`. It writes `.delegation.env` and the dev root key `.dev-root-key.json`, and is bound to this scene's preview entity id, `b64-` + base64(`<absolute scene dir>-<hostname>`).
+3. Badges service: in `badges`, follow "Local end-to-end with the preview" in `docs/scene-badges.md`. In short:
+
+   ```sh
+   docker compose up -d postgres
+   yarn install
+   yarn workspace @badges/common build && yarn workspace @badges/api build
+   # PG_COMPONENT_PSQL_CONNECTION_STRING, HTTP_SERVER_PORT=4000, ENV=dev,
+   # AUTHORITATIVE_SERVER_ADDRESS=<address in the stub's .dev-root-key.json>, ...
+   yarn workspace @badges/api seed:scene-badges:dev
+   yarn workspace @badges/api start   # http://localhost:4000
+   ```
+
+4. Scene, from this folder:
+
+   ```sh
+   npm install
+   source <scene-badges-award-stub>/.delegation.env
+   BADGES_SERVER_URL=http://localhost:4000 npm run start
+   ```
+
+   With `BADGES_SERVER_URL` set, the preview (`localhost:8000`) proxies `PUT /badges/:badgeId/awards/:player` to the badges service unchanged, starts Bevy headless with `--badges=http://localhost:8000`, and opens the desktop client with `badges-url` pointing at the service. The service decides which badges the scene may award from the delegation's world and scene id.
+
+   To run a locally built Bevy: `DCL_SERVER_PACKAGE=<bevy-explorer>/deploy/headless/launcher` (a launcher that forwards `--badges`) and `DCL_BEVY_SERVER_PATH=<absolute path to the built headless binary>`.
+
+## Files
+
+| File | Role |
+| --- | --- |
+| `src/index.ts` | `isServer()` split; the server module is dynamically imported so `@dcl/sdk/server` never reaches the client bundle |
+| `src/shared/messages.ts` | `tryAward`, `claimBadge`, `awardResult` |
+| `src/shared/config.ts` | badge ids, the absent address, pad positions, `CLAIM_RADIUS` |
+| `src/server/server.ts` | the two handlers; only place `Badges.award` is called |
+| `src/client/setup.ts` | the pads and the results sign |
