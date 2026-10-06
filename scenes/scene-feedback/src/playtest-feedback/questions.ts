@@ -3,7 +3,9 @@ import { IntroSpec, QuestionSpec } from './lib/shared/series'
 
 // ── The only file to edit ──────────────────────────────────────────────────────────
 
-// Shows one "Ask <id>" button per Question (top-left). Turn off before release.
+// Shows one "Ask <id>" button per Question (top-left). Only in a local preview and, once
+// deployed, to the scene's owner and deployers: players never see it. Still, turn it off
+// before release.
 export const DEBUG = true
 
 // Asked once per visit before the first Question the game asks: Give feedback goes on,

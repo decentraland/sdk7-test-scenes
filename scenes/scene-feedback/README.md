@@ -19,7 +19,7 @@ code cannot write Storage; see [research-storage-options.md](research-storage-op
 2. Edit [src/playtest-feedback/questions.ts](src/playtest-feedback/questions.ts) — the only file to touch:
 
    ```ts
-   export const DEBUG = true // "Ask <id>" buttons top-left; turn off before release
+   export const DEBUG = true // "Ask <id>" buttons top-left, for you only; turn off before release
 
    export const QUESTIONS = {
      playMore: QUESTION_BANK.motivation.playMore, // from the bank, as is
@@ -120,8 +120,9 @@ answer instead of a rating. The demo wires it three ways in
 ```ts
 const LEAVE_FEEDBACK_BATCH = ['worthIt', 'playMore', 'coinSpotting'] as const
 
-// 2D: a button in your own UI
+// 2D: a button, here top-right in its own renderer
 <UiEntity onMouseDown={() => void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'ui-button')}> … </UiEntity>
+ReactEcsRenderer.addUiRenderer(engine.addEntity(), LeaveFeedbackButton, { screenInset: 'interactable' })
 
 // 3D: a clickable object
 pointerEventsSystem.onPointerDown({ entity: kiosk, opts: { hoverText: 'Leave feedback' } },
@@ -130,6 +131,10 @@ pointerEventsSystem.onPointerDown({ entity: kiosk, opts: { hoverText: 'Leave fee
 // an area: on entering it
 if (inside && !wasInside) void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'feedback-area')
 ```
+
+The demo's button has the panel's primary button style (ruby, rounded, bold caps). Its
+renderer's `screenInset: 'interactable'` keeps it inside the area the explorer's HUD leaves free,
+so the minimap or chat never covers it.
 
 The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` stays yours.
 
@@ -173,7 +178,9 @@ research bank: [player-feedback-question-bank-2026-09.md](player-feedback-questi
 ## Test
 
 1. `worldConfiguration.name` in `scene.json` is the target World. `npm install`, `npm run deploy`.
-2. Collect coins, or wait for **DEBUG · server online** and press an **Ask** button.
+2. Collect coins, or wait for **DEBUG · server online** and press an **Ask** button. The debug
+   panel shows in a local preview and, once deployed, only to the World's owner and the wallets
+   allowed to deploy it.
 3. *Thanks* means the server received the Response and buffered it; without an ack the client
    resends every 3 s (deduped by id) and shows *Could not save* after 30 s.
 4. The server flushes buffered Responses to Storage at most once a minute, and immediately when

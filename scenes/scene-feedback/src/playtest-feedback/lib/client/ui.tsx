@@ -28,7 +28,7 @@ import {
   skipStep,
   submitGroup
 } from './state'
-import { isWallet } from './owner'
+import { canSeeDebug, isWallet } from './owner'
 
 // The designer's palette (Figma: MVP Creators Feedback, DCL design system), as seen in
 // the design's renders. Opaque on purpose: the explorer blends translucent colours in
@@ -72,10 +72,17 @@ const INPUT_INSET = { left: 10, top: 8 }
 
 // Own renderer next to the scene's: setUiRenderer stays free for the creator's UI.
 export function setupUi(debug: boolean): void {
+  // DEBUG on: the panel shows in a local preview, and once deployed to the scene's team only.
+  let showDebug = false
+  if (debug)
+    void canSeeDebug().then((allowed) => {
+      showDebug = allowed
+      console.log(`[FEEDBACK] debug panel ${allowed ? 'on' : 'hidden: not in preview, not the scene owner or a deployer'}`)
+    })
   const ui = () => (
     <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute' }}>
-      {debug && debugPanel()}
-      {debug && showScaleGallery && scaleGallery()}
+      {showDebug && debugPanel()}
+      {showDebug && showScaleGallery && scaleGallery()}
       {feedback.phase === 'intro' && introPanel()}
       {feedback.phase !== 'idle' && feedback.phase !== 'intro' && questionPanel()}
     </UiEntity>
