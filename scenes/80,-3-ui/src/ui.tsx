@@ -339,8 +339,8 @@ function CanvasInformationExample() {
             alignItems: 'center',
             justifyContent: 'space-between',
             positionType: 'absolute',
-            position: { right: "3%", bottom: '3%' },
-            margin: '0 0 130 0'
+            position: { right: "3%", top: '42%' },
+            margin: '0'
         }}
         uiBackground={{ color: Color4.fromHexString("#4d544e") }}
     >
