@@ -10,6 +10,7 @@ import {
   MAX_RATING,
   NOT_EXPERIENCED,
   NOT_EXPERIENCED_LABEL,
+  SKIPPED_LABEL,
   findQuestion
 } from '../shared/series'
 import { room } from '../shared/messages'
@@ -136,7 +137,13 @@ function receiveResponse(
     questionText: question.text,
     trigger: data.trigger.slice(0, 40),
     rating,
-    ratingLabel: notExperienced ? NOT_EXPERIENCED_LABEL : rating === null ? '' : scaleLabels(question.scale)[rating - 1],
+    ratingLabel: notExperienced
+      ? NOT_EXPERIENCED_LABEL
+      : rating !== null
+        ? scaleLabels(question.scale)[rating - 1]
+        : comment === ''
+          ? SKIPPED_LABEL
+          : '',
     scale: scaleName(question.scale),
     commentPrompt: commentShown ? question.commentPrompt ?? '' : '',
     comment,

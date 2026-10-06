@@ -192,7 +192,8 @@ id,timeUtc,version,questionId,questionText,trigger,rating,ratingLabel,scale,comm
 mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in playing more right now?,debug,5,Extremely,INTEREST,What makes you want to keep playing, or stop? (optional),kind of yes,42,1,0x…,true,desktop
 ```
 
-- Empty `rating` and `comment`: the player pressed Skip or closed the panel on that Question.
+- `ratingLabel` `skipped` (empty `rating` and `comment`): the player pressed Skip or closed the panel on that Question.
+- Empty `rating` and `ratingLabel` with a `comment`: the player only wrote a comment.
 - Empty `rating` with `ratingLabel` `Didn't experience this`: the player's answer in a
   `leaveFeedback()` Group — count it apart from skips and ratings.
 - `questionId` `intro`: the player's answer to the Intro, `ratingLabel` `accepted` or `declined`,

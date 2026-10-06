@@ -54,6 +54,8 @@ export const MAX_RATING = 5
 // with NOT_EXPERIENCED_LABEL.
 export const NOT_EXPERIENCED = -1
 export const NOT_EXPERIENCED_LABEL = "Didn't experience this"
+// A skipped Question's ratingLabel: no rating, no comment (Skip pressed, or the panel closed).
+export const SKIPPED_LABEL = 'skipped'
 // The Intro's row in the CSV: questionId 'intro', ratingLabel accepted or declined.
 // Reserved: no Question may use this id.
 export const INTRO_ID = 'intro'
