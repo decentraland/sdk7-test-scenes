@@ -1,7 +1,7 @@
 // Rating scales from the research doc ("What 1–5 means"), one label per tile, 1 → 5.
 // Shortened to fit under a tile: the Question's text already carries the adjective
-// ("How enjoyable…"), so unipolar scales drop it; bipolar ones keep both ends and a
-// neutral middle. The middle of EASE is neutral; the middle of ENJOY is moderate
+// ("How enjoyable…"), so unipolar scales drop it; bipolar ones keep both ends and an
+// 'Ok' middle (the designer's wording). The middle of EASE is neutral; the middle of ENJOY is moderate
 // enjoyment, not neutrality.
 
 export type ScaleLabels = readonly [string, string, string, string, string]
@@ -9,19 +9,19 @@ export type ScaleLabels = readonly [string, string, string, string, string]
 const UNIPOLAR = ['Not at all', 'Slightly', 'Moderately', 'Very', 'Extremely'] as const
 
 export const SCALES = {
-  EASE: ['Very difficult', 'Difficult', 'Neutral', 'Easy', 'Very easy'],
+  EASE: ['Very difficult', 'Difficult', 'Ok', 'Easy', 'Very easy'],
   CLEAR: UNIPOLAR,
   ENJOY: UNIPOLAR,
   INTEREST: UNIPOLAR,
   INTERESTING: UNIPOLAR,
-  SATISFIED: ['Very dissatisfied', 'Dissatisfied', 'Neutral', 'Satisfied', 'Very satisfied'],
+  SATISFIED: ['Very dissatisfied', 'Dissatisfied', 'Ok', 'Satisfied', 'Very satisfied'],
   SATISFY: UNIPOLAR,
-  FIT: ['Very poorly', 'Poorly', 'Neutral', 'Well', 'Very well'],
+  FIT: ['Very poorly', 'Poorly', 'Ok', 'Well', 'Very well'],
   AMOUNT: ['Not at all', 'A little', 'Somewhat', 'A lot', 'A great deal'],
   WELCOME: UNIPOLAR,
   WORTH: UNIPOLAR,
-  COMFORT: ['Very uncomfortable', 'Uncomfortable', 'Neutral', 'Comfortable', 'Very comfortable'],
-  FAIR: ['Very unfair', 'Unfair', 'Neutral', 'Fair', 'Very fair'],
+  COMFORT: ['Very uncomfortable', 'Uncomfortable', 'Ok', 'Comfortable', 'Very comfortable'],
+  FAIR: ['Very unfair', 'Unfair', 'Ok', 'Fair', 'Very fair'],
   CONFIDENT: UNIPOLAR
 } satisfies Record<string, ScaleLabels>
 

@@ -13,12 +13,16 @@ import {
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { feedback } from './feedback'
+import { LeaveFeedbackButton, setupLeaveFeedback } from './leave-feedback'
 
 // A tiny coin hunt of three rounds, only here to show feedback.ask() at different moments:
 //   first coin of the visit  → coinSpotting (one Question, mid-round, rating only: no commentPrompt)
-//   round 1 complete         → nextGoal, playMore (a Group of two)
-//   hunt complete            → repeatLoop, nextCoinKnown, worthIt (a Group of three), then a new hunt
+//   entering the scene       → the Intro (Give feedback / Skip)
+//   round 1 complete         → nextGoal, playMore (a Group of two: rating only, then with a comment)
+//   hunt complete            → repeatLoop, nextCoinKnown, worthIt (a Group of three, ratings only),
+//                              then a new hunt
 // A second hunt asks nothing: each Question is shown once per visit per trigger.
+// The player can also choose to give feedback at any time: see leave-feedback.tsx.
 const COINS_PER_ROUND = 5
 const ROUNDS = 3
 
@@ -47,6 +51,7 @@ export function setupGame(): void {
   engine.addSystem(spinSystem)
   // The scene's own UI keeps setUiRenderer: the feedback panel renders alongside.
   ReactEcsRenderer.setUiRenderer(hud)
+  setupLeaveFeedback()
   spawnRound()
 }
 
@@ -87,7 +92,8 @@ function collect(coin: Entity, disc: Entity): void {
   if (totalCollected === 1) void feedback.ask('coinSpotting', 'first-coin')
 
   if (collected < COINS_PER_ROUND) return
-  if (round === 1) void feedback.ask(['nextGoal', 'playMore'], 'round-1-complete')
+  // A mix: nextGoal as a quick rating, playMore with a comment field to say why.
+  if (round === 1) void feedback.ask(['nextGoal', 'playMore'], 'round-1-complete', { comment: ['playMore'] })
   if (round === ROUNDS) return void endHunt()
   round++
   spawnRound()
@@ -96,7 +102,8 @@ function collect(coin: Entity, disc: Entity): void {
 // Awaited: the next hunt starts once the player is done with the Group.
 async function endHunt(): Promise<void> {
   huntOver = true
-  const results = await feedback.ask(['repeatLoop', 'nextCoinKnown', 'worthIt'], 'hunt-complete')
+  // Ratings only: no comment field for any of the three.
+  const results = await feedback.ask(['repeatLoop', 'nextCoinKnown', 'worthIt'], 'hunt-complete', { comment: false })
   console.log(`[SCENE] end-of-hunt feedback: ${results.join(', ')}`)
   huntOver = false
   round = 1
@@ -111,14 +118,21 @@ function spinSystem(dt: number): void {
 }
 
 const hud = () => (
-  <UiEntity
-    uiTransform={{ width: '100%', height: 60, positionType: 'absolute', position: { top: 16 }, justifyContent: 'center' }}
-  >
+  <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute' }}>
     <UiEntity
-      uiTransform={{ padding: { left: 20, right: 20 }, justifyContent: 'center', alignItems: 'center' }}
-      uiBackground={{ color: Color4.create(0, 0, 0, 0.5) }}
+      uiTransform={{ width: '100%', height: 60, positionType: 'absolute', position: { top: 16 }, justifyContent: 'center' }}
     >
-      <Label value={huntOver ? 'Hunt complete!' : `Round ${round}/${ROUNDS} · Coins ${collected}/${COINS_PER_ROUND}`} fontSize={22} color={Color4.White()} />
+      <UiEntity
+        uiTransform={{ padding: { left: 20, right: 20 }, justifyContent: 'center', alignItems: 'center' }}
+        uiBackground={{ color: Color4.create(0, 0, 0, 0.5) }}
+      >
+        <Label
+          value={huntOver ? 'Hunt complete!' : `Round ${round}/${ROUNDS} · Coins ${collected}/${COINS_PER_ROUND}`}
+          fontSize={22}
+          color={Color4.White()}
+        />
+      </UiEntity>
     </UiEntity>
+    <LeaveFeedbackButton />
   </UiEntity>
 )

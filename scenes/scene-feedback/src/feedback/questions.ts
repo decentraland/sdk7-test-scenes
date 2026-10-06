@@ -9,6 +9,11 @@ export const DEBUG = true
 // Asked once per visit before the first Question the game asks: Give feedback goes on,
 // Skip or x means no Questions this visit (Leave feedback still works). null: no Intro.
 // image (optional): a picture above the title, e.g. 'images/creator.png'.
+// Dynamic mode: true — the game's ask() shows Questions only to playtest participants:
+// players who said yes to the Intro (feedback.intro()) or whom you enrolled
+// (feedback.enroll()). false — to everyone, except players who said no to the Intro.
+export const ASK_PARTICIPANTS_ONLY = true
+
 export const INTRO: IntroSpec | null = {
   title: "Hi, we're the Coin Hunt team!",
   text: "We're testing a new experience and would love to hear what you think. Your feedback will help us make it better."
@@ -39,6 +44,3 @@ export const QUESTIONS = {
   }
 } satisfies Record<string, QuestionSpec>
 
-// The "Leave feedback" button (top-right): the Question it opens whenever the player
-// wants, as often as they want. null hides the button.
-export const FEEDBACK_BUTTON: keyof typeof QUESTIONS | null = 'worthIt'

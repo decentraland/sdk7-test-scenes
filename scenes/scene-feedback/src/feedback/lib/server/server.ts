@@ -2,7 +2,16 @@ import { Entity, PlayerIdentityData, engine } from '@dcl/sdk/ecs'
 import { syncEntity } from '@dcl/sdk/network'
 import { Storage } from '@dcl/sdk/server'
 import { getSceneInformation } from '~system/Runtime'
-import { HEARTBEAT_MS, MAX_COMMENT_LENGTH, MAX_RATING, findQuestion } from '../shared/series'
+import {
+  HEARTBEAT_MS,
+  INTRO_ID,
+  IntroSpec,
+  MAX_COMMENT_LENGTH,
+  MAX_RATING,
+  NOT_EXPERIENCED,
+  NOT_EXPERIENCED_LABEL,
+  findQuestion
+} from '../shared/series'
 import { room } from '../shared/messages'
 import { scaleLabels, scaleName } from '../shared/scales'
 import { ServerHeartbeat } from '../shared/schemas'
@@ -35,7 +44,10 @@ let sceneVersion = ''
 
 let heartbeatEntity: Entity
 
-export async function startServer(): Promise<void> {
+let intro: IntroSpec | null = null
+
+export async function startServer(introSpec: IntroSpec | null): Promise<void> {
+  intro = introSpec
   heartbeatEntity = engine.addEntity()
   ServerHeartbeat.create(heartbeatEntity, { beatAt: Date.now() })
   syncEntity(heartbeatEntity, [ServerHeartbeat.componentId])
@@ -105,9 +117,12 @@ function receiveResponse(
   const id = sanitizeId(data.requestId)
   if (seen.has(id)) return ack(true)
 
+  if (id === '') return ack(false)
+  if (data.questionId === INTRO_ID) return receiveIntroAnswer(id, data, from, ack)
   const question = findQuestion(data.questionId)
-  if (!question || id === '') return ack(false)
+  if (!question) return ack(false)
 
+  const notExperienced = data.rating === NOT_EXPERIENCED
   const rating = Number.isInteger(data.rating) && data.rating >= 1 && data.rating <= MAX_RATING ? data.rating : null
   // No comment field on screen (no commentPrompt, or the call turned it off): nothing to keep.
   const commentShown = data.commentShown && question.commentPrompt !== undefined
@@ -121,7 +136,7 @@ function receiveResponse(
     questionText: question.text,
     trigger: data.trigger.slice(0, 40),
     rating,
-    ratingLabel: rating === null ? '' : scaleLabels(question.scale)[rating - 1],
+    ratingLabel: notExperienced ? NOT_EXPERIENCED_LABEL : rating === null ? '' : scaleLabels(question.scale)[rating - 1],
     scale: scaleName(question.scale),
     commentPrompt: commentShown ? question.commentPrompt ?? '' : '',
     comment,
@@ -135,6 +150,39 @@ function receiveResponse(
   seen.add(id)
   pending.set(id, formatRow(row))
   console.log(`[SERVER] ${question.id} rating=${rating ?? '-'} from ${address}, ${pending.size} pending`)
+  ack(true)
+}
+
+// The Intro's answer: one row, questionId 'intro', ratingLabel accepted or declined.
+function receiveIntroAnswer(
+  id: string,
+  data: { trigger: string; rating: number; secondsInScene: number; platform: string },
+  from: string,
+  ack: (ok: boolean) => void
+): void {
+  const address = from.toLowerCase()
+  const accepted = data.rating === 1
+  const row: CsvRow = {
+    id,
+    serverTs: Date.now(),
+    version: sceneVersion,
+    questionId: INTRO_ID,
+    questionText: intro?.title ?? '',
+    trigger: data.trigger.slice(0, 40),
+    rating: null,
+    ratingLabel: accepted ? 'accepted' : 'declined',
+    scale: '',
+    commentPrompt: '',
+    comment: '',
+    secondsInScene: Math.max(0, data.secondsInScene),
+    playersInScene: countPlayers(),
+    address,
+    isGuest: findIsGuest(address),
+    platform: data.platform
+  }
+  seen.add(id)
+  pending.set(id, formatRow(row))
+  console.log(`[SERVER] intro ${row.ratingLabel} from ${address}, ${pending.size} pending`)
   ack(true)
 }
 

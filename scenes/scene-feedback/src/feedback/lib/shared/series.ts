@@ -31,6 +31,7 @@ export type Question = {
 let series: Question[] = []
 
 export function setQuestions(specs: Record<string, QuestionSpec>): void {
+  if (INTRO_ID in specs) console.log(`[FEEDBACK] '${INTRO_ID}' is reserved for the Intro's CSV rows: rename that Question`)
   series = Object.keys(specs).map((id) => ({
     id,
     text: specs[id].text,
@@ -48,6 +49,14 @@ export function findQuestion(id: string): Question | undefined {
 }
 
 export const MAX_RATING = 5
+// "I didn't experience this": an answer without a rating, offered by leaveFeedback()
+// only (the game asks in context). Sent as this rating, stored as an empty rating
+// with NOT_EXPERIENCED_LABEL.
+export const NOT_EXPERIENCED = -1
+export const NOT_EXPERIENCED_LABEL = "Didn't experience this"
+// The Intro's row in the CSV: questionId 'intro', ratingLabel accepted or declined.
+// Reserved: no Question may use this id.
+export const INTRO_ID = 'intro'
 export const MAX_COMMENT_LENGTH = 1000
 export const HEARTBEAT_MS = 2000
 export const HEARTBEAT_FRESHNESS_MS = 6000

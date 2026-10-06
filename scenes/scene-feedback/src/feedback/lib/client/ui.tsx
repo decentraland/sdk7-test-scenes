@@ -2,24 +2,30 @@ import { engine } from '@dcl/sdk/ecs'
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Input, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { isMobile } from '@dcl/sdk/platform'
-import { MAX_RATING, allQuestions } from '../shared/series'
+import { MAX_RATING, NOT_EXPERIENCED, NOT_EXPERIENCED_LABEL, allQuestions } from '../shared/series'
 import { scaleLabels } from '../shared/scales'
 import {
   acceptIntro,
   askQuestions,
+  closeGroup,
   declineIntro,
-  dismissFeedback,
   feedback,
-  giveUpFeedback,
+  giveUpGroup,
   hasAnswer,
   introSpec,
+  isCompleted,
+  isFirstStep,
   isLastStep,
   isServerAlive,
+  nextStep,
   panelOpacity,
-  resetIntro,
-  sendResponse,
+  previousStep,
+  showIntro,
+  retryGroup,
   setComment,
-  setRating
+  setRating,
+  skipStep,
+  submitGroup
 } from './state'
 
 const PANEL_BG = Color4.create(0.05, 0.08, 0.16, 0.92)
@@ -32,11 +38,10 @@ const PROGRESS = Color4.fromHexString('#f2a65aff')
 const SKIP_BG = Color4.create(1, 1, 1, 0.15)
 
 // Own renderer next to the scene's: setUiRenderer stays free for the creator's UI.
-export function setupUi(debug: boolean, buttonQuestionId: string | null): void {
+export function setupUi(debug: boolean): void {
   const ui = () => (
     <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute' }}>
       {debug && debugPanel()}
-      {buttonQuestionId !== null && feedbackButton(buttonQuestionId)}
       {feedback.phase === 'intro' && introPanel()}
       {feedback.phase !== 'idle' && feedback.phase !== 'intro' && questionPanel()}
     </UiEntity>
@@ -74,32 +79,7 @@ function debugPanel() {
           q.id
         )
       )}
-      {introSpec() !== null && button('Reset intro', resetIntro, feedback.phase === 'idle', 'reset-intro')}
-    </UiEntity>
-  )
-}
-
-// --- "Leave feedback": the player asks for the Question themselves ------------------
-// Hidden while a Question is on screen; dimmed until the server is up, so a press
-// always opens the Question right away. repeat: the player chose to answer, so every
-// press counts. Below the explorer's top-right HUD, level with the debug panel.
-function feedbackButton(questionId: string) {
-  if (feedback.phase !== 'idle') return null
-  const enabled = isServerAlive()
-  return (
-    <UiEntity
-      uiTransform={{
-        positionType: 'absolute',
-        position: { top: 120, right: 24 },
-        width: 200,
-        height: 48,
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}
-      uiBackground={{ color: enabled ? BUTTON_BG : DISABLED }}
-      onMouseDown={enabled ? () => void askQuestions([questionId], 'feedback-button', { repeat: true, source: 'player' }) : undefined}
-    >
-      <Label value="Leave feedback" fontSize={20} color={enabled ? Color4.White() : MUTED} />
+      {introSpec() !== null && button('Show intro', () => void showIntro('debug', 'debug'), feedback.phase === 'idle', 'show-intro')}
     </UiEntity>
   )
 }
@@ -144,7 +124,7 @@ function introPanel() {
 function questionPanel() {
   const q = feedback.question
   if (!q) return null
-  const editable = feedback.phase === 'open' || feedback.phase === 'failed'
+  const editable = feedback.phase === 'open'
 
   return (
     <UiEntity
@@ -161,8 +141,9 @@ function questionPanel() {
         uiTransform={{ width: 720, flexDirection: 'column', alignItems: 'center', padding: 28 }}
         uiBackground={{ color: PANEL_BG }}
       >
-        {editable && closeButton(dismissFeedback)}
-        {feedback.steps > 1 && progressBar()}
+        {feedback.phase === 'open' && closeButton(closeGroup)}
+        {feedback.phase === 'failed' && closeButton(giveUpGroup)}
+        {feedback.steps > 1 && (isCompleted() ? completedLabel() : progressBar())}
         <Label
           value={q.text}
           fontSize={26}
@@ -174,6 +155,7 @@ function questionPanel() {
         <UiEntity uiTransform={{ flexDirection: 'row', margin: { top: 12, bottom: 16 } }}>
           {Array.from({ length: MAX_RATING }, (_, i) => star(i + 1, scaleLabels(q.scale)[i], editable))}
         </UiEntity>
+        {feedback.offerNotExperienced && notExperiencedToggle(editable)}
 
         {feedback.withComment && (
           <Input
@@ -205,6 +187,29 @@ function progressBar() {
         />
       </UiEntity>
       <Label value={`${feedback.step}/${feedback.steps}`} fontSize={20} color={Color4.White()} uiTransform={{ width: 60 }} />
+    </UiEntity>
+  )
+}
+
+// Replaces the progress bar on a Group's last step once it is answered: only Submit is left.
+function completedLabel() {
+  return (
+    <UiEntity uiTransform={{ width: 660, height: 32, alignItems: 'center', margin: { top: 24, bottom: 8 } }}>
+      <Label value="COMPLETED" fontSize={18} color={Color4.Green()} />
+    </UiEntity>
+  )
+}
+
+// "I didn't experience this": an answer instead of a rating, Leave feedback only.
+function notExperiencedToggle(editable: boolean) {
+  const selected = feedback.rating === NOT_EXPERIENCED
+  return (
+    <UiEntity
+      uiTransform={{ height: 36, padding: { left: 16, right: 16 }, margin: { bottom: 12 }, justifyContent: 'center', alignItems: 'center' }}
+      uiBackground={{ color: selected ? BUTTON_BG : SKIP_BG }}
+      onMouseDown={editable ? () => setRating(NOT_EXPERIENCED) : undefined}
+    >
+      <Label value={NOT_EXPERIENCED_LABEL} fontSize={16} color={selected ? Color4.White() : MUTED} />
     </UiEntity>
   )
 }
@@ -267,15 +272,22 @@ function footer(editable: boolean) {
         <UiEntity uiTransform={{ flexDirection: 'column', alignItems: 'center', margin: { top: 16 } }}>
           <Label value="Could not save. Try again?" fontSize={18} color={WARN} uiTransform={{ height: 28 }} />
           <UiEntity uiTransform={{ flexDirection: 'row' }}>
-            {button('Try again', sendResponse, true, 'retry')}
-            {button('Close', giveUpFeedback, true, 'close')}
+            {button('Try again', retryGroup, true, 'retry')}
+            {button('Close', giveUpGroup, true, 'close')}
           </UiEntity>
         </UiEntity>
       )
     default:
       return (
-        <UiEntity uiTransform={{ margin: { top: 16 } }}>
-          {button(hasAnswer() ? (isLastStep() ? 'Submit' : 'Next') : 'Skip', sendResponse, editable, 'send')}
+        // Left: Skip on the first step (this Question only), Back on later ones.
+        // Right: Next, or Submit on the last step; both need a rating or a comment.
+        <UiEntity uiTransform={{ width: 660, flexDirection: 'row', justifyContent: 'space-between', margin: { top: 16 } }}>
+          {isFirstStep()
+            ? button('Skip', skipStep, editable, 'skip', SKIP_BG)
+            : button('Back', previousStep, editable, 'back', SKIP_BG)}
+          {isLastStep()
+            ? button('Submit', submitGroup, editable && hasAnswer(), 'submit')
+            : button('Next', nextStep, editable && hasAnswer(), 'next')}
         </UiEntity>
       )
   }

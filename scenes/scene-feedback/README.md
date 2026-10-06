@@ -1,7 +1,7 @@
 # Scene Feedback
 
 Asks players a Question with a labelled 1–5 rating and an optional comment, at moments the
-creator picks. **Skip** turns into **Submit** once a rating or a comment is entered. Every Response —
+creator picks. **Submit** (or **Next** in a Group) needs a rating or a comment; **Skip** passes on the Question, × closes. Every Response —
 submitted or skipped — ends up as a row of a CSV that the Authoritative Server keeps in scene
 Storage. Vocabulary: [CONTEXT.md](CONTEXT.md).
 
@@ -30,13 +30,16 @@ code cannot write Storage; see [research-storage-options.md](research-storage-op
    } satisfies Record<string, QuestionSpec>
    ```
 
-3. Ask wherever the moment happens. Importing `feedback` is the whole setup: it starts by
-   itself on the client and the server, no call in `main()` needed. The trigger names the
-   moment and goes to the CSV:
+3. Pick a mode, or use both (below): **dynamic** — the Intro on arrival, then Questions
+   asked during play — or **static** — a batch the player opens themselves. Importing
+   `feedback` is the whole setup: it starts by itself on the client and the server, no call
+   in `main()` needed. The trigger names the moment and goes to the CSV:
 
    ```ts
    import { feedback } from './feedback'
 
+   // dynamic: the Intro first, on arrival; a yes makes the player a participant
+   void feedback.intro('scene-enter')
    void feedback.ask('buyingUpgrade', 'after-first-purchase')
 
    // a Group: one panel, one Question after another, with a "1/3" progress bar
@@ -55,8 +58,13 @@ To update to a newer version, replace `src/feedback/lib/` with the new one; `que
 (~15 s on a cold start). It resolves to `submitted`, `skipped`, `failed` (could not be saved) or
 `not-shown`: already shown at this trigger this visit (pass `{ repeat: true }` to allow it),
 the server did not come up within 2 minutes, or the player closed the Group before reaching it.
-A Group resolves to one result per id, in the same order. In a Group, Skip and Next move on to
-the next Question, × closes the whole Group. A typo in the id is a compile error.
+A Group resolves to one result per id, in the same order. A typo in the id is a compile error.
+
+In a Group, **Next** and **Back** move between Questions and keep the answers on the player's
+side; **Submit** on the last one sends them all ("Completed" replaces the progress bar once it
+is answered). **Skip** (first Question only) passes on that Question and goes on to the next.
+× closes the Group: what was answered with Next is still sent, the Question on screen counts as
+skipped, and the ones never reached get no Response.
 
 The comment field is shown when the Question has a `commentPrompt` and the call does not turn
 it off:
@@ -73,14 +81,53 @@ it off:
   void feedback.ask(['nextGoal', 'playMore', 'worthIt'], 'hunt-complete', { comment: ['playMore'] })
   ```
 
-Before the first Question the game asks, an **Intro** asks the player once per visit whether
-they want to give feedback at all. **Give feedback** goes on. **Skip** or × means no Questions
-this visit: queued and later `ask()` calls resolve to `not-shown`. Set its title, text and an
-optional picture with `INTRO` in `questions.ts`, or set it to `null` to skip it.
+### Dynamic: participants, then Questions during play
 
-A **Leave feedback** button (top-right) lets players open one Question themselves, any time
-and as often as they like (trigger `feedback-button`), with no Intro, even after a Skip. Pick it with `FEEDBACK_BUTTON` in
-`questions.ts`, or set it to `null` to hide the button.
+Each visit a player is a playtest **participant** (`in`), said no (`out`), or neither yet
+(`unknown`). `ASK_PARTICIPANTS_ONLY` in `questions.ts` decides who gets the Questions of `ask()`:
+
+| `ASK_PARTICIPANTS_ONLY` | `in` | `unknown` | `out` |
+|---|---|---|---|
+| `true` (the demo) | shown | not shown | not shown |
+| `false` | shown | shown | not shown |
+
+Two ways to make a player a participant:
+
+- **The Intro**: `feedback.intro(trigger)` — the creator introduces themselves and asks whether
+  the player wants to give feedback. **Give feedback** → `in`, **Skip** or × → `out`. Call it
+  first thing on arrival (the demo does it at the top of `main()` in
+  [src/index.ts](src/index.ts)); it shows right away, without waiting for the server. Until it
+  is answered, the game's Questions wait behind it. It shows once per visit, only while the
+  player is `unknown`, and resolves to `accepted`, `declined` or `not-shown`.
+- **`feedback.enroll()`**: `in` without the Intro, e.g. for players you picked yourself.
+
+`feedback.participation()` returns the current state. Set the Intro's title, text and an
+optional picture with `INTRO` in `questions.ts` (`null`: no Intro). Each answer to the Intro is
+a CSV row (`questionId` `intro`), so you can count how many players agree to answer.
+
+### Static: a batch the player opens
+
+When the player chooses to give feedback — a button, a 3D kiosk, an area they walk into — call
+`feedback.leaveFeedback(batch, trigger)` with a batch prepared for it: Questions that make sense
+out of context. Every call shows the Intro, then the batch as one Group, any number of times per
+visit, whatever the player said to the dynamic Intro. A call while the previous one is still
+open or waiting is ignored. Each Question there also offers **I didn't experience this**, an
+answer instead of a rating. The demo wires it three ways in
+[src/leave-feedback.tsx](src/leave-feedback.tsx):
+
+```ts
+const LEAVE_FEEDBACK_BATCH = ['worthIt', 'playMore', 'coinSpotting'] as const
+
+// 2D: a button in your own UI
+<UiEntity onMouseDown={() => void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'ui-button')}> … </UiEntity>
+
+// 3D: a clickable object
+pointerEventsSystem.onPointerDown({ entity: kiosk, opts: { hoverText: 'Leave feedback' } },
+  () => void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'kiosk'))
+
+// an area: on entering it
+if (inside && !wasInside) void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'feedback-area')
+```
 
 The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` stays yours.
 
@@ -145,7 +192,11 @@ id,timeUtc,version,questionId,questionText,trigger,rating,ratingLabel,scale,comm
 mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in playing more right now?,debug,5,Extremely,INTEREST,What makes you want to keep playing, or stop? (optional),kind of yes,42,1,0x…,true,desktop
 ```
 
-- Empty `rating` and `comment`: the player pressed Skip or closed the panel.
+- Empty `rating` and `comment`: the player pressed Skip or closed the panel on that Question.
+- Empty `rating` with `ratingLabel` `Didn't experience this`: the player's answer in a
+  `leaveFeedback()` Group — count it apart from skips and ratings.
+- `questionId` `intro`: the player's answer to the Intro, `ratingLabel` `accepted` or `declined`,
+  `trigger` of the call that showed it. Accepted ÷ all intro rows = the share who agree to answer.
 - `version`: tail of the deployed entity id, new on every deploy (`preview` locally).
 - `questionText`: the wording the server shipped with, so edited Questions never mix with old answers.
 - `ratingLabel`, `scale`: the label the player picked and the scale it came from (a code, or the
@@ -153,8 +204,8 @@ mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in p
 - `commentPrompt`: the comment field's prompt as shown; empty for a rating-only Question, so an
   empty comment there means "not offered", not "left blank". Also empty when the call's `comment`
   option left the field out.
-- `trigger`: the label passed to `feedback.ask(questionId, trigger)` (`debug` for the debug buttons,
-  `feedback-button` for the Leave feedback button).
+- `trigger`: the label passed to `feedback.ask()` or `feedback.leaveFeedback()` (`debug` for the
+  debug buttons).
 - `secondsInScene`: from the player's scene load to the answer, reported by the client.
 - `playersInScene`: players in the scene when the server received the answer (solo vs group).
 - `id` dedupes client resends and merges rows when two server instances overlap after a redeploy.
