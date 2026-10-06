@@ -59,8 +59,10 @@ const WARN = Color4.fromHexString('#ff9d3aff')
 
 // Images live outside src/: the scene's .dclignore leaves src/ out of the deploy.
 const ASSETS = 'assets/playtest-feedback/'
-// Bottom-right, as in the design's 1920x1080 frame.
+// Desktop: bottom-right, as in the design's 1920x1080 frame. Mobile: centred, 35 from the
+// bottom, as in its 1600x720 frame (Figma: Live Feedback in Settings-Account-SingOut).
 const PANEL_POSITION = { right: 25, bottom: 54 }
+const MOBILE_PANEL_BOTTOM = 35
 // Textures that fill a rounded element: nine-slices, not stretch. The explorer draws a
 // stretch texture on its own, ignoring the element's border radius and padding; nine-slices
 // is the element's own background. Zero slices: the whole image, stretched.
@@ -166,7 +168,7 @@ function scaleGallery() {
   )
 }
 
-// --- The panel: the design's purple card, bottom-right ------------------------------
+// --- The panel: the design's purple card, bottom-right (centred on mobile) ----------
 // The shell both panels share: background, the two glows, the close button.
 function panel(
   key: string,
@@ -175,12 +177,38 @@ function panel(
   children: ReactEcs.JSX.Element[],
   opacity = 1
 ) {
+  if (!isMobile()) return card(key, padding, onClose, children, opacity, PANEL_POSITION)
+  // Centred in a full-width row: right whatever the phone's aspect ratio.
   return (
     <UiEntity
       key={key}
       uiTransform={{
         positionType: 'absolute',
-        position: PANEL_POSITION,
+        position: { bottom: MOBILE_PANEL_BOTTOM, left: 0 },
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'center'
+      }}
+    >
+      {card('card', padding, onClose, children, opacity)}
+    </UiEntity>
+  )
+}
+
+function card(
+  key: string,
+  padding: { top: number; bottom: number },
+  onClose: (() => void) | null,
+  children: ReactEcs.JSX.Element[],
+  opacity: number,
+  position?: typeof PANEL_POSITION
+) {
+  return (
+    <UiEntity
+      key={key}
+      uiTransform={{
+        positionType: position ? 'absolute' : 'relative',
+        position,
         width: 600,
         borderRadius: 24,
         overflow: 'hidden',
