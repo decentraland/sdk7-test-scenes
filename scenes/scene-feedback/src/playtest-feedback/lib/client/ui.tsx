@@ -3,7 +3,7 @@ import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Input, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { isMobile } from '@dcl/sdk/platform'
 import { MAX_RATING, NOT_EXPERIENCED, NOT_EXPERIENCED_LABEL, allQuestions } from '../shared/series'
-import { scaleLabels } from '../shared/scales'
+import { SCALES, ScaleLabels, scaleLabels } from '../shared/scales'
 import {
   acceptIntro,
   askQuestions,
@@ -42,6 +42,7 @@ const SECONDARY = Color4.fromHexString('#3c1752ff') // secondary button
 const TILE = Color4.fromHexString('#592f84ff') // tiles, empty bar
 const WHITE_50 = Color4.create(1, 1, 1, 0.5) // avatar border
 const TILE_SELECTED = Color4.fromHexString('#6e4596ff')
+const GRASS = Color4.fromHexString('#28ac00ff') // COMPLETED
 // The glow images at full strength come out over twice as bright as in the design.
 const GLOW_TINT = Color4.create(1, 1, 1, 0.4)
 const INK = Color4.fromHexString('#161518ff') // text typed in the input
@@ -50,7 +51,6 @@ const DISABLED_OPACITY = 0.5
 // Not in the design yet.
 const DEBUG_BG = Color4.create(0.2, 0.2, 0.25, 0.9)
 const WARN = Color4.fromHexString('#ff9d3aff')
-const COMPLETED = Color4.fromHexString('#34ce77ff')
 
 // Images live outside src/: the scene's .dclignore leaves src/ out of the deploy.
 const ASSETS = 'assets/playtest-feedback/'
@@ -70,6 +70,7 @@ export function setupUi(debug: boolean): void {
   const ui = () => (
     <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute' }}>
       {debug && debugPanel()}
+      {debug && showScaleGallery && scaleGallery()}
       {feedback.phase === 'intro' && introPanel()}
       {feedback.phase !== 'idle' && feedback.phase !== 'intro' && questionPanel()}
     </UiEntity>
@@ -108,6 +109,47 @@ function debugPanel() {
         )
       )}
       {introSpec() !== null && button('Show intro', () => void showIntro('debug', 'debug'), feedback.phase === 'idle', 'show-intro')}
+      {button('Scale labels', () => (showScaleGallery = !showScaleGallery), true, 'scale-gallery')}
+    </UiEntity>
+  )
+}
+
+// Every scale's labels as tiles, plain (left) and selected (right): to check that each
+// label fits its tile. Built-in scales plus this scene's own.
+let showScaleGallery = false
+function scaleGallery() {
+  const seen = new Set<string>()
+  const sets: ScaleLabels[] = []
+  for (const labels of [...Object.values(SCALES), ...allQuestions().map((q) => scaleLabels(q.scale))]) {
+    const key = labels.join('|')
+    if (!seen.has(key)) {
+      seen.add(key)
+      sets.push(labels)
+    }
+  }
+  const row = (labels: ScaleLabels, selected: boolean, key: string) => (
+    <UiEntity key={key} uiTransform={{ width: 500, flexDirection: 'row', margin: { bottom: 8 } }}>
+      {labels.map((label, i) => tile(i + 1, label, selected, undefined))}
+    </UiEntity>
+  )
+  return (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { top: 40, left: 360 },
+        flexDirection: 'column',
+        padding: 20,
+        borderRadius: 24
+      }}
+      uiBackground={{ color: PANEL }}
+    >
+      {sets.map((labels, i) => (
+        <UiEntity key={`set-${i}`} uiTransform={{ flexDirection: 'row' }}>
+          {row(labels, false, 'plain')}
+          {spacer('gap', 24)}
+          {row(labels, true, 'selected')}
+        </UiEntity>
+      ))}
     </UiEntity>
   )
 }
@@ -263,7 +305,9 @@ function questionPanel() {
         uiTransform={{ width: 500, minHeight: 24, margin: { top: (feedback.steps > 1 ? 32 : 0) - TEXT_NUDGE } }}
       />,
       <UiEntity key="tiles" uiTransform={{ width: 500, flexDirection: 'row', margin: { top: 40 + TEXT_NUDGE } }}>
-        {Array.from({ length: MAX_RATING }, (_, i) => tile(i + 1, labels[i], editable))}
+        {Array.from({ length: MAX_RATING }, (_, i) =>
+          tile(i + 1, labels[i], i + 1 === feedback.rating, editable ? () => setRating(i + 1) : undefined)
+        )}
       </UiEntity>,
       ...(feedback.offerNotExperienced ? [notExperiencedToggle(editable)] : []),
       ...(feedback.withComment ? [commentField(q.commentPrompt ?? '', editable)] : []),
@@ -279,7 +323,7 @@ function progressBar() {
   return (
     <UiEntity
       key="progress"
-      uiTransform={{ width: 500, height: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+      uiTransform={{ width: 500, height: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
     >
       <UiEntity
         uiTransform={{ width: PROGRESS_WIDTH, height: 10, borderRadius: 5 }}
@@ -295,7 +339,8 @@ function progressBar() {
         fontSize={16}
         color={SNOW}
         textAlign="middle-right"
-        uiTransform={{ width: 30 }}
+        textWrap="nowrap"
+        uiTransform={{ width: 30, height: 10 }}
       />
     </UiEntity>
   )
@@ -304,19 +349,20 @@ function progressBar() {
 // Replaces the progress bar on a Group's last step once it is answered: only Submit is left.
 function completedLabel() {
   return (
-    <UiEntity key="completed" uiTransform={{ width: 500, height: 24, alignItems: 'center' }}>
-      <Label value="✔ COMPLETED" fontSize={14} color={COMPLETED} textAlign="middle-left" />
+    <UiEntity key="completed" uiTransform={{ width: 500, height: 10, alignItems: 'center' }}>
+      <Label value="✔ COMPLETED" fontSize={12} color={GRASS} textAlign="middle-left" uiTransform={{ height: 10 }} />
     </UiEntity>
   )
 }
 
-// A tile: the face and its scale label. The selected one gets a border and a bold label;
-// every tile keeps a border, transparent when not selected, so nothing shifts.
+// A tile: the face and its scale label. The selected one gets a ruby border and a bold
+// label; every tile keeps a border, transparent when not selected, so nothing shifts.
+// (The design's pink glow around it has no equivalent: scene UI has no shadows.)
 const FACES = ['😞', '🙁', '😐', '🙂', '🤩']
 // An emoji glyph renders ~1.3x its font size: 23 shows as the design's 30.
 const FACE_SIZE = 23
-function tile(value: number, label: string, editable: boolean) {
-  const selected = value === feedback.rating
+function tile(value: number, label: string, selected: boolean, onClick: (() => void) | undefined) {
+  const lines = labelLines(label)
   return (
     <UiEntity
       key={value}
@@ -327,26 +373,58 @@ function tile(value: number, label: string, editable: boolean) {
         margin: { left: value === 1 ? 0 : 16 },
         flexDirection: 'column',
         alignItems: 'center',
-        // The design's 12 a side is too narrow for "Moderately" in the explorer's SemiBold.
-        padding: { top: 6, bottom: 2, left: 2, right: 2 },
+        // The design's 12 a side is too narrow for long words in the explorer's SemiBold;
+        // labelLines() does the design's line breaks instead.
+        padding: { top: 5, bottom: 1, left: 0, right: 0 },
         borderRadius: 6,
-        borderWidth: 2,
-        borderColor: selected ? SNOW : TRANSPARENT
+        borderWidth: 3,
+        borderColor: selected ? RUBY : TRANSPARENT
       }}
       uiBackground={{ color: selected ? TILE_SELECTED : TILE }}
-      onMouseDown={editable ? () => setRating(value) : undefined}
+      onMouseDown={onClick}
     >
       <Label value={FACES[value - 1]} fontSize={FACE_SIZE} textAlign="middle-center" uiTransform={{ width: 30, height: 30 }} />
       <Label
-        value={selected ? `<b>${label}</b>` : label}
-        fontSize={14}
+        value={selected ? `<b>${lines.join('\n')}</b>` : lines.join('\n')}
+        fontSize={labelSize(lines)}
         color={SNOW}
         textAlign="top-center"
-        textWrap="wrap"
+        // labelLines() places the breaks; no wrapping of its own, so a bold label grows a
+        // little instead of losing its last letter to a new line.
+        textWrap="nowrap"
         uiTransform={{ width: '100%', height: 34, margin: { top: 8 - TEXT_NUDGE } }}
       />
     </UiEntity>
   )
+}
+
+// A scale label as in the design: a phrase of 9+ characters goes on two lines, split
+// where they come out most even ("Very\ndifficult"; "A little" stays whole); a single
+// word never breaks.
+const LABEL_SIZE = 14
+// About this many characters fit a tile's width at LABEL_SIZE, bold included.
+const LABEL_FIT = 9.5
+function labelLines(label: string): string[] {
+  const words = label.split(' ')
+  if (words.length < 2 || label.length < 9) return [label]
+  let best: string[] = [label]
+  let bestLongest = Infinity
+  for (let i = 1; i < words.length; i++) {
+    const lines = [words.slice(0, i).join(' '), words.slice(i).join(' ')]
+    const longest = Math.max(lines[0].length, lines[1].length)
+    if (longest < bestLongest) {
+      best = lines
+      bestLongest = longest
+    }
+  }
+  return best
+}
+
+// Smaller type for a word too long for the tile ("Uncomfortable"), the same whether
+// selected or not, so selecting never resizes it.
+function labelSize(lines: string[]): number {
+  const longest = Math.max(...lines.map((l) => l.length))
+  return Math.min(LABEL_SIZE, Math.floor((LABEL_SIZE * LABEL_FIT) / longest))
 }
 
 // "I didn't experience this": an answer instead of a rating, Leave feedback only.
@@ -485,9 +563,10 @@ function cta(text: string, onClick: () => void, { kind, key, width, arrow, enabl
 // One chevron image; the left one is it mirrored through its UVs.
 const MIRRORED = [1, 0, 1, 1, 0, 1, 0, 0]
 function arrowIcon(side: 'left' | 'right') {
+  // The design's gap: 20 after the text (NEXT ›), 10 before it (‹ BACK).
   return (
     <UiEntity
-      uiTransform={{ width: 8, height: 13, margin: side === 'right' ? { left: 20 } : { right: 20 } }}
+      uiTransform={{ width: 8, height: 13, margin: side === 'right' ? { left: 20 } : { right: 10 } }}
       uiBackground={{
         textureMode: 'stretch',
         texture: { src: ASSETS + 'arrow-right.png' },

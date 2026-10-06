@@ -6,7 +6,7 @@
 
 export type ScaleLabels = readonly [string, string, string, string, string]
 
-const UNIPOLAR = ['Not at all', 'Slightly', 'Moderately', 'Very', 'Extremely'] as const
+const UNIPOLAR = ['Not at all', 'Slightly', 'Moderate', 'Very', 'Extremely'] as const
 
 export const SCALES = {
   EASE: ['Very difficult', 'Difficult', 'Ok', 'Easy', 'Very easy'],
