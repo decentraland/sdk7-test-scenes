@@ -11,7 +11,7 @@ import {
 } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, UiEntity } from '@dcl/sdk/react-ecs'
-import { feedback } from './feedback'
+import { feedback } from './playtest-feedback'
 
 // Static mode: three ways to let the player choose to give feedback. Each calls
 // feedback.leaveFeedback(batch, trigger): the Intro, then this batch as one Group.

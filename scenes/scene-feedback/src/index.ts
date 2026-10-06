@@ -1,6 +1,6 @@
 import { isServer } from '@dcl/sdk/network'
 import { setupGame } from './game'
-import { feedback } from './feedback'
+import { feedback } from './playtest-feedback'
 
 export async function main() {
   console.log(`[SCENE] main() on the ${isServer() ? 'server' : 'client'}`)

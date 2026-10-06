@@ -6,7 +6,7 @@ submitted or skipped — ends up as a row of a CSV that the Authoritative Server
 Storage. Vocabulary: [CONTEXT.md](CONTEXT.md).
 
 This scene is the example: a tiny coin hunt ([src/game.tsx](src/game.tsx)) that asks Questions
-mid-round, after a round, and as a two-Question series. Its [questions.ts](src/feedback/questions.ts)
+mid-round, after a round, and as a two-Question series. Its [questions.ts](src/playtest-feedback/questions.ts)
 shows the three kinds of Question: from the bank, your own on a shared scale, your own on your own scale.
 
 ## Add it to your scene
@@ -14,8 +14,8 @@ shows the three kinds of Question: from the bank, your own on a shared scale, yo
 Requires `@dcl/sdk@auth-server` and `"authoritativeMultiplayer": true` in `scene.json` (client
 code cannot write Storage; see [research-storage-options.md](research-storage-options.md)).
 
-1. Copy the [src/feedback/](src/feedback) folder into your `src/`.
-2. Edit [src/feedback/questions.ts](src/feedback/questions.ts) — the only file to touch:
+1. Copy the [src/playtest-feedback/](src/playtest-feedback) folder into your `src/`.
+2. Edit [src/playtest-feedback/questions.ts](src/playtest-feedback/questions.ts) — the only file to touch:
 
    ```ts
    export const DEBUG = true // "Ask <id>" buttons top-left; turn off before release
@@ -36,7 +36,7 @@ code cannot write Storage; see [research-storage-options.md](research-storage-op
    in `main()` needed. The trigger names the moment and goes to the CSV:
 
    ```ts
-   import { feedback } from './feedback'
+   import { feedback } from './playtest-feedback'
 
    // dynamic: the Intro first, on arrival; a yes makes the player a participant
    void feedback.intro('scene-enter')
@@ -52,7 +52,7 @@ code cannot write Storage; see [research-storage-options.md](research-storage-op
 With `authoritativeMultiplayer` your `main()` runs on the server too. If your scene has no
 server logic, start it with `if (isServer()) return` so the scene code runs only for players.
 
-To update to a newer version, replace `src/feedback/lib/` with the new one; `questions.ts` stays yours.
+To update to a newer version, replace `src/playtest-feedback/lib/` with the new one; `questions.ts` stays yours.
 
 `ask()` queues the Question and shows it once nothing else is on screen and the server is up
 (~15 s on a cold start). It resolves to `submitted`, `skipped`, `failed` (could not be saved) or
@@ -133,10 +133,10 @@ The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` sta
 
 ## Question bank
 
-[src/feedback/lib/bank.ts](src/feedback/lib/bank.ts): 20 Questions selected for the pilot, in
+[src/playtest-feedback/lib/bank.ts](src/playtest-feedback/lib/bank.ts): 20 Questions selected for the pilot, in
 sections (`coreMechanic`, `coreLoop`, `social`, `motivation`, `world`, `technical`). Each comes
 with its rating scale, the moment it is meant for, what the answer tells you, and its code in the
-research doc. The scales are in [src/feedback/lib/shared/scales.ts](src/feedback/lib/shared/scales.ts):
+research doc. The scales are in [src/playtest-feedback/lib/shared/scales.ts](src/playtest-feedback/lib/shared/scales.ts):
 the research doc's 14, shortened to fit under a tile. A Question can also carry five labels of its own. The full
 research bank: [player-feedback-question-bank-2026-09.md](player-feedback-question-bank-2026-09.md).
 
@@ -156,7 +156,7 @@ research bank: [player-feedback-question-bank-2026-09.md](player-feedback-questi
   }
   ```
 
-  The demo does this: `coinSpotting` in [questions.ts](src/feedback/questions.ts) is bank
+  The demo does this: `coinSpotting` in [questions.ts](src/playtest-feedback/questions.ts) is bank
   `objectContrast` about coins.
 - **Never change a live Question's text under the same id** — answers to different wordings
   would share it. New wording, new id.
