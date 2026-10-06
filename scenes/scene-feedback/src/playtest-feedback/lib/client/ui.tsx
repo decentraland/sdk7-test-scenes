@@ -323,7 +323,7 @@ function progressBar() {
   return (
     <UiEntity
       key="progress"
-      uiTransform={{ width: 500, height: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+      uiTransform={{ width: 500, height: 10, flexDirection: 'row', alignItems: 'center' }}
     >
       <UiEntity
         uiTransform={{ width: PROGRESS_WIDTH, height: 10, borderRadius: 5 }}
@@ -338,9 +338,10 @@ function progressBar() {
         value={`${feedback.step}/${feedback.steps}`}
         fontSize={16}
         color={SNOW}
-        textAlign="middle-right"
+        // As in the design: 12 after the bar, left-aligned; a wider count runs on to the right.
+        textAlign="middle-left"
         textWrap="nowrap"
-        uiTransform={{ width: 30, height: 10 }}
+        uiTransform={{ width: 500 - PROGRESS_WIDTH - 12, height: 10, margin: { left: 12 } }}
       />
     </UiEntity>
   )
