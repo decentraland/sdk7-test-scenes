@@ -10,7 +10,8 @@ import {
   pointerEventsSystem
 } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
-import ReactEcs, { Label, UiEntity } from '@dcl/sdk/react-ecs'
+import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
+import { isMobile } from '@dcl/sdk/platform'
 import { feedback } from './playtest-feedback'
 
 // Static mode: three ways to let the player choose to give feedback. Each calls
@@ -20,27 +21,38 @@ import { feedback } from './playtest-feedback'
 // The batch prepared for it: Questions that make sense out of context, at any time.
 const LEAVE_FEEDBACK_BATCH = ['worthIt', 'playMore', 'coinSpotting'] as const
 
-// --- 2D: a button in the scene's own UI (see the hud in game.tsx) -------------------
-export function LeaveFeedbackButton() {
+// --- 2D: a button, top-right ---------------------------------------------------------
+// In the panel's primary button style. Its own renderer, kept inside the area the
+// explorer's HUD leaves free ('interactable'), at the 1920x1080 scale the panel uses.
+// 16 from the top, as the scene's round counter (game.tsx).
+function LeaveFeedbackButton() {
   return (
-    <UiEntity
-      uiTransform={{
-        positionType: 'absolute',
-        position: { top: 120, right: 24 },
-        width: 200,
-        height: 48,
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}
-      uiBackground={{ color: Color4.fromHexString('#3a6df0ff') }}
-      onMouseDown={() => void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'ui-button')}
-    >
-      <Label value="Leave feedback" fontSize={20} color={Color4.White()} />
+    <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute' }}>
+      <UiEntity
+        uiTransform={{
+          positionType: 'absolute',
+          position: { top: 16, right: 16 },
+          height: 46,
+          padding: { left: 29, right: 29 },
+          borderRadius: 12,
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}
+        uiBackground={{ color: Color4.fromHexString('#e84c59ff') }}
+        onMouseDown={() => void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'ui-button')}
+      >
+        <Label value="<b>LEAVE FEEDBACK</b>" fontSize={14} color={Color4.fromHexString('#fcfcfcff')} />
+      </UiEntity>
     </UiEntity>
   )
 }
 
 export function setupLeaveFeedback(): void {
+  ReactEcsRenderer.addUiRenderer(engine.addEntity(), LeaveFeedbackButton, {
+    screenInset: 'interactable',
+    virtualWidth: isMobile() ? 1600 : 1920,
+    virtualHeight: isMobile() ? 720 : 1080
+  })
   setupKiosk()
   setupArea()
 }

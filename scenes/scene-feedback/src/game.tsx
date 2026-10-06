@@ -13,7 +13,7 @@ import {
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { feedback } from './playtest-feedback'
-import { LeaveFeedbackButton, setupLeaveFeedback } from './leave-feedback'
+import { setupLeaveFeedback } from './leave-feedback'
 
 // A tiny coin hunt of three rounds, only here to show feedback.ask() at different moments:
 //   first coin of the visit  → coinSpotting (one Question, mid-round, with a comment field)
@@ -133,6 +133,5 @@ const hud = () => (
         />
       </UiEntity>
     </UiEntity>
-    <LeaveFeedbackButton />
   </UiEntity>
 )

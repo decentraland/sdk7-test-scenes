@@ -47,7 +47,12 @@ const GRASS = Color4.fromHexString('#28ac00ff') // COMPLETED
 const GLOW_TINT = Color4.create(1, 1, 1, 0.4)
 const INK = Color4.fromHexString('#161518ff') // text typed in the input
 const TRANSPARENT = Color4.create(0, 0, 0, 0)
-const DISABLED_OPACITY = 0.5
+// A disabled button: the enabled one at half strength over the panel, worked out here.
+// Not opacity: the explorer ignores an opacity an element is created with (only a later
+// change to it shows), so a button that opens disabled looked enabled.
+const RUBY_DISABLED = Color4.fromHexString('#983368ff')
+const SECONDARY_DISABLED = Color4.fromHexString('#421864ff')
+const SNOW_DISABLED = Color4.fromHexString('#a28bbaff')
 // Not in the design yet.
 const DEBUG_BG = Color4.create(0.2, 0.2, 0.25, 0.9)
 const WARN = Color4.fromHexString('#ff9d3aff')
@@ -175,6 +180,7 @@ function panel(
         flexDirection: 'column',
         alignItems: 'center',
         padding: { top: padding.top, bottom: padding.bottom, left: 50, right: 50 },
+        // The fade after saving: starts at 1, so the explorer applies it (see RUBY_DISABLED).
         opacity
       }}
       uiBackground={{ color: PANEL }}
@@ -528,7 +534,7 @@ function status(text: string, color: Color4) {
 // --- Building blocks ----------------------------------------------------------------
 
 // The design's buttons, 46 high: primary (ruby, bold) and secondary (dark). Without a
-// width, as wide as the text plus 29 a side. Disabled: half opacity.
+// width, as wide as the text plus 29 a side. Disabled: dimmed.
 type CtaOptions = {
   kind: 'primary' | 'secondary'
   key: string
@@ -538,6 +544,8 @@ type CtaOptions = {
 }
 function cta(text: string, onClick: () => void, { kind, key, width, arrow, enabled = true }: CtaOptions) {
   const caps = text.toUpperCase()
+  const background = kind === 'primary' ? (enabled ? RUBY : RUBY_DISABLED) : enabled ? SECONDARY : SECONDARY_DISABLED
+  const color = enabled ? SNOW : SNOW_DISABLED
   return (
     <UiEntity
       key={key}
@@ -548,22 +556,21 @@ function cta(text: string, onClick: () => void, { kind, key, width, arrow, enabl
         borderRadius: 12,
         flexDirection: 'row',
         justifyContent: 'center',
-        alignItems: 'center',
-        opacity: enabled ? 1 : DISABLED_OPACITY
+        alignItems: 'center'
       }}
-      uiBackground={{ color: kind === 'primary' ? RUBY : SECONDARY }}
+      uiBackground={{ color: background }}
       onMouseDown={enabled ? onClick : undefined}
     >
-      {arrow === 'left' && arrowIcon('left')}
-      <Label value={kind === 'primary' ? `<b>${caps}</b>` : caps} fontSize={14} color={SNOW} />
-      {arrow === 'right' && arrowIcon('right')}
+      {arrow === 'left' && arrowIcon('left', color)}
+      <Label value={kind === 'primary' ? `<b>${caps}</b>` : caps} fontSize={14} color={color} />
+      {arrow === 'right' && arrowIcon('right', color)}
     </UiEntity>
   )
 }
 
 // One chevron image; the left one is it mirrored through its UVs.
 const MIRRORED = [1, 0, 1, 1, 0, 1, 0, 0]
-function arrowIcon(side: 'left' | 'right') {
+function arrowIcon(side: 'left' | 'right', color: Color4) {
   // The design's gap: 20 after the text (NEXT ›), 10 before it (‹ BACK).
   return (
     <UiEntity
@@ -571,6 +578,7 @@ function arrowIcon(side: 'left' | 'right') {
       uiBackground={{
         textureMode: 'stretch',
         texture: { src: ASSETS + 'arrow-right.png' },
+        color,
         uvs: side === 'left' ? MIRRORED : undefined
       }}
     />
@@ -592,10 +600,9 @@ function button(text: string, onClick: () => void, enabled: boolean, key: string
         margin: 4,
         borderRadius: 8,
         justifyContent: 'center',
-        alignItems: 'center',
-        opacity: enabled ? 1 : DISABLED_OPACITY
+        alignItems: 'center'
       }}
-      uiBackground={{ color: RUBY }}
+      uiBackground={{ color: enabled ? RUBY : RUBY_DISABLED }}
       onMouseDown={enabled ? onClick : undefined}
     >
       <Label value={text} fontSize={16} color={SNOW} />
