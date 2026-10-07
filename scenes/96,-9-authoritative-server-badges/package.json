@@ -19,8 +19,7 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/js-runtime": "7.0.0",
-    "@dcl/sdk": "file:../../../js-sdk-toolchain-badges-preview/packages/@dcl/sdk",
-    "@dcl/sdk-commands": "file:../../../js-sdk-toolchain-badges-preview/packages/@dcl/sdk-commands"
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/badges-award/dcl-sdk-7.29.1-37611283672.commit-c934b98.tgz",
+    "@dcl/sdk-commands": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/badges-award/dcl-sdk-commands-7.29.1-37611283672.commit-c934b98.tgz"
   }
 }

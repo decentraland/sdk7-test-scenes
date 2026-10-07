@@ -22,13 +22,13 @@ The third row is the anti-cheat proof: the service column is empty because the w
 
 ## Requirements
 
-- `@dcl/sdk`, `@dcl/sdk-commands` and `@dcl/js-runtime` linked from a local `js-sdk-toolchain` checkout of `feat/badges-award` (see `package.json`; expected as a sibling of this repo at `../js-sdk-toolchain-badges-preview`).
+- `@dcl/sdk` and `@dcl/sdk-commands` from js-sdk-toolchain#1642, pinned in `package.json` to the CDN build its CI publishes for the branch (repinned to the released version once it ships). To run against a local checkout instead, point both at it with `file:` links.
 - A scene worker (Bevy headless) that signs badge awards with the scene delegation, gated on presence, and accepts `--badges`.
 - The `badges` service (api only) with its dev seed, which creates `bdg_000000000001` and `bdg_000000000002` for `sdk7testscenes.dcl.eth` and trusts the orchestrator's root address.
 
 ## Run locally
 
-1. SDK: in `js-sdk-toolchain-badges-preview`, `make install && make build`.
+1. SDK: nothing to build; `npm install` fetches the pinned CDN build. (With `file:` links to a local checkout, run `make install && make build` there first.)
 2. Delegation: in `scene-badges-award-stub` (a local helper folder, not a published repo: in production the orchestrator mints this), `node mint-delegation.mjs --scene <this folder>`. It writes `.delegation.env` and the dev root key `.dev-root-key.json`, and is bound to this scene's preview entity id, `b64-` + base64(`<absolute scene dir>-<hostname>`), so re-mint after moving or renaming the folder.
 3. Badges service: in `badges`, follow "Local end-to-end with the preview" in `docs/scene-badges.md`. In short:
 
