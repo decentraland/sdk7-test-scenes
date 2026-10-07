@@ -3,7 +3,7 @@
 Asks players a Question with a labelled 1–5 rating and an optional comment, at moments the
 creator picks. **Submit** (or **Next** in a Group) needs a rating or a comment; **Skip** passes on the Question, × closes. Every Response —
 submitted or skipped — ends up as a row of a CSV that the Authoritative Server keeps in scene
-Storage. Vocabulary: [CONTEXT.md](CONTEXT.md).
+Storage.
 
 This scene is the example: a tiny coin hunt ([src/game.tsx](src/game.tsx)) that asks Questions
 mid-round, after a round, and as a two-Question series. Its [questions.ts](src/playtest-feedback/questions.ts)
