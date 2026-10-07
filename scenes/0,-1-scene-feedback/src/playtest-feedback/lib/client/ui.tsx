@@ -505,6 +505,8 @@ function footer() {
 function toast() {
   const opacity = toastOpacity()
   if (opacity === null) return null
+  // Fade through colour alpha, not opacity: the explorer ignores opacity set at creation, so a fade-in would flash.
+  const fade = (c: Color4) => Color4.create(c.r, c.g, c.b, c.a * opacity)
   return (
     <UiEntity
       key="toast"
@@ -522,19 +524,17 @@ function toast() {
           padding: { left: 10, right: 16 },
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: PALE_BLACK,
+          borderColor: fade(PALE_BLACK),
           flexDirection: 'row',
-          alignItems: 'center',
-          // fade: starts at 1, so the explorer applies it (see RUBY_DISABLED)
-          opacity
+          alignItems: 'center'
         }}
-        uiBackground={{ color: INK }}
+        uiBackground={{ color: fade(INK) }}
       >
         <UiEntity
           uiTransform={{ width: 18, height: 18, margin: { right: 6 } }}
-          uiBackground={{ textureMode: 'stretch', texture: { src: ASSETS + 'check.png' } }}
+          uiBackground={{ textureMode: 'stretch', texture: { src: ASSETS + 'check.png' }, color: fade(SNOW) }}
         />
-        <Label value="Thanks for your feedback!" fontSize={14} color={SNOW} />
+        <Label value="Thanks for your feedback!" fontSize={14} color={fade(SNOW)} />
       </UiEntity>
     </UiEntity>
   )

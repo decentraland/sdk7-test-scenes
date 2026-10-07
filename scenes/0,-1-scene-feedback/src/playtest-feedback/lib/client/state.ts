@@ -279,9 +279,10 @@ export type Phase = 'idle' | 'intro' | 'open'
 
 const RESEND_MS = 3000
 const GIVE_UP_MS = 30000
-// "Thanks" toast after Submit: shown, then faded out
+// "Thanks" toast after Submit: fades in, holds, fades out
+const TOAST_FADE_IN_MS = 200
 const TOAST_HOLD_MS = 2000
-const TOAST_FADE_MS = 300
+const TOAST_FADE_OUT_MS = 300
 
 export const feedback = {
   phase: 'idle' as Phase,
@@ -360,11 +361,13 @@ export function closeGroup(): void {
   finishGroup()
 }
 
-// "Thanks" toast: 1 while held, fading to 0, null when gone
+// "Thanks" toast: 0 → 1 → 0, null when gone
 export function toastOpacity(): number | null {
-  const fading = Date.now() - toastAt - TOAST_HOLD_MS
-  if (toastAt === 0 || fading > TOAST_FADE_MS) return null
-  return fading <= 0 ? 1 : 1 - fading / TOAST_FADE_MS
+  const t = Date.now() - toastAt
+  const fadeOutAt = TOAST_FADE_IN_MS + TOAST_HOLD_MS
+  if (toastAt === 0 || t > fadeOutAt + TOAST_FADE_OUT_MS) return null
+  if (t < TOAST_FADE_IN_MS) return t / TOAST_FADE_IN_MS
+  return t <= fadeOutAt ? 1 : 1 - (t - fadeOutAt) / TOAST_FADE_OUT_MS
 }
 
 function finishGroup(): void {
