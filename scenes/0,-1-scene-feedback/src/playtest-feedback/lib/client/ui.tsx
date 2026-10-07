@@ -90,10 +90,13 @@ export function setupUi(debug: boolean): void {
   })
 }
 
-// Invisible, always on screen. The explorer's font atlas misses a digit the first time one is
-// requested, and the glyph comes from the emoji font instead (a grey "2" in "2/3"). The second
-// request lands in the atlas, so the counter asks after this one.
+// Invisible, until the server is first up. The explorer's font atlas misses a digit the first
+// time one is requested, and the glyph comes from the emoji font instead (a grey "2" in "2/3").
+// The second request lands in the atlas, and Questions wait for the server, so the counter asks after this one.
+let warmedUp = false
 function glyphWarmUp() {
+  if (!warmedUp) warmedUp = isServerAlive()
+  if (warmedUp) return null
   return (
     <Label
       value="0123456789/ <b>0123456789/</b>"
