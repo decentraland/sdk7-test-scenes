@@ -43,7 +43,7 @@ const GLOW_TINT = Color4.create(1, 1, 1, 0.4)
 const INK = Color4.fromHexString('#161518ff') // text typed in the input, toast
 const TRANSPARENT = Color4.create(0, 0, 0, 0)
 // toast border: the design's #43404A comes out lighter in the explorer
-const TOAST_BORDER = Color4.fromHexString('#2e2c33ff')
+const TOAST_BORDER = Color4.fromHexString('#222025ff')
 // Disabled = enabled at half strength over the panel, precomputed. Not opacity: the explorer
 // ignores opacity set at creation, only later changes apply.
 const RUBY_DISABLED = Color4.fromHexString('#983368ff')
