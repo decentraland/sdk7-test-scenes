@@ -11,7 +11,7 @@ the playtest research (Sept 2026) and DCL studio playtest reports.
   can't tell whether they did, don't ask that Question.
 - **Not only winners.** Players who failed, gave up or left early show the most. Trigger on
   failing and leaving too, and offer `leaveFeedback()` for anyone.
-- **Few per visit**: one outcome Question (E01, E02, T01 or T09) plus two or three about the part
+- **Few per visit**: one outcome Question (E01, E02, T01, T02 or T09) plus two or three about the part
   you are testing. Don't re-ask after every action.
 - **Saying no costs nothing**: Skip and × never take progress away.
 

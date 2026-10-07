@@ -12,7 +12,7 @@ node_modules
 .vscode
 Dockerfile
 dist
-README.md
+*.md
 *.blend
 *.fbx
 *.zip

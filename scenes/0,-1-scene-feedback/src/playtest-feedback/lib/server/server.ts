@@ -25,15 +25,25 @@ const CURRENT_PART_KEY = 'playtest-feedback-csv-head' // the number of the part 
 const PART_MAX_BYTES = 400 * 1024 // Storage caps one value at 512 KB
 const FLUSH_COOLDOWN_MS = 60_000
 const LOAD_RETRY_MS = 5_000
+// Per address: caps what one client can write. A legit visit sends a few rows.
+const RATE_WINDOW_MS = 10 * 60_000
+const RATE_MAX_ROWS = 30
+// longer than a client keeps resending (30 s of server uptime)
+const SEEN_KEEP_MS = 10 * 60_000
 
 // acked, not yet in Storage
 const pending = new Map<string, string>()
-// acked this session: a resend is re-acked, not re-added
-const seen = new Set<string>()
+// id → accepted at: a resend is re-acked, not re-added
+const seen = new Map<string, number>()
+// address → accepted-at times within RATE_WINDOW_MS
+const recentRows = new Map<string, number[]>()
 
 let currentPart = 0 // 0 = not loaded yet: responses are not accepted
 let flushing = false
 let lastFlushAt = 0
+// last player left: flush now, retried until it succeeds
+let flushRequested = false
+let failedAt = 0
 let playerCount = 0
 let sceneVersion = ''
 
@@ -46,8 +56,6 @@ export async function startServer(introSpec: IntroSpec | null): Promise<void> {
   heartbeatEntity = engine.addEntity()
   ServerHeartbeat.create(heartbeatEntity, { beatAt: Date.now() })
   syncEntity(heartbeatEntity, [ServerHeartbeat.componentId])
-  engine.addSystem(heartbeatSystem)
-  engine.addSystem(flushSystem)
 
   room.onMessage('feedbackSubmit', (data, context) => {
     if (context) receiveResponse(data, context.from)
@@ -56,6 +64,9 @@ export async function startServer(introSpec: IntroSpec | null): Promise<void> {
   // Not awaited: readiness must never hang on a runtime call that isn't Storage.
   void readSceneVersion().then((version) => (sceneVersion = version))
   await loadCurrentPart()
+  // clients count the server alive only once beatAt changes: not before responses are accepted
+  engine.addSystem(heartbeatSystem)
+  engine.addSystem(flushSystem)
   console.log(`[SERVER] Feedback server ready at +${sinceLoad()}, writing ${partKey(currentPart)}, ${countPlayers()} player(s)`)
 }
 
@@ -111,6 +122,10 @@ function receiveResponse(
   if (seen.has(id)) return ack(true)
 
   if (id === '') return ack(false)
+  if (!withinRate(from.toLowerCase())) {
+    console.log(`[SERVER] ${from} over ${RATE_MAX_ROWS} rows in ${RATE_WINDOW_MS / 60_000} min, dropped`)
+    return ack(false)
+  }
   if (data.questionId === INTRO_ID) return receiveIntroAnswer(id, data, from, ack)
   const question = findQuestion(data.questionId)
   if (!question) return ack(false)
@@ -135,11 +150,10 @@ function receiveResponse(
     playersInScene: countPlayers(),
     address,
     isGuest: findIsGuest(address),
-    platform: data.platform
+    platform: data.platform.slice(0, 20)
   }
 
-  seen.add(id)
-  pending.set(id, formatRow(row))
+  accept(id, address, row)
   console.log(`[SERVER] ${question.id} rating=${rating ?? '-'} from ${address}, ${pending.size} pending`)
   ack(true)
 }
@@ -169,12 +183,34 @@ function receiveIntroAnswer(
     playersInScene: countPlayers(),
     address,
     isGuest: findIsGuest(address),
-    platform: data.platform
+    platform: data.platform.slice(0, 20)
   }
-  seen.add(id)
-  pending.set(id, formatRow(row))
+  accept(id, address, row)
   console.log(`[SERVER] intro ${row.ratingLabel} from ${address}, ${pending.size} pending`)
   ack(true)
+}
+
+function accept(id: string, address: string, row: CsvRow): void {
+  const now = Date.now()
+  seen.set(id, now)
+  const times = recentRows.get(address)
+  if (times) times.push(now)
+  else recentRows.set(address, [now])
+  pending.set(id, formatRow(row))
+}
+
+function withinRate(address: string): boolean {
+  const now = Date.now()
+  const times = (recentRows.get(address) ?? []).filter((t) => now - t < RATE_WINDOW_MS)
+  if (times.length === 0) recentRows.delete(address)
+  else recentRows.set(address, times)
+  return times.length < RATE_MAX_ROWS
+}
+
+function forgetOld(): void {
+  const now = Date.now()
+  for (const [id, at] of seen) if (now - at > SEEN_KEEP_MS) seen.delete(id)
+  for (const address of [...recentRows.keys()]) withinRate(address)
 }
 
 // Re-read and merge by id right before writing: after a redeploy two instances overlap briefly.
@@ -205,9 +241,12 @@ async function flush(): Promise<void> {
 
     if (!(await Storage.set(partKey(currentPart), csv))) throw new Error('Storage.set returned false')
     for (const [id] of batch) pending.delete(id)
+    // rows that arrived during this flush still need one
+    if (pending.size === 0) flushRequested = false
     console.log(`[SERVER] Flushed ${rows.length} row(s) to ${partKey(currentPart)} (${utf8Length(csv)} B)`)
   } catch (e) {
-    // rows stay pending for the next cooldown
+    // rows stay pending: retried after LOAD_RETRY_MS if requested, else at the next cooldown
+    failedAt = Date.now()
     console.log('[SERVER] Flush failed:', e)
   } finally {
     flushing = false
@@ -218,11 +257,20 @@ function flushSystem(): void {
   if (currentPart === 0) return
 
   const count = countPlayers()
-  const lastPlayerLeft = playerCount > 0 && count === 0
+  if (playerCount > 0 && count === 0) flushRequested = true
   playerCount = count
 
-  if (pending.size === 0) return
-  if (lastPlayerLeft || Date.now() - lastFlushAt >= FLUSH_COOLDOWN_MS) void flush()
+  if (pending.size === 0) {
+    flushRequested = false
+    return
+  }
+  if (flushing) return
+  const now = Date.now()
+  const retryDue = flushRequested && now - failedAt >= LOAD_RETRY_MS
+  if (retryDue || now - lastFlushAt >= FLUSH_COOLDOWN_MS) {
+    forgetOld()
+    void flush()
+  }
 }
 
 function countPlayers(): number {

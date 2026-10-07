@@ -184,8 +184,8 @@ More on timing, wording and reading the answers: [QUESTION_GUIDE.md](QUESTION_GU
   pick calmer moments for real Questions.
 - **Not only winners.** Players who gave up or lost are the ones you learn the most from; trigger
   on leaving or failing too, not just on completing.
-- **Few Questions per visit**: one outcome Question (`playMore`, `comeBack` or `worthIt`) plus two or three
-  focused ones. Never all 20.
+- **Few Questions per visit**: one outcome Question (`playMore`, `comeBack`, `worthIt`, or E01/E02 from
+  [QUESTION_BANK.md](QUESTION_BANK.md)) plus two or three focused ones. Never all 20.
 
 ## Test
 
@@ -231,11 +231,15 @@ mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in p
   empty comment there means "not offered", not "left blank". Also empty when the call's `comment`
   option left the field out.
 - `trigger`: the label passed to `feedback.ask()` or `feedback.leaveFeedback()` (`debug` for the
-  debug buttons).
+  debug buttons: your own test rows, filter them out).
 - `secondsInScene`: from the player's scene load to the answer, reported by the client.
 - `playersInScene`: players in the scene when the server received the answer (solo vs group).
 - `id` dedupes client resends and merges rows when two server instances overlap after a redeploy.
 - `platform` is self-reported by the client.
 - Comments are flattened to one line, and a leading `= + - @` is prefixed with `'` so spreadsheets
   don't run it as a formula.
-- Buffered Responses live in server memory until flushed: a server crash loses up to a minute of them.
+- The server acks a Response once buffered, not once in Storage: a crash or redeploy loses up to a
+  minute of them, and the client doesn't resend.
+- Storage has no compare-and-set: while two server instances overlap after a redeploy, one flush can
+  overwrite the other's rows.
+- One address can write at most 30 rows per 10 minutes; the rest are dropped.

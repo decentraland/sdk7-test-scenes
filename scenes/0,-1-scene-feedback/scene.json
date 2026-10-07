@@ -48,21 +48,12 @@
       }
     }
   ],
-  "requiredPermissions": [],
-  "featureToggles": {
-    "voiceChat": "enabled",
-    "portableExperiences": "enabled",
-    "nearbyVoiceChat": "enabled"
-  },
+  "requiredPermissions": [
+    "USE_FETCH"
+  ],
+  "featureToggles": {},
   "worldConfiguration": {
-    "name": "flutterecho.dcl.eth"
+    "name": "sdk7testscenes.dcl.eth"
   },
-  "authoritativeMultiplayer": true,
-  "creator": "",
-  "skyboxConfig": {},
-  "landscapeTerrain": true,
-  "source": {
-    "origin": "creator-hub",
-    "projectId": "7040499d-cff6-4033-938d-7d4133314b5c"
-  }
+  "authoritativeMultiplayer": true
 }

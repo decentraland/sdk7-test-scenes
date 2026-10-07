@@ -19,7 +19,6 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/sdk": "auth-server",
-    "@dcl/js-runtime": "7.29.1-36041177279.commit-502e633"
+    "@dcl/sdk": "auth-server"
   }
 }

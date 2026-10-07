@@ -136,6 +136,8 @@ function processQueue(): void {
   }
   if (!alive) {
     for (let i = queue.length - 1; i >= 0; i--) {
+      // the Intro on screen stays until answered
+      if (i === 0 && feedback.phase === 'intro') continue
       if (Date.now() - queue[i].askedAt < SERVER_WAIT_MS) continue
       const ids = queue[i].steps.map((s) => s.question.id).join(', ')
       console.log(`[FEEDBACK] server not up after ${SERVER_WAIT_MS / 1000} s, not showing ${ids}`)
@@ -260,6 +262,7 @@ export function declineIntro(): void {
     return dropped.resolve(dropped.results)
   }
   const [answered] = queue.splice(0, 1)
+  if (!answered) return
   answered.results[0] = 'skipped'
   answered.resolve(answered.results)
   if (answered.source === 'debug') return
@@ -363,7 +366,8 @@ export function submitGroup(): void {
   if (!current || feedback.phase !== 'open' || !isLastStep()) return
   keepAnswer()
   if (current.steps.some((s) => s.answer)) showToast()
-  closeGroup()
+  sendGroup(current)
+  finishGroup()
 }
 
 export function showToast(): void {
@@ -374,6 +378,7 @@ export function showToast(): void {
 // unreached steps get no Response.
 export function closeGroup(): void {
   if (!current || feedback.phase !== 'open') return
+  current.steps[step].answer = undefined
   sendGroup(current)
   finishGroup()
 }

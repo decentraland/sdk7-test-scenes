@@ -2,7 +2,9 @@ import { engine } from '@dcl/sdk/ecs'
 import { getPlayer } from '@dcl/sdk/players'
 import { getRealm, getSceneInformation } from '~system/Runtime'
 
+// .zone realm (testnet Worlds): the .zone server, else mainnet
 const WORLDS_SERVER = 'https://worlds-content-server.decentraland.org'
+const WORLDS_SERVER_ZONE = 'https://worlds-content-server.decentraland.zone'
 const WALLET = /^0x[0-9a-fA-F]{40}$/
 
 export function isWallet(value: string): boolean {
@@ -25,8 +27,10 @@ async function lookUpSceneTeam(): Promise<SceneTeam> {
     const declared = typeof metadata.owner === 'string' && isWallet(metadata.owner) ? metadata.owner.toLowerCase() : null
     const world = metadata.worldConfiguration?.name
     if (typeof world !== 'string' || world === '') return { owner: declared, deployers: [] }
-    const response = await fetch(`${WORLDS_SERVER}/world/${encodeURIComponent(world)}/permissions`)
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const { realmInfo } = await getRealm({})
+    const server = realmInfo?.baseUrl.includes('decentraland.zone') ? WORLDS_SERVER_ZONE : WORLDS_SERVER
+    const response = await fetch(`${server}/world/${encodeURIComponent(world)}/permissions`)
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`)
     const body = (await response.json()) as {
       owner?: unknown
       permissions?: { deployment?: { wallets?: unknown } }

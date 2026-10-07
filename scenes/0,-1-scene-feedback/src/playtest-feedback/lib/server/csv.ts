@@ -21,7 +21,7 @@ export type CsvRow = {
 
 export function formatRow(row: CsvRow): string {
   return [
-    row.id,
+    field(row.id),
     // "2026-09-30 12:27:33": parsed as a date-time by Sheets and Excel, unlike ISO with a Z.
     new Date(row.serverTs).toISOString().slice(0, 19).replace('T', ' '),
     row.version,
@@ -47,13 +47,15 @@ export function hasRow(csv: string, id: string): boolean {
 }
 
 export function sanitizeId(requestId: string): string {
-  return requestId.replace(/[^A-Za-z0-9-]/g, '').slice(0, 40)
+  // no leading -: field() would prefix it and hasRow() would miss the row
+  return requestId.replace(/[^A-Za-z0-9-]/g, '').replace(/^-+/, '').slice(0, 40)
 }
 
-// Newlines flattened (one row = one line). Leading = + - @ prefixed with ' so spreadsheets don't run it as a formula.
+// Newlines flattened (one row = one line). Leading = + - @, after any whitespace, prefixed with ' so
+// spreadsheets don't run it as a formula.
 function field(value: string): string {
   let v = value.replace(/[\r\n]+/g, ' ')
-  if (/^[=+\-@\t]/.test(v)) v = `'${v}`
+  if (/^\s*[=+\-@]/.test(v)) v = `'${v}`
   return /[",]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
 }
 
