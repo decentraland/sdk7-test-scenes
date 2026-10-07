@@ -151,9 +151,9 @@ The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` sta
 [src/playtest-feedback/lib/bank.ts](src/playtest-feedback/lib/bank.ts): 20 Questions selected for the pilot, in
 sections (`coreMechanic`, `coreLoop`, `social`, `motivation`, `world`, `technical`). Each comes
 with its rating scale, the moment it is meant for, what the answer tells you, and its code in
-[QUESTION_GUIDE.md](QUESTION_GUIDE.md). The 14 scales are in [src/playtest-feedback/lib/shared/scales.ts](src/playtest-feedback/lib/shared/scales.ts),
+[QUESTION_BANK.md](QUESTION_BANK.md). The 14 scales are in [src/playtest-feedback/lib/shared/scales.ts](src/playtest-feedback/lib/shared/scales.ts),
 shortened to fit under a tile. A Question can also carry five labels of its own. All 113 candidate
-Questions, ready-made sets and when to ask what: [QUESTION_GUIDE.md](QUESTION_GUIDE.md).
+Questions: [QUESTION_BANK.md](QUESTION_BANK.md); ready-made sets and when to ask what: [QUESTION_GUIDE.md](QUESTION_GUIDE.md).
 
 ## Tips
 
