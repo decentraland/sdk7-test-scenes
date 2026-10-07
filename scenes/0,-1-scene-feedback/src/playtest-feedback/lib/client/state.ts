@@ -1,6 +1,6 @@
 import { engine } from '@dcl/sdk/ecs'
 import { isStateSyncronized } from '@dcl/sdk/network'
-import { getPlatform } from '@dcl/sdk/platform'
+import { getPlatform, isMobile } from '@dcl/sdk/platform'
 import { room } from '../shared/messages'
 import {
   HEARTBEAT_FRESHNESS_MS,
@@ -114,8 +114,9 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
   )
 }
 
+// mobile: rating only, the phone keyboard would cover the panel
 function commentAllowed(question: Question, comment: AskOptions['comment'] = true): boolean {
-  if (question.commentPrompt === undefined) return false
+  if (question.commentPrompt === undefined || isMobile()) return false
   return typeof comment === 'boolean' ? comment : comment.includes(question.id)
 }
 

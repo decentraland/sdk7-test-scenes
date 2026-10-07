@@ -69,8 +69,9 @@ nothing answered in the whole Group just closes it. **Skip** (first Question onl
 Group: what was answered with Next is still sent, the Question on screen counts as skipped, and
 the ones never reached get no Response.
 
-The comment field is shown when the Question has a `commentPrompt` and the call does not turn
-it off:
+The comment field is shown when the Question has a `commentPrompt`, the call does not turn
+it off, and the player is not on mobile (there the panel has its own larger layout, numbers on
+the tiles and ratings only):
 
 - A Question without `commentPrompt` is always rating only, e.g. one meant for a quick tap
   mid-play. A Group can mix such Questions with commented ones.

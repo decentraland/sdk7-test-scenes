@@ -79,7 +79,7 @@ export function setupUi(debug: boolean): void {
       {showDebug && debugPanel()}
       {showDebug && showScaleGallery && scaleGallery()}
       {feedback.phase === 'intro' && introPanel()}
-      {feedback.phase === 'open' && questionPanel()}
+      {feedback.phase === 'open' && (isMobile() ? mobileQuestionPanel() : questionPanel())}
       {toast()}
     </UiEntity>
   )
@@ -351,20 +351,114 @@ function questionPanel() {
   ])
 }
 
-// Groups of two or more only
-const PROGRESS_WIDTH = 465
-function progressBar() {
+// Mobile: own layout (Figma 1600x720 frame), bigger type and targets, numbers on the tiles,
+// no comment field (see commentAllowed).
+const MOBILE_PANEL = Color4.fromHexString('#4c147cff')
+const MOBILE_CONTENT = 531
+function mobileQuestionPanel() {
+  const q = feedback.question
+  if (!q) return null
+  return (
+    <UiEntity
+      key="question"
+      uiTransform={{
+        positionType: 'absolute',
+        position: { bottom: MOBILE_PANEL_BOTTOM, left: 0 },
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'center'
+      }}
+    >
+      <UiEntity
+        uiTransform={{
+          width: 643,
+          borderRadius: 16,
+          overflow: 'hidden',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: { top: 64, bottom: 60, left: 56, right: 56 }
+        }}
+        uiBackground={{ color: MOBILE_PANEL }}
+      >
+        {glow('glow-top.png', 226, 182, { top: 0, right: 0 })}
+        {feedback.steps > 1 && (isCompleted() ? completedLabel(MOBILE_CONTENT) : progressBar(MOBILE_CONTENT))}
+        <Label
+          key="title"
+          value={q.text}
+          fontSize={32}
+          color={SNOW}
+          textAlign="middle-center"
+          textWrap="wrap"
+          uiTransform={{ width: MOBILE_CONTENT, minHeight: 40, margin: { top: feedback.steps > 1 ? 32 : 0 } }}
+        />
+        <UiEntity key="tiles" uiTransform={{ width: MOBILE_CONTENT, flexDirection: 'row', margin: { top: 44 } }}>
+          {Array.from({ length: MAX_RATING }, (_, i) => mobileTile(i + 1, i + 1 === feedback.rating))}
+        </UiEntity>
+        <UiEntity
+          key="footer"
+          uiTransform={{ width: MOBILE_CONTENT, flexDirection: 'row', justifyContent: 'space-between', margin: { top: 44 } }}
+        >
+          {isFirstStep() ? mobileCta('skip', closeGroup, SECONDARY) : mobileCta('back', previousStep, SECONDARY)}
+          {isLastStep() ? mobileCta('submit', submitGroup, RUBY) : mobileCta('next', nextStep, RUBY)}
+        </UiEntity>
+        {iconClose(closeGroup)}
+      </UiEntity>
+    </UiEntity>
+  )
+}
+
+function mobileTile(value: number, selected: boolean) {
+  return (
+    <UiEntity
+      key={value}
+      uiTransform={{
+        flexGrow: 1,
+        flexBasis: 0,
+        height: 73,
+        margin: { left: value === 1 ? 0 : 16 },
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 6,
+        borderWidth: 3,
+        borderColor: selected ? RUBY : TRANSPARENT
+      }}
+      uiBackground={{ color: selected ? TILE_SELECTED : TILE }}
+      onMouseDown={() => setRating(value)}
+    >
+      <Label value={FACES[value - 1]} fontSize={FACE_SIZE} textAlign="middle-center" uiTransform={{ width: 30, height: 30 }} />
+      <Label value={selected ? `<b>${value}</b>` : `${value}`} fontSize={22} color={SNOW} textAlign="middle-center" uiTransform={{ height: 26 }} />
+    </UiEntity>
+  )
+}
+
+function mobileCta(text: string, onClick: () => void, color: Color4) {
+  return (
+    <UiEntity
+      key={text}
+      uiTransform={{ width: 249, height: 74, borderRadius: 16, justifyContent: 'center', alignItems: 'center' }}
+      uiBackground={{ color }}
+      onMouseDown={onClick}
+    >
+      <Label value={`<b>${text.toUpperCase()}</b>`} fontSize={26} color={SNOW} />
+    </UiEntity>
+  )
+}
+
+// Groups of two or more only. width: the panel's content width, the count takes the last 35.
+function progressBar(width = 500) {
+  const barWidth = width - 35
   return (
     <UiEntity
       key="progress"
-      uiTransform={{ width: 500, height: 10, flexDirection: 'row', alignItems: 'center' }}
+      uiTransform={{ width, height: 10, flexDirection: 'row', alignItems: 'center' }}
     >
       <UiEntity
-        uiTransform={{ width: PROGRESS_WIDTH, height: 10, borderRadius: 5 }}
+        uiTransform={{ width: barWidth, height: 10, borderRadius: 5 }}
         uiBackground={{ color: TILE }}
       >
         <UiEntity
-          uiTransform={{ width: (PROGRESS_WIDTH * feedback.step) / feedback.steps, height: 10, borderRadius: 5 }}
+          uiTransform={{ width: (barWidth * feedback.step) / feedback.steps, height: 10, borderRadius: 5 }}
           uiBackground={{ textureMode: 'nine-slices', textureSlices: FILL, texture: { src: ASSETS + 'progress-fill.png' } }}
         />
       </UiEntity>
@@ -375,15 +469,15 @@ function progressBar() {
         // left-aligned, so a wider count runs on to the right
         textAlign="middle-left"
         textWrap="nowrap"
-        uiTransform={{ width: 500 - PROGRESS_WIDTH - 12, height: 10, margin: { left: 12 } }}
+        uiTransform={{ width: width - barWidth - 12, height: 10, margin: { left: 12 } }}
       />
     </UiEntity>
   )
 }
 
-function completedLabel() {
+function completedLabel(width = 500) {
   return (
-    <UiEntity key="completed" uiTransform={{ width: 500, height: 10, alignItems: 'center' }}>
+    <UiEntity key="completed" uiTransform={{ width, height: 10, alignItems: 'center' }}>
       <Label value="✔ COMPLETED" fontSize={12} color={GRASS} textAlign="middle-left" uiTransform={{ height: 10 }} />
     </UiEntity>
   )
