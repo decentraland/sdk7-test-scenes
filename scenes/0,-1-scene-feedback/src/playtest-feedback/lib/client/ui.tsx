@@ -21,6 +21,7 @@ import {
   showIntro,
   setComment,
   setRating,
+  showToast,
   submitGroup,
   toastOpacity
 } from './state'
@@ -133,6 +134,7 @@ function debugPanel() {
         )
       )}
       {introSpec() !== null && button('Show intro', () => void showIntro('debug', 'debug'), feedback.phase === 'idle', 'show-intro')}
+      {button('Show toast', showToast, true, 'show-toast')}
       {button('Scale labels', () => (showScaleGallery = !showScaleGallery), true, 'scale-gallery')}
     </UiEntity>
   )

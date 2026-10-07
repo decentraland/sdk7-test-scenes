@@ -350,8 +350,12 @@ export function previousStep(): void {
 export function submitGroup(): void {
   if (!current || feedback.phase !== 'open' || !isLastStep()) return
   keepAnswer()
-  if (current.steps.some((s) => s.answer)) toastAt = Date.now()
+  if (current.steps.some((s) => s.answer)) showToast()
   closeGroup()
+}
+
+export function showToast(): void {
+  toastAt = Date.now()
 }
 
 // × and Skip: answers kept with Next are sent, the step on screen counts as skipped (unkept entry dropped),
