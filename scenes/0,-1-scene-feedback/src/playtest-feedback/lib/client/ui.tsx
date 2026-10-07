@@ -10,7 +10,6 @@ import {
   closeGroup,
   declineIntro,
   feedback,
-  giveUpGroup,
   introAvatar,
   introSpec,
   isCompleted,
@@ -18,13 +17,12 @@ import {
   isLastStep,
   isServerAlive,
   nextStep,
-  panelOpacity,
   previousStep,
   showIntro,
-  retryGroup,
   setComment,
   setRating,
-  submitGroup
+  submitGroup,
+  toastOpacity
 } from './state'
 import { canSeeDebug, isWallet } from './owner'
 
@@ -42,13 +40,11 @@ const TILE_SELECTED = Color4.fromHexString('#6e4596ff')
 const GRASS = Color4.fromHexString('#28ac00ff') // COMPLETED
 // glow images at full strength come out over twice as bright as the design
 const GLOW_TINT = Color4.create(1, 1, 1, 0.4)
-const INK = Color4.fromHexString('#161518ff') // text typed in the input
+const INK = Color4.fromHexString('#161518ff') // text typed in the input, toast
 const TRANSPARENT = Color4.create(0, 0, 0, 0)
 // Disabled = enabled at half strength over the panel, precomputed. Not opacity: the explorer
 // ignores opacity set at creation, only later changes apply.
 const RUBY_DISABLED = Color4.fromHexString('#983368ff')
-const SECONDARY_DISABLED = Color4.fromHexString('#421864ff')
-const SNOW_DISABLED = Color4.fromHexString('#a28bbaff')
 // debug only, not in the design
 const DEBUG_BG = Color4.create(0.2, 0.2, 0.25, 0.9)
 const WARN = Color4.fromHexString('#ff9d3aff')
@@ -58,6 +54,7 @@ const ASSETS = 'assets/playtest-feedback/'
 // Desktop: bottom-right (Figma 1920x1080 frame). Mobile: centred, 35 from bottom (Figma 1600x720 frame).
 const PANEL_POSITION = { right: 25, bottom: 54 }
 const MOBILE_PANEL_BOTTOM = 35
+const TOAST_TOP = 80
 // Nine-slices, not stretch, to fill a rounded element: the explorer draws stretch ignoring
 // border radius and padding. Zero slices = whole image stretched.
 const FILL = { top: 0, bottom: 0, left: 0, right: 0 }
@@ -79,7 +76,8 @@ export function setupUi(debug: boolean): void {
       {showDebug && debugPanel()}
       {showDebug && showScaleGallery && scaleGallery()}
       {feedback.phase === 'intro' && introPanel()}
-      {feedback.phase !== 'idle' && feedback.phase !== 'intro' && questionPanel()}
+      {feedback.phase === 'open' && questionPanel()}
+      {toast()}
     </UiEntity>
   )
   ReactEcsRenderer.addUiRenderer(engine.addEntity(), ui, {
@@ -182,10 +180,9 @@ function panel(
   key: string,
   padding: { top: number; bottom: number },
   onClose: (() => void) | null,
-  children: ReactEcs.JSX.Element[],
-  opacity = 1
+  children: ReactEcs.JSX.Element[]
 ) {
-  if (!isMobile()) return card(key, padding, onClose, children, opacity, PANEL_POSITION)
+  if (!isMobile()) return card(key, padding, onClose, children, PANEL_POSITION)
   // centred in a full-width row: right for any phone aspect ratio
   return (
     <UiEntity
@@ -198,7 +195,7 @@ function panel(
         justifyContent: 'center'
       }}
     >
-      {card('card', padding, onClose, children, opacity)}
+      {card('card', padding, onClose, children)}
     </UiEntity>
   )
 }
@@ -208,7 +205,6 @@ function card(
   padding: { top: number; bottom: number },
   onClose: (() => void) | null,
   children: ReactEcs.JSX.Element[],
-  opacity: number,
   position?: typeof PANEL_POSITION
 ) {
   return (
@@ -222,9 +218,7 @@ function card(
         overflow: 'hidden',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: { top: padding.top, bottom: padding.bottom, left: 50, right: 50 },
-        // post-save fade: starts at 1, so the explorer applies it (see RUBY_DISABLED)
-        opacity
+        padding: { top: padding.top, bottom: padding.bottom, left: 50, right: 50 }
       }}
       uiBackground={{ color: PANEL }}
     >
@@ -330,35 +324,27 @@ function avatar(source: string | null) {
 function questionPanel() {
   const q = feedback.question
   if (!q) return null
-  const editable = feedback.phase === 'open'
-  const onClose = feedback.phase === 'open' ? closeGroup : feedback.phase === 'failed' ? giveUpGroup : null
   const labels = scaleLabels(q.scale)
 
-  return panel(
-    'question',
-    { top: 60, bottom: 50 },
-    onClose,
-    [
-      ...(feedback.steps > 1 ? [isCompleted() ? completedLabel() : progressBar()] : []),
-      <Label
-        key="title"
-        value={q.text}
-        fontSize={20}
-        color={SNOW}
-        textAlign="top-left"
-        textWrap="wrap"
-        uiTransform={{ width: 500, minHeight: 24, margin: { top: (feedback.steps > 1 ? 32 : 0) - TEXT_NUDGE } }}
-      />,
-      <UiEntity key="tiles" uiTransform={{ width: 500, flexDirection: 'row', margin: { top: 40 + TEXT_NUDGE } }}>
-        {Array.from({ length: MAX_RATING }, (_, i) =>
-          tile(i + 1, labels[i], i + 1 === feedback.rating, editable ? () => setRating(i + 1) : undefined)
-        )}
-      </UiEntity>,
-      ...(feedback.withComment ? [commentField(q.commentPrompt ?? '', editable)] : []),
-      footer(editable)
-    ],
-    panelOpacity()
-  )
+  return panel('question', { top: 60, bottom: 50 }, closeGroup, [
+    ...(feedback.steps > 1 ? [isCompleted() ? completedLabel() : progressBar()] : []),
+    <Label
+      key="title"
+      value={q.text}
+      fontSize={20}
+      color={SNOW}
+      textAlign="top-left"
+      textWrap="wrap"
+      uiTransform={{ width: 500, minHeight: 24, margin: { top: (feedback.steps > 1 ? 32 : 0) - TEXT_NUDGE } }}
+    />,
+    <UiEntity key="tiles" uiTransform={{ width: 500, flexDirection: 'row', margin: { top: 40 + TEXT_NUDGE } }}>
+      {Array.from({ length: MAX_RATING }, (_, i) =>
+        tile(i + 1, labels[i], i + 1 === feedback.rating, () => setRating(i + 1))
+      )}
+    </UiEntity>,
+    ...(feedback.withComment ? [commentField(q.commentPrompt ?? '')] : []),
+    footer()
+  ])
 }
 
 // Groups of two or more only
@@ -466,7 +452,7 @@ function labelSize(lines: string[]): number {
 }
 
 // The design's input: white, rounded, the prompt as placeholder.
-function commentField(prompt: string, editable: boolean) {
+function commentField(prompt: string) {
   return (
     <Input
       key="comment"
@@ -475,7 +461,6 @@ function commentField(prompt: string, editable: boolean) {
       color={INK}
       value={feedback.comment}
       onChange={setComment}
-      disabled={!editable}
       fontSize={16}
       textAlign="top-left"
       uiTransform={{
@@ -492,8 +477,8 @@ function commentField(prompt: string, editable: boolean) {
   )
 }
 
-function footer(editable: boolean) {
-  const row = (children: ReactEcs.JSX.Element[]) => (
+function footer() {
+  return (
     <UiEntity
       key="footer"
       uiTransform={{
@@ -505,37 +490,51 @@ function footer(editable: boolean) {
         margin: { top: 44 }
       }}
     >
-      {children}
+      {isFirstStep()
+        ? cta('skip', closeGroup, { kind: 'secondary', width: 125, key: 'skip' })
+        : cta('back', previousStep, { kind: 'secondary', width: 125, arrow: 'left', key: 'back' })}
+      {isLastStep()
+        ? cta('submit', submitGroup, { kind: 'primary', key: 'submit' })
+        : cta('next', nextStep, { kind: 'primary', arrow: 'right', key: 'next' })}
     </UiEntity>
   )
-  switch (feedback.phase) {
-    case 'sending':
-      return row([status('Sending…', SILVER)])
-    case 'saved':
-      return row([status('Thanks for your feedback!', SNOW)])
-    case 'failed':
-      return row([
-        status('Could not save.', WARN),
-        <UiEntity key="retry-row" uiTransform={{ flexDirection: 'row' }}>
-          {cta('close', giveUpGroup, { kind: 'secondary', key: 'close' })}
-          {spacer('retry-gap', 16)}
-          {cta('try again', retryGroup, { kind: 'primary', key: 'retry' })}
-        </UiEntity>
-      ])
-    default:
-      return row([
-        isFirstStep()
-          ? cta('skip', closeGroup, { kind: 'secondary', width: 125, enabled: editable, key: 'skip' })
-          : cta('back', previousStep, { kind: 'secondary', width: 125, arrow: 'left', enabled: editable, key: 'back' }),
-        isLastStep()
-          ? cta('submit', submitGroup, { kind: 'primary', enabled: editable, key: 'submit' })
-          : cta('next', nextStep, { kind: 'primary', arrow: 'right', enabled: editable, key: 'next' })
-      ])
-  }
 }
 
-function status(text: string, color: Color4) {
-  return <Label key="status" value={text} fontSize={16} color={color} textAlign="middle-left" uiTransform={{ height: 46 }} />
+// top centre, over everything; the full-width row centres it on any aspect ratio
+function toast() {
+  const opacity = toastOpacity()
+  if (opacity === null) return null
+  return (
+    <UiEntity
+      key="toast"
+      uiTransform={{
+        positionType: 'absolute',
+        position: { top: TOAST_TOP, left: 0 },
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'center'
+      }}
+    >
+      <UiEntity
+        uiTransform={{
+          height: 38,
+          padding: { left: 14, right: 14 },
+          borderRadius: 8,
+          flexDirection: 'row',
+          alignItems: 'center',
+          // fade: starts at 1, so the explorer applies it (see RUBY_DISABLED)
+          opacity
+        }}
+        uiBackground={{ color: INK }}
+      >
+        <UiEntity
+          uiTransform={{ width: 16, height: 16, margin: { right: 8 } }}
+          uiBackground={{ textureMode: 'stretch', texture: { src: ASSETS + 'check.png' } }}
+        />
+        <Label value="Thanks for your feedback!" fontSize={14} color={SNOW} />
+      </UiEntity>
+    </UiEntity>
+  )
 }
 
 type CtaOptions = {
@@ -543,12 +542,9 @@ type CtaOptions = {
   key: string
   width?: number
   arrow?: 'left' | 'right'
-  enabled?: boolean
 }
-function cta(text: string, onClick: () => void, { kind, key, width, arrow, enabled = true }: CtaOptions) {
+function cta(text: string, onClick: () => void, { kind, key, width, arrow }: CtaOptions) {
   const caps = text.toUpperCase()
-  const background = kind === 'primary' ? (enabled ? RUBY : RUBY_DISABLED) : enabled ? SECONDARY : SECONDARY_DISABLED
-  const color = enabled ? SNOW : SNOW_DISABLED
   return (
     <UiEntity
       key={key}
@@ -561,26 +557,26 @@ function cta(text: string, onClick: () => void, { kind, key, width, arrow, enabl
         justifyContent: 'center',
         alignItems: 'center'
       }}
-      uiBackground={{ color: background }}
-      onMouseDown={enabled ? onClick : undefined}
+      uiBackground={{ color: kind === 'primary' ? RUBY : SECONDARY }}
+      onMouseDown={onClick}
     >
-      {arrow === 'left' && arrowIcon('left', color)}
-      <Label value={kind === 'primary' ? `<b>${caps}</b>` : caps} fontSize={14} color={color} />
-      {arrow === 'right' && arrowIcon('right', color)}
+      {arrow === 'left' && arrowIcon('left')}
+      <Label value={kind === 'primary' ? `<b>${caps}</b>` : caps} fontSize={14} color={SNOW} />
+      {arrow === 'right' && arrowIcon('right')}
     </UiEntity>
   )
 }
 
 // one chevron image, mirrored through UVs for the left one
 const MIRRORED = [1, 0, 1, 1, 0, 1, 0, 0]
-function arrowIcon(side: 'left' | 'right', color: Color4) {
+function arrowIcon(side: 'left' | 'right') {
   return (
     <UiEntity
       uiTransform={{ width: 8, height: 13, margin: side === 'right' ? { left: 20 } : { right: 10 } }}
       uiBackground={{
         textureMode: 'stretch',
         texture: { src: ASSETS + 'arrow-right.png' },
-        color,
+        color: SNOW,
         uvs: side === 'left' ? MIRRORED : undefined
       }}
     />

@@ -39,7 +39,7 @@ export function isServerAlive(): boolean {
 }
 
 // not-shown: already asked at this trigger this visit, server never came up, or Group closed before it
-export type AskResult = 'submitted' | 'skipped' | 'failed' | 'not-shown'
+export type AskResult = 'submitted' | 'skipped' | 'not-shown'
 
 export type AskOptions = {
   repeat?: boolean
@@ -53,13 +53,12 @@ export type AskSource = 'game' | 'player' | 'debug'
 
 // one ask() call
 type Ask = {
-  // slot: index in ask()'s ids. answer: kept by Next/Back until sent. requestId: set on send.
+  // slot: index in ask()'s ids. answer: kept by Next/Back until sent.
   steps: {
     question: Question
     slot: number
     comment: boolean
     answer?: { rating: number; comment: string }
-    requestId?: string
   }[]
   // furthest step shown: steps up to it get a Response, the rest not-shown
   reached: number
@@ -275,15 +274,14 @@ function showStep(index: number): void {
   feedback.comment = answer?.comment ?? ''
 }
 
-// idle → [intro →] open ⇄ (Next / Back) → sending → saved (auto-closes)
-//                                      ↘ failed (retry or close)
-export type Phase = 'idle' | 'intro' | 'open' | 'sending' | 'saved' | 'failed'
+// idle → [intro →] open ⇄ (Next / Back) → idle
+export type Phase = 'idle' | 'intro' | 'open'
 
 const RESEND_MS = 3000
 const GIVE_UP_MS = 30000
-// after the last ack: 'Thanks' briefly, then fade out
-const SAVED_HOLD_MS = 300
-const SAVED_FADE_MS = 200
+// "Thanks" toast after Submit: shown, then faded out
+const TOAST_HOLD_MS = 2000
+const TOAST_FADE_MS = 300
 
 export const feedback = {
   phase: 'idle' as Phase,
@@ -297,7 +295,7 @@ export const feedback = {
   comment: ''
 }
 
-let savedAt = 0
+let toastAt = 0
 const enteredAt = Date.now()
 
 export function setRating(value: number): void {
@@ -345,14 +343,13 @@ export function previousStep(): void {
   showStep(step - 1)
 }
 
-// one Response per reached step. Nothing answered: closes like ×, no "Thanks".
+// One Response per reached step, sent in the background: the panel closes at once.
+// Nothing answered: closes like ×, no "Thanks".
 export function submitGroup(): void {
   if (!current || feedback.phase !== 'open' || !isLastStep()) return
   keepAnswer()
-  if (!current.steps.some((s) => s.answer)) return closeGroup()
-  submission.clear()
-  for (const id of sendGroup(current)) submission.set(id, 'pending')
-  feedback.phase = 'sending'
+  if (current.steps.some((s) => s.answer)) toastAt = Date.now()
+  closeGroup()
 }
 
 // × and Skip: answers kept with Next are sent, the step on screen counts as skipped (unkept entry dropped),
@@ -363,41 +360,19 @@ export function closeGroup(): void {
   finishGroup()
 }
 
-// close after a failed save: unsaved steps stay failed
-export function giveUpGroup(): void {
-  if (!current || feedback.phase !== 'failed') return
-  for (const [id, state] of submission) if (state !== 'acked') outbox.delete(id)
-  finishGroup()
-}
-
-export function retryGroup(): void {
-  if (feedback.phase !== 'failed') return
-  for (const [id, state] of submission) {
-    const row = outbox.get(id)
-    if (state === 'failed' && row) {
-      submission.set(id, 'pending')
-      row.firstSentAt = Date.now()
-      transmit(id, row, 'resend')
-    }
-  }
-  feedback.phase = 'sending'
-}
-
-export function panelOpacity(): number {
-  if (feedback.phase !== 'saved') return 1
-  const fading = Date.now() - savedAt - SAVED_HOLD_MS
-  return fading <= 0 ? 1 : Math.max(0, 1 - fading / SAVED_FADE_MS)
+// "Thanks" toast: 1 while held, fading to 0, null when gone
+export function toastOpacity(): number | null {
+  const fading = Date.now() - toastAt - TOAST_HOLD_MS
+  if (toastAt === 0 || fading > TOAST_FADE_MS) return null
+  return fading <= 0 ? 1 : 1 - fading / TOAST_FADE_MS
 }
 
 function finishGroup(): void {
   if (!current) return
   const done = current
   done.steps.forEach((s, i) => {
-    if (i > done.reached) return
-    const failed = s.requestId !== undefined && submission.get(s.requestId) === 'failed'
-    done.results[s.slot] = failed ? 'failed' : s.answer ? 'submitted' : 'skipped'
+    if (i <= done.reached) done.results[s.slot] = s.answer ? 'submitted' : 'skipped'
   })
-  submission.clear()
   feedback.phase = 'idle'
   feedback.question = undefined
   current = undefined
@@ -418,15 +393,11 @@ type Payload = {
 }
 type OutboxRow = { payload: Payload; firstSentAt: number; lastSentAt: number }
 const outbox = new Map<string, OutboxRow>()
-// Responses of the Submit on screen
-const submission = new Map<string, 'pending' | 'acked' | 'failed'>()
 
-function sendGroup(ask: Ask): string[] {
-  const ids: string[] = []
+function sendGroup(ask: Ask): void {
   ask.steps.forEach((s, i) => {
     if (i > ask.reached) return
     const id = newRequestId()
-    s.requestId = id
     const answer = s.answer
     const row: OutboxRow = {
       payload: {
@@ -444,9 +415,7 @@ function sendGroup(ask: Ask): string[] {
     }
     outbox.set(id, row)
     transmit(id, row, 'send')
-    ids.push(id)
   })
-  return ids
 }
 
 // Own CSV row, to count who agrees to answer. rating = index in INTRO_ANSWERS, the server writes it as ratingLabel.
@@ -481,24 +450,11 @@ function newRequestId(): string {
   return Date.now().toString(36) + Math.floor(Math.random() * 36 ** 4).toString(36).padStart(4, '0')
 }
 
-function updateSubmission(): void {
-  if (feedback.phase !== 'sending') return
-  const states = [...submission.values()]
-  if (states.every((s) => s === 'acked')) {
-    feedback.phase = 'saved'
-    savedAt = Date.now()
-  } else if (!states.includes('pending')) {
-    feedback.phase = 'failed'
-  }
-}
-
 export function setupFeedbackState(): void {
   if (intro && intro.avatar === undefined) void findSceneOwner().then((owner) => (sceneOwner = owner))
   room.onMessage('feedbackSaved', (data) => {
     console.log(`[FEEDBACK] ack ${data.requestId} ok=${data.ok}`)
-    if (!outbox.delete(data.requestId)) return
-    if (submission.has(data.requestId)) submission.set(data.requestId, data.ok ? 'acked' : 'failed')
-    updateSubmission()
+    outbox.delete(data.requestId)
   })
 
   engine.addSystem(() => {
@@ -508,20 +464,13 @@ export function setupFeedbackState(): void {
     for (const [id, row] of outbox) {
       // give-up clock runs only while the server is up, for example an Intro answered during a cold start
       if (!alive) row.firstSentAt = now
-      const state = submission.get(id)
-      // waiting for Try again
-      if (state === 'failed') continue
       if (now - row.firstSentAt > GIVE_UP_MS) {
         console.log(`[FEEDBACK] no ack for ${id} after ${GIVE_UP_MS / 1000} s, giving up`)
-        // kept for retry while its Submit is on screen, background ones dropped
-        if (state === 'pending') submission.set(id, 'failed')
-        else outbox.delete(id)
+        outbox.delete(id)
       } else if (now - row.lastSentAt > RESEND_MS && alive) {
         transmit(id, row, 'resend')
       }
     }
-    updateSubmission()
-    if (feedback.phase === 'saved' && now - savedAt > SAVED_HOLD_MS + SAVED_FADE_MS) finishGroup()
     processQueue()
   })
 }

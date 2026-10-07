@@ -57,9 +57,9 @@ To update to a newer version, replace `src/playtest-feedback/lib/` and `assets/p
 ones; `questions.ts` stays yours.
 
 `ask()` queues the Question and shows it once nothing else is on screen and the server is up
-(~15 s on a cold start). It resolves to `submitted`, `skipped`, `failed` (could not be saved) or
-`not-shown`: already shown at this trigger this visit (pass `{ repeat: true }` to allow it),
-the server did not come up within 2 minutes, or the player closed the Group before reaching it.
+(~15 s on a cold start). It resolves to `submitted`, `skipped` or `not-shown`: already shown at
+this trigger this visit (pass `{ repeat: true }` to allow it), the server did not come up within
+2 minutes, or the player closed the Group before reaching it.
 A Group resolves to one result per id, in the same order. A typo in the id is a compile error.
 
 In a Group, **Next** and **Back** move between Questions and keep the answers on the player's
@@ -192,8 +192,8 @@ More on timing, wording and reading the answers: [QUESTION_GUIDE.md](QUESTION_GU
 2. Collect coins, or wait for **DEBUG · server online** and press an **Ask** button. The debug
    panel shows in a local preview and, once deployed, only to the World's owner and the wallets
    allowed to deploy it.
-3. *Thanks* means the server received the Response and buffered it; without an ack the client
-   resends every 3 s (deduped by id) and shows *Could not save* after 30 s.
+3. Submit closes the panel at once and shows a *Thanks* toast; Responses go in the background.
+   Without an ack the client resends every 3 s (deduped by id) and gives up after 30 s.
 4. The server flushes buffered Responses to Storage at most once a minute, and immediately when
    the last player leaves (it stays up ~2 min after that). Copy the CSV from the scene storage UI
    (Creator Hub → Manage → ⋮ → View Storage), or follow `npm run server-logs`.
