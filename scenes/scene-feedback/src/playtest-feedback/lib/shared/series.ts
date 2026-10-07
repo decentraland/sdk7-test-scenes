@@ -58,9 +58,12 @@ export const NOT_EXPERIENCED = -1
 export const NOT_EXPERIENCED_LABEL = "Didn't experience this"
 // A skipped Question's ratingLabel: no rating, no comment (Skip pressed, or the panel closed).
 export const SKIPPED_LABEL = 'skipped'
-// The Intro's row in the CSV: questionId 'intro', ratingLabel accepted or declined.
-// Reserved: no Question may use this id.
+// The Intro's row in the CSV: questionId 'intro', ratingLabel accepted or declined, or
+// enrolled for feedback.enroll(). Reserved: no Question may use this id.
 export const INTRO_ID = 'intro'
+// The row's rating on the wire is the answer's index here.
+export const INTRO_ANSWERS = ['declined', 'accepted', 'enrolled'] as const
+export type IntroAnswer = (typeof INTRO_ANSWERS)[number]
 export const MAX_COMMENT_LENGTH = 1000
 export const HEARTBEAT_MS = 2000
 export const HEARTBEAT_FRESHNESS_MS = 6000

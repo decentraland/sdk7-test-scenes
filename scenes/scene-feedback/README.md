@@ -101,7 +101,16 @@ Two ways to make a player a participant:
   [src/index.ts](src/index.ts)); it shows right away, without waiting for the server. Until it
   is answered, the game's Questions wait behind it. It shows once per visit, only while the
   player is `unknown`, and resolves to `accepted`, `declined` or `not-shown`.
-- **`feedback.enroll()`**: `in` without the Intro, e.g. for players you picked yourself.
+- **`feedback.enroll(trigger)`**: `in` without the Intro, e.g. for players you picked yourself.
+  Not in the demo. Call it once you know the player's wallet (`getPlayer()` from
+  `@dcl/sdk/players`, which may take a few frames after `main()`); an Intro still waiting for
+  an answer is then dropped. Each enrollment is a CSV row too (`ratingLabel` `enrolled`):
+
+  ```ts
+  const TESTERS = ['0x0000000000000000000000000000000000000001'] // lowercase
+  const wallet = getPlayer()?.userId?.toLowerCase()
+  if (wallet && TESTERS.includes(wallet)) feedback.enroll('tester')
+  ```
 
 `feedback.participation()` returns the current state. Set the Intro's title, text and an
 optional picture with `INTRO` in `questions.ts` (`null`: no Intro). Each answer to the Intro is
@@ -192,8 +201,9 @@ not to production Storage.
 
 ## Stored CSV
 
-`fb:csv:0001`, `fb:csv:0002`, … — each part up to 400 KB (~2 500 rows; Storage caps a value at
-512 KB), `fb:csv-writing-part` holds the number of the part being written. The World's scene Storage is 10 MB in
+`playtest-feedback-1.csv`, `playtest-feedback-2.csv`, … — each part up to 400 KB (~2 500 rows;
+Storage caps a value at 512 KB), `playtest-feedback-csv-head` holds the number of the part being
+written. The World's scene Storage is 10 MB in
 total, shared by all its scenes.
 
 ```csv
@@ -206,7 +216,8 @@ mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in p
 - Empty `rating` with `ratingLabel` `Didn't experience this`: the player's answer in a
   `leaveFeedback()` Group — count it apart from skips and ratings.
 - `questionId` `intro`: the player's answer to the Intro, `ratingLabel` `accepted` or `declined`,
-  `trigger` of the call that showed it. Accepted ÷ all intro rows = the share who agree to answer.
+  `trigger` of the call that showed it; or `enrolled` with the `trigger` passed to
+  `feedback.enroll()`. Accepted ÷ (accepted + declined) = the share who agree to answer.
 - `version`: tail of the deployed entity id, new on every deploy (`preview` locally).
 - `questionText`: the wording the server shipped with, so edited Questions never mix with old answers.
 - `ratingLabel`, `scale`: the label the player picked and the scale it came from (a code, or the

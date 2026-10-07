@@ -94,8 +94,9 @@ function intro(trigger: string): Promise<IntroResult> {
 }
 
 // Makes this player a participant without the Intro, e.g. players the creator picked.
-function enrollPlayer(): void {
-  if (!isServer()) enroll()
+// A CSV row, questionId 'intro', ratingLabel enrolled, with this trigger.
+function enrollPlayer(trigger: string): void {
+  if (!isServer()) enroll(trigger)
 }
 
 // 'in', 'out' (said no to the Intro) or 'unknown'.

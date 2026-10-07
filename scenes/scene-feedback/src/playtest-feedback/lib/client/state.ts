@@ -4,7 +4,9 @@ import { getPlatform } from '@dcl/sdk/platform'
 import { room } from '../shared/messages'
 import {
   HEARTBEAT_FRESHNESS_MS,
+  INTRO_ANSWERS,
   INTRO_ID,
+  IntroAnswer,
   IntroSpec,
   MAX_COMMENT_LENGTH,
   NOT_EXPERIENCED,
@@ -192,9 +194,20 @@ export function getParticipation(): Participation {
   return participation
 }
 
-export function enroll(): void {
-  console.log('[FEEDBACK] player enrolled')
+// Its own CSV row too (ratingLabel enrolled), so these players' answers can be told
+// from those who said yes to the Intro. An Intro the game asked for and the player
+// hasn't answered has nothing left to ask: it goes.
+export function enroll(trigger: string): void {
+  if (participation === 'in') return console.log('[FEEDBACK] already a participant, enroll ignored')
+  console.log(`[FEEDBACK] player enrolled (${trigger})`)
   participation = 'in'
+  sendIntroAnswer('enrolled', trigger)
+  const index = queue.findIndex((a) => a.kind === 'intro' && a.source === 'game')
+  if (index === -1) return
+  const [dropped] = queue.splice(index, 1)
+  if (index === 0 && feedback.phase === 'intro') feedback.phase = 'idle'
+  dropped.resolve(dropped.results)
+  processQueue()
 }
 
 // --- The Intro ---------------------------------------------------------------------
@@ -247,7 +260,7 @@ function needsIntro(ask: Ask): boolean {
 export function acceptIntro(): void {
   if (feedback.phase !== 'intro') return
   console.log('[FEEDBACK] intro accepted')
-  sendIntroAnswer(true)
+  sendIntroAnswer('accepted', queue[0]?.trigger ?? '')
   participation = 'in'
   feedback.phase = 'idle'
   const ask = queue[0]
@@ -266,7 +279,7 @@ export function acceptIntro(): void {
 export function declineIntro(): void {
   if (feedback.phase !== 'intro') return
   console.log('[FEEDBACK] intro declined')
-  sendIntroAnswer(false)
+  sendIntroAnswer('declined', queue[0]?.trigger ?? '')
   feedback.phase = 'idle'
   // From Leave feedback: only this Group is dropped, the game's Questions are not affected.
   if (queue[0]?.kind === 'group' && queue[0].source === 'player') {
@@ -495,15 +508,15 @@ function sendGroup(ask: Ask): string[] {
 
 // The Intro's answer gets its own CSV row, so the share of players who agree to answer
 // can be counted. Sent in the background like a closed Group. rating carries the answer
-// (1 accepted, 0 declined); the server writes it as ratingLabel.
-function sendIntroAnswer(accepted: boolean): void {
+// (its index in INTRO_ANSWERS); the server writes it as ratingLabel.
+function sendIntroAnswer(answer: IntroAnswer, trigger: string): void {
   const id = newRequestId()
   const row: OutboxRow = {
     payload: {
       requestId: id,
       questionId: INTRO_ID,
-      trigger: queue[0]?.trigger ?? '',
-      rating: accepted ? 1 : 0,
+      trigger,
+      rating: INTRO_ANSWERS.indexOf(answer),
       comment: '',
       commentShown: false,
       secondsInScene: Math.round((Date.now() - enteredAt) / 1000),

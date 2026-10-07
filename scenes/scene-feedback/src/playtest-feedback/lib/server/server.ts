@@ -4,6 +4,7 @@ import { Storage } from '@dcl/sdk/server'
 import { getSceneInformation } from '~system/Runtime'
 import {
   HEARTBEAT_MS,
+  INTRO_ANSWERS,
   INTRO_ID,
   IntroSpec,
   MAX_COMMENT_LENGTH,
@@ -20,14 +21,14 @@ import { sinceLoad } from '../shared/clock'
 import { CSV_HEADER, CsvRow, formatRow, hasRow, sanitizeId, utf8Length } from './csv'
 
 // Responses are buffered in memory and flushed into a CSV kept in scene Storage as
-// numbered parts (fb:csv:0001, fb:csv:0002, …). The owner copies a part from the
+// numbered parts (playtest-feedback-1.csv, playtest-feedback-2.csv, …). The owner copies a part from the
 // storage UI and pastes it into a spreadsheet.
 //
 // Flush when something is pending and FLUSH_COOLDOWN_MS has passed since the last
 // flush, or immediately when the last player leaves: the server keeps running
 // ~2 min after that, and there is no shutdown hook.
-const PART_PREFIX = 'fb:csv:'
-const CURRENT_PART_KEY = 'fb:csv-writing-part'
+// Keys named like files: the storage UI is where the owner finds them.
+const CURRENT_PART_KEY = 'playtest-feedback-csv-head' // the number of the part being written
 const PART_MAX_BYTES = 400 * 1024 // Storage caps one value at 512 KB
 const FLUSH_COOLDOWN_MS = 60_000
 const LOAD_RETRY_MS = 5_000
@@ -160,7 +161,7 @@ function receiveResponse(
   ack(true)
 }
 
-// The Intro's answer: one row, questionId 'intro', ratingLabel accepted or declined.
+// The Intro's answer: one row, questionId 'intro', ratingLabel accepted, declined or enrolled.
 function receiveIntroAnswer(
   id: string,
   data: { trigger: string; rating: number; secondsInScene: number; platform: string },
@@ -168,7 +169,8 @@ function receiveIntroAnswer(
   ack: (ok: boolean) => void
 ): void {
   const address = from.toLowerCase()
-  const accepted = data.rating === 1
+  const answer = INTRO_ANSWERS[data.rating]
+  if (!Number.isInteger(data.rating) || answer === undefined) return ack(false)
   const row: CsvRow = {
     id,
     serverTs: Date.now(),
@@ -177,7 +179,7 @@ function receiveIntroAnswer(
     questionText: intro?.title ?? '',
     trigger: data.trigger.slice(0, 40),
     rating: null,
-    ratingLabel: accepted ? 'accepted' : 'declined',
+    ratingLabel: answer,
     scale: '',
     commentPrompt: '',
     comment: '',
@@ -249,7 +251,7 @@ function countPlayers(): number {
 }
 
 function partKey(index: number): string {
-  return `${PART_PREFIX}${String(index).padStart(4, '0')}`
+  return `playtest-feedback-${index}.csv`
 }
 
 function findIsGuest(address: string): boolean | null {
