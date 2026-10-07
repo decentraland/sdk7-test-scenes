@@ -1,8 +1,5 @@
-// Rating scales, one label per tile, 1 → 5.
-// Shortened to fit under a tile: the Question's text already carries the adjective
-// ("How enjoyable…"), so unipolar scales drop it; bipolar ones keep both ends and an
-// 'Ok' middle (the designer's wording). The middle of EASE is neutral; the middle of ENJOY is moderate
-// enjoyment, not neutrality.
+// One label per tile, 1 → 5, short to fit. The Question text carries the adjective ("How enjoyable…"),
+// so unipolar scales drop it. Bipolar ones keep both ends and the designer's 'Ok' middle.
 
 export type ScaleLabels = readonly [string, string, string, string, string]
 
@@ -27,14 +24,14 @@ export const SCALES = {
 
 export type ScaleId = keyof typeof SCALES
 
-// A Question's scale: a code from SCALES, or five labels of your own, 1 → 5.
+// a code from SCALES, or five labels of your own, 1 → 5
 export type Scale = ScaleId | ScaleLabels
 
 export function scaleLabels(scale: Scale): ScaleLabels {
   return typeof scale === 'string' ? SCALES[scale] : scale
 }
 
-// What goes to the CSV: the code, or the custom labels themselves.
+// CSV value: the code, or the custom labels joined
 export function scaleName(scale: Scale): string {
   return typeof scale === 'string' ? scale : scale.join(' | ')
 }

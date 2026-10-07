@@ -1,6 +1,3 @@
-// Row formatting for the feedback CSV. Pure functions, no Storage access.
-
-// An empty rating and comment means the player skipped or closed the Question.
 export const CSV_HEADER = 'id,timeUtc,version,questionId,questionText,trigger,rating,ratingLabel,scale,commentPrompt,comment,secondsInScene,playersInScene,address,isGuest,platform'
 
 export type CsvRow = {
@@ -44,9 +41,7 @@ export function formatRow(row: CsvRow): string {
   ].join(',')
 }
 
-// True when `csv` already holds the row with this id. Ids are sanitized to
-// [A-Za-z0-9-] and comments never contain a newline, so a row always starts
-// with "\n<id>,".
+// Safe because ids are [A-Za-z0-9-] and fields have no newlines: a row always starts with "\n<id>,".
 export function hasRow(csv: string, id: string): boolean {
   return csv.includes(`\n${id},`)
 }
@@ -55,16 +50,14 @@ export function sanitizeId(requestId: string): string {
   return requestId.replace(/[^A-Za-z0-9-]/g, '').slice(0, 40)
 }
 
-// Player-supplied text: newlines flattened (one row = one line), a leading
-// = + - @ neutralized so spreadsheets don't run it as a formula, and quoted
-// when it holds a comma or a quote.
+// Newlines flattened (one row = one line). Leading = + - @ prefixed with ' so spreadsheets don't run it as a formula.
 function field(value: string): string {
   let v = value.replace(/[\r\n]+/g, ' ')
   if (/^[=+\-@\t]/.test(v)) v = `'${v}`
   return /[",]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
 }
 
-// UTF-8 byte length (Storage counts bytes; no TextEncoder/Buffer in the runtime).
+// Storage counts bytes. No TextEncoder/Buffer in the runtime.
 export function utf8Length(s: string): number {
   let bytes = 0
   for (let i = 0; i < s.length; i++) {

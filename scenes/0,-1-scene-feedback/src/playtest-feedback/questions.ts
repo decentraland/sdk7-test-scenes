@@ -1,50 +1,48 @@
 import { QUESTION_BANK } from './lib/bank'
 import { IntroSpec, QuestionSpec } from './lib/shared/series'
 
-// ── The only file to edit ──────────────────────────────────────────────────────────
+// The only file to edit.
 
-// Shows one "Ask <id>" button per Question (top-left). Only in a local preview and, once
-// deployed, to the scene's owner and deployers: players never see it. Still, turn it off
-// before release.
+// "Ask <id>" button per Question, top-left. Visible only in preview and to the World's
+// owner/deployers, never to players. Still, turn off before release.
 export const DEBUG = true
 
-// Asked once per visit before the first Question the game asks: Give feedback goes on,
-// Skip or x means no Questions this visit (Leave feedback still works). null: no Intro.
-// avatar (optional): above the title, in a circle. Left out: the scene owner's avatar face
-// (scene.json "owner", else the World's owner). Another wallet address: that avatar's face.
-// A picture: a path in the scene ('assets/images/creator-avatar.png') or a URL. null: none.
-// Dynamic mode: true — the game's ask() shows Questions only to playtest participants:
-// players who said yes to the Intro (feedback.intro()) or whom you enrolled
-// (feedback.enroll()). false — to everyone, except players who said no to the Intro.
+// true: the game's ask() shows Questions only to participants (yes to the Intro, or feedback.enroll()).
+// false: to everyone except players who said no.
 export const ASK_PARTICIPANTS_ONLY = true
 
+// Opt-in shown by feedback.intro(). Give feedback: participant. Skip / ×: no Questions this
+// visit (Leave feedback still works). null: no Intro.
+// avatar (optional), circle above the title:
+// - left out: scene owner's face (scene.json "owner", else the World's owner)
+// - a wallet address: that avatar's face
+// - an image path ('assets/images/creator-avatar.png') or URL
+// - null: none
 export const INTRO: IntroSpec | null = {
   title: "Hi, we're the Coin Hunt team!",
   text: "We're testing a new experience and would love to hear what you think. Your feedback will help us make it better."
 }
 
-// This scene's Questions. Once live, never change a Question's text under the same id —
-// give it a new one, so answers to different wordings never mix.
+// Once live, never change a Question's text under its id: new wording, new id.
 export const QUESTIONS = {
-  // From the bank, as is: text, scale and comment prompt all come from lib/bank.ts.
+  // from the bank as is: text, scale, comment prompt from lib/bank.ts
   nextGoal: QUESTION_BANK.coreLoop.nextGoal,
   repeatLoop: QUESTION_BANK.coreLoop.repeatLoop,
   playMore: QUESTION_BANK.motivation.playMore,
   worthIt: QUESTION_BANK.motivation.worthIt,
 
-  // Your own Question inspired by the bank and a shared scale: 
+  // own Question: bank wording adapted to the game, shared scale
   coinSpotting: {
-    text: 'How easy or difficult was it to spot the coins?', // bank's "the important objects" replaced by "coins" 
-    scale: 'EASE', // a shared scale: code from lib/shared/scales.ts (EASE, CLEAR, ENJOY, …).
-    commentPrompt: 'What made them easy or hard to spot? (optional)' // leave it out for a rating-only Question
+    text: 'How easy or difficult was it to spot the coins?', // bank's "the important objects" → "coins"
+    scale: 'EASE', // code from lib/shared/scales.ts (EASE, CLEAR, ENJOY, …)
+    commentPrompt: 'What made them easy or hard to spot? (optional)' // omit for rating only
   },
 
-  // Your own Question on your own scale: five labels, 1 → 5, 5 being the best. A frequency
-  // scale like this one is not in lib/shared/scales.ts, so it is spelled out here.
+  // own Question, own scale: five labels, 1 → 5, 5 best
   nextCoinKnown: {
     text: 'How often did you know where the next coin was?',
     scale: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always']
-    // No commentPrompt: always rating only, wherever it is asked — no comment field.
+    // no commentPrompt: rating only wherever asked
   }
 } satisfies Record<string, QuestionSpec>
 

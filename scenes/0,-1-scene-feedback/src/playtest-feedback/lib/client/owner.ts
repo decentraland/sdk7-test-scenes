@@ -9,9 +9,8 @@ export function isWallet(value: string): boolean {
   return WALLET.test(value)
 }
 
-// The scene's owner and the wallets allowed to deploy it, lowercase. Owner: scene.json
-// "owner" when it holds a wallet, else the owner of the World's NAME; deployers: the
-// World's deployment allow-list (a public endpoint, no signature). Looked up once.
+// Lowercase. owner: scene.json "owner" if a wallet, else the World NAME's owner.
+// deployers: the World's deployment allow-list (public endpoint, no signature). Looked up once.
 type SceneTeam = { owner: string | null; deployers: string[] }
 let team: Promise<SceneTeam> | null = null
 function findSceneTeam(): Promise<SceneTeam> {
@@ -44,14 +43,12 @@ async function lookUpSceneTeam(): Promise<SceneTeam> {
   }
 }
 
-// The scene owner's wallet, for the Intro's default avatar. null in Genesis City
-// without "owner", or when the lookup fails.
+// for the Intro's default avatar. null in Genesis City without "owner", or if the lookup fails.
 export async function findSceneOwner(): Promise<string | null> {
   return (await findSceneTeam()).owner
 }
 
-// Who gets the debug panel: anyone in a local preview; once deployed, only the scene's
-// owner and deployers, so a DEBUG left on doesn't reach players.
+// Preview: anyone. Deployed: only owner and deployers, so a DEBUG left on never reaches players.
 export async function canSeeDebug(): Promise<boolean> {
   const { realmInfo } = await getRealm({})
   if (realmInfo?.isPreview) return true
@@ -60,7 +57,7 @@ export async function canSeeDebug(): Promise<boolean> {
   return player === owner || deployers.includes(player)
 }
 
-// The local player's wallet, lowercase, once the player is in the scene.
+// lowercase; userId appears a few frames after main()
 function localPlayer(): Promise<string> {
   return new Promise((resolve) => {
     function waitForPlayer() {

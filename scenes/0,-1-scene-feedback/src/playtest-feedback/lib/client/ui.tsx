@@ -30,9 +30,8 @@ import {
 } from './state'
 import { canSeeDebug, isWallet } from './owner'
 
-// The designer's palette (Figma: MVP Creators Feedback, DCL design system), as seen in
-// the design's renders. Opaque on purpose: the explorer blends translucent colours in
-// linear space, so the design's Black 40% / White 10% come out much lighter in game.
+// Figma palette. Opaque on purpose: the explorer blends translucent colours in linear space,
+// so the design's Black 40% / White 10% come out much lighter.
 const PANEL = Color4.fromHexString('#481a77ff')
 const SNOW = Color4.fromHexString('#fcfcfcff') // text
 const RUBY = Color4.fromHexString('#e84c59ff') // primary button
@@ -43,38 +42,33 @@ const TILE = Color4.fromHexString('#592f84ff') // tiles, empty bar
 const WHITE_50 = Color4.create(1, 1, 1, 0.5) // avatar border
 const TILE_SELECTED = Color4.fromHexString('#6e4596ff')
 const GRASS = Color4.fromHexString('#28ac00ff') // COMPLETED
-// The glow images at full strength come out over twice as bright as in the design.
+// glow images at full strength come out over twice as bright as the design
 const GLOW_TINT = Color4.create(1, 1, 1, 0.4)
 const INK = Color4.fromHexString('#161518ff') // text typed in the input
 const TRANSPARENT = Color4.create(0, 0, 0, 0)
-// A disabled button: the enabled one at half strength over the panel, worked out here.
-// Not opacity: the explorer ignores an opacity an element is created with (only a later
-// change to it shows), so a button that opens disabled looked enabled.
+// Disabled = enabled at half strength over the panel, precomputed. Not opacity: the explorer
+// ignores opacity set at creation, only later changes apply.
 const RUBY_DISABLED = Color4.fromHexString('#983368ff')
 const SECONDARY_DISABLED = Color4.fromHexString('#421864ff')
 const SNOW_DISABLED = Color4.fromHexString('#a28bbaff')
-// Not in the design yet.
+// debug only, not in the design
 const DEBUG_BG = Color4.create(0.2, 0.2, 0.25, 0.9)
 const WARN = Color4.fromHexString('#ff9d3aff')
 
-// Images live outside src/: the scene's .dclignore leaves src/ out of the deploy.
+// outside src/: .dclignore drops src/ from the deploy
 const ASSETS = 'assets/playtest-feedback/'
-// Desktop: bottom-right, as in the design's 1920x1080 frame. Mobile: centred, 35 from the
-// bottom, as in its 1600x720 frame (Figma: Live Feedback in Settings-Account-SingOut).
+// Desktop: bottom-right (Figma 1920x1080 frame). Mobile: centred, 35 from bottom (Figma 1600x720 frame).
 const PANEL_POSITION = { right: 25, bottom: 54 }
 const MOBILE_PANEL_BOTTOM = 35
-// Textures that fill a rounded element: nine-slices, not stretch. The explorer draws a
-// stretch texture on its own, ignoring the element's border radius and padding; nine-slices
-// is the element's own background. Zero slices: the whole image, stretched.
+// Nine-slices, not stretch, to fill a rounded element: the explorer draws stretch ignoring
+// border radius and padding. Zero slices = whole image stretched.
 const FILL = { top: 0, bottom: 0, left: 0, right: 0 }
-// Measured against the design: the explorer draws top-aligned text ~5 px lower than
-// Figma, and an Input adds its own inner padding (~10 left, ~8 top).
+// measured: the explorer draws top-aligned text ~5 px lower than Figma, Input adds ~10/8 inner padding
 const TEXT_NUDGE = 5
 const INPUT_INSET = { left: 10, top: 8 }
 
-// Own renderer next to the scene's: setUiRenderer stays free for the creator's UI.
+// own renderer: setUiRenderer stays free for the creator's UI
 export function setupUi(debug: boolean): void {
-  // DEBUG on: the panel shows in a local preview, and once deployed to the scene's team only.
   let showDebug = false
   if (debug)
     void canSeeDebug().then((allowed) => {
@@ -95,7 +89,7 @@ export function setupUi(debug: boolean): void {
   })
 }
 
-// --- Debug: one button per Question. For the creator, not for players. -------------
+// debug: one button per Question
 function debugPanel() {
   const alive = isServerAlive()
   return (
@@ -128,8 +122,7 @@ function debugPanel() {
   )
 }
 
-// Every scale's labels as tiles, plain (left) and selected (right): to check that each
-// label fits its tile. Built-in scales plus this scene's own.
+// every scale's labels as tiles, plain and selected, to check each fits
 let showScaleGallery = false
 function scaleGallery() {
   const seen = new Set<string>()
@@ -168,8 +161,7 @@ function scaleGallery() {
   )
 }
 
-// --- The panel: the design's purple card, bottom-right (centred on mobile) ----------
-// The shell both panels share: background, the two glows, the close button.
+// shell of both panels: background, glows, close button
 function panel(
   key: string,
   padding: { top: number; bottom: number },
@@ -178,7 +170,7 @@ function panel(
   opacity = 1
 ) {
   if (!isMobile()) return card(key, padding, onClose, children, opacity, PANEL_POSITION)
-  // Centred in a full-width row: right whatever the phone's aspect ratio.
+  // centred in a full-width row: right for any phone aspect ratio
   return (
     <UiEntity
       key={key}
@@ -215,7 +207,7 @@ function card(
         flexDirection: 'column',
         alignItems: 'center',
         padding: { top: padding.top, bottom: padding.bottom, left: 50, right: 50 },
-        // The fade after saving: starts at 1, so the explorer applies it (see RUBY_DISABLED).
+        // post-save fade: starts at 1, so the explorer applies it (see RUBY_DISABLED)
         opacity
       }}
       uiBackground={{ color: PANEL }}
@@ -228,7 +220,7 @@ function card(
   )
 }
 
-// The design's soft glows, exported as images: there are no gradients in scene UI.
+// glows as images: scene UI has no gradients
 function glow(file: string, width: number, height: number, position: { top?: number; right?: number; bottom?: number; left?: number }) {
   return (
     <UiEntity
@@ -239,7 +231,6 @@ function glow(file: string, width: number, height: number, position: { top?: num
   )
 }
 
-// The design's close button: 40x40 in the top-right corner, a 20x20 icon.
 function iconClose(onClick: () => void) {
   return (
     <UiEntity
@@ -262,11 +253,10 @@ function iconClose(onClick: () => void) {
   )
 }
 
-// --- The Intro: before the Questions, asks whether the player wants to give feedback --
 function introPanel() {
   const intro = introSpec()
   if (!intro) return null
-  // Without a picture (none set, or the owner not found yet) the circle keeps its place.
+  // no picture yet (owner not found): the circle keeps its place
   const picture = introAvatar()
   const withAvatar = intro.avatar !== null
   return panel('intro', { top: 50, bottom: 50 }, declineIntro, [
@@ -297,8 +287,7 @@ function introPanel() {
   ])
 }
 
-// The creator's picture in a circle, as the design's ProfilePic. A wallet address: the
-// explorer fetches that profile's face itself; anything else is an image path or URL.
+// wallet address: the explorer fetches that profile's face. Else an image path or URL.
 function avatar(source: string | null) {
   const texture =
     source === null
@@ -322,7 +311,6 @@ function avatar(source: string | null) {
   )
 }
 
-// --- The Question -------------------------------------------------------------------
 function questionPanel() {
   const q = feedback.question
   if (!q) return null
@@ -357,7 +345,7 @@ function questionPanel() {
   )
 }
 
-// "1/3": where the player is in the Group. Only for Groups of two or more.
+// Groups of two or more only
 const PROGRESS_WIDTH = 465
 function progressBar() {
   return (
@@ -378,7 +366,7 @@ function progressBar() {
         value={`${feedback.step}/${feedback.steps}`}
         fontSize={16}
         color={SNOW}
-        // As in the design: 12 after the bar, left-aligned; a wider count runs on to the right.
+        // left-aligned, so a wider count runs on to the right
         textAlign="middle-left"
         textWrap="nowrap"
         uiTransform={{ width: 500 - PROGRESS_WIDTH - 12, height: 10, margin: { left: 12 } }}
@@ -387,7 +375,6 @@ function progressBar() {
   )
 }
 
-// Replaces the progress bar on a Group's last step once it is answered: only Submit is left.
 function completedLabel() {
   return (
     <UiEntity key="completed" uiTransform={{ width: 500, height: 10, alignItems: 'center' }}>
@@ -396,11 +383,10 @@ function completedLabel() {
   )
 }
 
-// A tile: the face and its scale label. The selected one gets a ruby border and a bold
-// label; every tile keeps a border, transparent when not selected, so nothing shifts.
-// (The design's pink glow around it has no equivalent: scene UI has no shadows.)
+// Every tile keeps a border, transparent when not selected, so selecting shifts nothing.
+// The design's pink glow is missing: scene UI has no shadows.
 const FACES = ['😞', '🙁', '😐', '🙂', '🤩']
-// An emoji glyph renders ~1.3x its font size: 23 shows as the design's 30.
+// emoji render ~1.3x font size: 23 shows as the design's 30
 const FACE_SIZE = 23
 function tile(value: number, label: string, selected: boolean, onClick: (() => void) | undefined) {
   const lines = labelLines(label)
@@ -414,8 +400,7 @@ function tile(value: number, label: string, selected: boolean, onClick: (() => v
         margin: { left: value === 1 ? 0 : 16 },
         flexDirection: 'column',
         alignItems: 'center',
-        // The design's 12 a side is too narrow for long words in the explorer's SemiBold;
-        // labelLines() does the design's line breaks instead.
+        // the design's 12 a side is too narrow in the explorer's SemiBold; labelLines() breaks lines instead
         padding: { top: 5, bottom: 1, left: 0, right: 0 },
         borderRadius: 6,
         borderWidth: 3,
@@ -430,8 +415,7 @@ function tile(value: number, label: string, selected: boolean, onClick: (() => v
         fontSize={labelSize(lines)}
         color={SNOW}
         textAlign="top-center"
-        // labelLines() places the breaks; no wrapping of its own, so a bold label grows a
-        // little instead of losing its last letter to a new line.
+        // nowrap: else a bold label loses its last letter to a new line
         textWrap="nowrap"
         uiTransform={{ width: '100%', height: 34, margin: { top: 8 - TEXT_NUDGE } }}
       />
@@ -439,11 +423,9 @@ function tile(value: number, label: string, selected: boolean, onClick: (() => v
   )
 }
 
-// A scale label as in the design: a phrase of 9+ characters goes on two lines, split
-// where they come out most even ("Very\ndifficult"; "A little" stays whole); a single
-// word never breaks.
+// 9+ char phrase → two most even lines ("Very\ndifficult"). "A little" stays whole, a single word never breaks.
 const LABEL_SIZE = 14
-// About this many characters fit a tile's width at LABEL_SIZE, bold included.
+// chars that fit a tile at LABEL_SIZE, bold included
 const LABEL_FIT = 9.5
 function labelLines(label: string): string[] {
   const words = label.split(' ')
@@ -461,8 +443,7 @@ function labelLines(label: string): string[] {
   return best
 }
 
-// Smaller type for a word too long for the tile ("Uncomfortable"), the same whether
-// selected or not, so selecting never resizes it.
+// smaller type for a too-long word ("Uncomfortable"), same selected or not, so selecting never resizes
 function labelSize(lines: string[]): number {
   const longest = Math.max(...lines.map((l) => l.length))
   return Math.min(LABEL_SIZE, Math.floor((LABEL_SIZE * LABEL_FIT) / longest))
@@ -526,8 +507,6 @@ function footer(editable: boolean) {
         </UiEntity>
       ])
     default:
-      // Left: Skip on the first step (this Question only), Back on later ones.
-      // Right: Next, or Submit on the last step; both need a rating or a comment.
       return row([
         isFirstStep()
           ? cta('skip', skipStep, { kind: 'secondary', width: 125, enabled: editable, key: 'skip' })
@@ -543,10 +522,6 @@ function status(text: string, color: Color4) {
   return <Label key="status" value={text} fontSize={16} color={color} textAlign="middle-left" uiTransform={{ height: 46 }} />
 }
 
-// --- Building blocks ----------------------------------------------------------------
-
-// The design's buttons, 46 high: primary (ruby, bold) and secondary (dark). Without a
-// width, as wide as the text plus 29 a side. Disabled: dimmed.
 type CtaOptions = {
   kind: 'primary' | 'secondary'
   key: string
@@ -580,10 +555,9 @@ function cta(text: string, onClick: () => void, { kind, key, width, arrow, enabl
   )
 }
 
-// One chevron image; the left one is it mirrored through its UVs.
+// one chevron image, mirrored through UVs for the left one
 const MIRRORED = [1, 0, 1, 1, 0, 1, 0, 0]
 function arrowIcon(side: 'left' | 'right', color: Color4) {
-  // The design's gap: 20 after the text (NEXT ›), 10 before it (‹ BACK).
   return (
     <UiEntity
       uiTransform={{ width: 8, height: 13, margin: side === 'right' ? { left: 20 } : { right: 10 } }}
@@ -601,7 +575,7 @@ function spacer(key: string, width: number) {
   return <UiEntity key={key} uiTransform={{ width, height: 1 }} />
 }
 
-// Debug buttons only.
+// debug buttons only
 function button(text: string, onClick: () => void, enabled: boolean, key: string) {
   return (
     <UiEntity

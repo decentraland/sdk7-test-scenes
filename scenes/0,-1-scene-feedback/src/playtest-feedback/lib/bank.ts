@@ -1,25 +1,14 @@
 import { QuestionSpec } from './shared/series'
 
-// Default Questions, selected for the Wk 4–6 pilot from QUESTION_BANK.md, grouped by what they ask about:
-//   repeatLoop: QUESTION_BANK.coreLoop.repeatLoop
-// Sections are only for finding Questions; ids stay unique across the bank.
-//
-// Each comment: when to ask (the player must have encountered the situation, not
-// necessarily succeeded) · what the answer tells you · the Question's code in QUESTION_BANK.md.
-// The rating scale is the `scale` field: a code from shared/scales.ts, labels under the tiles.
-//
-// Generic words in the texts — the main activity, the goal, the rewards, the important
-// objects — are meant to be swapped for your game's own. A reworded Question goes into
-// your series under your own id (see README, Tips), so answers to different wordings never
-// share an id.
-//
-// Comment prompts are tailored per Question but stay neutral, open to both good
-// and bad experiences: asking only for problems skews the comments. The generic
-// fallback is "What most affected your rating? (optional)".
+// Ready Questions from QUESTION_BANK.md. Use: repeatLoop: QUESTION_BANK.coreLoop.repeatLoop
+// Sections only group them; ids are unique across the bank.
+// Per Question: when to ask (player met the situation, not necessarily succeeded) · what you learn · code in QUESTION_BANK.md.
+// Generic words (the main activity, the goal, the rewards, the important objects): swap for your game's,
+// under your own id (README, Tips).
+// Comment prompts stay neutral, open to good and bad: asking only for problems skews comments.
 export const QUESTION_BANK = {
 
-  // ---- CORE MECHANIC ----
-  // The main action: how to succeed, reading the result, getting better at it (response to an action, challenge and learning)
+  // The main action: how to succeed, reading the result, getting better at it
   coreMechanic: {
     // after a score or success was shown · learns: are score/success cues noticed, or missed · E04
     scoreCues: {
@@ -47,7 +36,6 @@ export const QUESTION_BANK = {
     }
   },
 
-  // ---- CORE LOOP ----
   // Progress, pace, rewards, repetition, what comes next
   coreLoop: {
     // while working toward a goal · learns: is a progress indicator missing · P03
@@ -76,7 +64,6 @@ export const QUESTION_BANK = {
     }
   },
 
-  // ---- SOCIAL ----
   // Playing with others, and on your own
   social: {
     // after seeing other players doing an activity · learns: can bystanders learn it by watching · S01
@@ -105,7 +92,6 @@ export const QUESTION_BANK = {
     }
   },
 
-  // ---- MOTIVATION ----
   // Wanting more now, coming back, inviting friends, worth the visit
   motivation: {
     // at a pause · learns: do sessions end too soon, or drag · T01
@@ -140,7 +126,6 @@ export const QUESTION_BANK = {
     }
   },
 
-  // ---- WORLD ----
   // The space and its mood
   world: {
     // after experiencing the space · learns: do art and sound land as intended · W04
@@ -151,7 +136,6 @@ export const QUESTION_BANK = {
     }
   },
 
-  // ---- TECHNICAL ----
   // How smoothly it ran, getting unstuck
   technical: {
     // after actually playing · learns: is performance a felt problem · Q01

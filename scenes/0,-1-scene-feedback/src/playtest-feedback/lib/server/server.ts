@@ -18,22 +18,17 @@ import { ServerHeartbeat } from '../shared/schemas'
 import { sinceLoad } from '../shared/clock'
 import { CSV_HEADER, CsvRow, formatRow, hasRow, sanitizeId, utf8Length } from './csv'
 
-// Responses are buffered in memory and flushed into a CSV kept in scene Storage as
-// numbered parts (playtest-feedback-1.csv, playtest-feedback-2.csv, …). The owner copies a part from the
-// storage UI and pastes it into a spreadsheet.
-//
-// Flush when something is pending and FLUSH_COOLDOWN_MS has passed since the last
-// flush, or immediately when the last player leaves: the server keeps running
-// ~2 min after that, and there is no shutdown hook.
-// Keys named like files: the storage UI is where the owner finds them.
+// Responses buffer in memory, then flush into numbered CSV parts in scene Storage.
+// Flush after FLUSH_COOLDOWN_MS, or at once when the last player leaves: no shutdown hook.
+// Keys named like files: owners find them in the storage UI.
 const CURRENT_PART_KEY = 'playtest-feedback-csv-head' // the number of the part being written
 const PART_MAX_BYTES = 400 * 1024 // Storage caps one value at 512 KB
 const FLUSH_COOLDOWN_MS = 60_000
 const LOAD_RETRY_MS = 5_000
 
-// id → formatted row, received and acked but not yet in Storage.
+// acked, not yet in Storage
 const pending = new Map<string, string>()
-// ids already acked this session, so a client resend is re-acked, not re-added.
+// acked this session: a resend is re-acked, not re-added
 const seen = new Set<string>()
 
 let currentPart = 0 // 0 = not loaded yet: responses are not accepted
@@ -64,13 +59,12 @@ export async function startServer(introSpec: IntroSpec | null): Promise<void> {
   console.log(`[SERVER] Feedback server ready at +${sinceLoad()}, writing ${partKey(currentPart)}, ${countPlayers()} player(s)`)
 }
 
-// The deployed entity id changes on every deploy, so rows from different builds
-// never mix. Only its tail is kept: every CID starts with the same "bafkrei".
+// Entity id tail: new on every deploy, so builds never mix. Every CID starts with "bafkrei".
 async function readSceneVersion(): Promise<string> {
   try {
     const { urn } = await getSceneInformation({})
     console.log(`[SERVER] Scene urn: ${urn}`)
-    // Local preview reports a base64 of the project path, not a deployment.
+    // preview: base64 of the project path
     if (urn.startsWith('b64-')) return 'preview'
     const entityId = urn.split(':').pop()?.split('?')[0] ?? ''
     return entityId.slice(-10)
@@ -80,14 +74,13 @@ async function readSceneVersion(): Promise<string> {
   }
 }
 
-// Until this succeeds no response is accepted: starting from an empty CSV would
-// overwrite the stored one on the first flush.
+// No response accepted until this succeeds: an empty CSV would overwrite the stored one.
 async function loadCurrentPart(): Promise<void> {
   for (;;) {
     try {
       const stored = await Storage.get<number>(CURRENT_PART_KEY, { fresh: true })
       currentPart = Math.max(1, stored ?? 1)
-      // Written once so later flushes don't hit a 404 (the SDK logs each as an ERROR).
+      // written once so flushes don't hit a 404 (the SDK logs each as ERROR)
       if (stored === null) await Storage.set(CURRENT_PART_KEY, currentPart)
       return
     } catch (e) {
@@ -110,7 +103,7 @@ function receiveResponse(
   },
   from: string
 ): void {
-  // Not loaded yet: no ack, the client keeps resending.
+  // not loaded: no ack, so the client keeps resending
   if (currentPart === 0) return
   const ack = (ok: boolean) => void room.send('feedbackSaved', { requestId: data.requestId, ok }, { to: [from] })
 
@@ -123,7 +116,6 @@ function receiveResponse(
   if (!question) return ack(false)
 
   const rating = Number.isInteger(data.rating) && data.rating >= 1 && data.rating <= MAX_RATING ? data.rating : null
-  // No comment field on screen (no commentPrompt, or the call turned it off): nothing to keep.
   const commentShown = data.commentShown && question.commentPrompt !== undefined
   const comment = commentShown ? data.comment.trim().slice(0, MAX_COMMENT_LENGTH) : ''
   const address = from.toLowerCase()
@@ -152,7 +144,6 @@ function receiveResponse(
   ack(true)
 }
 
-// The Intro's answer: one row, questionId 'intro', ratingLabel accepted, declined or enrolled.
 function receiveIntroAnswer(
   id: string,
   data: { trigger: string; rating: number; secondsInScene: number; platform: string },
@@ -186,8 +177,7 @@ function receiveIntroAnswer(
   ack(true)
 }
 
-// Re-reads the part right before writing and merges by id, so an overlapping
-// server instance (both run briefly after a redeploy) doesn't wipe our rows.
+// Re-read and merge by id right before writing: after a redeploy two instances overlap briefly.
 async function flush(): Promise<void> {
   if (flushing || pending.size === 0) return
   flushing = true
@@ -201,7 +191,7 @@ async function flush(): Promise<void> {
     const rows = batch.filter(([id]) => !hasRow(csv, id)).map(([, row]) => row)
     const appended = rows.length > 0 ? `${csv}\n${rows.join('\n')}` : csv
 
-    // A part written with other columns (older code) is never appended to.
+    // never append to a part with other columns (older code)
     const otherColumns = csv.split('\n', 1)[0] !== CSV_HEADER
     const full = utf8Length(appended) > PART_MAX_BYTES && csv !== CSV_HEADER
     if (rows.length > 0 && (otherColumns || full)) {
@@ -217,7 +207,7 @@ async function flush(): Promise<void> {
     for (const [id] of batch) pending.delete(id)
     console.log(`[SERVER] Flushed ${rows.length} row(s) to ${partKey(currentPart)} (${utf8Length(csv)} B)`)
   } catch (e) {
-    // Rows stay pending; the next cooldown retries them.
+    // rows stay pending for the next cooldown
     console.log('[SERVER] Flush failed:', e)
   } finally {
     flushing = false

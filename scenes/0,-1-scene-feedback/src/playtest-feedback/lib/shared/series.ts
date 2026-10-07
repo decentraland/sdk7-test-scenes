@@ -1,25 +1,17 @@
-// The scene's Question series (questions.ts), set once at module load, so the
-// client and the server (same code, both run it) see the same Questions.
+// Set once at module load, so the client and the server see the same Questions.
 import { Scale } from './scales'
 
 export type QuestionSpec = {
   text: string
-  // Labels of the five answers: a code from shared/scales.ts, or your own five labels.
   scale: Scale
-  // Placeholder of the comment field. Leave it out for a rating-only Question, e.g. a
-  // quick tap mid-play: no comment field is shown.
+  // comment field placeholder; omit for rating only
   commentPrompt?: string
 }
 
-// The Intro: asks the player once per visit whether they want to give feedback at all,
-// before the first Question the game asks.
 export type IntroSpec = {
   title: string
   text: string
-  // The picture above the title, in a circle. Left out: the scene owner's avatar face
-  // (scene.json "owner", else the World's owner). A wallet address: that avatar's face.
-  // Else a picture: a path in the scene ('assets/images/creator-avatar.png') or a URL.
-  // null: no picture.
+  // see INTRO in questions.ts
   avatar?: string | null
 }
 
@@ -51,12 +43,11 @@ export function findQuestion(id: string): Question | undefined {
 }
 
 export const MAX_RATING = 5
-// A skipped Question's ratingLabel: no rating, no comment (Skip pressed, or the panel closed).
+// ratingLabel when neither rating nor comment (Skip, or panel closed)
 export const SKIPPED_LABEL = 'skipped'
-// The Intro's row in the CSV: questionId 'intro', ratingLabel accepted or declined, or
-// enrolled for feedback.enroll(). Reserved: no Question may use this id.
+// questionId of Intro and enroll() rows. Reserved: no Question may use it.
 export const INTRO_ID = 'intro'
-// The row's rating on the wire is the answer's index here.
+// sent as rating = index here
 export const INTRO_ANSWERS = ['declined', 'accepted', 'enrolled'] as const
 export type IntroAnswer = (typeof INTRO_ANSWERS)[number]
 export const MAX_COMMENT_LENGTH = 1000

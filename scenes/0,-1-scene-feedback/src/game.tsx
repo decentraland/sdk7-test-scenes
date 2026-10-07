@@ -15,14 +15,12 @@ import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { feedback } from './playtest-feedback'
 import { setupLeaveFeedback } from './leave-feedback'
 
-// A tiny coin hunt of three rounds, only here to show feedback.ask() at different moments:
-//   first coin of the visit  → coinSpotting (one Question, mid-round, with a comment field)
-//   entering the scene       → the Intro (Give feedback / Skip)
-//   round 1 complete         → nextGoal, playMore (a Group of two: rating only, then with a comment)
-//   hunt complete            → repeatLoop, nextCoinKnown, worthIt (a Group of three, ratings only),
-//                              then a new hunt
-// A second hunt asks nothing: each Question is shown once per visit per trigger.
-// The player can also choose to give feedback at any time: see leave-feedback.tsx.
+// Tiny 3-round coin hunt, only to show feedback.ask() at different moments:
+//   entering the scene → Intro (index.ts)
+//   first coin         → coinSpotting (single, mid-round, with comment)
+//   round 1 complete   → nextGoal, playMore (Group: rating only, then with comment)
+//   hunt complete      → repeatLoop, nextCoinKnown, worthIt (Group, ratings only), then a new hunt
+// A second hunt asks nothing: once per visit per trigger. Player-initiated feedback: leave-feedback.tsx.
 const COINS_PER_ROUND = 5
 const ROUNDS = 3
 
@@ -49,7 +47,7 @@ export function setupGame(): void {
   })
 
   engine.addSystem(spinSystem)
-  // The scene's own UI keeps setUiRenderer: the feedback panel renders alongside.
+  // setUiRenderer stays the scene's: the feedback panel has its own renderer
   ReactEcsRenderer.setUiRenderer(hud)
   setupLeaveFeedback()
   spawnRound()
@@ -63,7 +61,7 @@ function spawnRound(): void {
       position: Vector3.create(2 + Math.random() * 12, 1, 2 + Math.random() * 11),
       scale: Vector3.create(0.8, 0.8, 0.8)
     })
-    // A flat cylinder standing on its edge, as a child so the parent can spin freely.
+    // disc on its edge, as a child so the parent spins freely
     const disc = engine.addEntity()
     Transform.create(disc, {
       parent: coin,
@@ -88,21 +86,19 @@ function collect(coin: Entity, disc: Entity): void {
   collected++
   totalCollected++
 
-  // Mid-round: not awaited, the player keeps playing while the Question is up.
+  // not awaited: the player keeps playing while it is up
   if (totalCollected === 1) void feedback.ask('coinSpotting', 'first-coin')
 
   if (collected < COINS_PER_ROUND) return
-  // A mix: nextGoal as a quick rating, playMore with a comment field to say why.
   if (round === 1) void feedback.ask(['nextGoal', 'playMore'], 'round-1-complete', { comment: ['playMore'] })
   if (round === ROUNDS) return void endHunt()
   round++
   spawnRound()
 }
 
-// Awaited: the next hunt starts once the player is done with the Group.
+// awaited: the next hunt starts once the player is done with the Group
 async function endHunt(): Promise<void> {
   huntOver = true
-  // Ratings only: no comment field for any of the three.
   const results = await feedback.ask(['repeatLoop', 'nextCoinKnown', 'worthIt'], 'hunt-complete', { comment: false })
   console.log(`[SCENE] end-of-hunt feedback: ${results.join(', ')}`)
   huntOver = false

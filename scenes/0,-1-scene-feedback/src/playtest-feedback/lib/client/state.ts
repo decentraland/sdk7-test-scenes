@@ -16,9 +16,8 @@ import { ServerHeartbeat } from '../shared/schemas'
 import { sinceLoad } from '../shared/clock'
 import { findSceneOwner } from './owner'
 
-// --- Server liveness -------------------------------------------------------------
-// Track when the heartbeat value last *changed* on the client clock: a stale CRDT
-// snapshot from a previous server run never advances, so it can't read as alive.
+// Alive = heartbeat value changed recently on the client clock. A stale CRDT snapshot from
+// an earlier server run never advances.
 let lastBeatValue = 0
 let lastBeatSeenAt = 0
 
@@ -39,31 +38,22 @@ export function isServerAlive(): boolean {
   return Date.now() - lastBeatSeenAt < HEARTBEAT_FRESHNESS_MS
 }
 
-// --- Asking ------------------------------------------------------------------------
-// 'not-shown': asked before at this Trigger this visit, the server never came up, or
-// the player closed the Group before reaching this Question.
+// not-shown: already asked at this trigger this visit, server never came up, or Group closed before it
 export type AskResult = 'submitted' | 'skipped' | 'failed' | 'not-shown'
 
 export type AskOptions = {
-  // Show again even if the player already saw this Question at this Trigger.
   repeat?: boolean
-  // Which Questions of this call show the comment field: true (default) all, false none,
-  // or a list of ids — only those. It can only hide the field: a Question without
-  // commentPrompt never shows one.
   comment?: boolean | readonly string[]
-  // Who asked. 'game' (default): the Intro once per visit. 'player' (leaveFeedback()):
-  // the Intro every time; a yes to it counts for the rest of the visit, a no only drops
-  // this Group. 'debug': no Intro, the player's answer to it is left alone.
+  // game (default): Intro once per visit. player (leaveFeedback): Intro every time, yes counts
+  // for the visit, no drops only this Group. debug: no Intro, participation untouched.
   source?: AskSource
 }
 
 export type AskSource = 'game' | 'player' | 'debug'
 
-// One ask() call: a Group of Questions shown one after another in one panel.
+// one ask() call
 type Ask = {
-  // The Questions to show, each with its position in the ids passed to ask().
-  // comment: whether this step shows the comment field. answer: kept by Next/Back
-  // until the Group is sent. requestId: set when the step's Response is sent.
+  // slot: index in ask()'s ids. answer: kept by Next/Back until sent. requestId: set on send.
   steps: {
     question: Question
     slot: number
@@ -71,40 +61,33 @@ type Ask = {
     answer?: { rating: number; comment: string }
     requestId?: string
   }[]
-  // The furthest step shown: steps up to it get a Response, the rest are not-shown.
+  // furthest step shown: steps up to it get a Response, the rest not-shown
   reached: number
   trigger: string
   source: AskSource
-  // 'intro': the Intro on its own (showIntro()), no steps; its outcome is results[0]:
-  // submitted = accepted, skipped = declined.
+  // intro: the Intro alone (showIntro()), no steps. results[0]: submitted = accepted, skipped = declined.
   kind: 'group' | 'intro'
-  // The Intro was answered yes for this Group (leaveFeedback() shows it first).
+  // Intro answered yes for this Group (leaveFeedback shows it first)
   introDone: boolean
-  // One per id passed to ask(), in the same order; 'not-shown' until answered.
+  // one per id passed to ask(), same order
   results: AskResult[]
   resolve: (results: AskResult[]) => void
   askedAt: number
 }
 
-// Groups wait here while another one is open or the server is still waking up.
 const queue: Ask[] = []
-// The Group on screen now, and the index of its step on screen.
 let current: Ask | undefined
 let step = 0
-// "id|trigger" of every Question shown this visit.
+// "id|trigger" shown this visit
 const shown = new Set<string>()
-// A queued Group gives up if the server stays down this long.
+// a queued Group gives up if the server stays down this long
 const SERVER_WAIT_MS = 120_000
 
-// trigger labels the moment the Questions were asked, e.g. 'after-first-round',
-// so answers given at different moments can be told apart. Questions already shown
-// (or waiting) at this trigger are dropped from the Group unless options.repeat.
 export function askQuestions(questionIds: readonly string[], trigger: string, options: AskOptions = {}): Promise<AskResult[]> {
   const results: AskResult[] = questionIds.map(() => 'not-shown')
   const steps: Ask['steps'] = []
   const source = options.source ?? 'game'
-  // Dynamic (the game's ask()): never after a no; with participantsOnly, only for
-  // participants. While the Intro is waiting or on screen, the Questions wait behind it.
+  // while an Intro is pending, Questions queue behind it instead of being dropped
   if (source === 'game') {
     const out = participation === 'out'
     const notYet = participation === 'unknown' && participantsOnly && !introPending()
@@ -137,17 +120,14 @@ function commentAllowed(question: Question, comment: AskOptions['comment'] = tru
   return typeof comment === 'boolean' ? comment : comment.includes(question.id)
 }
 
-// Shown this visit, on screen now, or waiting in the queue, at this trigger.
 function isTaken(questionId: string, trigger: string): boolean {
   const same = (a: Ask) => a.trigger === trigger && a.steps.some((s) => s.question.id === questionId)
   return shown.has(`${questionId}|${trigger}`) || (current !== undefined && same(current)) || queue.some(same)
 }
 
-// Opens the next queued Group once nothing is on screen and the server is up.
 function processQueue(): void {
   const alive = isServerAlive()
-  // The Intro needs no server to show: straight in the player's face on arrival. Its
-  // answer waits in the outbox until the server is up.
+  // the Intro shows without the server, on arrival. Its answer waits in the outbox.
   if (!alive && feedback.phase === 'idle' && queue[0]?.kind === 'intro') {
     feedback.phase = 'intro'
     return
@@ -174,11 +154,7 @@ function processQueue(): void {
   showStep(0)
 }
 
-// --- Participation ------------------------------------------------------------------
-// Whether this player takes part in the playtest this visit, which gates the game's
-// ask(). 'in': a yes to the Intro, or feedback.enroll() (e.g. players picked by the
-// creator, no Intro). 'out': a no to the Intro. With participantsOnly, ask() shows
-// Questions only to 'in'; without it, to everyone but 'out'.
+// Gates the game's ask() this visit. in: yes to the Intro, or enroll(). out: no to the Intro.
 export type Participation = 'unknown' | 'in' | 'out'
 let participation: Participation = 'unknown'
 let participantsOnly = true
@@ -187,9 +163,7 @@ export function getParticipation(): Participation {
   return participation
 }
 
-// Its own CSV row too (ratingLabel enrolled), so these players' answers can be told
-// from those who said yes to the Intro. An Intro the game asked for and the player
-// hasn't answered has nothing left to ask: it goes.
+// Own CSV row (enrolled), to tell these players from Intro yeses. Drops an unanswered game Intro.
 export function enroll(trigger: string): void {
   if (participation === 'in') return console.log('[FEEDBACK] already a participant, enroll ignored')
   console.log(`[FEEDBACK] player enrolled (${trigger})`)
@@ -203,19 +177,13 @@ export function enroll(trigger: string): void {
   processQueue()
 }
 
-// --- The Intro ---------------------------------------------------------------------
-// Shown when the scene calls showIntro(), once per visit, queued like a Group: its
-// answer sets the participation. Until it is answered, the game's Questions wait behind
-// it. leaveFeedback() shows it before its own Group, every time, whatever the
-// participation.
 let intro: IntroSpec | null = null
 
 export function introSpec(): IntroSpec | null {
   return intro
 }
 
-// The picture in the Intro's circle: INTRO.avatar, or by default the scene owner's
-// wallet once found (null until then, or if there is none).
+// INTRO.avatar, else the scene owner's wallet once found (null until then, or if none)
 let sceneOwner: string | null = null
 export function introAvatar(): string | null {
   if (!intro) return null
@@ -226,7 +194,7 @@ export type IntroResult = 'accepted' | 'declined' | 'not-shown'
 
 export function showIntro(trigger: string, source: AskSource = 'game'): Promise<IntroResult> {
   const pending = (a: Ask) => a.kind === 'intro'
-  // Participation already known, already waiting, or no INTRO. Debug shows it regardless.
+  // debug shows it even when participation is known
   if (!intro || queue.some(pending) || (source !== 'debug' && participation !== 'unknown')) {
     return Promise.resolve('not-shown')
   }
@@ -239,7 +207,7 @@ function introPending(): boolean {
   return feedback.phase === 'intro' || queue.some((a) => a.kind === 'intro')
 }
 
-// Set at module load, so feedback.intro() and enroll() work from main().
+// set at module load, so intro() and enroll() work from main()
 export function configure(introSpec: IntroSpec | null, onlyParticipants: boolean): void {
   intro = introSpec
   participantsOnly = onlyParticipants
@@ -261,7 +229,7 @@ export function acceptIntro(): void {
     queue.shift()
     ask.results[0] = 'submitted'
     ask.resolve(ask.results)
-    // A Leave feedback press made while this Intro was up: just answered, don't ask again.
+    // Leave feedback pressed while this Intro was up: already answered
     for (const waiting of queue) if (waiting.source === 'player') waiting.introDone = true
   } else if (ask) {
     ask.introDone = true
@@ -274,7 +242,7 @@ export function declineIntro(): void {
   console.log('[FEEDBACK] intro declined')
   sendIntroAnswer('declined', queue[0]?.trigger ?? '')
   feedback.phase = 'idle'
-  // From Leave feedback: only this Group is dropped, the game's Questions are not affected.
+  // from Leave feedback: drop only this Group, the game's Questions are unaffected
   if (queue[0]?.kind === 'group' && queue[0].source === 'player') {
     const [dropped] = queue.splice(0, 1)
     return dropped.resolve(dropped.results)
@@ -307,16 +275,13 @@ function showStep(index: number): void {
   feedback.comment = answer?.comment ?? ''
 }
 
-// --- The Group on screen -------------------------------------------------------------
-// idle → [intro →] open ⇄ (Next / Back between steps) → sending → saved (auto-closes)
-//                                                              ↘ failed (retry or close)
-// Answers stay on the client until Submit on the last step, then go out together.
-// Closing early (× or Skip) sends what was answered so far, in the background.
+// idle → [intro →] open ⇄ (Next / Back) → sending → saved (auto-closes)
+//                                      ↘ failed (retry or close)
 export type Phase = 'idle' | 'intro' | 'open' | 'sending' | 'saved' | 'failed'
 
 const RESEND_MS = 3000
 const GIVE_UP_MS = 30000
-// After the last ack: show 'Thanks' briefly, then fade the panel out.
+// after the last ack: 'Thanks' briefly, then fade out
 const SAVED_HOLD_MS = 300
 const SAVED_FADE_MS = 200
 
@@ -325,7 +290,7 @@ export const feedback = {
   question: undefined as Question | undefined,
   trigger: '',
   withComment: true,
-  // Position in the Group, 1-based: "step of steps" in the progress bar.
+  // 1-based, "step/steps" in the progress bar
   step: 1,
   steps: 1,
   rating: 0, // 0 = no rating
@@ -336,7 +301,7 @@ let savedAt = 0
 const enteredAt = Date.now()
 
 export function setRating(value: number): void {
-  // Tapping the selected rating again clears it.
+  // tapping the selected rating again clears it
   feedback.rating = feedback.rating === value ? 0 : value
 }
 
@@ -344,7 +309,7 @@ export function setComment(value: string): void {
   feedback.comment = value.slice(0, MAX_COMMENT_LENGTH)
 }
 
-// A rating or a comment: either one is an answer.
+// a rating or a comment, either counts
 export function hasAnswer(): boolean {
   return feedback.rating !== 0 || (feedback.withComment && feedback.comment.trim() !== '')
 }
@@ -357,7 +322,7 @@ export function isLastStep(): boolean {
   return feedback.step >= feedback.steps
 }
 
-// The last step of a Group is answered: only Submit is left ("Completed" replaces the bar).
+// "Completed" replaces the bar: last step answered, only Submit left
 export function isCompleted(): boolean {
   return feedback.steps > 1 && isLastStep() && hasAnswer()
 }
@@ -379,7 +344,7 @@ export function previousStep(): void {
   showStep(step - 1)
 }
 
-// Submit on the last step: every reached step goes out as one Response each.
+// one Response per reached step
 export function submitGroup(): void {
   if (!current || feedback.phase !== 'open' || !hasAnswer() || !isLastStep()) return
   keepAnswer()
@@ -388,8 +353,7 @@ export function submitGroup(): void {
   feedback.phase = 'sending'
 }
 
-// Skip: this Question only, recorded as skipped (whatever was entered is dropped). The
-// Group goes on to the next one; on the last (or only) one it closes like ×.
+// this Question only, recorded as skipped (entry dropped). On the last step: closes like ×.
 export function skipStep(): void {
   if (!current || feedback.phase !== 'open') return
   current.steps[step].answer = undefined
@@ -397,16 +361,15 @@ export function skipStep(): void {
   showStep(step + 1)
 }
 
-// ×: the Group ends here. Answers kept with Next go out in the background,
-// the step on screen is recorded as skipped (whatever was entered there is dropped
-// unless it was kept before), steps never reached get no Response.
+// ×: answers kept with Next are sent, the step on screen counts as skipped (unkept entry dropped),
+// unreached steps get no Response.
 export function closeGroup(): void {
   if (!current || feedback.phase !== 'open') return
   sendGroup(current)
   finishGroup()
 }
 
-// Close after a failed save: whatever was not saved stays 'failed'.
+// close after a failed save: unsaved steps stay failed
 export function giveUpGroup(): void {
   if (!current || feedback.phase !== 'failed') return
   for (const [id, state] of submission) if (state !== 'acked') outbox.delete(id)
@@ -426,15 +389,12 @@ export function retryGroup(): void {
   feedback.phase = 'sending'
 }
 
-// 1 while the panel is interactive; drops to 0 during the post-ack fade.
 export function panelOpacity(): number {
   if (feedback.phase !== 'saved') return 1
   const fading = Date.now() - savedAt - SAVED_HOLD_MS
   return fading <= 0 ? 1 : Math.max(0, 1 - fading / SAVED_FADE_MS)
 }
 
-// Resolves the Group's Promise: reached steps are submitted or skipped (failed if their
-// save failed), the rest not-shown.
 function finishGroup(): void {
   if (!current) return
   const done = current
@@ -450,9 +410,8 @@ function finishGroup(): void {
   done.resolve(done.results)
 }
 
-// --- Sending ---------------------------------------------------------------------------
-// Every Response sits in the outbox until the server acks it; unacked ones are resent
-// every RESEND_MS while the server is up, and dropped after GIVE_UP_MS.
+// Each Response stays in the outbox until acked: resent every RESEND_MS while the server is up,
+// dropped after GIVE_UP_MS.
 type Payload = {
   requestId: string
   questionId: string
@@ -465,10 +424,9 @@ type Payload = {
 }
 type OutboxRow = { payload: Payload; firstSentAt: number; lastSentAt: number }
 const outbox = new Map<string, OutboxRow>()
-// The Responses of the Submit on screen, by requestId.
+// Responses of the Submit on screen
 const submission = new Map<string, 'pending' | 'acked' | 'failed'>()
 
-// One Response per reached step; returns their requestIds.
 function sendGroup(ask: Ask): string[] {
   const ids: string[] = []
   ask.steps.forEach((s, i) => {
@@ -497,9 +455,7 @@ function sendGroup(ask: Ask): string[] {
   return ids
 }
 
-// The Intro's answer gets its own CSV row, so the share of players who agree to answer
-// can be counted. Sent in the background like a closed Group. rating carries the answer
-// (its index in INTRO_ANSWERS); the server writes it as ratingLabel.
+// Own CSV row, to count who agrees to answer. rating = index in INTRO_ANSWERS, the server writes it as ratingLabel.
 function sendIntroAnswer(answer: IntroAnswer, trigger: string): void {
   const id = newRequestId()
   const row: OutboxRow = {
@@ -527,7 +483,7 @@ function transmit(id: string, row: OutboxRow, kind: 'send' | 'resend'): void {
 }
 
 function newRequestId(): string {
-  // ~12 chars, e.g. "mfqz8k2x4f7a": unique enough to dedupe resends and merge rows.
+  // ~12 chars, e.g. "mfqz8k2x4f7a": unique enough to dedupe resends and merge rows
   return Date.now().toString(36) + Math.floor(Math.random() * 36 ** 4).toString(36).padStart(4, '0')
 }
 
@@ -556,15 +512,14 @@ export function setupFeedbackState(): void {
     const now = Date.now()
     const alive = isServerAlive()
     for (const [id, row] of outbox) {
-      // The give-up clock runs only while the server is up (e.g. an Intro answered
-      // before a cold start finished).
+      // give-up clock runs only while the server is up, for example an Intro answered during a cold start
       if (!alive) row.firstSentAt = now
       const state = submission.get(id)
-      // Failed and waiting for Try again.
+      // waiting for Try again
       if (state === 'failed') continue
       if (now - row.firstSentAt > GIVE_UP_MS) {
         console.log(`[FEEDBACK] no ack for ${id} after ${GIVE_UP_MS / 1000} s, giving up`)
-        // Kept for a retry while its Submit is on screen; background ones are dropped.
+        // kept for retry while its Submit is on screen, background ones dropped
         if (state === 'pending') submission.set(id, 'failed')
         else outbox.delete(id)
       } else if (now - row.lastSentAt > RESEND_MS && alive) {
