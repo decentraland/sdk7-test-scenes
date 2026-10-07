@@ -404,7 +404,7 @@ function tile(value: number, label: string, selected: boolean, onClick: (() => v
         flexDirection: 'column',
         alignItems: 'center',
         // the design's 12 a side is too narrow in the explorer's SemiBold; labelLines() breaks lines instead
-        padding: { top: 5, bottom: 1, left: 0, right: 0 },
+        padding: { top: 3, bottom: 1, left: 0, right: 0 },
         borderRadius: 6,
         borderWidth: 3,
         borderColor: selected ? RUBY : TRANSPARENT
@@ -420,7 +420,8 @@ function tile(value: number, label: string, selected: boolean, onClick: (() => v
         textAlign="top-center"
         // nowrap: else a bold label loses its last letter to a new line
         textWrap="nowrap"
-        uiTransform={{ width: '100%', height: 34, margin: { top: 8 - TEXT_NUDGE } }}
+        // 2 under the design's 8: else a two-line label runs into the selected border
+        uiTransform={{ width: '100%', height: 34, margin: { top: 6 - TEXT_NUDGE } }}
       />
     </UiEntity>
   )
