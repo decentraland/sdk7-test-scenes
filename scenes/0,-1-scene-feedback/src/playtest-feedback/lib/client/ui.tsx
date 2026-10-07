@@ -42,6 +42,7 @@ const GRASS = Color4.fromHexString('#28ac00ff') // COMPLETED
 const GLOW_TINT = Color4.create(1, 1, 1, 0.4)
 const INK = Color4.fromHexString('#161518ff') // text typed in the input, toast
 const TRANSPARENT = Color4.create(0, 0, 0, 0)
+const PALE_BLACK = Color4.fromHexString('#43404aff') // toast border
 // Disabled = enabled at half strength over the panel, precomputed. Not opacity: the explorer
 // ignores opacity set at creation, only later changes apply.
 const RUBY_DISABLED = Color4.fromHexString('#983368ff')
@@ -54,7 +55,7 @@ const ASSETS = 'assets/playtest-feedback/'
 // Desktop: bottom-right (Figma 1920x1080 frame). Mobile: centred, 35 from bottom (Figma 1600x720 frame).
 const PANEL_POSITION = { right: 25, bottom: 54 }
 const MOBILE_PANEL_BOTTOM = 35
-const TOAST_TOP = 80
+const TOAST_TOP = 78
 // Nine-slices, not stretch, to fill a rounded element: the explorer draws stretch ignoring
 // border radius and padding. Zero slices = whole image stretched.
 const FILL = { top: 0, bottom: 0, left: 0, right: 0 }
@@ -517,9 +518,11 @@ function toast() {
     >
       <UiEntity
         uiTransform={{
-          height: 38,
-          padding: { left: 14, right: 14 },
-          borderRadius: 8,
+          height: 40,
+          padding: { left: 10, right: 16 },
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: PALE_BLACK,
           flexDirection: 'row',
           alignItems: 'center',
           // fade: starts at 1, so the explorer applies it (see RUBY_DISABLED)
@@ -528,7 +531,7 @@ function toast() {
         uiBackground={{ color: INK }}
       >
         <UiEntity
-          uiTransform={{ width: 16, height: 16, margin: { right: 8 } }}
+          uiTransform={{ width: 18, height: 18, margin: { right: 6 } }}
           uiBackground={{ textureMode: 'stretch', texture: { src: ASSETS + 'check.png' } }}
         />
         <Label value="Thanks for your feedback!" fontSize={14} color={SNOW} />
