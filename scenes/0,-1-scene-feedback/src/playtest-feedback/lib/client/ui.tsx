@@ -77,6 +77,7 @@ export function setupUi(debug: boolean): void {
     })
   const ui = () => (
     <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute' }}>
+      {glyphWarmUp()}
       {showDebug && debugPanel()}
       {showDebug && showScaleGallery && scaleGallery()}
       {feedback.phase === 'intro' && introPanel()}
@@ -87,6 +88,20 @@ export function setupUi(debug: boolean): void {
     virtualWidth: isMobile() ? 1600 : 1920,
     virtualHeight: isMobile() ? 720 : 1080
   })
+}
+
+// Invisible, always on screen. The explorer's font atlas misses a digit the first time one is
+// requested, and the glyph comes from the emoji font instead (a grey "2" in "2/3"). The second
+// request lands in the atlas, so the counter asks after this one.
+function glyphWarmUp() {
+  return (
+    <Label
+      value="0123456789/ <b>0123456789/</b>"
+      fontSize={16}
+      color={TRANSPARENT}
+      uiTransform={{ positionType: 'absolute', position: { top: 0, left: 0 } }}
+    />
+  )
 }
 
 // debug: one button per Question
