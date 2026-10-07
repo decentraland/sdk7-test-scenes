@@ -199,6 +199,10 @@ More on timing, wording and reading the answers: [QUESTION_GUIDE.md](QUESTION_GU
    the last player leaves (it stays up ~2 min after that). Copy the CSV from the scene storage UI
    (Creator Hub → Manage → ⋮ → View Storage), or follow `npm run server-logs`.
 
+Mobile layout without a phone: `PREVIEW_MOBILE = true` in `questions.ts` (local preview only), and
+an explorer window shaped like a phone (1600x720). On a real phone: `npm start -- --mobile` and scan
+the QR code (same network).
+
 Local preview (`npm start`) writes to `node_modules/@dcl/sdk-commands/.runtime-data/server-storage.json`,
 not to production Storage.
 

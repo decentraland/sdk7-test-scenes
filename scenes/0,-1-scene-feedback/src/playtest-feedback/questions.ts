@@ -7,6 +7,10 @@ import { IntroSpec, QuestionSpec } from './lib/shared/series'
 // owner/deployers, never to players. Still, turn off before release.
 export const DEBUG = true
 
+// Local preview only: the mobile layout on desktop, to check it without a phone. Ignored once
+// deployed. Size the explorer window like a phone, e.g. 1600x720.
+export const PREVIEW_MOBILE = false
+
 // true: the game's ask() shows Questions only to participants (yes to the Intro, or feedback.enroll()).
 // false: to everyone except players who said no.
 export const ASK_PARTICIPANTS_ONLY = true

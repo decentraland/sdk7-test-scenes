@@ -15,7 +15,7 @@ import {
   showIntro
 } from './client/state'
 import { setupUi } from './client/ui'
-import { ASK_PARTICIPANTS_ONLY, DEBUG, INTRO, QUESTIONS } from '../questions'
+import { ASK_PARTICIPANTS_ONLY, DEBUG, INTRO, PREVIEW_MOBILE, QUESTIONS } from '../questions'
 
 // Static import on purpose: registerMessages() defines a component, so it must run at module load, before the engine seals.
 import './shared/messages'
@@ -25,7 +25,7 @@ export type { AskResult, IntroResult, Participation }
 // Importing { feedback } is the whole setup, client and server. Questions set at module load,
 // the rest on the first tick, which comes after main(): syncEntity throws before that.
 setQuestions(QUESTIONS)
-configure(INTRO, ASK_PARTICIPANTS_ONLY)
+configure(INTRO, ASK_PARTICIPANTS_ONLY, PREVIEW_MOBILE)
 console.log('[FEEDBACK] loaded')
 
 function startOnFirstTick(): void {

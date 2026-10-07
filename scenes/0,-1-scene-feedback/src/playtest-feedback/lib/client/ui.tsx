@@ -1,7 +1,6 @@
 import { engine } from '@dcl/sdk/ecs'
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Input, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { isMobile } from '@dcl/sdk/platform'
 import { MAX_RATING, allQuestions } from '../shared/series'
 import { SCALES, ScaleLabels, scaleLabels } from '../shared/scales'
 import {
@@ -15,6 +14,7 @@ import {
   isCompleted,
   isFirstStep,
   isLastStep,
+  isMobileLayout,
   isServerAlive,
   nextStep,
   previousStep,
@@ -79,13 +79,19 @@ export function setupUi(debug: boolean): void {
       {showDebug && debugPanel()}
       {showDebug && showScaleGallery && scaleGallery()}
       {feedback.phase === 'intro' && introPanel()}
-      {feedback.phase === 'open' && (isMobile() ? mobileQuestionPanel() : questionPanel())}
+      {feedback.phase === 'open' && (isMobileLayout() ? mobileQuestionPanel() : questionPanel())}
       {toast()}
     </UiEntity>
   )
+  // Getters: react-ecs reads the size every frame, and the platform arrives after the first ones.
+  // Scene-wide: the first renderer with a size sets it for all.
   ReactEcsRenderer.addUiRenderer(engine.addEntity(), ui, {
-    virtualWidth: isMobile() ? 1600 : 1920,
-    virtualHeight: isMobile() ? 720 : 1080
+    get virtualWidth() {
+      return isMobileLayout() ? 1600 : 1920
+    },
+    get virtualHeight() {
+      return isMobileLayout() ? 720 : 1080
+    }
   })
 }
 
@@ -186,7 +192,7 @@ function panel(
   onClose: (() => void) | null,
   children: ReactEcs.JSX.Element[]
 ) {
-  if (!isMobile()) return card(key, padding, onClose, children, PANEL_POSITION)
+  if (!isMobileLayout()) return card(key, padding, onClose, children, PANEL_POSITION)
   // centred in a full-width row: right for any phone aspect ratio
   return (
     <UiEntity

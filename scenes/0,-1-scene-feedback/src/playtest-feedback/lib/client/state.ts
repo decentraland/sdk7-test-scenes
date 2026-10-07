@@ -1,6 +1,7 @@
 import { engine } from '@dcl/sdk/ecs'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import { getPlatform, isMobile } from '@dcl/sdk/platform'
+import { getRealm } from '~system/Runtime'
 import { room } from '../shared/messages'
 import {
   HEARTBEAT_FRESHNESS_MS,
@@ -116,7 +117,7 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
 
 // mobile: rating only, the phone keyboard would cover the panel
 function commentAllowed(question: Question, comment: AskOptions['comment'] = true): boolean {
-  if (question.commentPrompt === undefined || isMobile()) return false
+  if (question.commentPrompt === undefined || isMobileLayout()) return false
   return typeof comment === 'boolean' ? comment : comment.includes(question.id)
 }
 
@@ -209,9 +210,19 @@ function introPending(): boolean {
 }
 
 // set at module load, so intro() and enroll() work from main()
-export function configure(introSpec: IntroSpec | null, onlyParticipants: boolean): void {
+export function configure(introSpec: IntroSpec | null, onlyParticipants: boolean, previewMobile: boolean): void {
   intro = introSpec
   participantsOnly = onlyParticipants
+  previewMobileWanted = previewMobile
+}
+
+// PREVIEW_MOBILE applies once the realm is known to be a local preview
+let previewMobileWanted = false
+let previewMobile = false
+
+// Mobile layout: rating only, own panel, 1600x720 virtual screen. false until the explorer reports the platform.
+export function isMobileLayout(): boolean {
+  return previewMobile || isMobile()
 }
 
 function needsIntro(ask: Ask): boolean {
@@ -461,6 +472,11 @@ function newRequestId(): string {
 
 export function setupFeedbackState(): void {
   if (intro && intro.avatar === undefined) void findSceneOwner().then((owner) => (sceneOwner = owner))
+  if (previewMobileWanted)
+    void getRealm({}).then(({ realmInfo }) => {
+      previewMobile = realmInfo?.isPreview === true
+      console.log(`[FEEDBACK] PREVIEW_MOBILE ${previewMobile ? 'on' : 'ignored: not a local preview'}`)
+    })
   room.onMessage('feedbackSaved', (data) => {
     console.log(`[FEEDBACK] ack ${data.requestId} ok=${data.ok}`)
     outbox.delete(data.requestId)

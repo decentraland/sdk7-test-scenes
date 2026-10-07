@@ -11,7 +11,6 @@ import {
 } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { isMobile } from '@dcl/sdk/platform'
 import { feedback } from './playtest-feedback'
 
 // Static mode, three ways in. Each calls feedback.leaveFeedback(batch, trigger): Intro, then
@@ -21,7 +20,7 @@ import { feedback } from './playtest-feedback'
 const LEAVE_FEEDBACK_BATCH = ['worthIt', 'playMore', 'coinSpotting'] as const
 
 // 2D: button top-right, panel's primary style. Own renderer: 'interactable' keeps it clear of
-// the explorer HUD, 1920x1080 scale like the panel. top 16 = round counter in game.tsx.
+// the explorer HUD, scaled like the panel. top 16 = round counter in game.tsx.
 function LeaveFeedbackButton() {
   return (
     <UiEntity uiTransform={{ width: '100%', height: '100%', positionType: 'absolute' }}>
@@ -45,11 +44,8 @@ function LeaveFeedbackButton() {
 }
 
 export function setupLeaveFeedback(): void {
-  ReactEcsRenderer.addUiRenderer(engine.addEntity(), LeaveFeedbackButton, {
-    screenInset: 'interactable',
-    virtualWidth: isMobile() ? 1600 : 1920,
-    virtualHeight: isMobile() ? 720 : 1080
-  })
+  // no virtual size: the feedback panel's renderer sets it for the whole scene
+  ReactEcsRenderer.addUiRenderer(engine.addEntity(), LeaveFeedbackButton, { screenInset: 'interactable' })
   setupKiosk()
   setupArea()
 }
