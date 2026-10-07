@@ -9,8 +9,6 @@ import {
   IntroSpec,
   MAX_COMMENT_LENGTH,
   MAX_RATING,
-  NOT_EXPERIENCED,
-  NOT_EXPERIENCED_LABEL,
   SKIPPED_LABEL,
   findQuestion
 } from '../shared/series'
@@ -124,7 +122,6 @@ function receiveResponse(
   const question = findQuestion(data.questionId)
   if (!question) return ack(false)
 
-  const notExperienced = data.rating === NOT_EXPERIENCED
   const rating = Number.isInteger(data.rating) && data.rating >= 1 && data.rating <= MAX_RATING ? data.rating : null
   // No comment field on screen (no commentPrompt, or the call turned it off): nothing to keep.
   const commentShown = data.commentShown && question.commentPrompt !== undefined
@@ -138,13 +135,7 @@ function receiveResponse(
     questionText: question.text,
     trigger: data.trigger.slice(0, 40),
     rating,
-    ratingLabel: notExperienced
-      ? NOT_EXPERIENCED_LABEL
-      : rating !== null
-        ? scaleLabels(question.scale)[rating - 1]
-        : comment === ''
-          ? SKIPPED_LABEL
-          : '',
+    ratingLabel: rating !== null ? scaleLabels(question.scale)[rating - 1] : comment === '' ? SKIPPED_LABEL : '',
     scale: scaleName(question.scale),
     commentPrompt: commentShown ? question.commentPrompt ?? '' : '',
     comment,

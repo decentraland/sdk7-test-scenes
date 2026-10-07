@@ -9,7 +9,6 @@ import {
   IntroAnswer,
   IntroSpec,
   MAX_COMMENT_LENGTH,
-  NOT_EXPERIENCED,
   Question,
   findQuestion
 } from '../shared/series'
@@ -59,12 +58,6 @@ export type AskOptions = {
 }
 
 export type AskSource = 'game' | 'player' | 'debug'
-
-// leaveFeedback() asks everything, out of context: the player may not have met what a
-// Question is about, so it offers "I didn't experience this". The game asks in context.
-function offersNotExperienced(source: AskSource): boolean {
-  return source === 'player'
-}
 
 // One ask() call: a Group of Questions shown one after another in one panel.
 type Ask = {
@@ -308,7 +301,6 @@ function showStep(index: number): void {
   feedback.question = question
   feedback.trigger = current.trigger
   feedback.withComment = comment
-  feedback.offerNotExperienced = offersNotExperienced(current.source)
   feedback.step = index + 1
   feedback.steps = current.steps.length
   feedback.rating = answer?.rating ?? 0
@@ -333,11 +325,10 @@ export const feedback = {
   question: undefined as Question | undefined,
   trigger: '',
   withComment: true,
-  offerNotExperienced: false,
   // Position in the Group, 1-based: "step of steps" in the progress bar.
   step: 1,
   steps: 1,
-  rating: 0, // 0 = no rating, NOT_EXPERIENCED = "I didn't experience this"
+  rating: 0, // 0 = no rating
   comment: ''
 }
 
@@ -345,7 +336,7 @@ let savedAt = 0
 const enteredAt = Date.now()
 
 export function setRating(value: number): void {
-  // Tapping the selected rating (or "I didn't experience this") again clears it.
+  // Tapping the selected rating again clears it.
   feedback.rating = feedback.rating === value ? 0 : value
 }
 

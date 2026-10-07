@@ -2,7 +2,7 @@ import { engine } from '@dcl/sdk/ecs'
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Input, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { isMobile } from '@dcl/sdk/platform'
-import { MAX_RATING, NOT_EXPERIENCED, NOT_EXPERIENCED_LABEL, allQuestions } from '../shared/series'
+import { MAX_RATING, allQuestions } from '../shared/series'
 import { SCALES, ScaleLabels, scaleLabels } from '../shared/scales'
 import {
   acceptIntro,
@@ -350,7 +350,6 @@ function questionPanel() {
           tile(i + 1, labels[i], i + 1 === feedback.rating, editable ? () => setRating(i + 1) : undefined)
         )}
       </UiEntity>,
-      ...(feedback.offerNotExperienced ? [notExperiencedToggle(editable)] : []),
       ...(feedback.withComment ? [commentField(q.commentPrompt ?? '', editable)] : []),
       footer(editable)
     ],
@@ -467,28 +466,6 @@ function labelLines(label: string): string[] {
 function labelSize(lines: string[]): number {
   const longest = Math.max(...lines.map((l) => l.length))
   return Math.min(LABEL_SIZE, Math.floor((LABEL_SIZE * LABEL_FIT) / longest))
-}
-
-// "I didn't experience this": an answer instead of a rating, Leave feedback only.
-function notExperiencedToggle(editable: boolean) {
-  const selected = feedback.rating === NOT_EXPERIENCED
-  return (
-    <UiEntity
-      key="not-experienced"
-      uiTransform={{
-        height: 32,
-        padding: { left: 16, right: 16 },
-        margin: { top: 16 },
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}
-      uiBackground={{ color: selected ? RUBY : TILE }}
-      onMouseDown={editable ? () => setRating(NOT_EXPERIENCED) : undefined}
-    >
-      <Label value={NOT_EXPERIENCED_LABEL} fontSize={14} color={SNOW} />
-    </UiEntity>
-  )
 }
 
 // The design's input: white, rounded, the prompt as placeholder.

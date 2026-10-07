@@ -122,8 +122,7 @@ When the player chooses to give feedback — a button, a 3D kiosk, an area they 
 `feedback.leaveFeedback(batch, trigger)` with a batch prepared for it: Questions that make sense
 out of context. Every call shows the Intro, then the batch as one Group, any number of times per
 visit, whatever the player said to the dynamic Intro. A call while the previous one is still
-open or waiting is ignored. Each Question there also offers **I didn't experience this**, an
-answer instead of a rating. The demo wires it three ways in
+open or waiting is ignored. The demo wires it three ways in
 [src/leave-feedback.tsx](src/leave-feedback.tsx):
 
 ```ts
@@ -213,8 +212,6 @@ mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in p
 
 - `ratingLabel` `skipped` (empty `rating` and `comment`): the player pressed Skip or closed the panel on that Question.
 - Empty `rating` and `ratingLabel` with a `comment`: the player only wrote a comment.
-- Empty `rating` with `ratingLabel` `Didn't experience this`: the player's answer in a
-  `leaveFeedback()` Group — count it apart from skips and ratings.
 - `questionId` `intro`: the player's answer to the Intro, `ratingLabel` `accepted` or `declined`,
   `trigger` of the call that showed it; or `enrolled` with the `trigger` passed to
   `feedback.enroll()`. Accepted ÷ (accepted + declined) = the share who agree to answer.

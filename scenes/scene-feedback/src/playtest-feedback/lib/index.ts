@@ -77,8 +77,8 @@ function ask(
 // Static mode: the player chooses to give feedback — a "Leave feedback" button, a 3D
 // kiosk, an area they walk into. Shows the Intro, then a batch prepared for it as one
 // Group. Every call, any number of times, whatever the player said to feedback.intro():
-// Questions may come again, and each one offers "I didn't experience this". A call while
-// the previous one is still open or waiting is ignored (resolves to not-shown).
+// Questions may come again. A call while the previous one is still open or waiting is
+// ignored (resolves to not-shown).
 function leaveFeedback(questionIds: readonly QuestionId[], trigger: string): Promise<AskResult[]> {
   if (isServer()) return Promise.resolve(questionIds.map((): AskResult => 'not-shown'))
   return askQuestions(questionIds, trigger, { repeat: true, source: 'player' })

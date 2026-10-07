@@ -51,11 +51,6 @@ export function findQuestion(id: string): Question | undefined {
 }
 
 export const MAX_RATING = 5
-// "I didn't experience this": an answer without a rating, offered by leaveFeedback()
-// only (the game asks in context). Sent as this rating, stored as an empty rating
-// with NOT_EXPERIENCED_LABEL.
-export const NOT_EXPERIENCED = -1
-export const NOT_EXPERIENCED_LABEL = "Didn't experience this"
 // A skipped Question's ratingLabel: no rating, no comment (Skip pressed, or the panel closed).
 export const SKIPPED_LABEL = 'skipped'
 // The Intro's row in the CSV: questionId 'intro', ratingLabel accepted or declined, or
