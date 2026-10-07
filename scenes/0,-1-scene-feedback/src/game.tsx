@@ -16,8 +16,7 @@ import { feedback } from './playtest-feedback'
 import { setupLeaveFeedback } from './leave-feedback'
 
 // Tiny 3-round coin hunt, only to show feedback.ask() at different moments:
-//   entering the scene → Intro (index.ts)
-//   first coin         → coinSpotting (single, mid-round, with comment)
+//   first coin         → Intro, then coinSpotting (single, mid-round, with comment)
 //   round 1 complete   → nextGoal, playMore (Group: rating only, then with comment)
 //   hunt complete      → repeatLoop, nextCoinKnown, worthIt (Group, ratings only), then a new hunt
 // A second hunt asks nothing: once per visit per trigger. Player-initiated feedback: leave-feedback.tsx.
@@ -86,8 +85,13 @@ function collect(coin: Entity, disc: Entity): void {
   collected++
   totalCollected++
 
-  // not awaited: the player keeps playing while it is up
-  if (totalCollected === 1) void feedback.ask('coinSpotting', 'first-coin')
+  // Intro right before the first Question: Give feedback leads straight into it.
+  // With ASK_PARTICIPANTS_ONLY, only players who say yes get the game's Questions.
+  // Not awaited: the player keeps playing while they are up.
+  if (totalCollected === 1) {
+    void feedback.intro('first-coin')
+    void feedback.ask('coinSpotting', 'first-coin')
+  }
 
   if (collected < COINS_PER_ROUND) return
   if (round === 1) void feedback.ask(['nextGoal', 'playMore'], 'round-1-complete', { comment: ['playMore'] })

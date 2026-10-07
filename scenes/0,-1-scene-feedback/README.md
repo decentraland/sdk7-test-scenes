@@ -31,16 +31,16 @@ server can write Storage; see the [Multiplayer Server docs](https://docs.decentr
    } satisfies Record<string, QuestionSpec>
    ```
 
-3. Pick a mode, or use both (below): **dynamic** — the Intro on arrival, then Questions
-   asked during play — or **static** — a batch the player opens themselves. Importing
+3. Pick a mode, or use both (below): **dynamic** — Questions asked during play, the Intro
+   right before the first — or **static** — a batch the player opens themselves. Importing
    `feedback` is the whole setup: it starts by itself on the client and the server, no call
    in `main()` needed. The trigger names the moment and goes to the CSV:
 
    ```ts
    import { feedback } from './playtest-feedback'
 
-   // dynamic: the Intro first, on arrival; a yes makes the player a participant
-   void feedback.intro('scene-enter')
+   // dynamic: the Intro right before the first Question; a yes makes the player a participant
+   void feedback.intro('after-first-purchase')
    void feedback.ask('buyingUpgrade', 'after-first-purchase')
 
    // a Group: one panel, one Question after another, with a "1/3" progress bar
@@ -98,10 +98,10 @@ Two ways to make a player a participant:
 
 - **The Intro**: `feedback.intro(trigger)` — the creator introduces themselves and asks whether
   the player wants to give feedback. **Give feedback** → `in`, **Skip** or × → `out`. Call it
-  first thing on arrival (the demo does it at the top of `main()` in
-  [src/index.ts](src/index.ts)); it shows right away, without waiting for the server. Until it
-  is answered, the game's Questions wait behind it. It shows once per visit, only while the
-  player is `unknown`, and resolves to `accepted`, `declined` or `not-shown`.
+  right before the first `ask()` (the demo does it on the first coin in [src/game.tsx](src/game.tsx)):
+  the Questions wait behind it, and Give feedback leads straight into them. An Intro with no
+  Questions behind it shows without waiting for the server, e.g. on arrival. It shows once per
+  visit, only while the player is `unknown`, and resolves to `accepted`, `declined` or `not-shown`.
 - **`feedback.enroll(trigger)`**: `in` without the Intro, e.g. for players you picked yourself.
   Not in the demo. Call it once you know the player's wallet (`getPlayer()` from
   `@dcl/sdk/players`, which may take a few frames after `main()`); an Intro still waiting for

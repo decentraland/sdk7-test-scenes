@@ -126,8 +126,9 @@ function isTaken(questionId: string, trigger: string): boolean {
 
 function processQueue(): void {
   const alive = isServerAlive()
-  // the Intro shows without the server, on arrival. Its answer waits in the outbox.
-  if (!alive && feedback.phase === 'idle' && queue[0]?.kind === 'intro') {
+  // An Intro alone shows without the server, its answer waits in the outbox. One with Questions
+  // behind it waits for the server with them, so Give feedback leads straight into the first.
+  if (!alive && feedback.phase === 'idle' && queue[0]?.kind === 'intro' && queue.length === 1) {
     feedback.phase = 'intro'
     return
   }
