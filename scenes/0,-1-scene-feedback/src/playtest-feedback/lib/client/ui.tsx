@@ -185,44 +185,19 @@ function scaleGallery() {
   )
 }
 
-// shell of both panels: background, glows, close button
+// Desktop shell of both panels: background, glows, close button. Mobile: mobileCard().
 function panel(
   key: string,
   padding: { top: number; bottom: number },
-  onClose: (() => void) | null,
+  onClose: () => void,
   children: ReactEcs.JSX.Element[]
 ) {
-  if (!isMobileLayout()) return card(key, padding, onClose, children, PANEL_POSITION)
-  // centred in a full-width row: right for any phone aspect ratio
   return (
     <UiEntity
       key={key}
       uiTransform={{
         positionType: 'absolute',
-        position: { bottom: MOBILE_PANEL_BOTTOM, left: 0 },
-        width: '100%',
-        flexDirection: 'row',
-        justifyContent: 'center'
-      }}
-    >
-      {card('card', padding, onClose, children)}
-    </UiEntity>
-  )
-}
-
-function card(
-  key: string,
-  padding: { top: number; bottom: number },
-  onClose: (() => void) | null,
-  children: ReactEcs.JSX.Element[],
-  position?: typeof PANEL_POSITION
-) {
-  return (
-    <UiEntity
-      key={key}
-      uiTransform={{
-        positionType: position ? 'absolute' : 'relative',
-        position,
+        position: PANEL_POSITION,
         width: 600,
         borderRadius: 24,
         overflow: 'hidden',
@@ -235,7 +210,7 @@ function card(
       {glow('glow-top.png', 226, 182, { top: 0, right: 0 })}
       {glow('glow-bottom.png', 600, 273, { bottom: 0, left: 0 })}
       {children}
-      {onClose && iconClose(onClose)}
+      {iconClose(onClose, 20)}
     </UiEntity>
   )
 }
@@ -251,22 +226,23 @@ function glow(file: string, width: number, height: number, position: { top?: num
   )
 }
 
-function iconClose(onClick: () => void) {
+// size: the cross; the tap area around it is twice that
+function iconClose(onClick: () => void, size: number) {
   return (
     <UiEntity
       key="close"
       uiTransform={{
         positionType: 'absolute',
-        position: { top: 7, right: 7 },
-        width: 40,
-        height: 40,
+        position: { top: size / 2 - 3, right: size / 2 - 3 },
+        width: size * 2,
+        height: size * 2,
         justifyContent: 'center',
         alignItems: 'center'
       }}
       onMouseDown={onClick}
     >
       <UiEntity
-        uiTransform={{ width: 20, height: 20 }}
+        uiTransform={{ width: size, height: size }}
         uiBackground={{ textureMode: 'stretch', texture: { src: ASSETS + 'close.png' } }}
       />
     </UiEntity>
@@ -279,6 +255,29 @@ function introPanel() {
   // no picture yet (owner not found): the circle keeps its place
   const picture = introAvatar()
   const withAvatar = intro.avatar !== null
+  if (isMobileLayout())
+    return mobileCard('intro', declineIntro, [
+      withAvatar ? avatar(picture) : spacer('no-avatar', 0),
+      <Label
+        key="title"
+        value={intro.title}
+        fontSize={32}
+        color={SNOW}
+        textAlign="middle-center"
+        textWrap="wrap"
+        uiTransform={{ width: MOBILE_CONTENT, height: wrappedHeight(intro.title, 32, MOBILE_CONTENT), margin: { top: withAvatar ? 24 : 0 } }}
+      />,
+      <Label
+        key="text"
+        value={intro.text}
+        fontSize={22}
+        color={SNOW}
+        textAlign="middle-center"
+        textWrap="wrap"
+        uiTransform={{ width: MOBILE_CONTENT, height: wrappedHeight(intro.text, 22, MOBILE_CONTENT), margin: { top: 20 } }}
+      />,
+      mobileFooter(mobileCta('skip', declineIntro, SECONDARY), mobileCta('give feedback', acceptIntro, RUBY))
+    ])
   return panel('intro', { top: 50, bottom: 50 }, declineIntro, [
     withAvatar ? avatar(picture) : spacer('no-avatar', 0),
     <Label
@@ -357,16 +356,21 @@ function questionPanel() {
   ])
 }
 
-// Mobile: own layout (Figma 1600x720 frame), bigger type and targets, numbers on the tiles,
-// no comment field (see commentAllowed).
+// Mobile: own layout (Figma 1600x720 frame), bigger type, buttons and cross, no comment field
+// (see commentAllowed). Centred in a full-width row: right for any phone aspect ratio.
 const MOBILE_PANEL = Color4.fromHexString('#4c147cff')
 const MOBILE_CONTENT = 531
-function mobileQuestionPanel() {
-  const q = feedback.question
-  if (!q) return null
+
+// The explorer doesn't grow a wrapped Label's box with its lines: the height is estimated
+// (average glyph ~0.52 em, line ~1.25 em) so the next element starts below the last line.
+function wrappedHeight(text: string, fontSize: number, width: number): number {
+  const lines = Math.max(1, Math.ceil((text.length * fontSize * 0.52) / width))
+  return Math.ceil(lines * fontSize * 1.25)
+}
+function mobileCard(key: string, onClose: () => void, children: ReactEcs.JSX.Element[]) {
   return (
     <UiEntity
-      key="question"
+      key={key}
       uiTransform={{
         positionType: 'absolute',
         position: { bottom: MOBILE_PANEL_BOTTOM, left: 0 },
@@ -387,53 +391,48 @@ function mobileQuestionPanel() {
         uiBackground={{ color: MOBILE_PANEL }}
       >
         {glow('glow-top.png', 226, 182, { top: 0, right: 0 })}
-        {feedback.steps > 1 && (isCompleted() ? completedLabel(MOBILE_CONTENT) : progressBar(MOBILE_CONTENT))}
-        <Label
-          key="title"
-          value={q.text}
-          fontSize={32}
-          color={SNOW}
-          textAlign="middle-center"
-          textWrap="wrap"
-          uiTransform={{ width: MOBILE_CONTENT, minHeight: 40, margin: { top: feedback.steps > 1 ? 32 : 0 } }}
-        />
-        <UiEntity key="tiles" uiTransform={{ width: MOBILE_CONTENT, flexDirection: 'row', margin: { top: 44 } }}>
-          {Array.from({ length: MAX_RATING }, (_, i) => mobileTile(i + 1, i + 1 === feedback.rating))}
-        </UiEntity>
-        <UiEntity
-          key="footer"
-          uiTransform={{ width: MOBILE_CONTENT, flexDirection: 'row', justifyContent: 'space-between', margin: { top: 44 } }}
-        >
-          {isFirstStep() ? mobileCta('skip', closeGroup, SECONDARY) : mobileCta('back', previousStep, SECONDARY)}
-          {isLastStep() ? mobileCta('submit', submitGroup, RUBY) : mobileCta('next', nextStep, RUBY)}
-        </UiEntity>
-        {iconClose(closeGroup)}
+        {children}
+        {iconClose(onClose, 28)}
       </UiEntity>
     </UiEntity>
   )
 }
 
-function mobileTile(value: number, selected: boolean) {
+function mobileQuestionPanel() {
+  const q = feedback.question
+  if (!q) return null
+  const labels = scaleLabels(q.scale)
+  return mobileCard('question', closeGroup, [
+    ...(feedback.steps > 1 ? [isCompleted() ? completedLabel(MOBILE_CONTENT) : progressBar(MOBILE_CONTENT)] : []),
+    <Label
+      key="title"
+      value={q.text}
+      fontSize={32}
+      color={SNOW}
+      textAlign="middle-center"
+      textWrap="wrap"
+      uiTransform={{ width: MOBILE_CONTENT, height: wrappedHeight(q.text, 32, MOBILE_CONTENT), margin: { top: feedback.steps > 1 ? 32 : 0 } }}
+    />,
+    <UiEntity key="tiles" uiTransform={{ width: MOBILE_CONTENT, flexDirection: 'row', margin: { top: 44 } }}>
+      {Array.from({ length: MAX_RATING }, (_, i) =>
+        tile(i + 1, labels[i], i + 1 === feedback.rating, () => setRating(i + 1))
+      )}
+    </UiEntity>,
+    mobileFooter(
+      isFirstStep() ? mobileCta('skip', closeGroup, SECONDARY) : mobileCta('back', previousStep, SECONDARY),
+      isLastStep() ? mobileCta('submit', submitGroup, RUBY) : mobileCta('next', nextStep, RUBY)
+    )
+  ])
+}
+
+function mobileFooter(left: ReactEcs.JSX.Element, right: ReactEcs.JSX.Element) {
   return (
     <UiEntity
-      key={value}
-      uiTransform={{
-        flexGrow: 1,
-        flexBasis: 0,
-        height: 73,
-        margin: { left: value === 1 ? 0 : 16 },
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 6,
-        borderWidth: 3,
-        borderColor: selected ? RUBY : TRANSPARENT
-      }}
-      uiBackground={{ color: selected ? TILE_SELECTED : TILE }}
-      onMouseDown={() => setRating(value)}
+      key="footer"
+      uiTransform={{ width: MOBILE_CONTENT, flexDirection: 'row', justifyContent: 'space-between', margin: { top: 44 } }}
     >
-      <Label value={FACES[value - 1]} fontSize={FACE_SIZE} textAlign="middle-center" uiTransform={{ width: 30, height: 30 }} />
-      <Label value={selected ? `<b>${value}</b>` : `${value}`} fontSize={22} color={SNOW} textAlign="middle-center" uiTransform={{ height: 26 }} />
+      {left}
+      {right}
     </UiEntity>
   )
 }
