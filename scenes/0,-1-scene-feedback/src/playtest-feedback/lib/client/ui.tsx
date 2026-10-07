@@ -11,7 +11,6 @@ import {
   declineIntro,
   feedback,
   giveUpGroup,
-  hasAnswer,
   introAvatar,
   introSpec,
   isCompleted,
@@ -25,7 +24,6 @@ import {
   retryGroup,
   setComment,
   setRating,
-  skipStep,
   submitGroup
 } from './state'
 import { canSeeDebug, isWallet } from './owner'
@@ -527,11 +525,11 @@ function footer(editable: boolean) {
     default:
       return row([
         isFirstStep()
-          ? cta('skip', skipStep, { kind: 'secondary', width: 125, enabled: editable, key: 'skip' })
+          ? cta('skip', closeGroup, { kind: 'secondary', width: 125, enabled: editable, key: 'skip' })
           : cta('back', previousStep, { kind: 'secondary', width: 125, arrow: 'left', enabled: editable, key: 'back' }),
         isLastStep()
-          ? cta('submit', submitGroup, { kind: 'primary', enabled: editable && hasAnswer(), key: 'submit' })
-          : cta('next', nextStep, { kind: 'primary', arrow: 'right', enabled: editable && hasAnswer(), key: 'next' })
+          ? cta('submit', submitGroup, { kind: 'primary', enabled: editable, key: 'submit' })
+          : cta('next', nextStep, { kind: 'primary', arrow: 'right', enabled: editable, key: 'next' })
       ])
   }
 }

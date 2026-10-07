@@ -1,7 +1,7 @@
 # Scene Feedback
 
 Asks players a Question with a labelled 1–5 rating and an optional comment, at moments the
-creator picks. **Submit** (or **Next** in a Group) needs a rating or a comment; **Skip** passes on the Question, × closes. Every Response —
+creator picks. **Submit** (or **Next** in a Group) with nothing answered passes on the Question; **Skip** and × close. Every Response —
 submitted or skipped — ends up as a row of a CSV that the Authoritative Server keeps in scene
 Storage.
 
@@ -64,9 +64,10 @@ A Group resolves to one result per id, in the same order. A typo in the id is a 
 
 In a Group, **Next** and **Back** move between Questions and keep the answers on the player's
 side; **Submit** on the last one sends them all ("Completed" replaces the progress bar once it
-is answered). **Skip** (first Question only) passes on that Question and goes on to the next.
-× closes the Group: what was answered with Next is still sent, the Question on screen counts as
-skipped, and the ones never reached get no Response.
+is answered). Next or Submit with nothing answered counts the Question as skipped; Submit with
+nothing answered in the whole Group just closes it. **Skip** (first Question only) and × close the
+Group: what was answered with Next is still sent, the Question on screen counts as skipped, and
+the ones never reached get no Response.
 
 The comment field is shown when the Question has a `commentPrompt` and the call does not turn
 it off:

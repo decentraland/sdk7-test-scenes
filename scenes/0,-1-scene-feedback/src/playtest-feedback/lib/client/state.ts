@@ -310,7 +310,7 @@ export function setComment(value: string): void {
 }
 
 // a rating or a comment, either counts
-export function hasAnswer(): boolean {
+function hasAnswer(): boolean {
   return feedback.rating !== 0 || (feedback.withComment && feedback.comment.trim() !== '')
 }
 
@@ -332,8 +332,9 @@ function keepAnswer(): void {
   current.steps[step].answer = hasAnswer() ? { rating: feedback.rating, comment: feedback.comment } : undefined
 }
 
+// unanswered: the Question counts as skipped
 export function nextStep(): void {
-  if (!current || feedback.phase !== 'open' || !hasAnswer() || isLastStep()) return
+  if (!current || feedback.phase !== 'open' || isLastStep()) return
   keepAnswer()
   showStep(step + 1)
 }
@@ -344,24 +345,17 @@ export function previousStep(): void {
   showStep(step - 1)
 }
 
-// one Response per reached step
+// one Response per reached step. Nothing answered: closes like ×, no "Thanks".
 export function submitGroup(): void {
-  if (!current || feedback.phase !== 'open' || !hasAnswer() || !isLastStep()) return
+  if (!current || feedback.phase !== 'open' || !isLastStep()) return
   keepAnswer()
+  if (!current.steps.some((s) => s.answer)) return closeGroup()
   submission.clear()
   for (const id of sendGroup(current)) submission.set(id, 'pending')
   feedback.phase = 'sending'
 }
 
-// this Question only, recorded as skipped (entry dropped). On the last step: closes like ×.
-export function skipStep(): void {
-  if (!current || feedback.phase !== 'open') return
-  current.steps[step].answer = undefined
-  if (isLastStep()) return closeGroup()
-  showStep(step + 1)
-}
-
-// ×: answers kept with Next are sent, the step on screen counts as skipped (unkept entry dropped),
+// × and Skip: answers kept with Next are sent, the step on screen counts as skipped (unkept entry dropped),
 // unreached steps get no Response.
 export function closeGroup(): void {
   if (!current || feedback.phase !== 'open') return
