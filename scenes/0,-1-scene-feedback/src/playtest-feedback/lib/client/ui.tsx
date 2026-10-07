@@ -42,7 +42,8 @@ const GRASS = Color4.fromHexString('#28ac00ff') // COMPLETED
 const GLOW_TINT = Color4.create(1, 1, 1, 0.4)
 const INK = Color4.fromHexString('#161518ff') // text typed in the input, toast
 const TRANSPARENT = Color4.create(0, 0, 0, 0)
-const PALE_BLACK = Color4.fromHexString('#43404aff') // toast border
+// toast border: the design's #43404A comes out lighter in the explorer
+const TOAST_BORDER = Color4.fromHexString('#2e2c33ff')
 // Disabled = enabled at half strength over the panel, precomputed. Not opacity: the explorer
 // ignores opacity set at creation, only later changes apply.
 const RUBY_DISABLED = Color4.fromHexString('#983368ff')
@@ -420,8 +421,8 @@ function tile(value: number, label: string, selected: boolean, onClick: (() => v
         textAlign="top-center"
         // nowrap: else a bold label loses its last letter to a new line
         textWrap="nowrap"
-        // 4 under the design's 8: else a two-line label runs into the selected border
-        uiTransform={{ width: '100%', height: 34, margin: { top: 4 - TEXT_NUDGE } }}
+        // 3 under the design's 8: else a two-line label runs into the selected border
+        uiTransform={{ width: '100%', height: 34, margin: { top: 5 - TEXT_NUDGE } }}
       />
     </UiEntity>
   )
@@ -525,7 +526,7 @@ function toast() {
           padding: { left: 10, right: 16 },
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: fade(PALE_BLACK),
+          borderColor: fade(TOAST_BORDER),
           flexDirection: 'row',
           alignItems: 'center'
         }}
