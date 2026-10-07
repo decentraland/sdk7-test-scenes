@@ -1,4 +1,4 @@
-// Rating scales from the research doc ("What 1–5 means"), one label per tile, 1 → 5.
+// Rating scales, one label per tile, 1 → 5.
 // Shortened to fit under a tile: the Question's text already carries the adjective
 // ("How enjoyable…"), so unipolar scales drop it; bipolar ones keep both ends and an
 // 'Ok' middle (the designer's wording). The middle of EASE is neutral; the middle of ENJOY is moderate

@@ -11,8 +11,8 @@ shows the three kinds of Question: from the bank, your own on a shared scale, yo
 
 ## Add it to your scene
 
-Requires `@dcl/sdk@auth-server` and `"authoritativeMultiplayer": true` in `scene.json` (client
-code cannot write Storage; see [research-storage-options.md](research-storage-options.md)).
+Requires `@dcl/sdk@auth-server` and `"authoritativeMultiplayer": true` in `scene.json` (only the
+server can write Storage; see the [Multiplayer Server docs](https://docs.decentraland.org/creator/scenes-sdk7/networking/authoritative-servers)).
 
 1. Copy the [src/playtest-feedback/](src/playtest-feedback) folder into your `src/`, and the
    [assets/playtest-feedback/](assets/playtest-feedback) folder (the panel's images) into your `assets/`.
@@ -150,12 +150,14 @@ The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` sta
 
 [src/playtest-feedback/lib/bank.ts](src/playtest-feedback/lib/bank.ts): 20 Questions selected for the pilot, in
 sections (`coreMechanic`, `coreLoop`, `social`, `motivation`, `world`, `technical`). Each comes
-with its rating scale, the moment it is meant for, what the answer tells you, and its code in the
-research doc. The scales are in [src/playtest-feedback/lib/shared/scales.ts](src/playtest-feedback/lib/shared/scales.ts):
-the research doc's 14, shortened to fit under a tile. A Question can also carry five labels of its own. The full
-research bank: [player-feedback-question-bank-2026-09.md](player-feedback-question-bank-2026-09.md).
+with its rating scale, the moment it is meant for, what the answer tells you, and its code in
+[QUESTION_GUIDE.md](QUESTION_GUIDE.md). The 14 scales are in [src/playtest-feedback/lib/shared/scales.ts](src/playtest-feedback/lib/shared/scales.ts),
+shortened to fit under a tile. A Question can also carry five labels of its own. All 113 candidate
+Questions, ready-made sets and when to ask what: [QUESTION_GUIDE.md](QUESTION_GUIDE.md).
 
 ## Tips
+
+More on timing, wording and reading the answers: [QUESTION_GUIDE.md](QUESTION_GUIDE.md).
 
 - **Make it about your game.** Bank texts use generic words — *the main activity*, *the goal*,
   *the rewards*, *the important objects*. Players answer better when they recognise what is

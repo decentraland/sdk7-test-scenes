@@ -1,11 +1,11 @@
 import { QuestionSpec } from './shared/series'
 
-// Default Questions, selected for the Wk 4–6 pilot from the research bank, grouped by what they ask about:
+// Default Questions, selected for the Wk 4–6 pilot from QUESTION_GUIDE.md, grouped by what they ask about:
 //   repeatLoop: QUESTION_BANK.coreLoop.repeatLoop
 // Sections are only for finding Questions; ids stay unique across the bank.
 //
 // Each comment: when to ask (the player must have encountered the situation, not
-// necessarily succeeded) · what the answer tells you · the Question's code in the research doc.
+// necessarily succeeded) · what the answer tells you · the Question's code in QUESTION_GUIDE.md.
 // The rating scale is the `scale` field: a code from shared/scales.ts, labels under the tiles.
 //
 // Generic words in the texts — the main activity, the goal, the rewards, the important
@@ -14,8 +14,8 @@ import { QuestionSpec } from './shared/series'
 // share an id.
 //
 // Comment prompts are tailored per Question but stay neutral, open to both good
-// and bad experiences: asking only for problems skews the comments. The research
-// doc's generic fallback is "What most affected your rating? (optional)".
+// and bad experiences: asking only for problems skews the comments. The generic
+// fallback is "What most affected your rating? (optional)".
 export const QUESTION_BANK = {
 
   // ---- CORE MECHANIC ----

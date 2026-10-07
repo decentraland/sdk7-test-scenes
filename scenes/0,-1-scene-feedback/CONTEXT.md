@@ -41,7 +41,7 @@ The creator's label for the gameplay moment a **Question** is asked at, e.g. `af
 _Avoid_: event, moment
 
 **Response**:
-The record of one player's reaction to one shown **Question**: either _submitted_ (a rating — or "I didn't experience this", offered by `leaveFeedback()` only —, a comment, or both) or _skipped_ (neither — Skip pressed, or the panel closed, which discards anything entered). Every shown **Question** yields exactly one **Response**, and every **Response** is persisted.
+The record of one player's reaction to one shown **Question**: either _submitted_ (a rating, a comment, or both) or _skipped_ (neither — Skip pressed, or the panel closed, which discards anything entered). Every shown **Question** yields exactly one **Response**, and every **Response** is persisted.
 _Avoid_: answer (ambiguous with a submitted-only reaction), feedback
 
 **Submit / Next / Back / Skip**:
