@@ -195,7 +195,7 @@ More on timing, wording and reading the answers: [QUESTION_GUIDE.md](QUESTION_GU
    project it names your World: `npm install`, `npm run deploy`.
 2. Collect coins, or wait for **DEBUG · server online** and press an **Ask** button. The debug
    panel shows in a local preview and, once deployed, only to the World's owner and the wallets
-   allowed to deploy it.
+   allowed to deploy it. Its rows (`trigger` `debug`) count toward the 100 rows per 10 minutes too.
 3. Submit closes the panel at once and shows a *Thanks* toast; Responses go in the background.
    Without an ack the client resends every 3 s (deduped by id) and gives up after 30 s.
 4. The server flushes buffered Responses to Storage at most once a minute, and immediately when

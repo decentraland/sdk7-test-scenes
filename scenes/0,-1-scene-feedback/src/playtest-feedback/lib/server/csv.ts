@@ -56,7 +56,8 @@ export function sanitizeId(requestId: string): string {
 function field(value: string): string {
   let v = value.replace(/[\r\n]+/g, ' ')
   if (/^\s*[=+\-@]/.test(v)) v = `'${v}`
-  return /[",]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
+  // ; too: Excel in ;-separator locales would split there, and the next cell could start with =
+  return /[",;]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v
 }
 
 // Storage counts bytes. No TextEncoder/Buffer in the runtime.

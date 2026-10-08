@@ -31,8 +31,10 @@ const FLUSH_RETRY_MS = 5_000
 // Per address: caps what one client can write. A legit visit sends a few rows.
 const RATE_WINDOW_MS = 10 * 60_000
 const RATE_MAX_ROWS = 100
-// longer than a client keeps resending (30 s of server uptime)
+// a resend after that is still deduped against the part being written, unless it rolled over meanwhile
 const SEEN_KEEP_MS = 10 * 60_000
+// Storage down for long: past this, Responses go unacked (clients resend, then give up) instead of filling memory
+const MAX_PENDING_ROWS = 2000
 
 // acked, not yet in Storage
 const pending = new Map<string, string>()
@@ -125,6 +127,7 @@ function receiveResponse(
   if (seen.has(id)) return ack(true)
 
   if (id === '') return ack(false)
+  if (pending.size >= MAX_PENDING_ROWS) return
   if (!withinRate(from.toLowerCase())) {
     console.log(`[SERVER] ${from} over ${RATE_MAX_ROWS} rows in ${RATE_WINDOW_MS / 60_000} min, dropped`)
     return ack(false)
@@ -242,9 +245,10 @@ async function flush(): Promise<void> {
     const otherColumns = csv.split('\n', 1)[0] !== CSV_HEADER
     const full = utf8Length(appended) > PART_MAX_BYTES && csv !== CSV_HEADER
     if (rows.length > 0 && (otherColumns || full)) {
-      currentPart += 1
+      const nextPart = currentPart + 1
+      if (!(await Storage.set(CURRENT_PART_KEY, nextPart))) throw new Error('could not advance the part index')
+      currentPart = nextPart
       csv = `${CSV_HEADER}\n${rows.join('\n')}`
-      if (!(await Storage.set(CURRENT_PART_KEY, currentPart))) throw new Error('could not advance the part index')
       console.log(`[SERVER] ${otherColumns ? 'Columns changed' : 'Part full'}, rolled over to ${partKey(currentPart)}`)
     } else {
       csv = appended
