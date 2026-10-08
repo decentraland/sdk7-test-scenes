@@ -1,7 +1,7 @@
 {
   "name": "scene-feedback",
   "version": "1.0.0",
-  "description": "In-scene playtest feedback: Questions rated 1-5 with an optional comment, saved as CSV in scene Storage by the Authoritative Server",
+  "description": "In-scene playtest feedback: Questions rated 1-5 with an optional comment, saved as CSV in scene Storage by the Multiplayer Server",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",

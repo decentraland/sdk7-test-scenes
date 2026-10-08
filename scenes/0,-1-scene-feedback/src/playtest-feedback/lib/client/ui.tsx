@@ -276,7 +276,7 @@ function introPanel() {
         textWrap="wrap"
         uiTransform={{ width: MOBILE_CONTENT, height: wrappedHeight(intro.text, 22, MOBILE_CONTENT), margin: { top: 20 } }}
       />,
-      mobileFooter(mobileCta('skip', declineIntro, SECONDARY), mobileCta('give feedback', acceptIntro, RUBY))
+      mobileFooter(44, mobileCta('skip', declineIntro, SECONDARY), mobileCta('give feedback', acceptIntro, RUBY))
     ])
   return panel('intro', { top: 50, bottom: 50 }, declineIntro, [
     withAvatar ? avatar(picture) : spacer('no-avatar', 0),
@@ -356,8 +356,8 @@ function questionPanel() {
   ])
 }
 
-// Mobile: own layout (Figma 1600x720 frame), bigger type, buttons and cross, no comment field
-// (see commentAllowed). Centred in a full-width row: right for any phone aspect ratio.
+// Mobile: own layout (Figma 1600x720 frame), bigger type, buttons and cross.
+// Centred in a full-width row: right for any phone aspect ratio.
 const MOBILE_PANEL = Color4.fromHexString('#4c147cff')
 const MOBILE_CONTENT = 531
 
@@ -402,6 +402,8 @@ function mobileQuestionPanel() {
   const q = feedback.question
   if (!q) return null
   const labels = scaleLabels(q.scale)
+  // tighter with the comment field, so the card stays clear of the top of the screen
+  const gap = feedback.withComment ? 28 : 44
   return mobileCard('question', closeGroup, [
     ...(feedback.steps > 1 ? [isCompleted() ? completedLabel(MOBILE_CONTENT) : progressBar(MOBILE_CONTENT)] : []),
     <Label
@@ -413,23 +415,27 @@ function mobileQuestionPanel() {
       textWrap="wrap"
       uiTransform={{ width: MOBILE_CONTENT, height: wrappedHeight(q.text, 32, MOBILE_CONTENT), margin: { top: feedback.steps > 1 ? 32 : 0 } }}
     />,
-    <UiEntity key="tiles" uiTransform={{ width: MOBILE_CONTENT, flexDirection: 'row', margin: { top: 44 } }}>
+    <UiEntity key="tiles" uiTransform={{ width: MOBILE_CONTENT, flexDirection: 'row', margin: { top: gap } }}>
       {Array.from({ length: MAX_RATING }, (_, i) =>
         tile(i + 1, labels[i], i + 1 === feedback.rating, () => setRating(i + 1))
       )}
     </UiEntity>,
+    ...(feedback.withComment
+      ? [commentField(q.commentPrompt ?? '', { width: MOBILE_CONTENT, height: 96, fontSize: 22, top: gap })]
+      : []),
     mobileFooter(
+      gap,
       isFirstStep() ? mobileCta('skip', closeGroup, SECONDARY) : mobileCta('back', previousStep, SECONDARY),
       isLastStep() ? mobileCta('submit', submitGroup, RUBY) : mobileCta('next', nextStep, RUBY)
     )
   ])
 }
 
-function mobileFooter(left: ReactEcs.JSX.Element, right: ReactEcs.JSX.Element) {
+function mobileFooter(top: number, left: ReactEcs.JSX.Element, right: ReactEcs.JSX.Element) {
   return (
     <UiEntity
       key="footer"
-      uiTransform={{ width: MOBILE_CONTENT, flexDirection: 'row', justifyContent: 'space-between', margin: { top: 44 } }}
+      uiTransform={{ width: MOBILE_CONTENT, flexDirection: 'row', justifyContent: 'space-between', margin: { top } }}
     >
       {left}
       {right}
@@ -483,16 +489,21 @@ function progressBar(width = 500) {
 function completedLabel(width = 500) {
   return (
     <UiEntity key="completed" uiTransform={{ width, height: 10, alignItems: 'center' }}>
-      <Label value="✔ COMPLETED" fontSize={12} color={GRASS} textAlign="middle-left" uiTransform={{ height: 10 }} />
+      <UiEntity uiTransform={{ flexDirection: 'row', alignItems: 'center', height: 10 }}>
+        <UiEntity
+          uiTransform={{ width: 12, height: 12, margin: { right: 4 } }}
+          uiBackground={{ textureMode: 'stretch', texture: { src: ASSETS + 'check.png' }, color: GRASS }}
+        />
+        <Label value="COMPLETED" fontSize={12} color={GRASS} textAlign="middle-left" uiTransform={{ height: 10 }} />
+      </UiEntity>
     </UiEntity>
   )
 }
 
-// Every tile keeps a border, transparent when not selected, so selecting shifts nothing.
+// The selected border is an outer ruby tile, padded 3: the mobile explorer draws no borderWidth.
+// Every tile keeps it, transparent when not selected, so selecting shifts nothing.
 // The design's pink glow is missing: scene UI has no shadows.
-const FACES = ['😞', '🙁', '😐', '🙂', '🤩']
-// emoji render ~1.3x font size: 23 shows as the design's 30
-const FACE_SIZE = 23
+// Faces are images (Noto Emoji): the mobile explorer has no emoji font.
 function tile(value: number, label: string, selected: boolean, onClick: (() => void) | undefined) {
   const lines = labelLines(label)
   return (
@@ -503,28 +514,39 @@ function tile(value: number, label: string, selected: boolean, onClick: (() => v
         flexBasis: 0,
         height: 84,
         margin: { left: value === 1 ? 0 : 16 },
-        flexDirection: 'column',
-        alignItems: 'center',
-        // the design's 12 a side is too narrow in the explorer's SemiBold; labelLines() breaks lines instead
-        padding: { top: 5, bottom: 1, left: 0, right: 0 },
-        borderRadius: 6,
-        borderWidth: 3,
-        borderColor: selected ? RUBY : TRANSPARENT
+        padding: 3,
+        borderRadius: 6
       }}
-      uiBackground={{ color: selected ? TILE_SELECTED : TILE }}
+      uiBackground={{ color: selected ? RUBY : TRANSPARENT }}
       onMouseDown={onClick}
     >
-      <Label value={FACES[value - 1]} fontSize={FACE_SIZE} textAlign="middle-center" uiTransform={{ width: 30, height: 30 }} />
-      <Label
-        value={selected ? `<b>${lines.join('\n')}</b>` : lines.join('\n')}
-        fontSize={labelSize(lines)}
-        color={SNOW}
-        textAlign="top-center"
-        // nowrap: else a bold label loses its last letter to a new line
-        textWrap="nowrap"
-        // 3 under the design's 8: else a two-line label runs into the selected border
-        uiTransform={{ width: '100%', height: 34, margin: { top: 5 - TEXT_NUDGE } }}
-      />
+      <UiEntity
+        uiTransform={{
+          width: '100%',
+          height: '100%',
+          flexDirection: 'column',
+          alignItems: 'center',
+          // the design's 12 a side is too narrow in the explorer's SemiBold; labelLines() breaks lines instead
+          padding: { top: 5, bottom: 1, left: 0, right: 0 },
+          borderRadius: 3
+        }}
+        uiBackground={{ color: selected ? TILE_SELECTED : TILE }}
+      >
+        <UiEntity
+          uiTransform={{ width: 30, height: 30 }}
+          uiBackground={{ textureMode: 'stretch', texture: { src: `${ASSETS}face-${value}.png` } }}
+        />
+        <Label
+          value={selected ? `<b>${lines.join('\n')}</b>` : lines.join('\n')}
+          fontSize={labelSize(lines)}
+          color={SNOW}
+          textAlign="top-center"
+          // nowrap: else a bold label loses its last letter to a new line
+          textWrap="nowrap"
+          // 3 under the design's 8: else a two-line label runs into the selected border
+          uiTransform={{ width: '100%', height: 34, margin: { top: 5 - TEXT_NUDGE } }}
+        />
+      </UiEntity>
     </UiEntity>
   )
 }
@@ -556,7 +578,7 @@ function labelSize(lines: string[]): number {
 }
 
 // The design's input: white, rounded, the prompt as placeholder.
-function commentField(prompt: string) {
+function commentField(prompt: string, { width = 500, height = 86, fontSize = 16, top = 24 } = {}) {
   return (
     <Input
       key="comment"
@@ -565,12 +587,12 @@ function commentField(prompt: string) {
       color={INK}
       value={feedback.comment}
       onChange={setComment}
-      fontSize={16}
+      fontSize={fontSize}
       textAlign="top-left"
       uiTransform={{
-        width: 500,
-        height: 86,
-        margin: { top: 24 },
+        width,
+        height,
+        margin: { top },
         padding: { top: 13 - INPUT_INSET.top, left: 16 - INPUT_INSET.left, right: 16 - INPUT_INSET.left },
         borderRadius: 12,
         borderWidth: 0,

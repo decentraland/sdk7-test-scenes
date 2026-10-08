@@ -145,11 +145,6 @@ function commentAllowed(question: Question, comment: AskOptions['comment'] = tru
   return typeof comment === 'boolean' ? comment : comment.includes(question.id)
 }
 
-// mobile: rating only, the phone keyboard would cover the panel. Not decided at ask(): the platform may be unknown yet.
-function commentShown(step: Ask['steps'][number]): boolean {
-  return step.comment && !isMobileLayout()
-}
-
 function isTaken(questionId: string, trigger: string): boolean {
   const same = (a: Ask) => a.trigger === trigger && a.steps.some((s) => s.question.id === questionId)
   return shown.has(`${questionId}|${trigger}`) || (current !== undefined && same(current)) || queue.some(same)
@@ -263,7 +258,7 @@ export function configure(introSpec: IntroSpec | null, onlyParticipants: boolean
 let previewMobileWanted = false
 let previewMobile = false
 
-// Mobile layout: rating only, own panel, 1600x720 virtual screen. false until the explorer reports the platform.
+// Mobile layout: own panel, 1600x720 virtual screen. false until the explorer reports the platform.
 export function isMobileLayout(): boolean {
   return previewMobile || isMobile()
 }
@@ -323,7 +318,7 @@ function showStep(index: number): void {
   feedback.phase = 'open'
   feedback.question = question
   feedback.trigger = current.trigger
-  feedback.withComment = commentShown(current.steps[index])
+  feedback.withComment = current.steps[index].comment
   feedback.step = index + 1
   feedback.steps = current.steps.length
   feedback.rating = answer?.rating ?? 0
@@ -472,8 +467,8 @@ function sendGroup(ask: Ask): void {
         questionId: s.question.id,
         trigger: ask.trigger,
         rating: answer?.rating ?? 0,
-        comment: commentShown(s) ? (answer?.comment ?? '') : '',
-        commentShown: commentShown(s),
+        comment: s.comment ? (answer?.comment ?? '') : '',
+        commentShown: s.comment,
         secondsInScene: Math.round((Date.now() - enteredAt) / 1000),
         platform: getPlatform() ?? 'unknown'
       },

@@ -2,7 +2,7 @@
 
 Asks players a Question with a labelled 1–5 rating and an optional comment, at moments the
 creator picks. **Submit** (or **Next** in a Group) with nothing answered passes on the Question; **Skip** and × close. Every Response —
-submitted or skipped — ends up as a row of a CSV that the Authoritative Server keeps in scene
+submitted or skipped — ends up as a row of a CSV that the Multiplayer Server keeps in scene
 Storage.
 
 This scene is the example: a tiny coin hunt ([src/game.tsx](src/game.tsx)) that asks Questions
@@ -70,8 +70,7 @@ Group: what was answered with Next is still sent, the Question on screen counts 
 the ones never reached get no Response and are not asked again at that trigger.
 
 The comment field is shown when the Question has a `commentPrompt`, the call does not turn
-it off, and the player is not on mobile (there the panel has its own larger layout and
-ratings only):
+it off (on mobile the panel has its own larger layout, the field included):
 
 - A Question without `commentPrompt` is always rating only, e.g. one meant for a quick tap
   mid-play. A Group can mix such Questions with commented ones.
@@ -247,3 +246,7 @@ mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in p
 - Storage has no compare-and-set: while two server instances overlap after a redeploy, one flush can
   overwrite the other's rows.
 - One address can write at most 100 rows per 10 minutes; the rest are dropped.
+
+## Credits
+
+Rating faces in `assets/playtest-feedback/face-*.png`: [Noto Emoji](https://github.com/googlefonts/noto-emoji), Apache License 2.0.
