@@ -22,20 +22,19 @@ import { findSceneOwner } from './owner'
 let lastBeatValue = 0
 let lastBeatSeenAt = 0
 
+// newest across entities: one left over from an earlier server run may still be there
 function pollHeartbeat(): void {
-  for (const [, hb] of engine.getEntitiesWith(ServerHeartbeat)) {
-    if (hb.beatAt !== lastBeatValue) {
-      // first value seen may be a stale snapshot: alive from the first change
-      if (lastBeatValue === 0) {
-        lastBeatValue = hb.beatAt
-        break
-      }
-      if (lastBeatSeenAt === 0) console.log(`[FEEDBACK] first server heartbeat at +${sinceLoad()}`)
-      lastBeatValue = hb.beatAt
-      lastBeatSeenAt = Date.now()
-    }
-    break
+  let newest = 0
+  for (const [, hb] of engine.getEntitiesWith(ServerHeartbeat)) newest = Math.max(newest, hb.beatAt)
+  if (newest === lastBeatValue) return
+  // first value seen may be a stale snapshot: alive from the first change
+  if (lastBeatValue === 0) {
+    lastBeatValue = newest
+    return
   }
+  if (lastBeatSeenAt === 0) console.log(`[FEEDBACK] first server heartbeat at +${sinceLoad()}`)
+  lastBeatValue = newest
+  lastBeatSeenAt = Date.now()
 }
 
 export function isServerAlive(): boolean {
@@ -95,14 +94,11 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
   const steps: Ask['steps'] = []
   const source = options.source ?? 'game'
   // while an Intro is pending, Questions queue behind it instead of being dropped
-  if (source === 'game') {
+  if (source === 'game' && !gameMayAsk() && (participation === 'out' || !introPending())) {
     const out = participation === 'out'
-    const notYet = participation === 'unknown' && participantsOnly && !introPending()
-    if (out || notYet) {
-      const why = out ? 'player said no to the Intro' : 'not a participant: feedback.intro() or feedback.enroll() first'
-      console.log(`[FEEDBACK] ${why}, not showing ${questionIds.join(', ')}`)
-      return Promise.resolve(results)
-    }
+    const why = out ? 'player said no to the Intro' : 'not a participant: feedback.intro() or feedback.enroll() first'
+    console.log(`[FEEDBACK] ${why}, not showing ${questionIds.join(', ')}`)
+    return Promise.resolve(results)
   }
   if (source === 'player' && (current?.source === 'player' || queue.some((a) => a.source === 'player'))) {
     console.log('[FEEDBACK] leaveFeedback() already open or waiting, ignored')
@@ -121,6 +117,11 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
     const ask: Ask = { kind: 'group', steps, reached: 0, at: 0, trigger, source, introDone: false, results, resolve, askedAt: Date.now() }
     if (source !== 'player') {
       queue.push(ask)
+      return
+    }
+    // server down: a game Intro on screen stays, this waits behind it for the server
+    if (feedback.phase === 'intro' && !isServerAlive()) {
+      queue.splice(1, 0, ask)
       return
     }
     // the player asked: the game's panel steps aside and comes back after, where it was
@@ -164,8 +165,8 @@ function processQueue(): void {
   }
   if (!alive) {
     for (let i = queue.length - 1; i >= 0; i--) {
-      // the Intro on screen stays until answered
-      if (i === 0 && feedback.phase === 'intro') continue
+      // an Intro never expires: it gates every later ask(). The one on screen stays until answered.
+      if (queue[i].kind === 'intro' || (i === 0 && feedback.phase === 'intro')) continue
       if (Date.now() - queue[i].askedAt < SERVER_WAIT_MS) continue
       const ids = queue[i].steps.map((s) => s.question.id).join(', ')
       console.log(`[FEEDBACK] server not up after ${SERVER_WAIT_MS / 1000} s, not showing ${ids}`)
@@ -181,6 +182,11 @@ function processQueue(): void {
     return
   }
   if (queue[0].kind === 'intro') return
+  if (queue[0].source === 'game' && !gameMayAsk()) {
+    const [dropped] = queue.splice(0, 1)
+    console.log(`[FEEDBACK] not a participant, not showing ${dropped.steps.map((s) => s.question.id).join(', ')}`)
+    return dropped.resolve(dropped.results)
+  }
   current = queue.shift()!
   showStep(current.at)
 }
@@ -189,6 +195,11 @@ function processQueue(): void {
 export type Participation = 'unknown' | 'in' | 'out'
 let participation: Participation = 'unknown'
 let participantsOnly = true
+
+// the game's ask() may show now
+function gameMayAsk(): boolean {
+  return participation === 'in' || (participation === 'unknown' && !participantsOnly)
+}
 
 export function getParticipation(): Participation {
   return participation

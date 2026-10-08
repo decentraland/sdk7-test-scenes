@@ -16,19 +16,21 @@ import { room } from '../shared/messages'
 import { scaleLabels, scaleName } from '../shared/scales'
 import { ServerHeartbeat } from '../shared/schemas'
 import { sinceLoad } from '../shared/clock'
-import { CSV_HEADER, CsvRow, formatRow, hasRow, sanitizeId, utf8Length } from './csv'
+import { CSV_HEADER, CsvRow, formatRow, rowIds, sanitizeId, utf8Length } from './csv'
 
 // Responses buffer in memory, then flush into numbered CSV parts in scene Storage.
 // Flush after FLUSH_COOLDOWN_MS, or at once when the last player leaves: no shutdown hook.
 // Keys named like files: owners find them in the storage UI.
 const CURRENT_PART_KEY = 'playtest-feedback-csv-head' // the number of the part being written
 const PART_MAX_BYTES = 400 * 1024 // Storage caps one value at 512 KB
+// one flush writes at most this much, the rest goes in the next: a bigger batch could never fit a part
+const BATCH_MAX_BYTES = 200 * 1024
 const FLUSH_COOLDOWN_MS = 60_000
 const LOAD_RETRY_MS = 5_000
 const FLUSH_RETRY_MS = 5_000
 // Per address: caps what one client can write. A legit visit sends a few rows.
 const RATE_WINDOW_MS = 10 * 60_000
-const RATE_MAX_ROWS = 30
+const RATE_MAX_ROWS = 60
 // longer than a client keeps resending (30 s of server uptime)
 const SEEN_KEEP_MS = 10 * 60_000
 
@@ -219,13 +221,21 @@ async function flush(): Promise<void> {
   if (flushing || pending.size === 0) return
   flushing = true
   lastFlushAt = Date.now()
-  const batch = [...pending.entries()]
+  const batch: [string, string][] = []
+  let batchBytes = 0
+  for (const entry of pending) {
+    batchBytes += utf8Length(entry[1]) + 1
+    if (batch.length > 0 && batchBytes > BATCH_MAX_BYTES) break
+    batch.push(entry)
+  }
+  const more = batch.length < pending.size
   try {
     const storedPart = (await Storage.get<number>(CURRENT_PART_KEY, { fresh: true })) ?? 1
     currentPart = Math.max(currentPart, storedPart)
 
     let csv = (await Storage.get<string>(partKey(currentPart), { fresh: true })) ?? CSV_HEADER
-    const rows = batch.filter(([id]) => !hasRow(csv, id)).map(([, row]) => row)
+    const stored = rowIds(csv)
+    const rows = batch.filter(([id]) => !stored.has(id)).map(([, row]) => row)
     const appended = rows.length > 0 ? `${csv}\n${rows.join('\n')}` : csv
 
     // never append to a part with other columns (older code)
@@ -242,8 +252,8 @@ async function flush(): Promise<void> {
 
     if (!(await Storage.set(partKey(currentPart), csv))) throw new Error('Storage.set returned false')
     for (const [id] of batch) pending.delete(id)
-    // rows that arrived during this flush still need one
-    if (pending.size === 0) flushRequested = false
+    // the rest of an oversized batch goes next; rows that arrived during this flush keep a request
+    flushRequested = more || (flushRequested && pending.size > 0)
     console.log(`[SERVER] Flushed ${rows.length} row(s) to ${partKey(currentPart)} (${utf8Length(csv)} B)`)
   } catch (e) {
     // rows stay pending: retried after FLUSH_RETRY_MS if requested, else at the next cooldown

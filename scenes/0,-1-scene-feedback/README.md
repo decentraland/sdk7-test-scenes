@@ -123,7 +123,7 @@ a CSV row (`questionId` `intro`), so you can count how many players agree to ans
 When the player chooses to give feedback — a button, a 3D kiosk, an area they walk into — call
 `feedback.leaveFeedback(batch, trigger)` with a batch prepared for it: Questions that make sense
 out of context. Every call shows the Intro, then the batch as one Group, any number of times per
-visit (the server keeps up to 30 rows per player per 10 minutes), whatever the player said to the dynamic Intro. Here the Intro only greets: Give feedback
+visit (the server keeps up to 60 rows per player per 10 minutes), whatever the player said to the dynamic Intro. Here the Intro only greets: Give feedback
 opens the Group, Skip or × drops it, and participation stays as it was, so the game never starts
 asking a player who only came to leave feedback. A game Intro or Question on screen steps aside
 for it and comes back after, where it was. A call while the previous one is still open or waiting is ignored. The demo wires it three ways in
@@ -246,4 +246,4 @@ mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in p
   minute of them, and the client doesn't resend.
 - Storage has no compare-and-set: while two server instances overlap after a redeploy, one flush can
   overwrite the other's rows.
-- One address can write at most 30 rows per 10 minutes; the rest are dropped.
+- One address can write at most 60 rows per 10 minutes; the rest are dropped.
