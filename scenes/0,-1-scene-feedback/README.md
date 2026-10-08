@@ -67,7 +67,7 @@ side; **Submit** on the last one sends them all ("Completed" replaces the progre
 is answered). Next or Submit with nothing answered counts the Question as skipped; Submit with
 nothing answered in the whole Group just closes it. **Skip** (first Question only) and × close the
 Group: what was answered with Next is still sent, the Question on screen counts as skipped, and
-the ones never reached get no Response.
+the ones never reached get no Response and are not asked again at that trigger.
 
 The comment field is shown when the Question has a `commentPrompt`, the call does not turn
 it off, and the player is not on mobile (there the panel has its own larger layout and
@@ -123,8 +123,10 @@ a CSV row (`questionId` `intro`), so you can count how many players agree to ans
 When the player chooses to give feedback — a button, a 3D kiosk, an area they walk into — call
 `feedback.leaveFeedback(batch, trigger)` with a batch prepared for it: Questions that make sense
 out of context. Every call shows the Intro, then the batch as one Group, any number of times per
-visit, whatever the player said to the dynamic Intro. A call while the previous one is still
-open or waiting is ignored. The demo wires it three ways in
+visit, whatever the player said to the dynamic Intro. Here the Intro only greets: Give feedback
+opens the Group, Skip or × drops it, and participation stays as it was, so the game never starts
+asking a player who only came to leave feedback. A game panel on screen closes for it (a game
+Intro comes back after). A call while the previous one is still open or waiting is ignored. The demo wires it three ways in
 [src/leave-feedback.tsx](src/leave-feedback.tsx):
 
 ```ts
@@ -223,7 +225,8 @@ mfqz8k2x4f7a,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in p
 - Empty `rating` and `ratingLabel` with a `comment`: the player only wrote a comment.
 - `questionId` `intro`: the player's answer to the Intro, `ratingLabel` `accepted` or `declined`,
   `trigger` of the call that showed it; or `enrolled` with the `trigger` passed to
-  `feedback.enroll()`. Accepted ÷ (accepted + declined) = the share who agree to answer.
+  `feedback.enroll()`. Accepted ÷ (accepted + declined) = the share who agree to answer; count the
+  game Intro's triggers apart from Leave feedback's.
 - `version`: tail of the deployed entity id, new on every deploy (`preview` locally).
 - `questionText`: the wording the server shipped with, so edited Questions never mix with old answers.
 - `ratingLabel`, `scale`: the label the player picked and the scale it came from (a code, or the

@@ -50,8 +50,8 @@ export type AskResult = 'submitted' | 'skipped' | 'not-shown'
 export type AskOptions = {
   repeat?: boolean
   comment?: boolean | readonly string[]
-  // game (default): Intro once per visit. player (leaveFeedback): Intro every time, yes counts
-  // for the visit, no drops only this Group. debug: no Intro, participation untouched.
+  // game (default): Intro once per visit. player (leaveFeedback): Intro every time, a greeting only:
+  // yes opens the Group, no drops it, participation untouched. debug: no Intro, participation untouched.
   source?: AskSource
 }
 
@@ -115,9 +115,17 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
   })
   if (steps.length === 0) return Promise.resolve(results)
 
-  return new Promise((resolve) =>
-    queue.push({ kind: 'group', steps, reached: 0, trigger, source, introDone: false, results, resolve, askedAt: Date.now() })
-  )
+  return new Promise((resolve) => {
+    const ask: Ask = { kind: 'group', steps, reached: 0, trigger, source, introDone: false, results, resolve, askedAt: Date.now() }
+    if (source !== 'player') {
+      queue.push(ask)
+      return
+    }
+    // the player asked: whatever the game has on screen closes, a game Intro comes back after
+    if (feedback.phase === 'open') closeGroup()
+    if (feedback.phase === 'intro') feedback.phase = 'idle'
+    queue.unshift(ask)
+  })
 }
 
 function commentAllowed(question: Question, comment: AskOptions['comment'] = true): boolean {
@@ -158,7 +166,6 @@ function processQueue(): void {
   }
   if (queue[0].kind === 'intro') return
   current = queue.shift()!
-  if (current.source === 'player' && participation === 'unknown') participation = 'in'
   showStep(0)
 }
 
@@ -211,8 +218,9 @@ export function showIntro(trigger: string, source: AskSource = 'game'): Promise<
   ).then(([r]) => (r === 'submitted' ? 'accepted' : r === 'skipped' ? 'declined' : 'not-shown'))
 }
 
+// a shown Intro stays in the queue until answered; Leave feedback's Intro doesn't count
 function introPending(): boolean {
-  return feedback.phase === 'intro' || queue.some((a) => a.kind === 'intro')
+  return queue.some((a) => a.kind === 'intro')
 }
 
 // set at module load, so intro() and enroll() work from main()
@@ -243,14 +251,13 @@ export function acceptIntro(): void {
   console.log('[FEEDBACK] intro accepted')
   sendIntroAnswer('accepted', queue[0]?.trigger ?? '')
   const ask = queue[0]
-  if (ask?.source !== 'debug') participation = 'in'
+  // Leave feedback's Intro only greets: participation is the game Intro's
+  if (ask?.kind === 'intro' && ask.source === 'game') participation = 'in'
   feedback.phase = 'idle'
   if (ask?.kind === 'intro') {
     queue.shift()
     ask.results[0] = 'submitted'
     ask.resolve(ask.results)
-    // Leave feedback pressed while this Intro was up: already answered
-    for (const waiting of queue) if (waiting.source === 'player') waiting.introDone = true
   } else if (ask) {
     ask.introDone = true
   }
@@ -403,6 +410,8 @@ export function toastOpacity(): number | null {
 function finishGroup(): void {
   if (!current) return
   const done = current
+  // the whole Group, reached or not: closing it is an answer to all of it
+  for (const s of done.steps) shown.add(`${s.question.id}|${done.trigger}`)
   done.steps.forEach((s, i) => {
     if (i <= done.reached) done.results[s.slot] = s.answer ? 'submitted' : 'skipped'
   })

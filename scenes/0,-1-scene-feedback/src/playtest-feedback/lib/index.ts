@@ -69,8 +69,9 @@ function ask(
   return typeof ids === 'string' ? results.then((r) => r[0]) : results
 }
 
-// Static mode: player-initiated (button, kiosk, area). Intro, then the batch as one Group,
-// on every call, whatever the answer to feedback.intro(). Ignored (not-shown) while the previous call is open or waiting.
+// Static mode: player-initiated (button, kiosk, area). Intro, then the batch as one Group, on every call,
+// whatever the answer to feedback.intro(). Its Intro only greets: participation stays as it was.
+// Closes a game panel on screen (a game Intro comes back after). Ignored (not-shown) while the previous call is open or waiting.
 function leaveFeedback(questionIds: readonly QuestionId[], trigger: string): Promise<AskResult[]> {
   if (isServer()) return Promise.resolve(questionIds.map((): AskResult => 'not-shown'))
   return askQuestions(questionIds, trigger, { repeat: true, source: 'player' })
