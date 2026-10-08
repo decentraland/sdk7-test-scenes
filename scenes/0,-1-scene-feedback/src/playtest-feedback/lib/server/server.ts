@@ -30,7 +30,7 @@ const LOAD_RETRY_MS = 5_000
 const FLUSH_RETRY_MS = 5_000
 // Per address: caps what one client can write. A legit visit sends a few rows.
 const RATE_WINDOW_MS = 10 * 60_000
-const RATE_MAX_ROWS = 60
+const RATE_MAX_ROWS = 100
 // longer than a client keeps resending (30 s of server uptime)
 const SEEN_KEEP_MS = 10 * 60_000
 
