@@ -65,7 +65,7 @@ type Ask = {
     comment: boolean
     answer?: { rating: number; comment: string }
   }[]
-  // furthest step shown: steps up to it get a Response, the rest not-shown
+  // furthest step shown, -1 before the first: steps up to it get a Response, the rest not-shown
   reached: number
   // step to show first: 0, or where Leave feedback interrupted it
   at: number
@@ -114,7 +114,7 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
   if (steps.length === 0) return Promise.resolve(results)
 
   return new Promise((resolve) => {
-    const ask: Ask = { kind: 'group', steps, reached: 0, at: 0, trigger, source, introDone: false, results, resolve, askedAt: Date.now() }
+    const ask: Ask = { kind: 'group', steps, reached: -1, at: 0, trigger, source, introDone: false, results, resolve, askedAt: Date.now() }
     if (source !== 'player') {
       queue.push(ask)
       return
@@ -165,8 +165,7 @@ function processQueue(): void {
       if (Date.now() - queue[i].askedAt < SERVER_WAIT_MS) continue
       const ids = queue[i].steps.map((s) => s.question.id).join(', ')
       console.log(`[FEEDBACK] server not up after ${SERVER_WAIT_MS / 1000} s, not showing ${ids}`)
-      const [expired] = queue.splice(i, 1)
-      expired.resolve(expired.results)
+      dropGroup(queue.splice(i, 1)[0])
     }
     return
   }
@@ -180,7 +179,7 @@ function processQueue(): void {
   if (queue[0].source === 'game' && !gameMayAsk()) {
     const [dropped] = queue.splice(0, 1)
     console.log(`[FEEDBACK] not a participant, not showing ${dropped.steps.map((s) => s.question.id).join(', ')}`)
-    return dropped.resolve(dropped.results)
+    return dropGroup(dropped)
   }
   current = queue.shift()!
   showStep(current.at)
@@ -430,14 +429,25 @@ export function toastOpacity(): number | null {
 function finishGroup(): void {
   if (!current) return
   const done = current
+  feedback.phase = 'idle'
+  feedback.question = undefined
+  current = undefined
+  resolveGroup(done)
+}
+
+// A queued Group given up on. One Leave feedback interrupted was already shown: what the player saw is sent, like ×.
+function dropGroup(ask: Ask): void {
+  if (ask.reached < 0) return ask.resolve(ask.results)
+  sendGroup(ask)
+  resolveGroup(ask)
+}
+
+function resolveGroup(done: Ask): void {
   // the whole Group, reached or not: closing it is an answer to all of it
   for (const s of done.steps) shown.add(`${s.question.id}|${done.trigger}`)
   done.steps.forEach((s, i) => {
     if (i <= done.reached) done.results[s.slot] = s.answer ? 'submitted' : 'skipped'
   })
-  feedback.phase = 'idle'
-  feedback.question = undefined
-  current = undefined
   done.resolve(done.results)
 }
 

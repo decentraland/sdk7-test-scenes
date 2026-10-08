@@ -125,7 +125,8 @@ out of context. Every call shows the Intro, then the batch as one Group, any num
 visit (the server keeps up to 100 rows per player per 10 minutes), whatever the player said to the dynamic Intro. Here the Intro only greets: Give feedback
 opens the Group, Skip or × drops it, and participation stays as it was, so the game never starts
 asking a player who only came to leave feedback. A game Intro or Question on screen steps aside
-for it and comes back after, where it was. A call while the previous one is still open or waiting is ignored. The demo wires it three ways in
+for it and comes back after, where it was (if the server stays down 2 minutes meanwhile, it closes
+as with ×: what the player saw is sent). A call while the previous one is still open or waiting is ignored. The demo wires it three ways in
 [src/leave-feedback.tsx](src/leave-feedback.tsx):
 
 ```ts
@@ -195,6 +196,9 @@ More on timing, wording and reading the answers: [QUESTION_GUIDE.md](QUESTION_GU
 2. Collect coins, or wait for **DEBUG · server online** and press an **Ask** button. The debug
    panel shows in a local preview and, once deployed, only to the World's owner and the wallets
    allowed to deploy it. Its rows (`trigger` `debug`) count toward the 100 rows per 10 minutes too.
+   **Show intro** only previews the Intro: participation stays as it was, so with
+   `ASK_PARTICIPANTS_ONLY` game Questions queued behind it are dropped. To test as a participant,
+   collect a coin and answer the game Intro.
 3. Submit closes the panel at once and shows a *Thanks* toast; Responses go in the background.
    Without an ack the client resends every 3 s (deduped by id) and gives up after 30 s.
 4. The server flushes buffered Responses to Storage at most once a minute, and immediately when
