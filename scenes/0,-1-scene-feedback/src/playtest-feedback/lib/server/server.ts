@@ -139,28 +139,19 @@ function receiveResponse(
   const rating = Number.isInteger(data.rating) && data.rating >= 1 && data.rating <= MAX_RATING ? data.rating : null
   const commentShown = data.commentShown && question.commentPrompt !== undefined
   const comment = commentShown ? data.comment.trim().slice(0, MAX_COMMENT_LENGTH) : ''
-  const address = from.toLowerCase()
   const row: CsvRow = {
-    id,
-    serverTs: Date.now(),
-    version: sceneVersion,
+    ...baseRow(id, data, from),
     questionId: question.id,
     questionText: question.text,
-    trigger: data.trigger.slice(0, 40),
     rating,
     ratingLabel: rating !== null ? scaleLabels(question.scale)[rating - 1] : comment === '' ? SKIPPED_LABEL : '',
     scale: scaleName(question.scale),
     commentPrompt: commentShown ? question.commentPrompt ?? '' : '',
-    comment,
-    secondsInScene: Math.max(0, data.secondsInScene),
-    playersInScene: countPlayers(),
-    address,
-    isGuest: findIsGuest(address),
-    platform: data.platform.slice(0, 20)
+    comment
   }
 
-  accept(id, address, row)
-  console.log(`[SERVER] ${question.id} rating=${rating ?? '-'} from ${address}, ${pending.size} pending`)
+  accept(row)
+  console.log(`[SERVER] ${question.id} rating=${rating ?? '-'} from ${row.address}, ${pending.size} pending`)
   ack(true)
 }
 
@@ -170,33 +161,45 @@ function receiveIntroAnswer(
   from: string,
   ack: (ok: boolean) => void
 ): void {
-  const address = from.toLowerCase()
   const answer = INTRO_ANSWERS[data.rating]
   if (!Number.isInteger(data.rating) || answer === undefined) return ack(false)
   const row: CsvRow = {
-    id,
-    serverTs: Date.now(),
-    version: sceneVersion,
+    ...baseRow(id, data, from),
     questionId: INTRO_ID,
     questionText: intro?.title ?? '',
-    trigger: data.trigger.slice(0, 40),
     rating: null,
     ratingLabel: answer,
     scale: '',
     commentPrompt: '',
-    comment: '',
+    comment: ''
+  }
+  accept(row)
+  console.log(`[SERVER] intro ${row.ratingLabel} from ${row.address}, ${pending.size} pending`)
+  ack(true)
+}
+
+// the columns every row has, whatever was answered
+function baseRow(
+  id: string,
+  data: { trigger: string; secondsInScene: number; platform: string },
+  from: string
+): Pick<CsvRow, 'id' | 'serverTs' | 'version' | 'trigger' | 'secondsInScene' | 'playersInScene' | 'address' | 'isGuest' | 'platform'> {
+  const address = from.toLowerCase()
+  return {
+    id,
+    serverTs: Date.now(),
+    version: sceneVersion,
+    trigger: data.trigger.slice(0, 40),
     secondsInScene: Math.max(0, data.secondsInScene),
     playersInScene: countPlayers(),
     address,
     isGuest: findIsGuest(address),
     platform: data.platform.slice(0, 20)
   }
-  accept(id, address, row)
-  console.log(`[SERVER] intro ${row.ratingLabel} from ${address}, ${pending.size} pending`)
-  ack(true)
 }
 
-function accept(id: string, address: string, row: CsvRow): void {
+function accept(row: CsvRow): void {
+  const { id, address } = row
   const now = Date.now()
   seen.set(id, now)
   const times = recentRows.get(address)
@@ -254,7 +257,8 @@ async function flush(): Promise<void> {
       csv = appended
     }
 
-    if (!(await Storage.set(partKey(currentPart), csv))) throw new Error('Storage.set returned false')
+    // all already stored (a retry after a lost write result): nothing to rewrite
+    if (rows.length > 0 && !(await Storage.set(partKey(currentPart), csv))) throw new Error('Storage.set returned false')
     for (const [id] of batch) pending.delete(id)
     // the rest of an oversized batch goes next; rows that arrived during this flush keep a request
     flushRequested = more || (flushRequested && pending.size > 0)

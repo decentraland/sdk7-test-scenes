@@ -508,8 +508,8 @@ function transmit(id: string, row: OutboxRow, kind: 'send' | 'resend'): void {
 }
 
 function newRequestId(): string {
-  // ~12 chars, e.g. "mfqz8k2x4f7a": unique enough to dedupe resends and merge rows
-  return Date.now().toString(36) + Math.floor(Math.random() * 36 ** 4).toString(36).padStart(4, '0')
+  // ~14 chars, e.g. "mfqz8k2x4f7a9c": the server dedupes across all players, so two must not collide in the same ms
+  return Date.now().toString(36) + Math.floor(Math.random() * 36 ** 6).toString(36).padStart(6, '0')
 }
 
 export function setupFeedbackState(): void {
