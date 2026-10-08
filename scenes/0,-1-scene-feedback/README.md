@@ -46,7 +46,7 @@ server can write Storage; see the [Multiplayer Server docs](https://docs.decentr
    // a Group: one panel, one Question after another, with a "1/3" progress bar
    void feedback.ask(['nextGoal', 'playMore', 'worthIt'], 'hunt-complete')
 
-   // or wait for the player, e.g. to resume the game afterwards
+   // or wait for the answer; it comes only once the player closes the panel, so don't block the game on it
    const result = await feedback.ask('playMore', 'round-2-complete')
    ```
 
@@ -125,7 +125,7 @@ out of context. Every call shows the Intro, then the batch as one Group, any num
 visit (the server keeps up to 100 rows per player per 10 minutes), whatever the player said to the dynamic Intro. Here the Intro only greets: Give feedback
 opens the Group, Skip or × drops it, and participation stays as it was, so the game never starts
 asking a player who only came to leave feedback. A game Intro or Question on screen steps aside
-for it and comes back after, where it was (if the server stays down 2 minutes meanwhile, it closes
+for it and comes back after, where it was; over a game Intro the batch opens without the greeting (if the server stays down 2 minutes meanwhile, it closes
 as with ×: what the player saw is sent). A call while the previous one is still open or waiting is ignored. The demo wires it three ways in
 [src/leave-feedback.tsx](src/leave-feedback.tsx):
 

@@ -18,7 +18,7 @@ import { setupLeaveFeedback } from './leave-feedback'
 // Tiny 3-round coin hunt, only to show feedback.ask() at different moments:
 //   first coin         → Intro, then coinSpotting (single, mid-round, with comment)
 //   round 1 complete   → nextGoal, playMore (Group: rating only, then with comment)
-//   hunt complete      → repeatLoop, nextCoinKnown, worthIt (Group, ratings only), then a new hunt
+//   hunt complete      → repeatLoop, nextCoinKnown, worthIt (Group, ratings only), and a new hunt
 // A second hunt asks nothing: once per visit per trigger. Player-initiated feedback: leave-feedback.tsx.
 const COINS_PER_ROUND = 5
 const ROUNDS = 3
@@ -26,7 +26,6 @@ const ROUNDS = 3
 let round = 1
 let collected = 0
 let totalCollected = 0
-let huntOver = false
 const coins: Entity[] = []
 
 export function setupGame(): void {
@@ -79,9 +78,12 @@ function spawnRound(): void {
 }
 
 function collect(coin: Entity, disc: Entity): void {
+  const index = coins.indexOf(coin)
+  // a second click before the removal lands
+  if (index === -1) return
+  coins.splice(index, 1)
   engine.removeEntity(disc)
   engine.removeEntity(coin)
-  coins.splice(coins.indexOf(coin), 1)
   collected++
   totalCollected++
 
@@ -95,17 +97,17 @@ function collect(coin: Entity, disc: Entity): void {
 
   if (collected < COINS_PER_ROUND) return
   if (round === 1) void feedback.ask(['nextGoal', 'playMore'], 'round-1-complete', { comment: ['playMore'] })
-  if (round === ROUNDS) return void endHunt()
+  if (round === ROUNDS) return endHunt()
   round++
   spawnRound()
 }
 
-// awaited: the next hunt starts once the player is done with the Group
-async function endHunt(): Promise<void> {
-  huntOver = true
-  const results = await feedback.ask(['repeatLoop', 'nextCoinKnown', 'worthIt'], 'hunt-complete', { comment: false })
-  console.log(`[SCENE] end-of-hunt feedback: ${results.join(', ')}`)
-  huntOver = false
+// Not awaited: ask() resolves only once the player closes the panel, and they may leave it open.
+// The next hunt starts right away; the results come later.
+function endHunt(): void {
+  void feedback
+    .ask(['repeatLoop', 'nextCoinKnown', 'worthIt'], 'hunt-complete', { comment: false })
+    .then((results) => console.log(`[SCENE] end-of-hunt feedback: ${results.join(', ')}`))
   round = 1
   spawnRound()
 }
@@ -127,7 +129,7 @@ const hud = () => (
         uiBackground={{ color: Color4.create(0, 0, 0, 0.5) }}
       >
         <Label
-          value={huntOver ? 'Hunt complete!' : `Round ${round}/${ROUNDS} · Coins ${collected}/${COINS_PER_ROUND}`}
+          value={`Round ${round}/${ROUNDS} · Coins ${collected}/${COINS_PER_ROUND}`}
           fontSize={22}
           color={Color4.White()}
         />

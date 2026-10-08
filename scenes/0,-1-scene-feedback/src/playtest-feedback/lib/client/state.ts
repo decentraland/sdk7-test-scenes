@@ -119,6 +119,8 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
       queue.push(ask)
       return
     }
+    // the Intro on screen already greets them: the batch opens without a second one
+    if (feedback.phase === 'intro') ask.introDone = true
     // server down: a game Intro on screen stays, this waits behind it for the server
     if (feedback.phase === 'intro' && !isServerAlive()) {
       queue.splice(1, 0, ask)
@@ -175,7 +177,6 @@ function processQueue(): void {
     feedback.phase = 'intro'
     return
   }
-  if (queue[0].kind === 'intro') return
   if (queue[0].source === 'game' && !gameMayAsk()) {
     const [dropped] = queue.splice(0, 1)
     console.log(`[FEEDBACK] not a participant, not showing ${dropped.steps.map((s) => s.question.id).join(', ')}`)
@@ -469,38 +470,27 @@ const outbox = new Map<string, OutboxRow>()
 function sendGroup(ask: Ask): void {
   ask.steps.forEach((s, i) => {
     if (i > ask.reached) return
-    const id = newRequestId()
-    const answer = s.answer
-    const row: OutboxRow = {
-      payload: {
-        requestId: id,
-        questionId: s.question.id,
-        trigger: ask.trigger,
-        rating: answer?.rating ?? 0,
-        comment: s.comment ? (answer?.comment ?? '') : '',
-        commentShown: s.comment,
-        secondsInScene: Math.round((Date.now() - enteredAt) / 1000),
-        platform: getPlatform() ?? 'unknown'
-      },
-      firstSentAt: Date.now(),
-      lastSentAt: 0
-    }
-    outbox.set(id, row)
-    transmit(id, row, 'send')
+    sendRow({
+      questionId: s.question.id,
+      trigger: ask.trigger,
+      rating: s.answer?.rating ?? 0,
+      comment: s.comment ? (s.answer?.comment ?? '') : '',
+      commentShown: s.comment
+    })
   })
 }
 
 // Own CSV row, to count who agrees to answer. rating = index in INTRO_ANSWERS, the server writes it as ratingLabel.
 function sendIntroAnswer(answer: IntroAnswer, trigger: string): void {
+  sendRow({ questionId: INTRO_ID, trigger, rating: INTRO_ANSWERS.indexOf(answer), comment: '', commentShown: false })
+}
+
+function sendRow(fields: Omit<Payload, 'requestId' | 'secondsInScene' | 'platform'>): void {
   const id = newRequestId()
   const row: OutboxRow = {
     payload: {
       requestId: id,
-      questionId: INTRO_ID,
-      trigger,
-      rating: INTRO_ANSWERS.indexOf(answer),
-      comment: '',
-      commentShown: false,
+      ...fields,
       secondsInScene: Math.round((Date.now() - enteredAt) / 1000),
       platform: getPlatform() ?? 'unknown'
     },
