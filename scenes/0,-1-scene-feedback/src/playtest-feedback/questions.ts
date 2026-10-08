@@ -1,7 +1,7 @@
 import { QUESTION_BANK } from './lib/bank'
 import { IntroSpec, QuestionSpec } from './lib/shared/series'
 
-// The only file to edit.
+// The only library file to edit.
 
 // "Ask <id>" button per Question, top-left. Visible only in preview and to the World's
 // owner/deployers, never to players. Still, turn off before release.

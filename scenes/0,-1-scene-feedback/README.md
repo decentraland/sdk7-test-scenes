@@ -16,7 +16,7 @@ server can write Storage; see the [Multiplayer Server docs](https://docs.decentr
 
 1. Copy the [src/playtest-feedback/](src/playtest-feedback) folder into your `src/`, and the
    [assets/playtest-feedback/](assets/playtest-feedback) folder (the panel's images) into your `assets/`.
-2. Edit [src/playtest-feedback/questions.ts](src/playtest-feedback/questions.ts) — the only file to touch:
+2. Edit [src/playtest-feedback/questions.ts](src/playtest-feedback/questions.ts) — the only library file to touch:
 
    ```ts
    export const DEBUG = true // "Ask <id>" buttons top-left, for you only; turn off before release
@@ -70,8 +70,8 @@ Group: what was answered with Next is still sent, the Question on screen counts 
 the ones never reached get no Response.
 
 The comment field is shown when the Question has a `commentPrompt`, the call does not turn
-it off, and the player is not on mobile (there the panel has its own larger layout, numbers on
-the tiles and ratings only):
+it off, and the player is not on mobile (there the panel has its own larger layout and
+ratings only):
 
 - A Question without `commentPrompt` is always rating only, e.g. one meant for a quick tap
   mid-play. A Group can mix such Questions with commented ones.
@@ -189,7 +189,8 @@ More on timing, wording and reading the answers: [QUESTION_GUIDE.md](QUESTION_GU
 
 ## Test
 
-1. `worldConfiguration.name` in `scene.json` is the target World. `npm install`, `npm run deploy`.
+1. Here CI deploys every push to `sdk7testscenes.dcl.eth` (`.zone`); keep `worldConfiguration.name` as is. In your own
+   project it names your World: `npm install`, `npm run deploy`.
 2. Collect coins, or wait for **DEBUG · server online** and press an **Ask** button. The debug
    panel shows in a local preview and, once deployed, only to the World's owner and the wallets
    allowed to deploy it.
