@@ -37,7 +37,7 @@ export const QUESTIONS = {
 
   // own Question: bank wording adapted to the game, shared scale
   coinSpotting: {
-    text: 'How easy or difficult was it to spot the coins?', // bank's "the important objects" → "coins"
+    text: 'How easy or difficult was it to spot the coins?', // bank C08's "important information" → "coins"
     scale: 'EASE', // code from lib/shared/scales.ts (EASE, CLEAR, ENJOY, …)
     commentPrompt: 'What made them easy or hard to spot? (optional)' // omit for rating only
   },

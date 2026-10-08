@@ -66,8 +66,8 @@ In a Group, **Next** and **Back** move between Questions and keep the answers on
 side; **Submit** on the last one sends them all ("Completed" replaces the progress bar once it
 is answered). Next or Submit with nothing answered counts the Question as skipped; Submit with
 nothing answered in the whole Group just closes it. **Skip** (first Question only) and × close the
-Group: what was answered with Next is still sent, the Question on screen counts as skipped (or
-keeps its earlier answer if the player came back to it with Back), and
+Group: what was answered with Next is still sent, the Question on screen counts as skipped (or,
+if the player came back to it with Back, is sent as it stands on screen), and
 the ones never reached get no Response and are not asked again at that trigger.
 
 The comment field is shown when the Question has a `commentPrompt`, the call does not turn
@@ -126,8 +126,9 @@ out of context. Every call shows the Intro, then the batch as one Group, any num
 visit (the server keeps up to 100 rows per player per 10 minutes), whatever the player said to the dynamic Intro. Here the Intro only greets: Give feedback
 opens the Group, Skip or × drops it, and participation stays as it was, so the game never starts
 asking a player who only came to leave feedback. A game Intro or Question on screen steps aside
-for it and comes back after, where it was; over a game Intro the batch opens without the greeting (if the server stays down 2 minutes meanwhile, it closes
-as with ×: what the player saw is sent). A call while the previous one is still open or waiting is ignored. The demo wires it three ways in
+for it and comes back after, where it was (with the server down it stays, and the batch opens once it is
+answered and the server is back; a panel set aside that then waits 2 minutes for the server closes as with ×: what the player saw is
+sent); over a game Intro the batch opens without the greeting. A call while the previous one is still open or waiting is ignored. The demo wires it three ways in
 [src/leave-feedback.tsx](src/leave-feedback.tsx):
 
 ```ts
@@ -179,7 +180,7 @@ More on timing, wording and reading the answers: [QUESTION_GUIDE.md](QUESTION_GU
   ```
 
   The demo does this: `coinSpotting` in [questions.ts](src/playtest-feedback/questions.ts) is bank
-  `objectContrast` about coins.
+  C08 (*important information*, not in `bank.ts`) about coins.
 - **Never change a live Question's text under the same id** — answers to different wordings
   would share it. New wording, new id.
 - **Ask at a natural pause**: after a round, a purchase, a death screen — not mid-jump or
@@ -225,7 +226,7 @@ id,timeUtc,version,questionId,questionText,trigger,rating,ratingLabel,scale,comm
 mfqz8k2x4f7a9c,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in playing more right now?,debug,5,Extremely,INTEREST,What makes you want to keep playing, or stop? (optional),kind of yes,42,1,0x…,true,desktop
 ```
 
-- `ratingLabel` `skipped` (empty `rating` and `comment`): the player pressed Skip or closed the panel on that Question.
+- `ratingLabel` `skipped` (empty `rating` and `comment`): the player pressed Next or Submit with nothing answered, Skip, or closed the panel on that Question.
 - Empty `rating` and `ratingLabel` with a `comment`: the player only wrote a comment.
 - `questionId` `intro`: the player's answer to the Intro, `ratingLabel` `accepted` or `declined`,
   `trigger` of the call that showed it; or `enrolled` with the `trigger` passed to

@@ -123,9 +123,10 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
     }
     // the Intro on screen already greets them: the batch opens without a second one
     if (feedback.phase === 'intro') ask.introDone = true
-    // server down: a game Intro on screen stays, this waits behind it for the server
-    if (feedback.phase === 'intro' && !isServerAlive()) {
-      queue.splice(1, 0, ask)
+    // server down: a game Intro or Question on screen stays, this waits behind it for the server
+    // (the Intro on screen is queue[0], a Question is `current`, outside the queue)
+    if (feedback.phase !== 'idle' && !isServerAlive()) {
+      queue.splice(feedback.phase === 'intro' ? 1 : 0, 0, ask)
       return
     }
     // the player asked: the game's panel steps aside and comes back after, where it was
