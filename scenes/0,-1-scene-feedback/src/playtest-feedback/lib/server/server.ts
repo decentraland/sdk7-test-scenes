@@ -25,6 +25,7 @@ const CURRENT_PART_KEY = 'playtest-feedback-csv-head' // the number of the part 
 const PART_MAX_BYTES = 400 * 1024 // Storage caps one value at 512 KB
 const FLUSH_COOLDOWN_MS = 60_000
 const LOAD_RETRY_MS = 5_000
+const FLUSH_RETRY_MS = 5_000
 // Per address: caps what one client can write. A legit visit sends a few rows.
 const RATE_WINDOW_MS = 10 * 60_000
 const RATE_MAX_ROWS = 30
@@ -245,7 +246,7 @@ async function flush(): Promise<void> {
     if (pending.size === 0) flushRequested = false
     console.log(`[SERVER] Flushed ${rows.length} row(s) to ${partKey(currentPart)} (${utf8Length(csv)} B)`)
   } catch (e) {
-    // rows stay pending: retried after LOAD_RETRY_MS if requested, else at the next cooldown
+    // rows stay pending: retried after FLUSH_RETRY_MS if requested, else at the next cooldown
     failedAt = Date.now()
     console.log('[SERVER] Flush failed:', e)
   } finally {
@@ -266,7 +267,7 @@ function flushSystem(): void {
   }
   if (flushing) return
   const now = Date.now()
-  const retryDue = flushRequested && now - failedAt >= LOAD_RETRY_MS
+  const retryDue = flushRequested && now - failedAt >= FLUSH_RETRY_MS
   if (retryDue || now - lastFlushAt >= FLUSH_COOLDOWN_MS) {
     forgetOld()
     void flush()

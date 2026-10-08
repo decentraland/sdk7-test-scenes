@@ -123,10 +123,10 @@ a CSV row (`questionId` `intro`), so you can count how many players agree to ans
 When the player chooses to give feedback — a button, a 3D kiosk, an area they walk into — call
 `feedback.leaveFeedback(batch, trigger)` with a batch prepared for it: Questions that make sense
 out of context. Every call shows the Intro, then the batch as one Group, any number of times per
-visit, whatever the player said to the dynamic Intro. Here the Intro only greets: Give feedback
+visit (the server keeps up to 30 rows per player per 10 minutes), whatever the player said to the dynamic Intro. Here the Intro only greets: Give feedback
 opens the Group, Skip or × drops it, and participation stays as it was, so the game never starts
-asking a player who only came to leave feedback. A game panel on screen closes for it (a game
-Intro comes back after). A call while the previous one is still open or waiting is ignored. The demo wires it three ways in
+asking a player who only came to leave feedback. A game Intro or Question on screen steps aside
+for it and comes back after, where it was. A call while the previous one is still open or waiting is ignored. The demo wires it three ways in
 [src/leave-feedback.tsx](src/leave-feedback.tsx):
 
 ```ts
@@ -191,7 +191,7 @@ More on timing, wording and reading the answers: [QUESTION_GUIDE.md](QUESTION_GU
 
 ## Test
 
-1. Here CI deploys every push to `sdk7testscenes.dcl.eth` (`.zone`); keep `worldConfiguration.name` as is. In your own
+1. Here CI deploys every push to a PR or main to `sdk7testscenes.dcl.eth` (`.zone`); keep `worldConfiguration.name` as is. In your own
    project it names your World: `npm install`, `npm run deploy`.
 2. Collect coins, or wait for **DEBUG · server online** and press an **Ask** button. The debug
    panel shows in a local preview and, once deployed, only to the World's owner and the wallets

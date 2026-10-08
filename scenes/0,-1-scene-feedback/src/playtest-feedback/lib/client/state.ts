@@ -68,6 +68,8 @@ type Ask = {
   }[]
   // furthest step shown: steps up to it get a Response, the rest not-shown
   reached: number
+  // step to show first: 0, or where Leave feedback interrupted it
+  at: number
   trigger: string
   source: AskSource
   // intro: the Intro alone (showIntro()), no steps. results[0]: submitted = accepted, skipped = declined.
@@ -116,14 +118,23 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
   if (steps.length === 0) return Promise.resolve(results)
 
   return new Promise((resolve) => {
-    const ask: Ask = { kind: 'group', steps, reached: 0, trigger, source, introDone: false, results, resolve, askedAt: Date.now() }
+    const ask: Ask = { kind: 'group', steps, reached: 0, at: 0, trigger, source, introDone: false, results, resolve, askedAt: Date.now() }
     if (source !== 'player') {
       queue.push(ask)
       return
     }
-    // the player asked: whatever the game has on screen closes, a game Intro comes back after
-    if (feedback.phase === 'open') closeGroup()
-    if (feedback.phase === 'intro') feedback.phase = 'idle'
+    // the player asked: the game's panel steps aside and comes back after, where it was
+    if (feedback.phase === 'open' && current) {
+      keepAnswer()
+      current.at = step
+      queue.unshift(current)
+      current = undefined
+    }
+    if (feedback.phase !== 'idle') {
+      feedback.phase = 'idle'
+      // its server wait starts over
+      queue[0].askedAt = Date.now()
+    }
     queue.unshift(ask)
   })
 }
@@ -131,6 +142,11 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
 function commentAllowed(question: Question, comment: AskOptions['comment'] = true): boolean {
   if (question.commentPrompt === undefined) return false
   return typeof comment === 'boolean' ? comment : comment.includes(question.id)
+}
+
+// mobile: rating only, the phone keyboard would cover the panel. Not decided at ask(): the platform may be unknown yet.
+function commentShown(step: Ask['steps'][number]): boolean {
+  return step.comment && !isMobileLayout()
 }
 
 function isTaken(questionId: string, trigger: string): boolean {
@@ -166,7 +182,7 @@ function processQueue(): void {
   }
   if (queue[0].kind === 'intro') return
   current = queue.shift()!
-  showStep(0)
+  showStep(current.at)
 }
 
 // Gates the game's ask() this visit. in: yes to the Intro, or enroll(). out: no to the Intro.
@@ -214,7 +230,7 @@ export function showIntro(trigger: string, source: AskSource = 'game'): Promise<
     return Promise.resolve('not-shown')
   }
   return new Promise<AskResult[]>((resolve) =>
-    queue.push({ kind: 'intro', steps: [], reached: 0, trigger, source, introDone: false, results: ['not-shown'], resolve, askedAt: Date.now() })
+    queue.push({ kind: 'intro', steps: [], reached: 0, at: 0, trigger, source, introDone: false, results: ['not-shown'], resolve, askedAt: Date.now() })
   ).then(([r]) => (r === 'submitted' ? 'accepted' : r === 'skipped' ? 'declined' : 'not-shown'))
 }
 
@@ -291,14 +307,12 @@ function showStep(index: number): void {
   if (!current) return
   step = index
   current.reached = Math.max(current.reached, index)
-  // mobile: rating only, the phone keyboard would cover the panel. Checked here: at ask() the platform may be unknown.
-  if (isMobileLayout()) current.steps[index].comment = false
-  const { question, comment, answer } = current.steps[index]
+  const { question, answer } = current.steps[index]
   shown.add(`${question.id}|${current.trigger}`)
   feedback.phase = 'open'
   feedback.question = question
   feedback.trigger = current.trigger
-  feedback.withComment = comment
+  feedback.withComment = commentShown(current.steps[index])
   feedback.step = index + 1
   feedback.steps = current.steps.length
   feedback.rating = answer?.rating ?? 0
@@ -389,11 +403,11 @@ export function showToast(): void {
   toastAt = Date.now()
 }
 
-// × and Skip: answers kept with Next are sent, the step on screen counts as skipped (unkept entry dropped),
-// unreached steps get no Response.
+// × and Skip: answers kept with Next are sent. The step on screen: as shown if answered before (Back), else skipped.
+// Unreached steps get no Response.
 export function closeGroup(): void {
   if (!current || feedback.phase !== 'open') return
-  current.steps[step].answer = undefined
+  if (current.steps[step].answer) keepAnswer()
   sendGroup(current)
   finishGroup()
 }
@@ -447,8 +461,8 @@ function sendGroup(ask: Ask): void {
         questionId: s.question.id,
         trigger: ask.trigger,
         rating: answer?.rating ?? 0,
-        comment: s.comment ? (answer?.comment ?? '') : '',
-        commentShown: s.comment,
+        comment: commentShown(s) ? (answer?.comment ?? '') : '',
+        commentShown: commentShown(s),
         secondsInScene: Math.round((Date.now() - enteredAt) / 1000),
         platform: getPlatform() ?? 'unknown'
       },
