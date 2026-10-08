@@ -127,7 +127,7 @@ visit (the server keeps up to 100 rows per player per 10 minutes), whatever the 
 opens the Group, Skip or × drops it, and participation stays as it was, so the game never starts
 asking a player who only came to leave feedback. A game Intro or Question on screen steps aside
 for it and comes back after, where it was (with the server down it stays, and the batch opens once it is
-answered and the server is back; a panel set aside that then waits 2 minutes for the server closes as with ×: what the player saw is
+answered and the server is back, unless that takes over 2 minutes; a panel set aside that then waits 2 minutes for the server closes as with ×: what the player saw is
 sent); over a game Intro the batch opens without the greeting. A call while the previous one is still open or waiting is ignored. The demo wires it three ways in
 [src/leave-feedback.tsx](src/leave-feedback.tsx):
 

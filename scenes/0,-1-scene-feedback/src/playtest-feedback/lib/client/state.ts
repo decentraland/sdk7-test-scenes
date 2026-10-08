@@ -123,15 +123,15 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
     }
     // the Intro on screen already greets them: the batch opens without a second one
     if (feedback.phase === 'intro') ask.introDone = true
-    // server down: a game Intro or Question on screen stays, this waits behind it for the server
-    // (the Intro on screen is queue[0], a Question is `current`, outside the queue)
+    // server down: a game Intro or Question on screen stays, this waits behind it for the server,
+    // up to SERVER_WAIT_MS (the Intro on screen is queue[0], a Question is `current`, outside the queue)
     if (feedback.phase !== 'idle' && !isServerAlive()) {
       queue.splice(feedback.phase === 'intro' ? 1 : 0, 0, ask)
       return
     }
     // the player asked: the game's panel steps aside and comes back after, where it was
     if (feedback.phase === 'open' && current) {
-      if (current.steps[step].answer) keepAnswer()
+      if (cameBack()) keepAnswer()
       else current.draft = hasAnswer() ? { rating: feedback.rating, comment: feedback.comment } : undefined
       current.at = step
       queue.unshift(current)
@@ -385,6 +385,11 @@ export function isCompleted(): boolean {
   return feedback.steps > 1 && isLastStep() && hasAnswer()
 }
 
+// the step on screen was shown before: the player left it (Next or Back, which keep its answer) and returned
+function cameBack(): boolean {
+  return current !== undefined && (step < current.reached || current.steps[step].answer !== undefined)
+}
+
 function keepAnswer(): void {
   if (!current) return
   current.steps[step].answer = hasAnswer() ? { rating: feedback.rating, comment: feedback.comment } : undefined
@@ -417,11 +422,11 @@ export function showToast(): void {
   toastAt = Date.now()
 }
 
-// × and Skip: answers kept with Next are sent. The step on screen: as shown if answered before (Back), else skipped.
-// Unreached steps get no Response.
+// × and Skip: answers kept with Next are sent. The step on screen: as shown if the player came back to it
+// with Back, else skipped. Unreached steps get no Response.
 export function closeGroup(): void {
   if (!current || feedback.phase !== 'open') return
-  if (current.steps[step].answer) keepAnswer()
+  if (cameBack()) keepAnswer()
   sendGroup(current)
   finishGroup()
 }
