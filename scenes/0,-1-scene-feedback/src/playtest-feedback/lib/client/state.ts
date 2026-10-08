@@ -25,6 +25,11 @@ let lastBeatSeenAt = 0
 function pollHeartbeat(): void {
   for (const [, hb] of engine.getEntitiesWith(ServerHeartbeat)) {
     if (hb.beatAt !== lastBeatValue) {
+      // first value seen may be a stale snapshot: alive from the first change
+      if (lastBeatValue === 0) {
+        lastBeatValue = hb.beatAt
+        break
+      }
       if (lastBeatSeenAt === 0) console.log(`[FEEDBACK] first server heartbeat at +${sinceLoad()}`)
       lastBeatValue = hb.beatAt
       lastBeatSeenAt = Date.now()
@@ -115,9 +120,8 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
   )
 }
 
-// mobile: rating only, the phone keyboard would cover the panel
 function commentAllowed(question: Question, comment: AskOptions['comment'] = true): boolean {
-  if (question.commentPrompt === undefined || isMobileLayout()) return false
+  if (question.commentPrompt === undefined) return false
   return typeof comment === 'boolean' ? comment : comment.includes(question.id)
 }
 
@@ -215,6 +219,8 @@ function introPending(): boolean {
 export function configure(introSpec: IntroSpec | null, onlyParticipants: boolean, previewMobile: boolean): void {
   intro = introSpec
   participantsOnly = onlyParticipants
+  if (!intro && onlyParticipants)
+    console.log('[FEEDBACK] INTRO is null and ASK_PARTICIPANTS_ONLY is true: ask() shows nothing until feedback.enroll()')
   previewMobileWanted = previewMobile
 }
 
@@ -236,9 +242,9 @@ export function acceptIntro(): void {
   if (feedback.phase !== 'intro') return
   console.log('[FEEDBACK] intro accepted')
   sendIntroAnswer('accepted', queue[0]?.trigger ?? '')
-  participation = 'in'
-  feedback.phase = 'idle'
   const ask = queue[0]
+  if (ask?.source !== 'debug') participation = 'in'
+  feedback.phase = 'idle'
   if (ask?.kind === 'intro') {
     queue.shift()
     ask.results[0] = 'submitted'
@@ -278,6 +284,8 @@ function showStep(index: number): void {
   if (!current) return
   step = index
   current.reached = Math.max(current.reached, index)
+  // mobile: rating only, the phone keyboard would cover the panel. Checked here: at ask() the platform may be unknown.
+  if (isMobileLayout()) current.steps[index].comment = false
   const { question, comment, answer } = current.steps[index]
   shown.add(`${question.id}|${current.trigger}`)
   feedback.phase = 'open'
