@@ -127,7 +127,8 @@ function receiveResponse(
   if (seen.has(id)) return ack(true)
 
   if (id === '') return ack(false)
-  if (pending.size >= MAX_PENDING_ROWS) return
+  // no ack: the client resends for 30 s, then drops it
+  if (pending.size >= MAX_PENDING_ROWS) return console.log(`[SERVER] ${MAX_PENDING_ROWS} rows pending, ${id} not taken`)
   if (!withinRate(from.toLowerCase())) {
     console.log(`[SERVER] ${from} over ${RATE_MAX_ROWS} rows in ${RATE_WINDOW_MS / 60_000} min, dropped`)
     return ack(false)

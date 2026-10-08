@@ -69,6 +69,8 @@ type Ask = {
   reached: number
   // step to show first: 0, or where Leave feedback interrupted it
   at: number
+  // what was on screen at that step when interrupted, not yet confirmed with Next: shown again, × still skips it
+  draft?: { rating: number; comment: string }
   trigger: string
   source: AskSource
   // intro: the Intro alone (showIntro()), no steps. results[0]: submitted = accepted, skipped = declined.
@@ -128,7 +130,8 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
     }
     // the player asked: the game's panel steps aside and comes back after, where it was
     if (feedback.phase === 'open' && current) {
-      keepAnswer()
+      if (current.steps[step].answer) keepAnswer()
+      else current.draft = hasAnswer() ? { rating: feedback.rating, comment: feedback.comment } : undefined
       current.at = step
       queue.unshift(current)
       current = undefined
@@ -184,6 +187,10 @@ function processQueue(): void {
   }
   current = queue.shift()!
   showStep(current.at)
+  if (!current.draft) return
+  feedback.rating = current.draft.rating
+  feedback.comment = current.draft.comment
+  current.draft = undefined
 }
 
 // Gates the game's ask() this visit. in: yes to the Intro, or enroll(). out: no to the Intro.

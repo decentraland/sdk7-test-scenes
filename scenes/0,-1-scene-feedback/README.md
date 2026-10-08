@@ -66,7 +66,8 @@ In a Group, **Next** and **Back** move between Questions and keep the answers on
 side; **Submit** on the last one sends them all ("Completed" replaces the progress bar once it
 is answered). Next or Submit with nothing answered counts the Question as skipped; Submit with
 nothing answered in the whole Group just closes it. **Skip** (first Question only) and × close the
-Group: what was answered with Next is still sent, the Question on screen counts as skipped, and
+Group: what was answered with Next is still sent, the Question on screen counts as skipped (or
+keeps its earlier answer if the player came back to it with Back), and
 the ones never reached get no Response and are not asked again at that trigger.
 
 The comment field is shown when the Question has a `commentPrompt`, the call does not turn
@@ -201,8 +202,8 @@ More on timing, wording and reading the answers: [QUESTION_GUIDE.md](QUESTION_GU
    collect a coin and answer the game Intro.
 3. Submit closes the panel at once and shows a *Thanks* toast; Responses go in the background.
    Without an ack the client resends every 3 s (deduped by id) and gives up after 30 s.
-4. The server flushes buffered Responses to Storage at most once a minute, and immediately when
-   the last player leaves (it stays up ~2 min after that). Copy the CSV from the scene storage UI
+4. The server flushes buffered Responses to Storage at most once a minute (the rest of a batch
+   over 200 KB goes right after), and immediately when the last player leaves (it stays up ~2 min after that). Copy the CSV from the scene storage UI
    (Creator Hub → Manage → ⋮ → View Storage), or follow `npm run server-logs`.
 
 Mobile layout without a phone: `PREVIEW_MOBILE = true` in `questions.ts` (local preview only), and
@@ -250,7 +251,10 @@ mfqz8k2x4f7a9c,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in
 - Storage has no compare-and-set: while two server instances overlap after a redeploy, one flush can
   overwrite the other's rows.
 - One address can write at most 100 rows per 10 minutes; the rest are dropped.
+- The server buffers at most 2000 rows between flushes; past that it doesn't ack, and the client
+  drops the row after 30 s of resends.
 
 ## Credits
 
-Rating faces in `assets/playtest-feedback/face-*.png`: [Noto Emoji](https://github.com/googlefonts/noto-emoji), Apache License 2.0.
+Rating faces in `assets/playtest-feedback/face-*.png`: [Noto Emoji](https://github.com/googlefonts/noto-emoji), Apache License 2.0
+(text in `assets/playtest-feedback/LICENSE-noto-emoji.txt`, keep it next to the faces).
