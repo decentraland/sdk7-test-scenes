@@ -58,12 +58,13 @@ export type AskSource = 'game' | 'player' | 'debug'
 
 // one ask() call
 type Ask = {
-  // slot: index in ask()'s ids. answer: kept by Next/Back until sent.
+  // slot: index in ask()'s ids. answer: kept by Next/Back until sent. left: Next or Back took the player off it
   steps: {
     question: Question
     slot: number
     comment: boolean
     answer?: { rating: number; comment: string }
+    left?: boolean
   }[]
   // furthest step shown, -1 before the first: steps up to it get a Response, the rest not-shown
   reached: number
@@ -385,14 +386,15 @@ export function isCompleted(): boolean {
   return feedback.steps > 1 && isLastStep() && hasAnswer()
 }
 
-// the step on screen was shown before: the player left it (Next or Back, which keep its answer) and returned
+// the step on screen was left with Next or Back and the player returned to it
 function cameBack(): boolean {
-  return current !== undefined && (step < current.reached || current.steps[step].answer !== undefined)
+  return current?.steps[step].left === true
 }
 
 function keepAnswer(): void {
   if (!current) return
   current.steps[step].answer = hasAnswer() ? { rating: feedback.rating, comment: feedback.comment } : undefined
+  current.steps[step].left = true
 }
 
 // unanswered: the Question counts as skipped
@@ -422,8 +424,8 @@ export function showToast(): void {
   toastAt = Date.now()
 }
 
-// × and Skip: answers kept with Next are sent. The step on screen: as shown if the player came back to it
-// with Back, else skipped. Unreached steps get no Response.
+// × and Skip: answers kept with Next are sent. The step on screen: as shown if the player left it and came
+// back (Back, or Next after a Back), else skipped. Unreached steps get no Response.
 export function closeGroup(): void {
   if (!current || feedback.phase !== 'open') return
   if (cameBack()) keepAnswer()
