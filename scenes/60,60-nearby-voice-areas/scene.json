@@ -1,0 +1,58 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Nearby Voice Areas Test Scene",
+    "description": "VoiceChatModifierArea zones and PlayerVoiceState speaking indicators",
+    "navmapThumbnail": "images/scene-thumbnail.png",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "SDK",
+    "email": ""
+  },
+  "main": "bin/index.js",
+  "tags": [],
+  "scene": {
+    "parcels": [
+      "60,60",
+      "60,61",
+      "61,60",
+      "61,61"
+    ],
+    "base": "60,60"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          14,
+          18
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          28,
+          30
+        ]
+      },
+      "cameraTarget": {
+        "x": 16,
+        "y": 1,
+        "z": 16
+      }
+    }
+  ],
+  "featureToggles": {
+    "voiceChat": "enabled",
+    "portableExperiences": "enabled"
+  },
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}
