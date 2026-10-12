@@ -1,6 +1,7 @@
 import { ExplorerUi, InputAction, PointerEventType, engine, inputSystem } from '@dcl/sdk/ecs'
+import { OpenExplorerUiResult, openExplorerUi } from '~system/RestrictedActions'
 import { call } from './openExplorerUiButtons'
-import { formatNow } from './resultsHud'
+import { formatNow, pushResult } from './resultsHud'
 
 // The user-gesture gate accepts three sources: a click on a 3D entity (the cubes), a click on
 // scene UI (the button in ui.tsx), and a global input action with no entity target (the keys
@@ -33,4 +34,67 @@ export function setupGestureSources(): void {
       }
     }
   }, 0, 'explorerUiGestureKeys')
+}
+
+// Poll: calls openExplorerUi(EU_MAP) every tick with no user input of its own. Movement keys
+// (WASD, jump, walk, sprint) must not count as a gesture, so on a fixed build this only ever
+// grows "rejected". Starts POLL_START_DELAY_SECONDS after switching ON because the click on the
+// toggle is itself a UI gesture and could legitimately open the map.
+const POLL_START_DELAY_SECONDS = 1
+
+export const pollState = { enabled: false, noGesture: 0, otherRejected: 0, opened: 0, alreadyOpen: 0 }
+
+let pollDelayRemaining = 0
+let pollPending = false
+let pollLastCode: number | undefined
+
+export function togglePoll(): void {
+  pollState.enabled = !pollState.enabled
+  pollDelayRemaining = pollState.enabled ? POLL_START_DELAY_SECONDS : 0
+  pollLastCode = undefined
+  console.log(`[openExplorerUi] ${formatNow()} poll ${pollState.enabled ? 'ON (starts in 1s)' : 'OFF'}`)
+}
+
+export function pollSummary(): string {
+  const { noGesture, otherRejected, opened, alreadyOpen } = pollState
+  const other = otherRejected + alreadyOpen > 0 ? `, ${alreadyOpen} already open, ${otherRejected} other` : ''
+  return `poll: ${noGesture} rejected (no gesture), ${opened} opened${other}`
+}
+
+function pollOnce(): void {
+  pollPending = true
+  openExplorerUi({ ui: ExplorerUi.EU_MAP })
+    .then(({ openResult }) => {
+      const verdict = OpenExplorerUiResult[openResult] ?? `UNKNOWN_${openResult}`
+      if (openResult === OpenExplorerUiResult.OPENED) pollState.opened++
+      else if (openResult === OpenExplorerUiResult.WAS_ALREADY_OPEN) pollState.alreadyOpen++
+      else if (openResult === OpenExplorerUiResult.REJECTED_NO_USER_GESTURE) pollState.noGesture++
+      else pollState.otherRejected++
+
+      const opened = openResult === OpenExplorerUiResult.OPENED
+      if (opened || openResult !== pollLastCode) {
+        const time = pushResult('POLL(MAP)', openResult, verdict)
+        if (opened) console.log(`[openExplorerUi] ${time} POLL(MAP) OPENED (${openResult})`)
+      }
+      pollLastCode = openResult
+    })
+    .catch((err) => {
+      console.error(`[openExplorerUi] ${formatNow()} POLL(MAP) RPC_ERROR`, err)
+      if (pollLastCode !== -1) pushResult('POLL(MAP)', -1, 'RPC_ERROR')
+      pollLastCode = -1
+    })
+    .finally(() => {
+      pollPending = false
+    })
+}
+
+export function setupGesturePoll(): void {
+  engine.addSystem((dt: number) => {
+    if (!pollState.enabled) return
+    if (pollDelayRemaining > 0) {
+      pollDelayRemaining -= dt
+      return
+    }
+    if (!pollPending) pollOnce()
+  }, 0, 'explorerUiGesturePoll')
 }

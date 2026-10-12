@@ -119,6 +119,18 @@ clicking must not open anything. `REJECTED_NO_USER_GESTURE (5)` on any of these 
 is not recognised (explorer builds predating the UI/global-input gesture fix only accept entity clicks).
 Press Esc to close a panel before the next key.
 
+**Walking must not count (poll test).** Movement keys (WASD, Space/jump, Shift/walk, modifier, any-key)
+are not gestures; only activation buttons (pointer, E, F, 1-4, Down or Up) are. To prove it:
+
+1. Click "Poll openExplorerUi every tick: OFF" so it reads ON. Polling starts 1 s after the toggle,
+   because the toggle click is itself a UI gesture and the first poll could legitimately open the map.
+2. Wait 1 s, then close anything open with Esc.
+3. Walk, jump and sprint without pressing E/F/1-4 or clicking. Expected on a fixed build: the map never
+   opens and the panel counter ("poll: N rejected (no gesture), M opened") only grows "rejected".
+   The `POLL(MAP)` HUD entry appears only on state changes or OPENED, not every tick.
+4. Press E with nothing targeted while polling: the map should open (`POLL(MAP)` OPENED, counter "opened"
+   +1), proving the gate still opens for real activation. Esc to close.
+
 ## SDK pin
 
 Pinned to `7.29.1-35917671376.commit-046b268`, the first published build carrying

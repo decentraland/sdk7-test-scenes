@@ -1,7 +1,7 @@
 import ReactEcs, { ReactEcsRenderer, Label, UiEntity } from '@dcl/sdk/react-ecs'
 import { Color4 } from '@dcl/sdk/math'
 import { OpenExplorerUiResult } from '~system/RestrictedActions'
-import { KEY_HINT, openFromUiClick } from './modules/gestureSources'
+import { KEY_HINT, openFromUiClick, pollState, pollSummary, togglePoll } from './modules/gestureSources'
 import { callResults } from './modules/resultsHud'
 import { uiEvents, drainStatus } from './modules/explorerUiEvents'
 
@@ -126,6 +126,14 @@ const gestureHud = () => (
     >
       <Label value="Open MAP (scene UI click)" fontSize={14} color={Color4.White()} />
     </UiEntity>
+    <UiEntity
+      uiTransform={{ width: 260, height: 36, margin: { top: 6 }, justifyContent: 'center', alignItems: 'center' }}
+      uiBackground={{ color: pollState.enabled ? Color4.create(0.1, 0.6, 0.2, 1) : Color4.create(0.4, 0.4, 0.4, 1) }}
+      onMouseDown={() => togglePoll()}
+    >
+      <Label value={`Poll openExplorerUi every tick: ${pollState.enabled ? 'ON' : 'OFF'}`} fontSize={14} color={Color4.White()} />
+    </UiEntity>
+    <Label value={pollSummary()} fontSize={12} color={Color4.White()} uiTransform={{ margin: { top: 6 } }} />
     <Label value={`Keys: ${KEY_HINT}`} fontSize={12} color={Color4.White()} uiTransform={{ margin: { top: 6 } }} />
   </UiEntity>
 )

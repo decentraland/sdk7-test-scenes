@@ -1,5 +1,5 @@
 import { setupExplorerUiEvents } from './modules/explorerUiEvents'
-import { setupGestureSources } from './modules/gestureSources'
+import { setupGesturePoll, setupGestureSources } from './modules/gestureSources'
 import { setupOpenExplorerUiButtons } from './modules/openExplorerUiButtons'
 import { setupStopEmoteButtons } from './modules/stopEmoteButtons'
 import { setupWaitHelperButtons } from './modules/waitHelperButtons'
@@ -11,6 +11,7 @@ export function main() {
   setupExplorerUiEvents()
   setupOpenExplorerUiButtons()
   setupGestureSources()
+  setupGesturePoll()
   setupWaitHelperButtons()
   setupStopEmoteButtons()
   setupUi()
