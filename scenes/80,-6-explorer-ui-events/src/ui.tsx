@@ -1,6 +1,7 @@
 import ReactEcs, { ReactEcsRenderer, Label, UiEntity } from '@dcl/sdk/react-ecs'
 import { Color4 } from '@dcl/sdk/math'
 import { OpenExplorerUiResult } from '~system/RestrictedActions'
+import { KEY_HINT, openFromUiClick } from './modules/gestureSources'
 import { callResults } from './modules/resultsHud'
 import { uiEvents, drainStatus } from './modules/explorerUiEvents'
 
@@ -105,10 +106,35 @@ const uiEventsHud = () => (
   </UiEntity>
 )
 
+// Gesture-source panel: a scene-UI button (UI click counts as a gesture) and the global keys
+// (no entity target). Hover never counts.
+const gestureHud = () => (
+  <UiEntity
+    uiTransform={{
+      positionType: 'absolute',
+      position: { bottom: 16, left: '35%' },
+      padding: 12,
+      flexDirection: 'column'
+    }}
+    uiBackground={{ color: Color4.create(0, 0, 0, 0.6) }}
+  >
+    <Label value="Gesture sources (hover does not count)" fontSize={16} color={Color4.White()} />
+    <UiEntity
+      uiTransform={{ width: 260, height: 36, margin: { top: 6 }, justifyContent: 'center', alignItems: 'center' }}
+      uiBackground={{ color: Color4.create(0.2, 0.4, 0.9, 1) }}
+      onMouseDown={() => openFromUiClick()}
+    >
+      <Label value="Open MAP (scene UI click)" fontSize={14} color={Color4.White()} />
+    </UiEntity>
+    <Label value={`Keys: ${KEY_HINT}`} fontSize={12} color={Color4.White()} uiTransform={{ margin: { top: 6 } }} />
+  </UiEntity>
+)
+
 const uiMenu = () => (
   <UiEntity uiTransform={{ width: '100%', height: '100%' }}>
     {sceneNameHud()}
     {openResultsHud()}
     {uiEventsHud()}
+    {gestureHud()}
   </UiEntity>
 )

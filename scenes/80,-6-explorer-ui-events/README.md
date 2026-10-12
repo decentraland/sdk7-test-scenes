@@ -103,6 +103,22 @@ right HUD shows `success=true typeof=boolean`.
 `typeof=object` means the JS module is handing the scene an unresolved promise instead of the
 boolean the protocol promises â€” the bug this row exists to catch.
 
+### 9. Gesture sources — what counts as a user gesture
+
+`openExplorerUi` is accepted only right after a user gesture. Three sources count; hover never does.
+
+| Source | How to test | Expected |
+| --- | --- | --- |
+| 3D entity click | click any cube (`pointerEventsSystem`) | `OPENED (1)` |
+| Scene UI click | click the blue "Open MAP (scene UI click)" button (bottom centre, React-ECS `onMouseDown`) | `OPENED (1)`, label `UI-CLICK(MAP)` |
+| Global key, no entity target | press E (MAP), F (SETTINGS), 1 (BACKPACK), 2 (CAMERA_REEL), 3 (COMMUNITIES), 4 (PLACES) | `OPENED (1)`, label `KEY-<k>(...)` |
+
+The keys are read with `inputSystem.isTriggered(IA_PRIMARY / IA_SECONDARY / IA_ACTION_3..6, PET_DOWN)`
+and `openExplorerUi` is called in that same system tick. Hovering a cube or the UI button without
+clicking must not open anything. `REJECTED_NO_USER_GESTURE (5)` on any of these means that source
+is not recognised (explorer builds predating the UI/global-input gesture fix only accept entity clicks).
+Press Esc to close a panel before the next key.
+
 ## SDK pin
 
 Pinned to `7.29.1-35917671376.commit-046b268`, the first published build carrying
