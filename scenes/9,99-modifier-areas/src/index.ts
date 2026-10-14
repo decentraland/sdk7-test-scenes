@@ -19,12 +19,13 @@ import {
 } from '@dcl/sdk/ecs'
 
 import { Quaternion, Vector3, Color4 } from '@dcl/sdk/math'
+import { getPlayer } from '@dcl/sdk/players'
 import { movePlayerTo } from '~system/RestrictedActions'
-import { setupPooledAreaReuseUi } from './pooledAreaReuseUi'
+import { addCubeHint, getNearbyCubeHint } from './cubeHints'
+import { setupQaPanelUi } from './qaPanelUi'
+import { setupAreaScaleDrift, runAreaScaleDriftCheck, getAreaScaleDriftStatus, getAreaScaleDriftStatusColor } from './areaScaleDrift'
 
 // AVATAR MODIFIER AREA
-const excludedUser1 = 'USER-WALLET-ADDRESS-GOES-HERE'
-const excludedUser2 = 'USER-WALLET-ADDRESS-GOES-HERE'
 const avatarModifierAreaEntity = engine.addEntity()
 const avatarModifierAreaSize = Vector3.create(4, 4, 4)
 Transform.create(avatarModifierAreaEntity, {
@@ -44,19 +45,34 @@ MeshCollider.setBox(avatarModifierAreaCube)
 pointerEventsSystem.onPointerDown(
     { entity: avatarModifierAreaCube, opts: { button: InputAction.IA_POINTER, hoverText: 'toggle excluded id' } },
     () => {
-        // TODO: Detect user id on click and add/remove from excluded, instead of hardcoded ones...
-        
+        const userId = getPlayer()?.userId
+        if (userId === undefined) return
+
         const mutable = AvatarModifierArea.getMutable(avatarModifierAreaEntity)
-        if (mutable.excludeIds.includes(excludedUser1) && mutable.excludeIds.includes(excludedUser2)) {
-            mutable.excludeIds = []
-            console.log(`REMOVED excluded users`)
+        if (mutable.excludeIds.includes(userId)) {
+            mutable.excludeIds = mutable.excludeIds.filter((id) => id !== userId)
+            console.log(`REMOVED own user id from excluded ids`)
         }
         else {
-            mutable.excludeIds = [excludedUser1, excludedUser2]
-            console.log(`ADDED excluded users`)
+            mutable.excludeIds = [...mutable.excludeIds, userId]
+            console.log(`ADDED own user id to excluded ids`)
         }
     }
 )
+addCubeHint(avatarModifierAreaCube, {
+    title: 'AVATAR MODIFIER AREA — toggle excluded id',
+    whatIsTested: 'The gray box at the back left is an AvatarModifierArea with HIDE_AVATARS, half outside the scene. ' +
+        'This cube adds or removes your own user id in the area\'s excludeIds.',
+    steps: '1. Switch to third person and walk into the gray box: your avatar hides.\n' +
+        '2. Click this cube (status: excluded) and walk into the box again: your avatar stays visible.\n' +
+        '3. Click again (status: not excluded): your avatar hides inside the box again.\n' +
+        'Each client applies only its own list: excluding yourself does not change what other players see.',
+    getStatus: () => {
+        const userId = getPlayer()?.userId
+        const excluded = userId !== undefined && AvatarModifierArea.get(avatarModifierAreaEntity).excludeIds.includes(userId)
+        return excluded ? 'your id is excluded' : 'your id is not excluded'
+    }
+})
 
 const avatarModifierAreaText = engine.addEntity()
 Transform.create(avatarModifierAreaText, {
@@ -103,6 +119,19 @@ pointerEventsSystem.onPointerDown(
         mutable.position = Vector3.create(mutable.position.x === 16 ? 5.5 : 16, mutable.position.y, mutable.position.z)
     }
 )
+addCubeHint(cube, {
+    title: 'CAMERA MODE AREA — reposition area',
+    whatIsTested: 'Two CameraModeAreas under the CAMERA MODE AREA sign: the rotated box on the left forces first person, ' +
+        'the box on the right forces third person, they overlap in the middle. ' +
+        'This cube moves the rotated box to the scene border, half outside the scene, and back.',
+    steps: '1. Walk into the rotated box: the camera switches to first person and V does not change it.\n' +
+        '2. Walk into the right box: the camera switches to third person and stays locked.\n' +
+        '3. Walk out of both boxes: the camera unlocks, V works again.\n' +
+        '4. Click this cube: the rotated box moves to the scene border. Walk into it (first person), then keep walking ' +
+        'out of the scene while still inside the box: the camera unlocks once you leave the scene.\n' +
+        '5. Click again to move the box back.',
+    getStatus: () => Transform.get(cameraModeAreaEntity).position.x === 16 ? 'rotated box at the scene border' : 'rotated box in place'
+})
 
 const cameraModeAreaEntity2 = engine.addEntity()
 Transform.create(cameraModeAreaEntity2, {
@@ -118,7 +147,9 @@ Material.setPbrMaterial(cameraModeAreaEntity2, { albedoColor: Color4.create(0.5,
 
 const cameraModAreaText = engine.addEntity()
 Transform.create(cameraModAreaText, {
-    position: Vector3.create(7, 3.5, 8)
+    position: Vector3.create(7, 3.5, 8),
+    // Face the spawn side of the scene
+    rotation: Quaternion.fromEulerDegrees(0, 180, 0)
 })
 TextShape.create(cameraModAreaText, {
     text: "CAMERA MODE AREA",
@@ -129,10 +160,10 @@ TextShape.create(cameraModAreaText, {
 // POOLED AREA REUSE
 // Regression coverage for unity-explorer#10428: a pooled area collider kept the scale of its previous owner.
 // The explorer pools the collider behind every area. The red donor area is scaled to its own size, like the areas
-// above; the clickable cube removes it (its collider goes back to the pool) and creates the green recipient area, which
-// reuses that collider. The recipient hides your avatar anywhere inside its box, not only in a spot at its center.
-// The auto check cube runs the same reuse with a TriggerArea probe, which shares that pool, moves the player next to the
-// probe's edge and prints PASS when the probe reports the player entering.
+// above; the swap button in the QA panel removes it (its collider goes back to the pool) and creates the green
+// recipient area, which reuses that collider. The recipient hides your avatar anywhere inside its box, not only in a spot
+// at its center. The auto check runs the same reuse with a TriggerArea probe, which shares that pool, moves the player
+// next to the probe's edge and reports PASS when the probe reports the player entering.
 const pooledAreaPosition = Vector3.create(13, 0, 3)
 const donorAreaSize = Vector3.create(5, 2, 5)
 const recipientAreaSize = Vector3.create(5, 4, 5)
@@ -148,12 +179,6 @@ addDonorArea()
 let recipientAreaEntity: Entity | undefined
 let recipientCreationCountdown = 0
 
-const pooledAreaCube = createCube(13, 1, 7, false)
-pointerEventsSystem.onPointerDown(
-    { entity: pooledAreaCube, opts: { button: InputAction.IA_POINTER, hoverText: 'swap donor / recipient area' } },
-    swapDonorAndRecipient
-)
-
 // Auto check: donor removed -> probe created -> player moved inside the probe, near its edge -> verdict
 enum AutoCheckStep { Idle, CreateProbe, MovePlayer, Verdict }
 const autoCheckStepDelay = 0.5
@@ -165,27 +190,8 @@ let autoCheckStep = AutoCheckStep.Idle
 let autoCheckCountdown = 0
 let autoCheckProbe: Entity | undefined
 let autoCheckPlayerEntered = false
-let autoCheckStatus = ''
-let autoCheckStatusColor = Color4.Black()
-
-const autoCheckCube = createCube(15, 1, 7, false)
-pointerEventsSystem.onPointerDown(
-    { entity: autoCheckCube, opts: { button: InputAction.IA_POINTER, hoverText: 'run auto check' } },
-    runAutoCheck
-)
-
-const autoCheckText = engine.addEntity()
-Transform.create(autoCheckText, {
-    position: Vector3.create(15, 2, 7),
-    // Face the cubes' side of the scene, where players stand to click them
-    rotation: Quaternion.fromEulerDegrees(0, 180, 0)
-})
-TextShape.create(autoCheckText, {
-    text: '',
-    fontSize: 1.5,
-    textColor: Color4.Black()
-})
-setAutoCheckStatus('click to run', Color4.Black())
+let autoCheckStatus = 'click to run'
+let autoCheckStatusColor = Color4.White()
 
 engine.addSystem((dt: number) => {
     if (autoCheckStep === AutoCheckStep.Idle) return
@@ -213,11 +219,17 @@ engine.addSystem((dt: number) => {
     }
 })
 
-setupPooledAreaReuseUi({
+setupAreaScaleDrift()
+
+setupQaPanelUi({
     getAutoCheckStatus: () => autoCheckStatus,
     getAutoCheckStatusColor: () => autoCheckStatusColor,
     runAutoCheck,
-    swapDonorAndRecipient
+    swapDonorAndRecipient,
+    getAreaScaleDriftStatus,
+    getAreaScaleDriftStatusColor,
+    runAreaScaleDriftCheck,
+    getNearbyCubeHint
 })
 
 engine.addSystem((dt: number) => {
@@ -237,7 +249,7 @@ Transform.create(pooledAreaText, {
     rotation: Quaternion.fromEulerDegrees(0, 180, 0)
 })
 TextShape.create(pooledAreaText, {
-    text: "POOLED AREA REUSE\nclick: swap red donor / green recipient\nthird person: avatar hides anywhere in green",
+    text: "POOLED AREA REUSE\nQA info panel (top right): swap red donor / green recipient\nthird person: avatar hides anywhere in green",
     fontSize: 1.5,
     textColor: Color4.Black()
 })
@@ -273,12 +285,12 @@ function runAutoCheck() {
     if (autoCheckStep !== AutoCheckStep.Idle || recipientCreationCountdown > 0) return
 
     if (recipientAreaEntity !== undefined) {
-        setAutoCheckStatus('restore the red donor first', Color4.Black())
+        setAutoCheckStatus('restore the red donor first', Color4.White())
         return
     }
 
     removeDonorArea()
-    setAutoCheckStatus('running...', Color4.Black())
+    setAutoCheckStatus('running...', Color4.White())
     console.log(`[pooledAreaReuse] auto check: donor area removed`)
     startAutoCheckStep(AutoCheckStep.CreateProbe, autoCheckStepDelay)
 }
@@ -316,7 +328,7 @@ function finishAutoCheck() {
     if (autoCheckPlayerEntered)
         setAutoCheckStatus('PASS: probe saw the player at its edge', Color4.Green())
     else
-        setAutoCheckStatus('FAIL: probe missed the player at its edge,\nits collider kept the donor scale', Color4.Red())
+        setAutoCheckStatus('FAIL: probe missed the player at its edge, its collider kept the donor scale', Color4.Red())
     console.log(`[pooledAreaReuse] auto check: ${autoCheckPlayerEntered ? 'PASS' : 'FAIL'}`)
 
     if (autoCheckProbe !== undefined) {
@@ -331,9 +343,6 @@ function finishAutoCheck() {
 function setAutoCheckStatus(status: string, color: Color4) {
     autoCheckStatus = status
     autoCheckStatusColor = color
-    const text = TextShape.getMutable(autoCheckText)
-    text.text = `AUTO CHECK\n${status}`
-    text.textColor = color
 }
 
 function createRecipientArea(): Entity {
