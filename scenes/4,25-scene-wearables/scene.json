@@ -1,0 +1,55 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Scene Wearables Test Scene",
+    "description": "Wearables shipped as GLBs in the scene content, worn by the local player, remote players and an NPC",
+    "navmapThumbnail": "images/scene-thumbnail.png",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "SDK",
+    "email": ""
+  },
+  "main": "bin/index.js",
+  "tags": [],
+  "scene": {
+    "parcels": [
+      "4,25"
+    ],
+    "base": "4,25"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          7,
+          9
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          3,
+          5
+        ]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1,
+        "z": 11
+      }
+    }
+  ],
+  "featureToggles": {
+    "voiceChat": "enabled",
+    "portableExperiences": "enabled"
+  },
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}
