@@ -3,8 +3,7 @@
   "runtimeVersion": "7",
   "display": {
     "title": "Scene Wearables Test Scene",
-    "description": "Wearables shipped as GLBs in the scene content, worn by the local player, remote players and an NPC",
-    "navmapThumbnail": "images/scene-thumbnail.png",
+    "description": "Scene wearables: GLBs from the scene content worn by players and an NPC, switched from the UI",
     "favicon": "favicon_asset"
   },
   "owner": "",
