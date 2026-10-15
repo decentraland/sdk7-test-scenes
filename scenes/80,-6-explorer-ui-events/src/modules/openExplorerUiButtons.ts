@@ -59,7 +59,7 @@ export function setupOpenExplorerUiButtons() {
 
 // Every cube but DOUBLE CALL leaves `requestId` unset, so the event drain also shows what the
 // explorer does with a call that asked for no correlation: it reports `req 0`.
-function call(callLabel: string, ui: ExplorerUi, requestId?: number): void {
+export function call(callLabel: string, ui: ExplorerUi, requestId?: number): void {
   console.log(`[openExplorerUi] ${formatNow()} request ${callLabel} (ui=${ui}, requestId=${requestId ?? 'none'})`)
 
   openExplorerUi({ ui, requestId })
