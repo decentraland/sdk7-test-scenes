@@ -131,7 +131,7 @@ const gestureHud = () => (
       uiBackground={{ color: pollState.enabled ? Color4.create(0.1, 0.6, 0.2, 1) : Color4.create(0.4, 0.4, 0.4, 1) }}
       onMouseDown={() => togglePoll()}
     >
-      <Label value={`Poll openExplorerUi every tick: ${pollState.enabled ? 'ON' : 'OFF'}`} fontSize={14} color={Color4.White()} />
+      <Label value={`Poll openExplorerUi: ${pollState.enabled ? 'ON' : 'OFF'}`} fontSize={14} color={Color4.White()} />
     </UiEntity>
     <Label value={pollSummary()} fontSize={12} color={Color4.White()} uiTransform={{ margin: { top: 6 } }} />
     <Label value={`Keys: ${KEY_HINT}`} fontSize={12} color={Color4.White()} uiTransform={{ margin: { top: 6 } }} />

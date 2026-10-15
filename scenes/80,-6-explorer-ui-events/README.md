@@ -103,7 +103,7 @@ right HUD shows `success=true typeof=boolean`.
 `typeof=object` means the JS module is handing the scene an unresolved promise instead of the
 boolean the protocol promises — the bug this row exists to catch.
 
-### 9. Gesture sources � what counts as a user gesture
+### 9. Gesture sources — what counts as a user gesture
 
 `openExplorerUi` is accepted only right after a user gesture. Three sources count; hover never does.
 
@@ -120,16 +120,22 @@ is not recognised (explorer builds predating the UI/global-input gesture fix onl
 Press Esc to close a panel before the next key.
 
 **Walking must not count (poll test).** Movement keys (WASD, Space/jump, Shift/walk, modifier, any-key)
-are not gestures; only activation buttons (pointer, E, F, 1-4, Down or Up) are. To prove it:
+are not gestures; only activation buttons (pointer, E, F, 1-4), pressed or released (`PET_DOWN` / `PET_UP`), are. To prove it:
 
-1. Click "Poll openExplorerUi every tick: OFF" so it reads ON. Polling starts 1 s after the toggle,
-   because the toggle click is itself a UI gesture and the first poll could legitimately open the map.
+1. Click "Poll openExplorerUi: OFF" so it reads ON. Polling starts 1 s after the toggle, because the
+   toggle click is itself a UI gesture and the first poll could legitimately open the map. The poll
+   calls on every tick where its previous call has already answered (one call in flight at a time).
+   While it is ON the scene's own E/F/1-4 key calls are off, so the poll is the only caller.
 2. Wait 1 s, then close anything open with Esc.
 3. Walk, jump and sprint without pressing E/F/1-4 or clicking. Expected on a fixed build: the map never
    opens and the panel counter ("poll: N rejected (no gesture), M opened") only grows "rejected".
    The `POLL(MAP)` HUD entry appears only on state changes or OPENED, not every tick.
 4. Press E with nothing targeted while polling: the map should open (`POLL(MAP)` OPENED, counter "opened"
-   +1), proving the gate still opens for real activation. Esc to close.
+   +1, no `KEY-E(MAP)` entry), proving the gate still opens for real activation. Esc to close. If the
+   press lands while a poll call is still in flight, the next call may already be outside the gesture
+   window and get rejected; press E again.
+5. Click the toggle again so it reads OFF. Calls still in flight from the poll are dropped, so the
+   OFF click (itself a gesture) cannot show up as a `POLL(MAP)` OPENED.
 
 ## SDK pin
 

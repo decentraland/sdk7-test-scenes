@@ -27,6 +27,10 @@ export function openFromUiClick(): void {
 
 export function setupGestureSources(): void {
   engine.addSystem(() => {
+    // While the poll runs it must be the only caller: a key call here would take the panel first
+    // and leave the poll with WAS_ALREADY_OPEN, so E could never show up as a POLL(MAP) OPENED.
+    // The key press still registers as a gesture in the explorer, the scene just doesn't call.
+    if (pollState.enabled) return
     for (const b of KEY_BINDINGS) {
       if (inputSystem.isTriggered(b.action, PointerEventType.PET_DOWN)) {
         console.log(`[openExplorerUi] ${formatNow()} global key ${b.key} (no entity target)`)
@@ -36,9 +40,9 @@ export function setupGestureSources(): void {
   }, 0, 'explorerUiGestureKeys')
 }
 
-// Poll: calls openExplorerUi(EU_MAP) every tick with no user input of its own. Movement keys
-// (WASD, jump, walk, sprint) must not count as a gesture, so on a fixed build this only ever
-// grows "rejected". Starts POLL_START_DELAY_SECONDS after switching ON because the click on the
+// Poll: calls openExplorerUi(EU_MAP) on every tick where no earlier poll call is still pending,
+// with no user input of its own. Movement keys (WASD, jump, walk, sprint) must not count as a
+// gesture, so on a fixed build this only ever grows "rejected". Starts POLL_START_DELAY_SECONDS after switching ON because the click on the
 // toggle is itself a UI gesture and could legitimately open the map.
 const POLL_START_DELAY_SECONDS = 1
 
@@ -46,10 +50,15 @@ export const pollState = { enabled: false, noGesture: 0, otherRejected: 0, opene
 
 let pollDelayRemaining = 0
 let pollPending = false
+// Bumped on every toggle. A call still in flight from an earlier session (or from before OFF)
+// resolves with a stale generation and is dropped, so it can't bump the counters or the dedup.
+let pollGeneration = 0
 let pollLastCode: number | undefined
 
 export function togglePoll(): void {
   pollState.enabled = !pollState.enabled
+  pollGeneration++
+  pollPending = false
   pollDelayRemaining = pollState.enabled ? POLL_START_DELAY_SECONDS : 0
   pollLastCode = undefined
   console.log(`[openExplorerUi] ${formatNow()} poll ${pollState.enabled ? 'ON (starts in 1s)' : 'OFF'}`)
@@ -62,9 +71,12 @@ export function pollSummary(): string {
 }
 
 function pollOnce(): void {
+  const generation = pollGeneration
+  const isStale = () => generation !== pollGeneration
   pollPending = true
   openExplorerUi({ ui: ExplorerUi.EU_MAP })
     .then(({ openResult }) => {
+      if (isStale()) return
       const verdict = OpenExplorerUiResult[openResult] ?? `UNKNOWN_${openResult}`
       if (openResult === OpenExplorerUiResult.OPENED) pollState.opened++
       else if (openResult === OpenExplorerUiResult.WAS_ALREADY_OPEN) pollState.alreadyOpen++
@@ -79,12 +91,13 @@ function pollOnce(): void {
       pollLastCode = openResult
     })
     .catch((err) => {
+      if (isStale()) return
       console.error(`[openExplorerUi] ${formatNow()} POLL(MAP) RPC_ERROR`, err)
       if (pollLastCode !== -1) pushResult('POLL(MAP)', -1, 'RPC_ERROR')
       pollLastCode = -1
     })
     .finally(() => {
-      pollPending = false
+      if (!isStale()) pollPending = false
     })
 }
 
