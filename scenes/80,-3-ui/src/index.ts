@@ -4,12 +4,15 @@ import { engine } from '@dcl/sdk/ecs'
 
 import { setupRawTextWrapTest } from './raw-text-wrap'
 import { changeColorSystem, circularSystem } from './systems'
+import { flexBasisToggleSystem, setupFlexBasisTest } from './flex-basis'
 import { setupUi } from './ui'
 
 export function main() {
   // Defining behavior. See `src/systems.ts` file.
   engine.addSystem(circularSystem)
   engine.addSystem(changeColorSystem)
+  engine.addSystem(flexBasisToggleSystem)
+  setupFlexBasisTest()
 
   // draw UI. Here is the logic to spawn cubes.
   setupUi()
