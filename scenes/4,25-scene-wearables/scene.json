@@ -3,7 +3,7 @@
   "runtimeVersion": "7",
   "display": {
     "title": "Scene Wearables Test Scene",
-    "description": "Scene wearables: GLBs from the scene content worn by players and an NPC, switched from the UI",
+    "description": "Scene wearables on players and an NPC: applied locally, or synced to everyone by an authoritative server",
     "favicon": "favicon_asset"
   },
   "owner": "",
@@ -50,5 +50,6 @@
   },
   "worldConfiguration": {
     "name": "sdk7testscenes.dcl.eth"
-  }
+  },
+  "authoritativeMultiplayer": true
 }
