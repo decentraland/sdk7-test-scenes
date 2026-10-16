@@ -1,0 +1,59 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Scene Feedback",
+    "description": "In-scene playtest feedback for creators: players rate Questions 1-5 with an optional comment, asked during play or from a Leave feedback button. Every answer lands in a CSV in scene Storage.",
+    "navmapThumbnail": "assets/images/scene-thumbnail.png"
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": [
+    "authoritative-server",
+    "feedback",
+    "test"
+  ],
+  "scene": {
+    "base": "0,-1",
+    "parcels": [
+      "0,-1"
+    ]
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          6,
+          10
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          6,
+          10
+        ]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1.5,
+        "z": 12
+      }
+    }
+  ],
+  "requiredPermissions": [
+    "USE_FETCH"
+  ],
+  "featureToggles": {},
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  },
+  "authoritativeMultiplayer": true
+}

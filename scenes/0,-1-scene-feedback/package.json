@@ -1,0 +1,24 @@
+{
+  "name": "scene-feedback",
+  "version": "1.0.0",
+  "description": "In-scene playtest feedback: Questions rated 1-5 with an optional comment, saved as CSV in scene Storage by the Multiplayer Server",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "build": "sdk-commands build",
+    "server-logs": "sdk-commands sdk-server-logs"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "auth-server"
+  }
+}
