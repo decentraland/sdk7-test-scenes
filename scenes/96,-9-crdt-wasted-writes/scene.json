@@ -1,0 +1,56 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "crdt-wasted-writes",
+    "description": "Components a scene rewrites every frame without changing, to validate the Explorer get_crdt_traffic MCP tool"
+  },
+  "creator": "0x18ffae2fc8a5b2aeb0afafa03d73d93f72fcef9a",
+  "owner": "",
+  "contact": {
+    "name": "SDK",
+    "email": ""
+  },
+  "main": "bin/index.js",
+  "tags": [],
+  "scene": {
+    "parcels": [
+      "96,-9"
+    ],
+    "base": "96,-9"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          0,
+          3
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          0,
+          3
+        ]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1,
+        "z": 8
+      }
+    }
+  ],
+  "featureToggles": {
+    "voiceChat": "enabled",
+    "portableExperiences": "enabled"
+  },
+  "skyboxConfig": {},
+  "name": "crdt-wasted-writes",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}
