@@ -17,7 +17,8 @@ When and how to ask, and how to read the answers. The Questions themselves: [QUE
 ## How to word it
 
 - **One topic per Question.** "How clear and fun was it?" is two Questions.
-- **Name your thing**: "the main activity" → "bowling". New wording, new id.
+- **Name your thing**: "the main activity" → "bowling". Adapt the `commentPrompt` too.
+  New wording, new id.
 - **Ask about what the player lived through**, not your intent ("did you feel the intended
   mood?"), a hypothetical ("would you play without rewards?") or other people ("how welcoming
   is it to new players?").

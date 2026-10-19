@@ -277,36 +277,6 @@ The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` sta
 - [QUESTION_GUIDE.md](QUESTION_GUIDE.md) helps you choose and adapt questions, with ready-made
   sets and guidance on when to ask them.
 
-## Tips
-
-More on timing, wording and reading the answers: [QUESTION_GUIDE.md](QUESTION_GUIDE.md).
-
-- **Make it about your game.** Bank texts use generic words — *the main activity*, *the goal*,
-  *the rewards*, *the important objects*. Players answer better when they recognise what is
-  asked, so swap them for your own. A reworded Question goes under your own id, with its own
-  `commentPrompt` (it usually repeats the same generic word):
-
-  ```ts
-  // bank: repeatLoop 'How enjoyable was repeating the main activity?'
-  coinRounds: {
-    text: 'How enjoyable was collecting coins round after round?',
-    scale: 'ENJOY',
-    commentPrompt: 'What made the later rounds more or less fun? (optional)'
-  }
-  ```
-
-  The demo does this: `coinSpotting` in [questions.ts](src/scene-feedback/questions.ts) is bank
-  C08 (*important information*, not in `bank.ts`) about coins.
-- **Never change a live Question's text under the same id** — answers to different wordings
-  would share it. New wording, new id.
-- **Ask at a natural pause**: after a round, a purchase, a death screen — not mid-jump or
-  mid-fight. The demo asks `coinSpotting` after the first coin on purpose, to show a mid-round call;
-  pick calmer moments for real Questions.
-- **Not only winners.** Players who gave up or lost are the ones you learn the most from; trigger
-  on leaving or failing too, not just on completing.
-- **Few Questions per visit**: one outcome Question (`playMore`, `comeBack`, `worthIt`, or E01/E02 from
-  [QUESTION_BANK.md](QUESTION_BANK.md)) plus two or three focused ones. Never all 20.
-
 ## Test
 
 1. Here CI deploys every push to a PR or main to `sdk7testscenes.dcl.eth` (`.zone`); keep `worldConfiguration.name` as is. In your own
