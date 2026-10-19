@@ -1,8 +1,7 @@
 # Scene Feedback
 
 Asks players a Question with a labelled 1–5 rating and an optional comment, or a text-only
-Question, at moments the creator picks. **Submit** (or **Next** in a Group) with nothing
-answered passes on the Question; **Skip** and × close.
+Question, at moments the creator picks.
 
 <p align="center">
   <a href="assets/images/feedback-panel.png">
