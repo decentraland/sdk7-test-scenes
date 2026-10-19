@@ -38,9 +38,10 @@ demonstrates bank questions, custom rating scales, and a text-only Question.
 
   - Use `@dcl/sdk@auth-server`.
   - Set `"authoritativeMultiplayer": true` in `scene.json`.
-  - Add `"USE_FETCH"` to `requiredPermissions` in `scene.json`, keeping any existing permissions.
 
   See the [Multiplayer Server setup](https://docs.decentraland.org/creator/scenes-sdk7/networking/authoritative-servers) for more details.
+
+- **Allow fetch:** add `"USE_FETCH"` to `requiredPermissions` in `scene.json`, keeping any existing permissions.
 
 ### 2. Configure
 
