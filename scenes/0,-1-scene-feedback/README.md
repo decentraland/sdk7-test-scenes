@@ -26,17 +26,69 @@ This scene is the example: a tiny coin hunt ([src/game.tsx](src/game.tsx)) that 
 mid-round, after a round, and as a two-Question series. Its [questions.ts](src/scene-feedback/questions.ts)
 shows Questions from the bank, your own rating scales, and a text-only Question.
 
-## From installation to results
+## Add it to your scene
 
-For your own scene (the coin hunt is just a demo):
+### 1. Install
 
-1. [Copy the module and enable the Multiplayer Server](#add-it-to-your-scene).
-2. [Choose when to ask for participation and when to ask Questions](#dynamic-participants-then-questions-during-play).
-   The Intro can finish before play starts; the first Question can wait for a later game event.
-3. [Choose a playtest goal](QUESTION_GUIDE.md#ready-made-sets) and [wire a matching recipe](EXAMPLES.md).
-4. [Test locally](#test), including declining the Intro and skipping Questions.
-5. [Deploy to your own World](#test) and submit a response there.
-6. [Retrieve the CSV](#test) and [read the results](QUESTION_GUIDE.md#reading-the-csv).
+Copy [src/scene-feedback/](src/scene-feedback) into your scene's `src/` and
+[assets/scene-feedback/](assets/scene-feedback) into its `assets/`.
+
+Use `@dcl/sdk@auth-server` and set `"authoritativeMultiplayer": true` in `scene.json`
+so the module can save responses. See the
+[Multiplayer Server setup](https://docs.decentraland.org/creator/scenes-sdk7/networking/authoritative-servers).
+
+### 2. Configure
+
+Edit `QUESTIONS` in [questions.ts](src/scene-feedback/questions.ts). Use a bank question
+or adapt one to your scene:
+
+```ts
+export const QUESTIONS = {
+  playMore: QUESTION_BANK.motivation.playMore,
+  buyingUpgrade: {
+    text: 'How easy or difficult was it to buy an upgrade?',
+    scale: 'EASE',
+    commentPrompt: 'What most affected your rating? (optional)' // omit for rating only
+  }
+} satisfies Record<string, QuestionSpec>
+```
+
+Set your greeting in `INTRO` in the same file.
+For choosing and adapting questions, see the [question guide](QUESTION_GUIDE.md).
+
+### 3. Ask
+
+Import `feedback` on both client and server startup paths; it starts automatically.
+Connect calls like these to your scene's client-side events:
+
+```ts
+import { feedback } from './scene-feedback'
+
+// After a purchase: ask permission, then one question.
+function onFirstPurchaseUiClosed() {
+  void feedback.intro('first-purchase')
+  void feedback.ask('buyingUpgrade', 'first-purchase')
+}
+
+// Or ask a group: permission, then each question in sequence.
+function onRoundUiClosed() {
+  void feedback.intro('round-complete')
+  void feedback.ask(['buyingUpgrade', 'playMore'], 'round-complete')
+}
+```
+
+Choose the handler that fits your playtest. For an earlier intro or a player-opened
+form, see the [integration examples](EXAMPLES.md).
+
+### 4. Review
+
+[Test locally](#test), then deploy to your World and submit a response there.
+In Creator Hub, open **Manage → your World's ⋮ menu → View Storage** and download
+`playtest-feedback-1.csv` from **Scene Storage**. Allow up to a minute for responses
+to be written.
+
+Use the `questionId` and `trigger` columns to find your test response.
+See [CSV fields](#stored-csv) and [reading the results](QUESTION_GUIDE.md#reading-the-csv).
 
 ## Install with an AI agent
 
@@ -60,52 +112,13 @@ https://github.com/decentraland/sdk7-test-scenes/blob/main/scenes/0,-1-scene-fee
    passed, remaining tests, and how to verify the CSV in the deployed World.
 ```
 
-## Add it to your scene
-
-Requires `@dcl/sdk@auth-server` and `"authoritativeMultiplayer": true` in `scene.json` (only the
-server can write Storage; see the [Multiplayer Server docs](https://docs.decentraland.org/creator/scenes-sdk7/networking/authoritative-servers)).
-
-1. Copy the [src/scene-feedback/](src/scene-feedback) folder into your `src/`, and the
-   [assets/scene-feedback/](assets/scene-feedback) folder (the panel's images) into your `assets/`.
-2. Configure your questions in [src/scene-feedback/questions.ts](src/scene-feedback/questions.ts):
-
-   ```ts
-   export const DEBUG = true // "Ask <id>" buttons top-left, for you only; turn off before release
-
-   export const QUESTIONS = {
-     playMore: QUESTION_BANK.motivation.playMore, // from the bank, as is
-     buyingUpgrade: {                             // your own
-       text: 'How easy or difficult was it to buy an upgrade?',
-       scale: 'EASE', // labels of the five answers: a code from lib/shared/scales.ts, or your own five
-       commentPrompt: 'What most affected your rating? (optional)' // leave out for rating only
-     }
-   } satisfies Record<string, QuestionSpec>
-   ```
-
-3. Pick a mode, or use both (below):
-
-   - **Dynamic:** Questions asked during play, with the Intro earlier or right before the first Question.
-   - **Static:** a batch the player opens themselves.
-
-   Importing `feedback` is the whole setup: it starts by itself on the client and the server, no call
-   in `main()` needed. The trigger names the moment and goes to the CSV:
-
-   ```ts
-   import { feedback } from './scene-feedback'
-
-   // dynamic: the Intro right before the first Question; a yes makes the player a participant
-   void feedback.intro('after-first-purchase')
-   void feedback.ask('buyingUpgrade', 'after-first-purchase')
-
-   // a Group: one panel, one Question after another, with a "1/2" progress bar
-   void feedback.ask(['buyingUpgrade', 'playMore'], 'round-complete')
-
-   // or wait for the answer; it comes only once the player closes the panel, so don't block the game on it
-   const result = await feedback.ask('playMore', 'round-2-complete')
-   ```
+## API reference
 
 With `authoritativeMultiplayer` your `main()` runs on the server too. If your scene has no
 server logic, start it with `if (isServer()) return` so the scene code runs only for players.
+Keep the `feedback` import outside that guard so the Storage server starts too.
+
+### Comments and text-only questions
 
 For rating Questions, the comment field is shown when the Question has a `commentPrompt` and
 the call does not turn it off (on mobile the panel has its own larger layout, the field included):
@@ -135,7 +148,7 @@ anythingWrong: {
 
 Its text field is always shown: the call's `comment` option only controls optional comments
 on rating Questions. Submit or Next with blank text counts as skipped; Groups keep the same
-Back, Next and close rules described above. [Mixed Group recipe](EXAMPLES.md#5-a-mixed-group-after-the-first-game)
+Back, Next and close rules in [Details](#group-navigation-and-skipping). [Mixed Group recipe](EXAMPLES.md#5-a-mixed-group-after-the-first-game)
 combines a rating with a text-only follow-up.
 
 ### Dynamic: participants, then Questions during play
