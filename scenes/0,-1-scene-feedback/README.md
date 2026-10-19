@@ -178,8 +178,10 @@ See the [mixed-group example](EXAMPLES.md#5-a-mixed-group-after-the-first-game).
 
 Set `ASK_PARTICIPANTS_ONLY` in `questions.ts` to choose who receives questions from `ask()`:
 
-- **`true` (default):** only enrolled participants receive questions.
-- **`false`:** everyone receives questions except players who declined the Intro during this visit.
+| `ASK_PARTICIPANTS_ONLY` | Accepted or enrolled (`in`) | Not yet enrolled (`unknown`) | Declined (`out`) |
+|---|---|---|---|
+| `true` (default) | Questions shown | Consent or enrollment required | Questions not shown |
+| `false` | Questions shown | Questions shown | Questions not shown |
 
 There are two ways to enroll a participant for the current visit:
 
