@@ -6,9 +6,13 @@ answered passes on the Question; **Skip** and × close. Every Response —
 submitted or skipped — ends up as a row of a CSV that the Multiplayer Server keeps in scene
 Storage.
 
-![Scene Feedback panel showing a question, five rating choices, an optional comment field, and Back and Next buttons](assets/images/feedback-panel.png)
-
-*Scene Feedback during play. Customize the questions and when they appear.*
+<p align="center">
+  <a href="assets/images/feedback-panel.png">
+    <img src="assets/images/feedback-panel.png" width="387" alt="Scene Feedback panel showing a question, five rating choices, an optional comment field, and Back and Next buttons">
+  </a>
+  <br>
+  <em>Figure 1. Scene Feedback during play. Questions and timing are customizable.</em>
+</p>
 
 This scene is the example: a tiny coin hunt ([src/game.tsx](src/game.tsx)) that asks Questions
 mid-round, after a round, and as a two-Question series. Its [questions.ts](src/scene-feedback/questions.ts)
