@@ -137,29 +137,21 @@ https://github.com/decentraland/sdk7-test-scenes/blob/main/scenes/0,-1-scene-fee
 
 ## API reference
 
-With `authoritativeMultiplayer` your `main()` runs on the server too. If your scene has no
-server logic, start it with `if (isServer()) return` (as used in this scene example) so the scene code runs only for players.
-Keep the `feedback` import outside that guard so the Storage server starts too.
+### Keep game logic on the client
+
+Keep the `feedback` import on both client and server startup paths.
+If your scene has no server-side game logic, start `main()` with
+`if (isServer()) return`, as in the [demo](src/index.ts).
+For scenes with server logic, guard only the player-facing code.
+The feedback panel uses its own UI renderer alongside your scene's UI.
 
 ### Comments and text-only questions
 
-For rating Questions, the comment field is shown when the Question has a `commentPrompt` and
-the call does not turn it off (on mobile the panel has its own larger layout, the field included):
+In `questions.ts`:
 
-- A Question without `commentPrompt` is always rating only, e.g. one meant for a quick tap
-  mid-play. A Group can mix such Questions with commented ones.
-- The call's `comment` option picks the Questions that show it: `false` for none, or a list of
-  ids for only those. The same Question can be asked with a comment at one trigger and without
-  at another:
-
-  ```ts
-  void feedback.ask('playMore', 'mid-round', { comment: false })
-  // a Group where only playMore shows the comment field
-  void feedback.ask(['buyingUpgrade', 'playMore'], 'round-complete', { comment: ['playMore'] })
-  ```
-
-For a text answer without rating tiles, set `commentOnly: true`, provide `commentPrompt`, and
-omit `scale` in `questions.ts`:
+- **Rating only:** provide `scale` and omit `commentPrompt`.
+- **Rating with a comment:** add `commentPrompt`.
+- **Text only:** set `commentOnly: true`, add `commentPrompt`, and omit `scale`:
 
 ```ts
 anythingWrong: {
@@ -169,100 +161,60 @@ anythingWrong: {
 }
 ```
 
-Its text field is always shown: the call's `comment` option only controls optional comments
-on rating Questions. Submit or Next with blank text counts as skipped; Groups keep the same
-Back, Next and close rules in [Details](#group-navigation-and-skipping). [Mixed Group recipe](EXAMPLES.md#5-a-mixed-group-after-the-first-game)
-combines a rating with a text-only follow-up.
+To hide optional comments for a particular call, use `comment`:
+
+```ts
+// Rating only for this call.
+void feedback.ask('playMore', 'mid-round', { comment: false })
+
+// Only playMore offers an optional comment.
+void feedback.ask(['buyingUpgrade', 'playMore'], 'round-complete', { comment: ['playMore'] })
+```
+
+Text-only answer fields always remain visible.
+See the [mixed-group example](EXAMPLES.md#5-a-mixed-group-after-the-first-game).
 
 ### Dynamic: participants, then Questions during play
 
-Each visit a player is a playtest **participant** (`in`), said no (`out`), or neither yet
-(`unknown`). `ASK_PARTICIPANTS_ONLY` in `questions.ts` decides who gets the Questions of `ask()`:
+- **Request consent:** call `feedback.intro(trigger)` before your first `ask()`.
+  Questions queued behind it wait for the answer.
+- **Separate consent from questions:** call `intro()` at one event and `ask()` at a later one.
+  Connect them to your scene's UI/game events; see the
+  [separate-intro example](EXAMPLES.md#1-intro-now-question-after-play).
+- **Read the choice:** use `feedback.participation()` for `in`, `out`, or `unknown`.
+  To react when the Intro closes, await `feedback.intro(trigger)`:
+  it returns `accepted`, `declined`, or `not-shown`.
+- **Enroll preselected testers:** call `feedback.enroll(trigger)` once their player identity
+  is available. See the [tester example](EXAMPLES.md#4-selected-testers-without-an-intro).
 
-| `ASK_PARTICIPANTS_ONLY` | `in` | `unknown` | `out` |
+Consent lasts for the visit. Configure who receives game-triggered questions with
+`ASK_PARTICIPANTS_ONLY` in `questions.ts`:
+
+| Setting | Accepted or enrolled (`in`) | Not yet asked (`unknown`) | Declined (`out`) |
 |---|---|---|---|
-| `true` (the demo) | shown | not shown | not shown |
-| `false` | shown | shown | not shown |
+| `true` (default) | Ask | Wait for consent or enrollment | Do not ask |
+| `false` | Ask | Ask | Do not ask |
 
-Two ways to make a player a participant:
-
-- **The Intro**: `feedback.intro(trigger)` — the creator introduces themselves and asks whether
-  the player wants to give feedback. **Give feedback** → `in`, **Skip** or × → `out`. Call it
-  right before the first `ask()` (the demo does it on the first coin in [src/game.tsx](src/game.tsx)):
-  the Questions wait behind it, and Give feedback leads straight into them. An Intro with no
-  Questions behind it shows without waiting for the server, e.g. on arrival. It shows once per
-  visit, only while the player is `unknown`, and resolves to `accepted`, `declined` or `not-shown`.
-- **`feedback.enroll(trigger)`**: `in` without the Intro, e.g. for players you picked yourself.
-  Not in the demo. Call it once you know the player's wallet (`getPlayer()` from
-  `@dcl/sdk/players`, which may take a few frames after `main()`); an Intro still waiting for
-  an answer is then dropped. Each enrollment is a CSV row too (`ratingLabel` `enrolled`):
-
-  ```ts
-  const TESTERS = ['0x0000000000000000000000000000000000000001'] // lowercase
-  const wallet = getPlayer()?.userId?.toLowerCase()
-  if (wallet && TESTERS.includes(wallet)) feedback.enroll('tester')
-  ```
-
-`feedback.participation()` returns the current state. Set the Intro's title, text and an
-optional picture with `INTRO` in `questions.ts` (`null`: no Intro). Each answer to the Intro is
-a CSV row (`questionId` `intro`), so you can count how many players agree to answer.
-
-To ask for consent first and feedback later, call only `intro()` after your startup UI closes.
-Wire the later `ask()` to a separate game event:
-
-```ts
-import { feedback } from './scene-feedback'
-
-function onStartupUiClosed() {
-  void feedback.intro('startup-closed')
-}
-
-function onFirstPurchaseUiClosed() {
-  if (feedback.participation() !== 'in') return
-  void feedback.ask('buyingUpgrade', 'first-purchase')
-}
-```
-
-Connect these handlers to your scene's existing events. The module does not detect other UI;
-your scene decides when it is clear. With no Question queued, accepting the Intro closes it
-and play continues. The participation check avoids asking while the Intro is unanswered or
-after a refusal; consent is remembered for this visit. An event skipped by that check is not
-replayed later. For complete wiring patterns, see [EXAMPLES.md](EXAMPLES.md). If you need to react to the choice,
-`await feedback.intro(...)` returns `accepted`, `declined` or `not-shown`, without callbacks.
+With the default setting, `ask()` returns `not-shown` if consent is missing and no Intro
+is pending. It does not open an Intro or replay missed events later.
+Setting `INTRO = null` disables the Intro; use enrollment if participation is required.
 
 ### Static: a batch the player opens
 
-When the player chooses to give feedback — a button, a 3D kiosk, an area they walk into — call
-`feedback.leaveFeedback(batch, trigger)` with a batch prepared for it: Questions that make sense
-out of context. Every call shows the Intro, then the batch as one Group, any number of times per
-visit (the server keeps up to 100 rows per player per 10 minutes), whatever the player said to the dynamic Intro. Here the Intro only greets: Give feedback
-opens the Group, Skip or × drops it, and participation stays as it was, so the game never starts
-asking a player who only came to leave feedback. A game Intro or Question on screen steps aside
-for it and comes back after, where it was (with the server down it stays, and the batch opens once it is
-answered and the server is back, unless that takes over 2 minutes; a panel set aside that then waits 2 minutes for the server closes as with ×: what the player saw is
-sent); over a game Intro the batch opens without the greeting. A call while the previous one is still open or waiting is ignored. The demo wires it three ways in
-[src/leave-feedback.tsx](src/leave-feedback.tsx):
+Connect `leaveFeedback()` to a button, kiosk, or area trigger:
 
 ```ts
-const LEAVE_FEEDBACK_BATCH = ['playMore'] as const
-
-// 2D: a button, here top-right in its own renderer
-<UiEntity onMouseDown={() => void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'ui-button')}> … </UiEntity>
-ReactEcsRenderer.addUiRenderer(engine.addEntity(), LeaveFeedbackButton, { screenInset: 'interactable' })
-
-// 3D: a clickable object
-pointerEventsSystem.onPointerDown({ entity: kiosk, opts: { hoverText: 'Leave feedback' } },
-  () => void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'kiosk'))
-
-// an area: on entering it
-if (inside && !wasInside) void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'feedback-area')
+// When the player selects Leave feedback.
+void feedback.leaveFeedback(['buyingUpgrade', 'playMore'], 'feedback-button')
 ```
 
-The demo's button has the panel's primary button style (ruby, rounded, bold caps). Its
-renderer's `screenInset: 'interactable'` keeps it inside the area the explorer's HUD leaves free,
-so the minimap or chat never covers it.
+- Choose questions the player can answer whenever they open the form.
+- Players can reopen it, including after declining game-triggered questions.
+- Its greeting does not change participation in game-triggered questions.
+- Calls while this form is already open or waiting are ignored.
 
-The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` stays yours.
+Use the [player-opened form recipe](EXAMPLES.md#3-feedback-opened-by-the-player)
+or the demo's [button, kiosk, and area handlers](src/leave-feedback.tsx).
 
 ## Question bank
 
