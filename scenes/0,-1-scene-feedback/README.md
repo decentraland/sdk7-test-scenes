@@ -107,7 +107,7 @@ In Creator Hub, open **Manage → your World's ⋮ menu → View Storage**.
   <em>Figure 3. Open your World's Storage from Creator Hub.</em>
 </p>
 
-This opens a browser page with **Scene Storage**, where you can browse and download
+This opens a browser page with **Scene Storage** (see Fig. 2), where you can browse and download
 the CSV files (e.g. `playtest-feedback-1.csv`). Allow up to a minute for responses to be written.
 
 Use the `questionId` and `trigger` columns to find your test response.
