@@ -44,8 +44,8 @@ or scale. Change wording under a new ID once a Question is live.
 
 Keep the `feedback` import on the startup path for **both client and server**: importing it
 starts the module, including the Storage server. Run the handlers and identity polling below
-on the client, after your scene's existing `isServer()` guard. Only edit `questions.ts`;
-the recipes require no changes to `lib/`.
+on the client, after your scene's existing `isServer()` guard. These recipes use
+`questions.ts` configuration and public API calls from scene code.
 
 The examples are alternative integration patterns, not five flows to run together. In
 dynamic mode, consent is remembered for the visit: `in` accepted, `out` declined, `unknown`

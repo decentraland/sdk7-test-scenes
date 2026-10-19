@@ -24,46 +24,24 @@ For your own scene (the coin hunt is just a demo):
 
 ## Install with an AI agent
 
-Give your coding agent the prompt below. It will use the module's instructions and
-examples to adapt the integration to your scene.
-
-The copied module includes [AGENTS.md](src/scene-feedback/AGENTS.md) for future
-integration and maintenance work, plus [CLAUDE.md](src/scene-feedback/CLAUDE.md)
-which imports the same instructions for Claude Code. Keep these files inside the
-module; they do not replace your scene's root instruction files. Automatic discovery
-depends on the agent and working directory, so the prompt explicitly requests a read.
+Give your coding agent this installation prompt:
 
 ```text
 Add the Scene Feedback module to this Decentraland SDK7 scene.
 
-Start with:
+Installation and API:
 https://github.com/decentraland/sdk7-test-scenes/blob/main/scenes/0,-1-scene-feedback/README.md
 
-Read src/scene-feedback/AGENTS.md in that source before integrating the module,
-and keep it with the copied module for future changes.
-
-Follow its links to EXAMPLES.md for integration recipes and QUESTION_GUIDE.md
-for choosing and adapting useful playtest questions. Adapt existing questions
-to the specific actions, objects, and experiences in this scene.
-
-First inspect this scene's startup flow, existing UI, game events, and
-client/server structure. Clarify the playtest goal and intended feedback flow
-with me wherever they are not already specified.
-
-Then:
-1. Follow the README to install and configure the module, preserving this
-   scene's settings and existing functionality.
-2. Configure a small question set suited to what we want to learn.
-3. Connect the intro and questions to the agreed points in the scene's flow.
-   See the examples for showing them together or separately.
-4. Before changing the Scene Feedback module's internals, look for an existing
-   solution in this module's public API, configuration, and examples.
-   Modify src/scene-feedback/lib/ only if those options cannot support
-   the intended behavior.
-5. Run the relevant available checks and explain how to verify response
-   collection in the deployed World.
-
-Summarize what changed, when feedback appears, and what still needs testing.
+1. Inspect the scene's UI, events, and client/server startup. Clarify any
+   unspecified playtest goal, intro timing, and question timing with me.
+2. Install using the README, preserving the scene's settings and functionality.
+   For event wiring, follow its EXAMPLES.md link and select a matching recipe.
+   Prefer Scene Feedback's API and configuration; change src/scene-feedback/lib/
+   when the intended behavior needs an extension, explaining the gap.
+3. For choosing and adapting questions, follow QUESTION_GUIDE.md. Configure a
+   small set tied to the playtest goal and the scene's specific actions and objects.
+4. Run the relevant available checks. Report the configured triggers, checks
+   passed, remaining tests, and how to verify the CSV in the deployed World.
 ```
 
 ## Add it to your scene
@@ -73,7 +51,7 @@ server can write Storage; see the [Multiplayer Server docs](https://docs.decentr
 
 1. Copy the [src/scene-feedback/](src/scene-feedback) folder into your `src/`, and the
    [assets/scene-feedback/](assets/scene-feedback) folder (the panel's images) into your `assets/`.
-2. Edit [src/scene-feedback/questions.ts](src/scene-feedback/questions.ts) — the only library file to touch:
+2. Configure your questions in [src/scene-feedback/questions.ts](src/scene-feedback/questions.ts):
 
    ```ts
    export const DEBUG = true // "Ask <id>" buttons top-left, for you only; turn off before release
