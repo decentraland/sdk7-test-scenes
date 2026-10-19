@@ -15,10 +15,10 @@ The Multiplayer Server saves each Response as a CSV row in scene Storage.
 
 <p align="center">
   <a href="assets/images/scene-storage.png">
-    <img src="assets/images/scene-storage.png" width="480" alt="Scene Storage showing playtest-feedback-1.csv and its download button">
+    <img src="assets/images/scene-storage.png" width="480" alt="Scene Storage showing a CSV file and its download button">
   </a>
   <br>
-  <em>Figure 2. Scene Storage, where you can download the responses as CSV.</em>
+  <em>Figure 2. Download responses from Scene Storage. This screenshot shows the older file names; new files use scene-feedback-N.csv.</em>
 </p>
 
 This scene contains the feedback library and a small coin-hunt example ([src/game.tsx](src/game.tsx)) that asks Questions
@@ -108,7 +108,7 @@ In Creator Hub, open **Manage → your World's ⋮ menu → View Storage**.
 </p>
 
 This opens a browser page with **Scene Storage** (see Fig. 2), where you can browse and download
-the CSV files (e.g. `playtest-feedback-1.csv`).
+the CSV files (e.g. `scene-feedback-1.csv`).
 
 Use the `questionId` and `trigger` columns to find your test response.
 See [CSV fields](#stored-csv) and [reading the results](QUESTION_GUIDE.md#reading-the-csv).
@@ -249,8 +249,11 @@ or the demo's [button, kiosk, and area handlers](src/leave-feedback.tsx).
 
 ## Stored CSV
 
-`playtest-feedback-1.csv`, `playtest-feedback-2.csv`, … — each part up to 400 KB (~2 500 rows;
-Storage caps a value at 512 KB), `playtest-feedback-csv-head` holds the number of the part being
+Earlier versions used `playtest-feedback-*` keys. Updating starts a separate set of
+`scene-feedback-*` keys; existing data remains available under its original names.
+
+`scene-feedback-1.csv`, `scene-feedback-2.csv`, … — each part up to 400 KB (~2 500 rows;
+Storage caps a value at 512 KB), `scene-feedback-csv-head` holds the number of the part being
 written. The World's scene Storage is 10 MB in
 total, shared by all its scenes.
 

@@ -21,7 +21,7 @@ import { CSV_HEADER, CsvRow, formatRow, rowIds, sanitizeId, utf8Length } from '.
 // Responses buffer in memory, then flush into numbered CSV parts in scene Storage.
 // Flush after FLUSH_COOLDOWN_MS, or at once when the last player leaves: no shutdown hook.
 // Keys named like files: owners find them in the storage UI.
-const CURRENT_PART_KEY = 'playtest-feedback-csv-head' // the number of the part being written
+const CURRENT_PART_KEY = 'scene-feedback-csv-head' // the number of the part being written
 const PART_MAX_BYTES = 400 * 1024 // Storage caps one value at 512 KB
 // one flush writes at most this much, the rest goes in the next: a bigger batch could never fit a part
 const BATCH_MAX_BYTES = 200 * 1024
@@ -306,7 +306,7 @@ function countPlayers(): number {
 }
 
 function partKey(index: number): string {
-  return `playtest-feedback-${index}.csv`
+  return `scene-feedback-${index}.csv`
 }
 
 function findIsGuest(address: string): boolean | null {
