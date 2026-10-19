@@ -227,6 +227,6 @@ scale alongside the comments rather than averaging the Group into one score.
 
 Run `npm start`, exercise the wired events, decline the Intro on another visit, and try
 empty submissions. Test a game event while the Intro is pending as well as after acceptance.
-Then deploy to your own World, submit an answer there and [retrieve the CSV](README.md#test).
+Then deploy to your own World, submit an answer there and [retrieve the CSV](README.md#4-review).
 Keep test rows identifiable by their trigger and follow the
 [reading guidance](QUESTION_GUIDE.md#reading-the-csv).

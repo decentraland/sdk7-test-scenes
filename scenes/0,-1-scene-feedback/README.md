@@ -96,7 +96,7 @@ For an earlier intro or a player-opened form, see the [integration examples](EXA
 
 ### 4. Review
 
-[Test locally](#test), then deploy to your World and submit a response there.
+Test your integration locally, then deploy to your World and submit a response there.
 In Creator Hub, open **Manage → your World's ⋮ menu → View Storage**.
 
 <p align="center">
@@ -238,28 +238,14 @@ or the demo's [button, kiosk, and area handlers](src/leave-feedback.tsx).
 - [QUESTION_GUIDE.md](QUESTION_GUIDE.md) helps you choose and adapt questions, with ready-made
   sets and guidance on when to ask them.
 
-## Test
+## Debug
 
-1. Here CI deploys every push to a PR or main to `sdk7testscenes.dcl.eth` (`.zone`); keep `worldConfiguration.name` as is. In your own
-   project it names your World: `npm install`, `npm run deploy`.
-2. Collect coins, or wait for **DEBUG · server online** and press an **Ask** button. The debug
-   panel shows in a local preview and, once deployed, only to the World's owner and the wallets
-   allowed to deploy it. Its rows (`trigger` `debug`) count toward the 100 rows per 10 minutes too.
-   **Show intro** only previews the Intro: participation stays as it was, so with
-   `ASK_PARTICIPANTS_ONLY` game Questions queued behind it are dropped. To test as a participant,
-   collect a coin and answer the game Intro.
-3. Submit closes the panel at once and shows a *Thanks* toast; Responses go in the background.
-   Without an ack the client resends every 3 s (deduped by id) and gives up after 30 s.
-4. The server flushes buffered Responses to Storage at most once a minute (the rest of a batch
-   over 200 KB goes right after), and immediately when the last player leaves (it stays up ~2 min after that). Copy the CSV from the scene storage UI
-   (Creator Hub → Manage → ⋮ → View Storage), or follow `npm run server-logs`.
-
-Mobile layout without a phone: `PREVIEW_MOBILE = true` in `questions.ts` (local preview only), and
-an explorer window shaped like a phone (1600x720). On a real phone: `npm start -- --mobile` and scan
-the QR code (same network).
-
-Local preview (`npm start`) writes to `node_modules/@dcl/sdk-commands/.runtime-data/server-storage.json`,
-not to production Storage.
+- **Preview the mobile layout:** set `PREVIEW_MOBILE = true` in `questions.ts` and
+  resize the Explorer window to a phone-like aspect ratio (e.g. 1600 × 720).
+  This setting applies only to local previews.
+- **Try the debug UI:** the example scene enables it with `DEBUG = true`.
+  It is available in local previews and, when deployed, to the World's owner and deployers.
+  Feel free to adapt it to your needs; set `DEBUG = false` before release.
 
 ## Stored CSV
 
@@ -333,3 +319,18 @@ the ones never reached get no Response and are not asked again at that trigger.
 
 Rating faces in `assets/scene-feedback/face-*.png`: [Noto Emoji](https://github.com/googlefonts/noto-emoji), Apache License 2.0
 (text in `assets/scene-feedback/LICENSE-noto-emoji.txt`, keep it next to the faces).
+
+## How to test this scene
+
+1. Run `npm install`, then `npm start` from this scene's folder.
+2. Collect a coin and accept the Intro to test the in-game flow. Alternatively, wait for
+   **DEBUG · server online** and use the **Ask** buttons to preview individual questions.
+   **Show intro** only previews the greeting; it does not enroll you.
+3. Submit an answer and inspect the local CSV data in
+   `node_modules/@dcl/sdk-commands/.runtime-data/server-storage.json`.
+4. To test deployed Storage, use the [Review steps](#4-review).
+   This repository's CI deploys PR and main pushes to `sdk7testscenes.dcl.eth` (`.zone`).
+   Keep this demo's `worldConfiguration.name`; use your own World name in your own project.
+
+For a real-phone test, run `npm start -- --mobile` and scan the QR code from a phone
+on the same network. For the desktop mobile-layout preview, see [Debug](#debug).
