@@ -252,9 +252,9 @@ or the demo's [button, kiosk, and area handlers](src/leave-feedback.tsx).
 - [src/scene-feedback/lib/shared/scales.ts](src/scene-feedback/lib/shared/scales.ts) contains
   14 rating scales. Choose one that fits your question, or use these examples to create your own with five labels.
 - [QUESTION_BANK.md](QUESTION_BANK.md) contains a larger collection of 113 candidate questions
-  for inspiration.
-- [QUESTION_GUIDE.md](QUESTION_GUIDE.md) helps you choose and adapt questions, with ready-made
-  sets and guidance on when to ask them.
+  for inspiration, with [suggested sets by playtest goal](QUESTION_BANK.md#ready-made-sets).
+- [QUESTION_GUIDE.md](QUESTION_GUIDE.md) helps you choose and adapt questions, decide
+  when to ask them, and interpret the answers.
 
 ## Debug
 
