@@ -187,9 +187,9 @@ There are two ways to enroll a participant for the current visit:
    declining opts them out. Call it before the first `ask()`; queued questions wait for the answer.
    You can also show the Intro earlier and ask questions at a later event:
    [separate-intro example](EXAMPLES.md#1-intro-now-question-after-play).
-2. **`feedback.enroll(trigger)`** — enroll a player directly, for example a preselected tester.
-   Call it once their player identity is available:
-   [tester example](EXAMPLES.md#4-selected-testers-without-an-intro).
+2. **`feedback.enroll(trigger)`** — enroll a player directly, for example a tester selected by
+   wallet ID. Call it once their player identity is available
+   ([see example](EXAMPLES.md#4-selected-testers-without-an-intro)).
 
 Use `feedback.participation()` to read `in`, `out`, or `unknown`.
 To react to the Intro's result, await `feedback.intro(trigger)`:
