@@ -47,8 +47,8 @@ type QuestionId = keyof typeof QUESTIONS
 export type AskOptions = {
   // show even if already seen at this trigger this visit
   repeat?: boolean
-  // comment field: true (default) all, false none, or only these ids, e.g. ['playMore'].
-  // Only hides: a Question without commentPrompt never shows one.
+  // Optional comments on rating Questions: true (default) all, false none, or only these ids.
+  // Text-only Questions always show their answer field; rating Questions need commentPrompt.
   comment?: boolean | readonly QuestionId[]
 }
 

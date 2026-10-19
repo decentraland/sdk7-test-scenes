@@ -48,6 +48,7 @@ export type AskResult = 'submitted' | 'skipped' | 'not-shown'
 
 export type AskOptions = {
   repeat?: boolean
+  // Optional comments on rating Questions only; text-only answers always stay visible.
   comment?: boolean | readonly string[]
   // game (default): Intro once per visit. player (leaveFeedback): Intro every time, a greeting only:
   // yes opens the Group, no drops it, participation untouched. debug: no Intro, participation untouched.
@@ -148,6 +149,7 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
 }
 
 function commentAllowed(question: Question, comment: AskOptions['comment'] = true): boolean {
+  if (question.commentOnly) return true
   if (question.commentPrompt === undefined) return false
   return typeof comment === 'boolean' ? comment : comment.includes(question.id)
 }
@@ -360,6 +362,7 @@ let toastAt = 0
 const enteredAt = Date.now()
 
 export function setRating(value: number): void {
+  if (feedback.question?.commentOnly) return
   // tapping the selected rating again clears it
   feedback.rating = feedback.rating === value ? 0 : value
 }
@@ -370,7 +373,7 @@ export function setComment(value: string): void {
 
 // a rating or a comment, either counts
 function hasAnswer(): boolean {
-  return feedback.rating !== 0 || (feedback.withComment && feedback.comment.trim() !== '')
+  return (!feedback.question?.commentOnly && feedback.rating !== 0) || (feedback.withComment && feedback.comment.trim() !== '')
 }
 
 export function isFirstStep(): boolean {

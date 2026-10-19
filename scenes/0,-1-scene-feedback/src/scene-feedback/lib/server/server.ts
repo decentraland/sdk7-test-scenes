@@ -137,16 +137,22 @@ function receiveResponse(
   const question = findQuestion(data.questionId)
   if (!question) return ack(false)
 
-  const rating = Number.isInteger(data.rating) && data.rating >= 1 && data.rating <= MAX_RATING ? data.rating : null
-  const commentShown = data.commentShown && question.commentPrompt !== undefined
+  const rating =
+    !question.commentOnly && Number.isInteger(data.rating) && data.rating >= 1 && data.rating <= MAX_RATING
+      ? data.rating
+      : null
+  const commentShown = question.commentOnly || (data.commentShown && question.commentPrompt !== undefined)
   const comment = commentShown ? data.comment.trim().slice(0, MAX_COMMENT_LENGTH) : ''
   const row: CsvRow = {
     ...baseRow(id, data, from),
     questionId: question.id,
     questionText: question.text,
     rating,
-    ratingLabel: rating !== null ? scaleLabels(question.scale)[rating - 1] : comment === '' ? SKIPPED_LABEL : '',
-    scale: scaleName(question.scale),
+    ratingLabel:
+      !question.commentOnly && rating !== null
+        ? scaleLabels(question.scale)[rating - 1]
+        : comment === '' ? SKIPPED_LABEL : '',
+    scale: question.commentOnly ? '' : scaleName(question.scale),
     commentPrompt: commentShown ? question.commentPrompt ?? '' : '',
     comment
   }

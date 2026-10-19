@@ -3,7 +3,7 @@
   "runtimeVersion": "7",
   "display": {
     "title": "Scene Feedback",
-    "description": "In-scene playtest feedback for creators: players rate Questions 1-5 with an optional comment, asked during play or from a Leave feedback button. Every answer lands in a CSV in scene Storage.",
+    "description": "In-scene playtest feedback for creators: players rate Questions 1-5 or answer with text, asked during play or from a Leave feedback button. Every answer lands in a CSV in scene Storage.",
     "navmapThumbnail": "assets/images/scene-thumbnail.png"
   },
   "owner": "",

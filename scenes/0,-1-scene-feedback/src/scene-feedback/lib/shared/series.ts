@@ -3,10 +3,20 @@ import { Scale } from './scales'
 
 export type QuestionSpec = {
   text: string
-  scale: Scale
-  // comment field placeholder; omit for rating only
-  commentPrompt?: string
-}
+} & (
+  | {
+      commentOnly?: false
+      scale: Scale
+      // comment field placeholder; omit for rating only
+      commentPrompt?: string
+    }
+  | {
+      commentOnly: true
+      // The text field is the answer, always shown regardless of ask()'s comment option.
+      commentPrompt: string
+      scale?: never
+    }
+)
 
 export type IntroSpec = {
   title: string
@@ -15,23 +25,15 @@ export type IntroSpec = {
   avatar?: string | null
 }
 
-export type Question = {
+export type Question = QuestionSpec & {
   id: string
-  text: string
-  scale: Scale
-  commentPrompt?: string
 }
 
 let series: Question[] = []
 
 export function setQuestions(specs: Record<string, QuestionSpec>): void {
   if (INTRO_ID in specs) console.log(`[FEEDBACK] '${INTRO_ID}' is reserved for the Intro's CSV rows: rename that Question`)
-  series = Object.keys(specs).map((id) => ({
-    id,
-    text: specs[id].text,
-    scale: specs[id].scale,
-    commentPrompt: specs[id].commentPrompt
-  }))
+  series = Object.keys(specs).map((id) => ({ ...specs[id], id }))
 }
 
 export function allQuestions(): readonly Question[] {

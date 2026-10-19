@@ -151,7 +151,10 @@ let showScaleGallery = false
 function scaleGallery() {
   const seen = new Set<string>()
   const sets: ScaleLabels[] = []
-  for (const labels of [...Object.values(SCALES), ...allQuestions().map((q) => scaleLabels(q.scale))]) {
+  for (const labels of [
+    ...Object.values(SCALES),
+    ...allQuestions().flatMap((q) => (q.commentOnly ? [] : [scaleLabels(q.scale)]))
+  ]) {
     const key = labels.join('|')
     if (!seen.has(key)) {
       seen.add(key)
@@ -333,7 +336,7 @@ function avatar(source: string | null) {
 function questionPanel() {
   const q = feedback.question
   if (!q) return null
-  const labels = scaleLabels(q.scale)
+  const labels = q.commentOnly ? null : scaleLabels(q.scale)
 
   return panel('question', { top: 60, bottom: 50 }, closeGroup, [
     ...(feedback.steps > 1 ? [isCompleted() ? completedLabel() : progressBar()] : []),
@@ -346,11 +349,15 @@ function questionPanel() {
       textWrap="wrap"
       uiTransform={{ width: 500, minHeight: 24, margin: { top: (feedback.steps > 1 ? 32 : 0) - TEXT_NUDGE } }}
     />,
-    <UiEntity key="tiles" uiTransform={{ width: 500, flexDirection: 'row', margin: { top: 40 + TEXT_NUDGE } }}>
-      {Array.from({ length: MAX_RATING }, (_, i) =>
-        tile(i + 1, labels[i], i + 1 === feedback.rating, () => setRating(i + 1))
-      )}
-    </UiEntity>,
+    ...(labels
+      ? [
+          <UiEntity key="tiles" uiTransform={{ width: 500, flexDirection: 'row', margin: { top: 40 + TEXT_NUDGE } }}>
+            {Array.from({ length: MAX_RATING }, (_, i) =>
+              tile(i + 1, labels[i], i + 1 === feedback.rating, () => setRating(i + 1))
+            )}
+          </UiEntity>
+        ]
+      : []),
     ...(feedback.withComment ? [commentField(q.commentPrompt ?? '')] : []),
     footer()
   ])
@@ -401,7 +408,7 @@ function mobileCard(key: string, onClose: () => void, children: ReactEcs.JSX.Ele
 function mobileQuestionPanel() {
   const q = feedback.question
   if (!q) return null
-  const labels = scaleLabels(q.scale)
+  const labels = q.commentOnly ? null : scaleLabels(q.scale)
   // tighter with the comment field, so the card stays clear of the top of the screen
   const gap = feedback.withComment ? 28 : 44
   return mobileCard('question', closeGroup, [
@@ -415,11 +422,15 @@ function mobileQuestionPanel() {
       textWrap="wrap"
       uiTransform={{ width: MOBILE_CONTENT, height: wrappedHeight(q.text, 32, MOBILE_CONTENT), margin: { top: feedback.steps > 1 ? 32 : 0 } }}
     />,
-    <UiEntity key="tiles" uiTransform={{ width: MOBILE_CONTENT, flexDirection: 'row', margin: { top: gap } }}>
-      {Array.from({ length: MAX_RATING }, (_, i) =>
-        tile(i + 1, labels[i], i + 1 === feedback.rating, () => setRating(i + 1))
-      )}
-    </UiEntity>,
+    ...(labels
+      ? [
+          <UiEntity key="tiles" uiTransform={{ width: MOBILE_CONTENT, flexDirection: 'row', margin: { top: gap } }}>
+            {Array.from({ length: MAX_RATING }, (_, i) =>
+              tile(i + 1, labels[i], i + 1 === feedback.rating, () => setRating(i + 1))
+            )}
+          </UiEntity>
+        ]
+      : []),
     ...(feedback.withComment
       ? [commentField(q.commentPrompt ?? '', { width: MOBILE_CONTENT, height: 96, fontSize: 22, top: gap })]
       : []),
