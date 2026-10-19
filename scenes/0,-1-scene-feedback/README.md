@@ -263,38 +263,57 @@ id,timeUtc,version,questionId,questionText,trigger,rating,ratingLabel,scale,comm
 mfqz8k2x4f7a9c,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in playing more right now?,debug,5,Extremely,INTEREST,What makes you want to keep playing, or stop? (optional),kind of yes,42,1,0x…,true,desktop
 ```
 
-- `ratingLabel` `skipped` (empty `rating` and `comment`): the player pressed Next or Submit with nothing answered, Skip, or closed the panel on that Question.
-- Empty `rating` and `ratingLabel` with a `comment`: the player only wrote a comment.
-- Text-only Questions also leave `scale` empty; `commentPrompt` and `comment` contain the text
-  prompt and answer. Blank text uses `ratingLabel` `skipped`, just like an unanswered rating Question.
-- `questionId` `intro`: the player's answer to the Intro, `ratingLabel` `accepted` or `declined`,
-  `trigger` of the call that showed it; or `enrolled` with the `trigger` passed to
-  `feedback.enroll()`. Accepted ÷ (accepted + declined) = the share who agree to answer; count the
-  game Intro's triggers apart from Leave feedback's.
-- `version`: tail of the deployed entity id, new on every deploy (`preview` locally).
-- `questionText`: the wording the server shipped with, so edited Questions never mix with old answers.
-- `ratingLabel`, `scale`: the label the player picked and the scale it came from (a code, or the
-  custom labels joined with ` | `), so a rating is read with the words that were on screen.
-- `commentPrompt`: the comment field's prompt as shown; empty for a rating-only Question, so an
-  empty comment there means "not offered", not "left blank". Also empty when the call's `comment`
-  option left the field out.
-- `trigger`: the label passed to `feedback.ask()` or `feedback.leaveFeedback()` (`debug` for the
-  debug buttons: your own test rows, filter them out).
-- `secondsInScene`: from the player's scene load to the answer, reported by the client.
-- `playersInScene`: players in the scene when the server received the answer (solo vs group).
-- `id` dedupes client resends and merges rows when two server instances overlap after a redeploy.
-- `platform` is self-reported by the client.
-- Comments are flattened to one line, and a leading `= + - @` is prefixed with `'` so spreadsheets
-  don't run it as a formula.
-- The server acks a Response once buffered, not once in Storage: a crash or redeploy loses up to a
-  minute of them, and the client doesn't resend.
-- Storage has no compare-and-set: while two server instances overlap after a redeploy, one flush can
-  overwrite the other's rows.
-- One address can write at most 100 rows per 10 minutes; the rest are dropped.
-- The server buffers at most 2000 rows between flushes; past that it doesn't ack, and the client
-  drops the row after 30 s of resends.
+### CSV fields
+
+Each row contains these fields, in order:
+
+- `id`: response identifier used to deduplicate retries.
+- `timeUtc`: when the server received the response, in UTC.
+- `version`: tail of the deployed entity ID; `preview` during local testing.
+- `questionId`: question key from `QUESTIONS`, or `intro` for participation responses.
+- `questionText`: question wording from the deployed configuration; the Intro title for `intro` rows.
+- `trigger`: event label supplied to the API call; `debug` for debug-button responses.
+- `rating`: selected value from 1 to 5, or empty when no rating was given.
+- `ratingLabel`: selected label, or a response status such as `skipped` or `accepted`.
+- `scale`: built-in scale code or custom labels joined with ` | `; empty for text-only questions.
+- `commentPrompt`: text field prompt shown to the player; empty if the field was not offered.
+- `comment`: submitted text, or empty.
+- `secondsInScene`: time from scene load to the answer, reported by the client.
+- `playersInScene`: number of players present when the server received the response.
+- `address`: the responding player's address, in lowercase.
+- `isGuest`: `true` or `false`; empty if guest status was unavailable.
+- `platform`: platform reported by the client.
+
+### How to read the responses
+
+- **Separate test data:** filter out `trigger = debug` before reviewing playtest answers.
+- **Read ratings with their labels:** use `ratingLabel` and `scale` to interpret the number.
+- **Recognize skipped questions:** `ratingLabel = skipped` with empty `rating` and `comment`
+  means the player skipped, closed, or advanced without answering.
+- **Recognize text answers:** a nonempty `comment` with empty `rating` and `ratingLabel`
+  means the player answered only with text. Text-only questions also have an empty `scale`.
+- **Distinguish missing from unoffered comments:** an empty `commentPrompt` means no text
+  field was offered; a nonempty prompt with an empty `comment` means it was left blank.
+- **Read participation separately:** `questionId = intro` uses `ratingLabel` values
+  `accepted`, `declined`, or `enrolled`. To calculate opt-in, use
+  accepted ÷ (accepted + declined) for game Intro triggers, separately from player-opened forms.
+
+For comparing answers and drawing conclusions, see
+[Reading the CSV](QUESTION_GUIDE.md#reading-the-csv).
 
 ## Details
+
+### Storage behavior and limits
+
+- Text fields are flattened to one line. A leading `= + - @` is prefixed with `'`
+  to prevent spreadsheet formulas from running.
+- The server acknowledges responses when buffered, before writing to Storage. A crash or
+  redeploy can lose up to a minute of responses; acknowledged rows are not resent.
+- Storage has no compare-and-set: overlapping server instances after a redeploy can
+  overwrite each other's rows.
+- One address can submit at most 100 rows per 10 minutes; further responses are dropped.
+- The server buffers at most 2000 rows. Beyond that it stops acknowledging responses;
+  the client retries every 3 seconds for up to 30 seconds.
 
 ### Updating the module
 
