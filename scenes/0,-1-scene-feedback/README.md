@@ -30,10 +30,10 @@ shows Questions from the bank, your own rating scales, and a text-only Question.
 
 ### 1. Install
 
-**a)** Copy [src/scene-feedback/](src/scene-feedback) into your scene's `src/` and
+**i)** Copy [src/scene-feedback/](src/scene-feedback) into your scene's `src/` and
 [assets/scene-feedback/](assets/scene-feedback) into its `assets/`.
 
-**b)** Use `@dcl/sdk@auth-server` and set `"authoritativeMultiplayer": true` in `scene.json`
+**ii)** Use `@dcl/sdk@auth-server` and set `"authoritativeMultiplayer": true` in `scene.json`
 so the module can save responses. See the
 [Multiplayer Server setup](https://docs.decentraland.org/creator/scenes-sdk7/networking/authoritative-servers).
 
