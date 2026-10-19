@@ -58,3 +58,102 @@ Codes from [QUESTION_BANK.md](QUESTION_BANK.md).
 | Match entry and turns | S03, S11, S12 | After joining a queued or turn-based activity; F11 for drop-in rounds |
 | Resources and upgrades | P11, A04, E03, T03 | Each after its own step |
 | Visibility and sound | C08, Q12, Q11 | After play with audio on |
+
+## Practical examples
+
+These two bowling examples form one small playtest: consent after the startup UI, one
+Question after the first turn, then two after the first game. The same structure works for
+other scenes: replace bowling with the action you want to investigate. No Question is needed
+on arrival, before the player has tried anything.
+
+Add these entries to `QUESTIONS` in [questions.ts](src/scene-feedback/questions.ts), keeping
+`ASK_PARTICIPANTS_ONLY = true` and your own `INTRO` wording:
+
+```ts
+import { QuestionSpec } from './lib/shared/series'
+
+export const QUESTIONS = {
+  startingBowling: {
+    text: 'How easy or difficult was it to start your first bowling game?',
+    scale: 'EASE'
+  },
+  playingBowling: {
+    text: 'How easy or difficult was it to play your first bowling game?',
+    scale: 'EASE'
+  },
+  bowlingProblems: {
+    text: 'Was there anything annoying, unusual, or wrong during the game?',
+    commentOnly: true,
+    commentPrompt: 'What happened, and what were you trying to do?'
+  }
+} satisfies Record<string, QuestionSpec>
+```
+
+`EASE` labels the five ratings from **Very difficult** to **Very easy**. `bowlingProblems`
+has no scale and requires a `commentPrompt`; its text field is always visible, even if an
+`ask()` call uses `{ comment: false }`. Leaving it blank skips it. The CSV has the same
+columns: a text answer has empty `rating`, `ratingLabel` and `scale`; a skipped answer has
+`ratingLabel` `skipped`.
+
+### Onboarding: can players get started?
+
+Find out whether players can enter a game without help. Ask after the first turn, while the
+startup experience is still fresh. If a player gives up before taking a turn, ask after they
+leave the start flow too: successful starters alone will hide the problem.
+
+In your scene code, connect these handlers to the existing UI/game events:
+
+```ts
+import { feedback } from './scene-feedback'
+
+function onStartupUiClosed() {
+  void feedback.intro('startup-closed')
+}
+
+function askAboutStarting() {
+  if (feedback.participation() !== 'in') return
+  void feedback.ask('startingBowling', 'first-start-attempt')
+}
+
+function onFirstTurnEnd() {
+  askAboutStarting()
+}
+
+function onStartAbandoned() {
+  askAboutStarting()
+}
+```
+
+The Intro asks permission only; accepting it closes the panel until a later event calls
+`ask()`. The scene determines when its startup UI is gone. The participation check also avoids
+opening a Question while consent is still pending. Both start outcomes use the same trigger,
+so a player who abandons and retries is asked only once this visit. If you need to distinguish
+those outcomes in the CSV, use separate triggers and decide when a repeat is useful.
+
+### First game: was play understandable, and what went wrong?
+
+After the first completed game, ask one rating and one open question. Also connect an
+abandoned game's summary/exit event, once the player has tried playing. This captures players
+who stopped because of a problem. Call the handler after any summary/exit UI closes, at a
+safe pause in play.
+
+```ts
+import { feedback } from './scene-feedback'
+
+function onFirstGameFinishedOrAbandoned() {
+  if (feedback.participation() !== 'in') return
+  void feedback.ask(['playingBowling', 'bowlingProblems'], 'first-game-end')
+}
+```
+
+The Group keeps both drafts until Submit; Back, Next, Skip and × behave as described in the
+[README](README.md#add-it-to-your-scene). Read the ease rating alongside the problem report;
+the rating identifies where to investigate, while the text can suggest what to reproduce.
+If your goal is enjoyment or replay motivation instead, replace the ease Question with an
+appropriate one from the [bank](README.md#question-bank), rather than adding every possible
+outcome Question.
+
+Before deploying, run `npm start`, exercise these events, decline the Intro on another visit,
+and try empty submissions. Deploy to your own World with `npm run deploy`, submit an answer,
+and [retrieve its CSV](README.md#test). Keep test rows identifiable by their trigger, and use
+the [reading guidance](#reading-the-csv) above when comparing responses.

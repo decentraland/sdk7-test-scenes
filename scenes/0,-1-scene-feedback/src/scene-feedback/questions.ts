@@ -47,6 +47,14 @@ export const QUESTIONS = {
     text: 'How often did you know where the next coin was?',
     scale: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always']
     // no commentPrompt: rating only wherever asked
+  },
+
+  // text only: no scale; the field stays visible even when ask() passes comment: false.
+  // Available in debug; attach it to your own end-of-round event when useful.
+  anythingWrong: {
+    text: 'Was there anything annoying, unusual, or wrong during the round?',
+    commentOnly: true,
+    commentPrompt: 'What happened, and what were you trying to do?'
   }
 } satisfies Record<string, QuestionSpec>
 

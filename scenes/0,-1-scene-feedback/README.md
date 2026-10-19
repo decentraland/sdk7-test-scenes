@@ -1,13 +1,26 @@
 # Scene Feedback
 
-Asks players a Question with a labelled 1–5 rating and an optional comment, at moments the
-creator picks. **Submit** (or **Next** in a Group) with nothing answered passes on the Question; **Skip** and × close. Every Response —
+Asks players a Question with a labelled 1–5 rating and an optional comment, or a text-only
+Question, at moments the creator picks. **Submit** (or **Next** in a Group) with nothing
+answered passes on the Question; **Skip** and × close. Every Response —
 submitted or skipped — ends up as a row of a CSV that the Multiplayer Server keeps in scene
 Storage.
 
 This scene is the example: a tiny coin hunt ([src/game.tsx](src/game.tsx)) that asks Questions
 mid-round, after a round, and as a two-Question series. Its [questions.ts](src/scene-feedback/questions.ts)
-shows the three kinds of Question: from the bank, your own on a shared scale, your own on your own scale.
+shows Questions from the bank, your own rating scales, and a text-only Question.
+
+## From installation to results
+
+For your own scene (the coin hunt is just a demo):
+
+1. [Copy the module and enable the Multiplayer Server](#add-it-to-your-scene).
+2. [Choose when to ask for participation and when to ask Questions](#dynamic-participants-then-questions-during-play).
+   The Intro can finish before play starts; the first Question can wait for a later game event.
+3. [Choose a playtest goal and configure a small question set](QUESTION_GUIDE.md#practical-examples).
+4. [Test locally](#test), including declining the Intro and skipping Questions.
+5. [Deploy to your own World](#test) and submit a response there.
+6. [Retrieve the CSV](#test) and [read the results](QUESTION_GUIDE.md#reading-the-csv).
 
 ## Add it to your scene
 
@@ -56,7 +69,7 @@ server logic, start it with `if (isServer()) return` so the scene code runs only
 To update to a newer version, replace `src/scene-feedback/lib/` and `assets/scene-feedback/` with the new
 ones; `questions.ts` stays yours.
 
-`ask()` queues the Question and shows it once nothing else is on screen and the server is up
+`ask()` queues the Question and shows it once no other feedback panel is on screen and the server is up
 (~15 s on a cold start). It resolves to `submitted`, `skipped` or `not-shown`: already shown at
 this trigger this visit (pass `{ repeat: true }` to allow it), the server did not come up within
 2 minutes, or the player closed the Group before reaching it.
@@ -70,8 +83,8 @@ Group: what was answered with Next is still sent, the Question on screen counts 
 if the player came back to it with Back, is sent as it stands on screen), and
 the ones never reached get no Response and are not asked again at that trigger.
 
-The comment field is shown when the Question has a `commentPrompt`, the call does not turn
-it off (on mobile the panel has its own larger layout, the field included):
+For rating Questions, the comment field is shown when the Question has a `commentPrompt` and
+the call does not turn it off (on mobile the panel has its own larger layout, the field included):
 
 - A Question without `commentPrompt` is always rating only, e.g. one meant for a quick tap
   mid-play. A Group can mix such Questions with commented ones.
@@ -84,6 +97,22 @@ it off (on mobile the panel has its own larger layout, the field included):
   // a Group where only playMore shows the comment field
   void feedback.ask(['nextGoal', 'playMore', 'worthIt'], 'hunt-complete', { comment: ['playMore'] })
   ```
+
+For a text answer without rating tiles, set `commentOnly: true`, provide `commentPrompt`, and
+omit `scale` in `questions.ts`:
+
+```ts
+anythingWrong: {
+  text: 'Was there anything annoying, unusual, or wrong during the round?',
+  commentOnly: true,
+  commentPrompt: 'What happened, and what were you trying to do?'
+}
+```
+
+Its text field is always shown: the call's `comment` option only controls optional comments
+on rating Questions. Submit or Next with blank text counts as skipped; Groups keep the same
+Back, Next and close rules described above. [Practical examples](QUESTION_GUIDE.md#practical-examples)
+combine a rating with a text-only follow-up.
 
 ### Dynamic: participants, then Questions during play
 
@@ -117,6 +146,28 @@ Two ways to make a player a participant:
 `feedback.participation()` returns the current state. Set the Intro's title, text and an
 optional picture with `INTRO` in `questions.ts` (`null`: no Intro). Each answer to the Intro is
 a CSV row (`questionId` `intro`), so you can count how many players agree to answer.
+
+To ask for consent first and feedback later, call only `intro()` after your startup UI closes.
+Wire the later `ask()` to a separate game event:
+
+```ts
+import { feedback } from './scene-feedback'
+
+function onStartupUiClosed() {
+  void feedback.intro('startup-closed')
+}
+
+function onFirstTurnEnd() {
+  if (feedback.participation() !== 'in') return
+  void feedback.ask('coinSpotting', 'first-turn-end') // use a Question relevant to your game
+}
+```
+
+Connect these handlers to your scene's existing events. The module does not detect other UI;
+your scene decides when it is clear. With no Question queued, accepting the Intro closes it
+and play continues. The participation check avoids asking while the Intro is unanswered or
+after a refusal; consent is remembered for this visit. If you need to react to the choice,
+`await feedback.intro(...)` returns `accepted`, `declined` or `not-shown`, without callbacks.
 
 ### Static: a batch the player opens
 
@@ -228,6 +279,8 @@ mfqz8k2x4f7a9c,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in
 
 - `ratingLabel` `skipped` (empty `rating` and `comment`): the player pressed Next or Submit with nothing answered, Skip, or closed the panel on that Question.
 - Empty `rating` and `ratingLabel` with a `comment`: the player only wrote a comment.
+- Text-only Questions also leave `scale` empty; `commentPrompt` and `comment` contain the text
+  prompt and answer. Blank text uses `ratingLabel` `skipped`, just like an unanswered rating Question.
 - `questionId` `intro`: the player's answer to the Intro, `ratingLabel` `accepted` or `declined`,
   `trigger` of the call that showed it; or `enrolled` with the `trigger` passed to
   `feedback.enroll()`. Accepted ÷ (accepted + declined) = the share who agree to answer; count the
