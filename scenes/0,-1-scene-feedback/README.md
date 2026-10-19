@@ -2,20 +2,25 @@
 
 Asks players a Question with a labelled 1–5 rating and an optional comment, or a text-only
 Question, at moments the creator picks. **Submit** (or **Next** in a Group) with nothing
-answered passes on the Question; **Skip** and × close. Every Response —
-submitted or skipped — ends up as a row of a CSV that the Multiplayer Server keeps in scene
-Storage.
+answered passes on the Question; **Skip** and × close.
 
 <p align="center">
   <a href="assets/images/feedback-panel.png">
     <img src="assets/images/feedback-panel.png" width="274" alt="In-game Scene Feedback question with rating choices and an optional comment field">
   </a>
-  &nbsp;
+  <br>
+  <em>Figure 1. Feedback during play. Click to enlarge.</em>
+</p>
+
+Every Response — submitted or skipped — ends up as a row of a CSV that the Multiplayer Server
+keeps in scene Storage.
+
+<p align="center">
   <a href="assets/images/scene-storage.png">
     <img src="assets/images/scene-storage.png" width="480" alt="Scene Storage showing playtest-feedback-1.csv and its download button">
   </a>
   <br>
-  <em>Figure 1. Left: feedback during play. Right: Scene Storage, where you can download the responses as CSV. Click either image to enlarge.</em>
+  <em>Figure 2. Scene Storage, where you can download the responses as CSV. Click to enlarge.</em>
 </p>
 
 This scene is the example: a tiny coin hunt ([src/game.tsx](src/game.tsx)) that asks Questions
