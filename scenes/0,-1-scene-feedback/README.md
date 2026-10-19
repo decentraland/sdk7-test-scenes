@@ -17,7 +17,7 @@ For your own scene (the coin hunt is just a demo):
 1. [Copy the module and enable the Multiplayer Server](#add-it-to-your-scene).
 2. [Choose when to ask for participation and when to ask Questions](#dynamic-participants-then-questions-during-play).
    The Intro can finish before play starts; the first Question can wait for a later game event.
-3. [Choose a playtest goal and configure a small question set](QUESTION_GUIDE.md#practical-examples).
+3. [Choose a playtest goal](QUESTION_GUIDE.md#ready-made-sets) and [wire a matching recipe](EXAMPLES.md).
 4. [Test locally](#test), including declining the Intro and skipping Questions.
 5. [Deploy to your own World](#test) and submit a response there.
 6. [Retrieve the CSV](#test) and [read the results](QUESTION_GUIDE.md#reading-the-csv).
@@ -44,8 +44,8 @@ server can write Storage; see the [Multiplayer Server docs](https://docs.decentr
    } satisfies Record<string, QuestionSpec>
    ```
 
-3. Pick a mode, or use both (below): **dynamic** — Questions asked during play, the Intro
-   right before the first — or **static** — a batch the player opens themselves. Importing
+3. Pick a mode, or use both (below): **dynamic** — Questions asked during play, with the Intro
+   earlier or right before the first Question — or **static** — a batch the player opens themselves. Importing
    `feedback` is the whole setup: it starts by itself on the client and the server, no call
    in `main()` needed. The trigger names the moment and goes to the CSV:
 
@@ -56,8 +56,8 @@ server can write Storage; see the [Multiplayer Server docs](https://docs.decentr
    void feedback.intro('after-first-purchase')
    void feedback.ask('buyingUpgrade', 'after-first-purchase')
 
-   // a Group: one panel, one Question after another, with a "1/3" progress bar
-   void feedback.ask(['nextGoal', 'playMore', 'worthIt'], 'hunt-complete')
+   // a Group: one panel, one Question after another, with a "1/2" progress bar
+   void feedback.ask(['buyingUpgrade', 'playMore'], 'round-complete')
 
    // or wait for the answer; it comes only once the player closes the panel, so don't block the game on it
    const result = await feedback.ask('playMore', 'round-2-complete')
@@ -95,7 +95,7 @@ the call does not turn it off (on mobile the panel has its own larger layout, th
   ```ts
   void feedback.ask('playMore', 'mid-round', { comment: false })
   // a Group where only playMore shows the comment field
-  void feedback.ask(['nextGoal', 'playMore', 'worthIt'], 'hunt-complete', { comment: ['playMore'] })
+  void feedback.ask(['buyingUpgrade', 'playMore'], 'round-complete', { comment: ['playMore'] })
   ```
 
 For a text answer without rating tiles, set `commentOnly: true`, provide `commentPrompt`, and
@@ -111,8 +111,8 @@ anythingWrong: {
 
 Its text field is always shown: the call's `comment` option only controls optional comments
 on rating Questions. Submit or Next with blank text counts as skipped; Groups keep the same
-Back, Next and close rules described above. [Practical examples](QUESTION_GUIDE.md#practical-examples)
-combine a rating with a text-only follow-up.
+Back, Next and close rules described above. [Mixed Group recipe](EXAMPLES.md#5-a-mixed-group-after-the-first-game)
+combines a rating with a text-only follow-up.
 
 ### Dynamic: participants, then Questions during play
 
@@ -157,16 +157,17 @@ function onStartupUiClosed() {
   void feedback.intro('startup-closed')
 }
 
-function onFirstTurnEnd() {
+function onFirstPurchaseUiClosed() {
   if (feedback.participation() !== 'in') return
-  void feedback.ask('coinSpotting', 'first-turn-end') // use a Question relevant to your game
+  void feedback.ask('buyingUpgrade', 'first-purchase')
 }
 ```
 
 Connect these handlers to your scene's existing events. The module does not detect other UI;
 your scene decides when it is clear. With no Question queued, accepting the Intro closes it
 and play continues. The participation check avoids asking while the Intro is unanswered or
-after a refusal; consent is remembered for this visit. If you need to react to the choice,
+after a refusal; consent is remembered for this visit. An event skipped by that check is not
+replayed later. For complete wiring patterns, see [EXAMPLES.md](EXAMPLES.md). If you need to react to the choice,
 `await feedback.intro(...)` returns `accepted`, `declined` or `not-shown`, without callbacks.
 
 ### Static: a batch the player opens
@@ -183,7 +184,7 @@ sent); over a game Intro the batch opens without the greeting. A call while the 
 [src/leave-feedback.tsx](src/leave-feedback.tsx):
 
 ```ts
-const LEAVE_FEEDBACK_BATCH = ['worthIt', 'playMore', 'coinSpotting'] as const
+const LEAVE_FEEDBACK_BATCH = ['playMore'] as const
 
 // 2D: a button, here top-right in its own renderer
 <UiEntity onMouseDown={() => void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'ui-button')}> … </UiEntity>
