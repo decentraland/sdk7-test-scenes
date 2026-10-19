@@ -143,7 +143,7 @@ for your chosen entry point. For an area, call on entry, not every frame spent i
 **Expected:** the greeting opens the text Question when accepted. This works even for a
 player who declined game Questions, and does not enroll them in dynamic feedback. It can
 be reopened during the same visit; a second call while this flow is open or waiting is
-ignored. [README](README.md#static-a-batch-the-player-opens) describes how it shares the
+ignored. [README](README.md#asking-participants-through-a-feedback-form-static-approach) describes how it shares the
 panel with a game Question already on screen.
 
 ## 4. Selected testers without an Intro
