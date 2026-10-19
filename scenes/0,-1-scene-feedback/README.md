@@ -178,10 +178,8 @@ See the [mixed-group example](EXAMPLES.md#5-a-mixed-group-after-the-first-game).
 
 Set `ASK_PARTICIPANTS_ONLY` in `questions.ts` to choose who receives questions from `ask()`:
 
-| `ASK_PARTICIPANTS_ONLY` | Accepted or enrolled (`in`) | Not yet enrolled (`unknown`) | Declined (`out`) |
-|---|---|---|---|
-| `true` (default) | Questions shown | Consent or enrollment required | Questions not shown |
-| `false` | Questions shown | Questions shown | Questions not shown |
+- **`true` (default):** only enrolled participants receive questions.
+- **`false`:** everyone receives questions except players who declined the Intro during this visit.
 
 There are two ways to enroll a participant for the current visit:
 
@@ -200,6 +198,13 @@ it returns `accepted`, `declined`, or `not-shown`.
 With the default setting, `ask()` returns `not-shown` if consent is missing and no Intro
 is pending. It does not open an Intro or replay missed events later.
 Setting `INTRO = null` disables the Intro; use enrollment if participation is required.
+
+The table below summarizes who receives questions under each setting:
+
+| `ASK_PARTICIPANTS_ONLY` | Accepted or enrolled (`in`) | Not yet enrolled (`unknown`) | Declined (`out`) |
+|---|---|---|---|
+| `true` (default) | Questions shown | Consent or enrollment required | Questions not shown |
+| `false` | Questions shown | Questions shown | Questions not shown |
 
 ### Static: a batch the player opens
 
