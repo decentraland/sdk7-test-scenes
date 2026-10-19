@@ -45,12 +45,21 @@ shows Questions from the bank, your own rating scales, and a text-only Question.
   with your own five labels, ordered from 1 to 5.
 
 ```ts
+export const INTRO: IntroSpec | null = {
+  title: "Hi, we're the Coin Hunt team!",
+  text: "We're testing a new experience and would love to hear what you think."
+}
+
 export const QUESTIONS = {
   playMore: QUESTION_BANK.motivation.playMore,
   buyingUpgrade: {
     text: 'How easy or difficult was it to buy an upgrade?',
     scale: 'EASE',
     commentPrompt: 'What most affected your rating? (optional)' // omit for rating only
+  },
+  nextCoinKnown: {
+    text: 'How often did you know where the next coin was?',
+    scale: ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'] // your own five labels
   }
 } satisfies Record<string, QuestionSpec>
 ```
