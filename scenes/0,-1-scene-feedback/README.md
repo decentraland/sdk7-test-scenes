@@ -11,7 +11,7 @@ Question, at moments the creator picks.
   <em>Figure 1. Feedback during play.</em>
 </p>
 
-The Multiplayer Server saves each Response as a CSV row in scene Storage.
+The Multiplayer Server saves responses to CSV files in scene Storage, ready to download in one click.
 
 <p align="center">
   <a href="assets/images/scene-storage.png">
