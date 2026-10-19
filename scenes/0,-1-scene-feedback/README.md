@@ -38,8 +38,11 @@ shows Questions from the bank, your own rating scales, and a text-only Question.
 
 ### 2. Configure
 
-Edit `QUESTIONS` in [questions.ts](src/scene-feedback/questions.ts). Use a bank question
-or adapt one to your scene:
+- **Edit `QUESTIONS`** in [questions.ts](src/scene-feedback/questions.ts): use a bank question
+  or adapt one to your scene.
+- **Set `INTRO`** in the same file with your greeting and invitation to give feedback.
+- **[Optional] Provide a custom `scale`:** replace a [built-in scale](src/scene-feedback/lib/shared/scales.ts)
+  with your own five labels, ordered from 1 to 5.
 
 ```ts
 export const QUESTIONS = {
@@ -52,14 +55,6 @@ export const QUESTIONS = {
 } satisfies Record<string, QuestionSpec>
 ```
 
-`scale` sets the five rating labels: use a [built-in scale](src/scene-feedback/lib/shared/scales.ts)
-such as `'EASE'`, or supply your own labels in order from 1 to 5:
-
-```ts
-scale: ['Very difficult', 'Difficult', 'OK', 'Easy', 'Very easy']
-```
-
-Set your greeting in `INTRO` in the same file.
 For choosing and adapting questions, see the [question guide](QUESTION_GUIDE.md).
 
 ### 3. Ask
