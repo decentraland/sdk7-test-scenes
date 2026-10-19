@@ -206,9 +206,11 @@ The table below summarizes who receives questions under each setting:
 | `true` (default) | Questions shown | Consent or enrollment required | Questions not shown |
 | `false` | Questions shown | Questions shown | Questions not shown |
 
-### Static: a batch the player opens
+### Asking participants through a feedback form (static approach)
 
-Connect `leaveFeedback()` to a button, kiosk, or area trigger:
+Use `leaveFeedback()` to ask a series of questions when the player chooses to give feedback.
+Invite them through a button, kiosk, or area trigger. The form shows the Intro first,
+followed by the questions.
 
 ```ts
 // When the player selects Leave feedback.
