@@ -107,23 +107,6 @@ server can write Storage; see the [Multiplayer Server docs](https://docs.decentr
 With `authoritativeMultiplayer` your `main()` runs on the server too. If your scene has no
 server logic, start it with `if (isServer()) return` so the scene code runs only for players.
 
-To update to a newer version, replace `src/scene-feedback/lib/` and `assets/scene-feedback/` with the new
-ones; `questions.ts` stays yours.
-
-`ask()` queues the Question and shows it once no other feedback panel is on screen and the server is up
-(~15 s on a cold start). It resolves to `submitted`, `skipped` or `not-shown`: already shown at
-this trigger this visit (pass `{ repeat: true }` to allow it), the server did not come up within
-2 minutes, or the player closed the Group before reaching it.
-A Group resolves to one result per id, in the same order. A typo in the id is a compile error.
-
-In a Group, **Next** and **Back** move between Questions and keep the answers on the player's
-side; **Submit** on the last one sends them all ("Completed" replaces the progress bar once it
-is answered). Next or Submit with nothing answered counts the Question as skipped; Submit with
-nothing answered in the whole Group just closes it. **Skip** (first Question only) and × close the
-Group: what was answered with Next is still sent, the Question on screen counts as skipped (or,
-if the player came back to it with Back, is sent as it stands on screen), and
-the ones never reached get no Response and are not asked again at that trigger.
-
 For rating Questions, the comment field is shown when the Question has a `commentPrompt` and
 the call does not turn it off (on mobile the panel has its own larger layout, the field included):
 
@@ -349,6 +332,31 @@ mfqz8k2x4f7a9c,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in
 - One address can write at most 100 rows per 10 minutes; the rest are dropped.
 - The server buffers at most 2000 rows between flushes; past that it doesn't ack, and the client
   drops the row after 30 s of resends.
+
+## Details
+
+### Updating the module
+
+To update to a newer version, replace `src/scene-feedback/lib/` and `assets/scene-feedback/` with the new
+ones; `questions.ts` stays yours.
+
+### Queue and results
+
+`ask()` queues the Question and shows it once no other feedback panel is on screen and the server is up
+(~15 s on a cold start). It resolves to `submitted`, `skipped` or `not-shown`: already shown at
+this trigger this visit (pass `{ repeat: true }` to allow it), the server did not come up within
+2 minutes, or the player closed the Group before reaching it.
+A Group resolves to one result per id, in the same order. A typo in the id is a compile error.
+
+### Group navigation and skipping
+
+In a Group, **Next** and **Back** move between Questions and keep the answers on the player's
+side; **Submit** on the last one sends them all ("Completed" replaces the progress bar once it
+is answered). Next or Submit with nothing answered counts the Question as skipped; Submit with
+nothing answered in the whole Group just closes it. **Skip** (first Question only) and × close the
+Group: what was answered with Next is still sent, the Question on screen counts as skipped (or,
+if the player came back to it with Back, is sent as it stands on screen), and
+the ones never reached get no Response and are not asked again at that trigger.
 
 ## Credits
 
