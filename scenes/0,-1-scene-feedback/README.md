@@ -8,7 +8,7 @@ Storage.
 
 <p align="center">
   <a href="assets/images/feedback-panel.png">
-    <img src="assets/images/feedback-panel.png" width="387" alt="Scene Feedback panel showing a question, five rating choices, an optional comment field, and Back and Next buttons">
+    <img src="assets/images/feedback-panel.png" width="223" alt="Scene Feedback panel showing a question, five rating choices, an optional comment field, and Back and Next buttons">
   </a>
   <br>
   <em>Figure 1. Scene Feedback during play. Questions and timing are customizable.</em>
