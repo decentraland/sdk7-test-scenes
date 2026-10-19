@@ -3,9 +3,6 @@
 Asks players a Question with a labelled 1–5 rating and an optional comment, or a text-only
 Question, at moments the creator picks.
 
-- **Dynamic:** ask questions at selected moments during play, such as after a round or a purchase.
-- **Static:** let players open a feedback form themselves, through a button or a kiosk.
-
 <p align="center">
   <a href="assets/images/feedback-panel.png">
     <img src="assets/images/feedback-panel.png" width="274" alt="In-game Scene Feedback question with rating choices and an optional comment field">
@@ -85,9 +82,12 @@ server can write Storage; see the [Multiplayer Server docs](https://docs.decentr
    } satisfies Record<string, QuestionSpec>
    ```
 
-3. Pick a mode, or use both (below): **dynamic** — Questions asked during play, with the Intro
-   earlier or right before the first Question — or **static** — a batch the player opens themselves. Importing
-   `feedback` is the whole setup: it starts by itself on the client and the server, no call
+3. Pick a mode, or use both (below):
+
+   - **Dynamic:** Questions asked during play, with the Intro earlier or right before the first Question.
+   - **Static:** a batch the player opens themselves.
+
+   Importing `feedback` is the whole setup: it starts by itself on the client and the server, no call
    in `main()` needed. The trigger names the moment and goes to the CSV:
 
    ```ts
