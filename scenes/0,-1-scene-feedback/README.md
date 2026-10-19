@@ -27,11 +27,20 @@ For your own scene (the coin hunt is just a demo):
 Give your coding agent the prompt below. It will use the module's instructions and
 examples to adapt the integration to your scene.
 
+The copied module includes [AGENTS.md](src/scene-feedback/AGENTS.md) for future
+integration and maintenance work, plus [CLAUDE.md](src/scene-feedback/CLAUDE.md)
+which imports the same instructions for Claude Code. Keep these files inside the
+module; they do not replace your scene's root instruction files. Automatic discovery
+depends on the agent and working directory, so the prompt explicitly requests a read.
+
 ```text
 Add the Scene Feedback module to this Decentraland SDK7 scene.
 
 Start with:
 https://github.com/decentraland/sdk7-test-scenes/blob/main/scenes/0,-1-scene-feedback/README.md
+
+Read src/scene-feedback/AGENTS.md in that source before integrating the module,
+and keep it with the copied module for future changes.
 
 Follow its links to EXAMPLES.md for integration recipes and QUESTION_GUIDE.md
 for choosing and adapting useful playtest questions. Adapt existing questions
