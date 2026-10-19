@@ -8,23 +8,22 @@ Question, at moments the creator picks.
     <img src="assets/images/feedback-panel.png" width="274" alt="In-game Scene Feedback question with rating choices and an optional comment field">
   </a>
   <br>
-  <em>Figure 1. Feedback during play. Click to enlarge.</em>
+  <em>Figure 1. Feedback during play.</em>
 </p>
 
-Every Response — submitted or skipped — ends up as a row of a CSV that the Multiplayer Server
-keeps in scene Storage.
+The Multiplayer Server saves each Response as a CSV row in scene Storage.
 
 <p align="center">
   <a href="assets/images/scene-storage.png">
     <img src="assets/images/scene-storage.png" width="480" alt="Scene Storage showing playtest-feedback-1.csv and its download button">
   </a>
   <br>
-  <em>Figure 2. Scene Storage, where you can download the responses as CSV. Click to enlarge.</em>
+  <em>Figure 2. Scene Storage, where you can download the responses as CSV.</em>
 </p>
 
-This scene is the example: a tiny coin hunt ([src/game.tsx](src/game.tsx)) that asks Questions
+This scene contains the feedback library and a small coin-hunt example ([src/game.tsx](src/game.tsx)) that asks Questions
 mid-round, after a round, and as a two-Question series. Its [questions.ts](src/scene-feedback/questions.ts)
-shows Questions from the bank, your own rating scales, and a text-only Question.
+demonstrates bank questions, custom rating scales, and a text-only Question.
 
 ## Add it to your scene
 
@@ -40,7 +39,7 @@ shows Questions from the bank, your own rating scales, and a text-only Question.
   - Use `@dcl/sdk@auth-server`.
   - Set `"authoritativeMultiplayer": true` in `scene.json`.
 
-  See the [Multiplayer Server setup](https://docs.decentraland.org/creator/scenes-sdk7/networking/authoritative-servers).
+  See the [Multiplayer Server setup](https://docs.decentraland.org/creator/scenes-sdk7/networking/authoritative-servers) for more details.
 
 ### 2. Configure
 
@@ -86,15 +85,14 @@ function onFirstPurchaseUiClosed() {
   void feedback.ask('buyingUpgrade', 'first-purchase')
 }
 
-// Or ask a group: permission, then each question in sequence.
+// Later, after a round: ask a group, one question at a time.
 function onRoundUiClosed() {
-  void feedback.intro('round-complete')
   void feedback.ask(['buyingUpgrade', 'playMore'], 'round-complete')
 }
 ```
 
-Choose the handler that fits your playtest. For an earlier intro or a player-opened
-form, see the [integration examples](EXAMPLES.md).
+The first event requests consent; later questions use that choice for the rest of the visit.
+For an earlier intro or a player-opened form, see the [integration examples](EXAMPLES.md).
 
 ### 4. Review
 
