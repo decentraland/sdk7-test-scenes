@@ -25,11 +25,34 @@ This scene contains the feedback library and a small coin-hunt example ([src/gam
 mid-round, after a round, and as a two-Question series. Its [questions.ts](src/scene-feedback/questions.ts)
 demonstrates bank questions, custom rating scales, and a text-only Question.
 
-Start with [four steps to your first response](#add-it-to-your-scene), or give your
-[AI agent the installation prompt](#install-with-an-ai-agent).
-For a specific integration, choose a recipe in [EXAMPLES.md](EXAMPLES.md).
+Ask your coding agent to install and adapt the module using the prompt below.
+Prefer to integrate it yourself? Follow the [four steps](#add-it-to-your-scene).
+
+## Install with an AI agent
+
+Give your coding agent this installation prompt:
+
+```text
+Add the Scene Feedback module to this Decentraland SDK7 scene.
+
+Installation and API:
+https://github.com/decentraland/sdk7-test-scenes/blob/main/scenes/0,-1-scene-feedback/README.md
+
+1. Inspect the scene's UI, events, and client/server startup. Clarify any
+   unspecified playtest goal, intro timing, and question timing with me.
+2. Install using the README, preserving the scene's settings and functionality.
+   For event wiring, follow its EXAMPLES.md link and select a matching recipe.
+   Prefer Scene Feedback's API and configuration; change src/scene-feedback/lib/
+   when the intended behavior needs an extension, explaining the gap.
+3. For choosing and adapting questions, follow QUESTION_GUIDE.md. Configure a
+   small set tied to the playtest goal and the scene's specific actions and objects.
+4. Run the relevant available checks. Report the configured triggers, checks
+   passed, remaining tests, and how to verify the CSV in the deployed World.
+```
 
 ## Add it to your scene
+
+For manual integration, follow these four steps.
 
 ### 1. Install
 
@@ -121,28 +144,6 @@ Use the `questionId` and `trigger` columns to find your test response.
 Check that its answer matches what you submitted.
 See [CSV fields](#csv-fields), [missing recent responses](#a-recent-response-is-missing),
 and [reading the results](QUESTION_GUIDE.md#reading-the-csv).
-
-## Install with an AI agent
-
-Give your coding agent this installation prompt:
-
-```text
-Add the Scene Feedback module to this Decentraland SDK7 scene.
-
-Installation and API:
-https://github.com/decentraland/sdk7-test-scenes/blob/main/scenes/0,-1-scene-feedback/README.md
-
-1. Inspect the scene's UI, events, and client/server startup. Clarify any
-   unspecified playtest goal, intro timing, and question timing with me.
-2. Install using the README, preserving the scene's settings and functionality.
-   For event wiring, follow its EXAMPLES.md link and select a matching recipe.
-   Prefer Scene Feedback's API and configuration; change src/scene-feedback/lib/
-   when the intended behavior needs an extension, explaining the gap.
-3. For choosing and adapting questions, follow QUESTION_GUIDE.md. Configure a
-   small set tied to the playtest goal and the scene's specific actions and objects.
-4. Run the relevant available checks. Report the configured triggers, checks
-   passed, remaining tests, and how to verify the CSV in the deployed World.
-```
 
 ## API reference
 
