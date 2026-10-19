@@ -53,6 +53,13 @@ export const QUESTIONS = {
 } satisfies Record<string, QuestionSpec>
 ```
 
+`scale` sets the five rating labels: use a [built-in scale](src/scene-feedback/lib/shared/scales.ts)
+such as `'EASE'`, or supply your own labels in order from 1 to 5:
+
+```ts
+scale: ['Very difficult', 'Difficult', 'OK', 'Easy', 'Very easy']
+```
+
 Set your greeting in `INTRO` in the same file.
 For choosing and adapting questions, see the [question guide](QUESTION_GUIDE.md).
 
