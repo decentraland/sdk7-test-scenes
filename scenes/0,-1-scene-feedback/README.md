@@ -97,9 +97,18 @@ For an earlier intro or a player-opened form, see the [integration examples](EXA
 ### 4. Review
 
 [Test locally](#test), then deploy to your World and submit a response there.
-In Creator Hub, open **Manage → your World's ⋮ menu → View Storage** and download
-`playtest-feedback-1.csv` from **Scene Storage**. Allow up to a minute for responses
-to be written.
+In Creator Hub, open **Manage → your World's ⋮ menu → View Storage**.
+
+<p align="center">
+  <a href="assets/images/creator-hub-view-storage.png">
+    <img src="assets/images/creator-hub-view-storage.png" width="600" alt="Creator Hub Manage tab with the World's menu open and View Storage available">
+  </a>
+  <br>
+  <em>Figure 3. Open your World's Storage from Creator Hub.</em>
+</p>
+
+This opens a browser page with **Scene Storage**, where you can browse and download
+the CSV files (e.g. `playtest-feedback-1.csv`). Allow up to a minute for responses to be written.
 
 Use the `questionId` and `trigger` columns to find your test response.
 See [CSV fields](#stored-csv) and [reading the results](QUESTION_GUIDE.md#reading-the-csv).
