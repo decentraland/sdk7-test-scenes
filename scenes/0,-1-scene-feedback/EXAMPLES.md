@@ -90,7 +90,7 @@ participation check suppresses that call: it does **not** replay the missed even
 If that matters, have the scene remember it and ask at a later safe pause after consent.
 Both start outcomes use one trigger, so abandoning and retrying does not ask twice.
 
-## 2. Intro and Question at the same moment
+## 2. Intro immediately followed by a Question
 
 **When:** the player has just tried a game and reached a safe pause, and you want permission
 immediately before the first Question. This is useful when there is no earlier consent step.
@@ -107,6 +107,11 @@ function onFirstGameUiClosed() {
   void feedback.ask('playingBowling', 'first-game-end')
 }
 ```
+
+Call both methods from the same event; the module waits for consent before showing the
+Question. No `await` or acceptance callback is needed. This is the same pattern used by the
+[coin-hunt demo](src/game.tsx) when the player collects their first coin; here it runs after
+the first game's UI closes. With participation required, `ask()` alone does not open an Intro.
 
 **Expected:** the Question waits behind the Intro. Accepting leads into it; declining drops
 it. If the player has already accepted earlier this visit, the Intro is not shown again and

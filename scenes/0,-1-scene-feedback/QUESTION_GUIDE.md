@@ -64,7 +64,7 @@ Codes from [QUESTION_BANK.md](QUESTION_BANK.md).
 Use [EXAMPLES.md](EXAMPLES.md) for complete `questions.ts` definitions and scene-event wiring:
 
 - [Consent now, onboarding feedback later](EXAMPLES.md#1-intro-now-question-after-play).
-- [Permission and the first Question after a game](EXAMPLES.md#2-intro-and-question-at-the-same-moment).
+- [Permission and the first Question after a game](EXAMPLES.md#2-intro-immediately-followed-by-a-question).
 - [Player-initiated feedback](EXAMPLES.md#3-feedback-opened-by-the-player),
   [selected testers](EXAMPLES.md#4-selected-testers-without-an-intro), and
   [mixed rating/text Groups](EXAMPLES.md#5-a-mixed-group-after-the-first-game).
