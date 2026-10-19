@@ -3,6 +3,9 @@
 Asks players a Question with a labelled 1–5 rating and an optional comment, or a text-only
 Question, at moments the creator picks.
 
+- **Dynamic:** ask questions at selected moments during play, such as after a round or a purchase.
+- **Static:** let players open a feedback form themselves, through a button or a kiosk.
+
 <p align="center">
   <a href="assets/images/feedback-panel.png">
     <img src="assets/images/feedback-panel.png" width="274" alt="In-game Scene Feedback question with rating choices and an optional comment field">
