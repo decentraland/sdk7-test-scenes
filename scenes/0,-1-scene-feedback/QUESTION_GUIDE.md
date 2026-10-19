@@ -1,7 +1,6 @@
 # Question guide
 
-When and how to ask, and how to read the answers. The Questions themselves: [QUESTION_BANK.md](QUESTION_BANK.md). Distilled from
-the playtest research (Sept 2026) and DCL studio playtest reports.
+When and how to ask, and how to read the answers. The Questions themselves: [QUESTION_BANK.md](QUESTION_BANK.md).
 
 ## When to ask
 
