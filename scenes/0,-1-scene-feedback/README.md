@@ -6,6 +6,10 @@ answered passes on the Question; **Skip** and × close. Every Response —
 submitted or skipped — ends up as a row of a CSV that the Multiplayer Server keeps in scene
 Storage.
 
+![Scene Feedback panel in the Coin Hunt demo, showing five rating choices, an optional comment field, and Skip and Next buttons](assets/images/scene-thumbnail.png)
+
+*Scene Feedback in the Coin Hunt demo. Customize the questions and when they appear.*
+
 This scene is the example: a tiny coin hunt ([src/game.tsx](src/game.tsx)) that asks Questions
 mid-round, after a round, and as a two-Question series. Its [questions.ts](src/scene-feedback/questions.ts)
 shows Questions from the bank, your own rating scales, and a text-only Question.
