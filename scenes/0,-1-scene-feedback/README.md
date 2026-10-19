@@ -271,7 +271,7 @@ The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` sta
   Each includes a rating scale, suggested timing, what the answer can tell you, and a reference
   code in [QUESTION_BANK.md](QUESTION_BANK.md).
 - [src/scene-feedback/lib/shared/scales.ts](src/scene-feedback/lib/shared/scales.ts) contains
-  14 rating scales. Choose one that fits your question, or create your own with five labels.
+  14 rating scales. Choose one that fits your question, or use these examples to create your own with five labels.
 - [QUESTION_BANK.md](QUESTION_BANK.md) contains a larger collection of 113 candidate questions
   for inspiration.
 - [QUESTION_GUIDE.md](QUESTION_GUIDE.md) helps you choose and adapt questions, with ready-made
