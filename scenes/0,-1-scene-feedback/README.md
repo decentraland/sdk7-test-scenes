@@ -22,6 +22,41 @@ For your own scene (the coin hunt is just a demo):
 5. [Deploy to your own World](#test) and submit a response there.
 6. [Retrieve the CSV](#test) and [read the results](QUESTION_GUIDE.md#reading-the-csv).
 
+## Install with an AI agent
+
+Give your coding agent the prompt below. It will use the module's instructions and
+examples to adapt the integration to your scene.
+
+```text
+Add the Scene Feedback module to this Decentraland SDK7 scene.
+
+Start with:
+https://github.com/decentraland/sdk7-test-scenes/blob/main/scenes/0,-1-scene-feedback/README.md
+
+Follow its links to EXAMPLES.md for integration recipes and QUESTION_GUIDE.md
+for choosing and adapting useful playtest questions. Adapt existing questions
+to the specific actions, objects, and experiences in this scene.
+
+First inspect this scene's startup flow, existing UI, game events, and
+client/server structure. Clarify the playtest goal and intended feedback flow
+with me wherever they are not already specified.
+
+Then:
+1. Follow the README to install and configure the module, preserving this
+   scene's settings and existing functionality.
+2. Configure a small question set suited to what we want to learn.
+3. Connect the intro and questions to the agreed points in the scene's flow.
+   See the examples for showing them together or separately.
+4. Before changing the Scene Feedback module's internals, look for an existing
+   solution in this module's public API, configuration, and examples.
+   Modify src/scene-feedback/lib/ only if those options cannot support
+   the intended behavior.
+5. Run the relevant available checks and explain how to verify response
+   collection in the deployed World.
+
+Summarize what changed, when feedback appears, and what still needs testing.
+```
+
 ## Add it to your scene
 
 Requires `@dcl/sdk@auth-server` and `"authoritativeMultiplayer": true` in `scene.json` (only the
