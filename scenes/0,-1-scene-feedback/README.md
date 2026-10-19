@@ -108,7 +108,7 @@ In Creator Hub, open **Manage → your World's ⋮ menu → View Storage**.
 </p>
 
 This opens a browser page with **Scene Storage** (see Fig. 2), where you can browse and download
-the CSV files (e.g. `playtest-feedback-1.csv`). Allow up to a minute for responses to be written.
+the CSV files (e.g. `playtest-feedback-1.csv`).
 
 Use the `questionId` and `trigger` columns to find your test response.
 See [CSV fields](#stored-csv) and [reading the results](QUESTION_GUIDE.md#reading-the-csv).
@@ -138,7 +138,7 @@ https://github.com/decentraland/sdk7-test-scenes/blob/main/scenes/0,-1-scene-fee
 ## API reference
 
 With `authoritativeMultiplayer` your `main()` runs on the server too. If your scene has no
-server logic, start it with `if (isServer()) return` so the scene code runs only for players.
+server logic, start it with `if (isServer()) return` (as used in this scene example) so the scene code runs only for players.
 Keep the `feedback` import outside that guard so the Storage server starts too.
 
 ### Comments and text-only questions
@@ -266,12 +266,16 @@ The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` sta
 
 ## Question bank
 
-[src/scene-feedback/lib/bank.ts](src/scene-feedback/lib/bank.ts): 20 Questions selected for the pilot, in
-sections (`coreMechanic`, `coreLoop`, `social`, `motivation`, `world`, `technical`). Each comes
-with its rating scale, the moment it is meant for, what the answer tells you, and its code in
-[QUESTION_BANK.md](QUESTION_BANK.md). The 14 scales are in [src/scene-feedback/lib/shared/scales.ts](src/scene-feedback/lib/shared/scales.ts),
-shortened to fit under a tile. A Question can also carry five labels of its own. All 113 candidate
-Questions: [QUESTION_BANK.md](QUESTION_BANK.md); ready-made sets and when to ask what: [QUESTION_GUIDE.md](QUESTION_GUIDE.md).
+- [src/scene-feedback/lib/bank.ts](src/scene-feedback/lib/bank.ts) contains 20 selected Questions,
+  grouped into `coreMechanic`, `coreLoop`, `social`, `motivation`, `world`, and `technical`.
+  Each includes a rating scale, suggested timing, what the answer can tell you, and a reference
+  code in [QUESTION_BANK.md](QUESTION_BANK.md).
+- [src/scene-feedback/lib/shared/scales.ts](src/scene-feedback/lib/shared/scales.ts) contains
+  14 rating scales. Use these as examples to create your own custom scale with five labels.
+- [QUESTION_BANK.md](QUESTION_BANK.md) contains a larger collection of 113 candidate questions
+  for inspiration.
+- [QUESTION_GUIDE.md](QUESTION_GUIDE.md) helps you choose and adapt questions, with ready-made
+  sets and guidance on when to ask them.
 
 ## Tips
 
