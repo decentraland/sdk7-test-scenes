@@ -309,6 +309,10 @@ If a recent response is missing, allow up to a minute for it to be written, then
 
 ### Storage behavior and limits
 
+- Upgrading from an older version? Download any `playtest-feedback-*` CSV files you want
+  to keep, then delete the old CSV parts and `playtest-feedback-csv-head` to free Storage.
+  They are not migrated; the current module uses `scene-feedback-*` keys.
+
 - Text fields are flattened to one line. A leading `= + - @` is prefixed with `'`
   to prevent spreadsheet formulas from running.
 - The server acknowledges responses when buffered, before writing to Storage. A crash or

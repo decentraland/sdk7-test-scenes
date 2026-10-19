@@ -1,7 +1,7 @@
 import { engine } from '@dcl/sdk/ecs'
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { Input, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { MAX_RATING, allQuestions } from '../shared/series'
+import { MAX_COMMENT_LENGTH, MAX_RATING, allQuestions } from '../shared/series'
 import { SCALES, ScaleLabels, scaleLabels } from '../shared/scales'
 import {
   acceptIntro,
@@ -591,26 +591,36 @@ function labelSize(lines: string[]): number {
 // The design's input: white, rounded, the prompt as placeholder.
 function commentField(prompt: string, { width = 500, height = 86, fontSize = 16, top = 24 } = {}) {
   return (
-    <Input
-      key="comment"
-      placeholder={prompt}
-      placeholderColor={SILVER}
-      color={INK}
-      value={feedback.comment}
-      onChange={setComment}
-      fontSize={fontSize}
-      textAlign="top-left"
-      uiTransform={{
-        width,
-        height,
-        margin: { top },
-        padding: { top: 13 - INPUT_INSET.top, left: 16 - INPUT_INSET.left, right: 16 - INPUT_INSET.left },
-        borderRadius: 12,
-        borderWidth: 0,
-        borderColor: TRANSPARENT
-      }}
-      uiBackground={{ color: SNOW }}
-    />
+    <UiEntity key="comment-field" uiTransform={{ width, height, flexDirection: 'column', margin: { top } }}>
+      <Input
+        key="comment"
+        placeholder={prompt}
+        placeholderColor={SILVER}
+        color={INK}
+        value={feedback.comment}
+        onChange={setComment}
+        fontSize={fontSize}
+        textAlign="top-left"
+        uiTransform={{
+          width,
+          height: height - 18,
+          padding: { top: 13 - INPUT_INSET.top, left: 16 - INPUT_INSET.left, right: 16 - INPUT_INSET.left },
+          borderRadius: 12,
+          borderWidth: 0,
+          borderColor: TRANSPARENT
+        }}
+        uiBackground={{ color: SNOW }}
+      />
+      <Label
+        value={Array.from(feedback.comment).length > MAX_COMMENT_LENGTH
+          ? `Only the first ${MAX_COMMENT_LENGTH} characters will be saved.`
+          : `Up to ${MAX_COMMENT_LENGTH} characters.`}
+        fontSize={12}
+        color={SNOW}
+        textAlign="middle-left"
+        uiTransform={{ width, height: 18 }}
+      />
+    </UiEntity>
   )
 }
 

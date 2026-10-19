@@ -9,7 +9,7 @@ import {
   INTRO_ID,
   IntroAnswer,
   IntroSpec,
-  MAX_COMMENT_LENGTH,
+  limitComment,
   Question,
   findQuestion
 } from '../shared/series'
@@ -123,14 +123,14 @@ export function askQuestions(questionIds: readonly string[], trigger: string, op
       queue.push(ask)
       return
     }
-    // the Intro on screen already greets them: the batch opens without a second one
-    if (feedback.phase === 'intro') ask.introDone = true
     // server down: a game Intro or Question on screen stays, this waits behind it for the server,
     // up to SERVER_WAIT_MS (the Intro on screen is queue[0], a Question is `current`, outside the queue)
     if (feedback.phase !== 'idle' && !isServerAlive()) {
       queue.splice(feedback.phase === 'intro' ? 1 : 0, 0, ask)
       return
     }
+    // Only reuse the greeting when this form actually replaces it.
+    if (feedback.phase === 'intro') ask.introDone = true
     // the player asked: the game's panel steps aside and comes back after, where it was
     if (feedback.phase === 'open' && current) {
       if (cameBack()) keepAnswer()
@@ -368,7 +368,8 @@ export function setRating(value: number): void {
 }
 
 export function setComment(value: string): void {
-  feedback.comment = value.slice(0, MAX_COMMENT_LENGTH)
+  // Keep the input value intact; the field explains which prefix will be saved.
+  feedback.comment = value
 }
 
 // a rating or a comment, either counts
@@ -492,7 +493,7 @@ function sendGroup(ask: Ask): void {
       questionId: s.question.id,
       trigger: ask.trigger,
       rating: s.answer?.rating ?? 0,
-      comment: s.comment ? (s.answer?.comment ?? '') : '',
+      comment: s.comment ? limitComment(s.answer?.comment ?? '') : '',
       commentShown: s.comment
     })
   })

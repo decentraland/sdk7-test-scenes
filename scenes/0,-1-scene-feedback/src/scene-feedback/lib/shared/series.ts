@@ -53,5 +53,8 @@ export const INTRO_ID = 'intro'
 export const INTRO_ANSWERS = ['declined', 'accepted', 'enrolled'] as const
 export type IntroAnswer = (typeof INTRO_ANSWERS)[number]
 export const MAX_COMMENT_LENGTH = 1000
+export function limitComment(value: string): string {
+  return Array.from(value).slice(0, MAX_COMMENT_LENGTH).join('')
+}
 export const HEARTBEAT_MS = 2000
 export const HEARTBEAT_FRESHNESS_MS = 6000

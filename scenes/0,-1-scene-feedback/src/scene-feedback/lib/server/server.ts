@@ -7,7 +7,7 @@ import {
   INTRO_ANSWERS,
   INTRO_ID,
   IntroSpec,
-  MAX_COMMENT_LENGTH,
+  limitComment,
   MAX_RATING,
   SKIPPED_LABEL,
   findQuestion
@@ -49,6 +49,7 @@ let lastFlushAt = 0
 // last player left: flush now, retried until it succeeds
 let flushRequested = false
 let failedAt = 0
+let pendingFullLogged = false
 let playerCount = 0
 let sceneVersion = ''
 
@@ -128,7 +129,12 @@ function receiveResponse(
 
   if (id === '') return ack(false)
   // no ack: the client resends for 30 s, then drops it
-  if (pending.size >= MAX_PENDING_ROWS) return console.log(`[SERVER] ${MAX_PENDING_ROWS} rows pending, ${id} not taken`)
+  if (pending.size >= MAX_PENDING_ROWS) {
+    if (!pendingFullLogged) console.log(`[SERVER] ${MAX_PENDING_ROWS} rows pending; new responses wait for space`)
+    pendingFullLogged = true
+    return
+  }
+  pendingFullLogged = false
   if (!withinRate(from.toLowerCase())) {
     console.log(`[SERVER] ${from} over ${RATE_MAX_ROWS} rows in ${RATE_WINDOW_MS / 60_000} min, dropped`)
     return ack(false)
@@ -142,7 +148,7 @@ function receiveResponse(
       ? data.rating
       : null
   const commentShown = question.commentOnly || (data.commentShown && question.commentPrompt !== undefined)
-  const comment = commentShown ? data.comment.trim().slice(0, MAX_COMMENT_LENGTH) : ''
+  const comment = commentShown ? limitComment(data.comment.trim()) : ''
   const row: CsvRow = {
     ...baseRow(id, data, from),
     questionId: question.id,
