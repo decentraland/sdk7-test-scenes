@@ -249,13 +249,14 @@ or the demo's [button, kiosk, and area handlers](src/leave-feedback.tsx).
 
 ## Stored CSV
 
-Earlier versions used `playtest-feedback-*` keys. Updating starts a separate set of
-`scene-feedback-*` keys; existing data remains available under its original names.
+The authoritative Multiplayer Server saves feedback responses in your scene's Storage as
+`scene-feedback-1.csv`, `scene-feedback-2.csv`, and so on. The module limits each CSV file to
+400 KB; when the next batch would exceed that limit, it writes the new responses to the next file.
 
-`scene-feedback-1.csv`, `scene-feedback-2.csv`, … — each part up to 400 KB (~2 500 rows;
-Storage caps a value at 512 KB), `scene-feedback-csv-head` holds the number of the part being
-written. The World's scene Storage is 10 MB in
-total, shared by all its scenes.
+`scene-feedback-csv-head` stores the number of the file currently being written.
+This is an internal bookkeeping key: **do not delete or modify it**.
+
+Storage allows up to 512 KB per value and 10 MB per World, shared by all its scenes.
 
 ```csv
 id,timeUtc,version,questionId,questionText,trigger,rating,ratingLabel,scale,commentPrompt,comment,secondsInScene,playersInScene,address,isGuest,platform
