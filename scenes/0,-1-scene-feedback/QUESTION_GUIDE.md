@@ -34,7 +34,7 @@ When and how to ask, and how to read the answers. The Questions themselves: [QUE
 - Look at how many players picked each of 1–5, with the comments. A mean is a summary, not the result.
 - Never average different Questions into one score, or merge different wordings, scales or triggers.
 - Small samples: counts, not percentages, and no ranking between scenes.
-- Only opted-in players answer; they are not all your visitors.
+- Players who answer are not necessarily representative of all your visitors.
 - "Interested in coming back" is not an actual return.
 - A low score shows where to look, not the cause or the fix. Watch players there, change it,
   ask the same Question at the same trigger again.

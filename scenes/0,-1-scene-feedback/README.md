@@ -38,6 +38,7 @@ demonstrates bank questions, custom rating scales, and a text-only Question.
 
   - Use `@dcl/sdk@auth-server`.
   - Set `"authoritativeMultiplayer": true` in `scene.json`.
+  - Add `"USE_FETCH"` to `requiredPermissions` in `scene.json`, keeping any existing permissions.
 
   See the [Multiplayer Server setup](https://docs.decentraland.org/creator/scenes-sdk7/networking/authoritative-servers) for more details.
 
@@ -260,7 +261,7 @@ Storage allows up to 512 KB per value and 10 MB per World, shared by all its sce
 
 ```csv
 id,timeUtc,version,questionId,questionText,trigger,rating,ratingLabel,scale,commentPrompt,comment,secondsInScene,playersInScene,address,isGuest,platform
-mfqz8k2x4f7a9c,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in playing more right now?,debug,5,Extremely,INTEREST,What makes you want to keep playing, or stop? (optional),kind of yes,42,1,0x…,true,desktop
+mfqz8k2x4f7a9c,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in playing more right now?,debug,5,Extremely,INTEREST,"What makes you want to keep playing, or stop? (optional)",kind of yes,42,1,0x…,true,desktop
 ```
 
 ### CSV fields
@@ -300,6 +301,8 @@ Each row contains these fields, in order:
 
 For comparing answers and drawing conclusions, see
 [Reading the CSV](QUESTION_GUIDE.md#reading-the-csv).
+
+If a recent response is missing, allow up to a minute for it to be written, then refresh Scene Storage.
 
 ## Details
 

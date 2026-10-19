@@ -143,8 +143,7 @@ for your chosen entry point. For an area, call on entry, not every frame spent i
 **Expected:** the greeting opens the text Question when accepted. This works even for a
 player who declined game Questions, and does not enroll them in dynamic feedback. It can
 be reopened during the same visit; a second call while this flow is open or waiting is
-ignored. [README](README.md#asking-participants-through-a-feedback-form-static-approach) describes how it shares the
-panel with a game Question already on screen.
+ignored.
 
 ## 4. Selected testers without an Intro
 
@@ -218,7 +217,7 @@ only. Changing it to `{ comment: false }` hides the optional comment on `playing
 `bowlingProblems` still shows its text field because that field is the answer.
 
 Back and Next retain drafts; Submit sends the Group. Blank text counts as skipped. Skip or
-× follow the [Group close rules](README.md#add-it-to-your-scene); they do not silently answer
+× follow the [Group close rules](README.md#group-navigation-and-skipping); they do not silently answer
 Questions the player never reached. A submitted text-only row leaves `rating`, `ratingLabel`
 and `scale` empty; a skipped row uses `ratingLabel` `skipped`. Read each rating on its own
 scale alongside the comments rather than averaging the Group into one score.
