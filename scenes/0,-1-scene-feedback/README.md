@@ -174,26 +174,26 @@ void feedback.ask(['buyingUpgrade', 'playMore'], 'round-complete', { comment: ['
 Text-only answer fields always remain visible.
 See the [mixed-group example](EXAMPLES.md#5-a-mixed-group-after-the-first-game).
 
-### Dynamic: participants, then Questions during play
+### Asking participants during play (dynamic approach)
 
-- **Request consent:** call `feedback.intro(trigger)` before your first `ask()`.
-  Questions queued behind it wait for the answer.
-- **Separate consent from questions:** call `intro()` at one event and `ask()` at a later one.
-  Connect them to your scene's UI/game events; see the
-  [separate-intro example](EXAMPLES.md#1-intro-now-question-after-play).
-- **Read the choice:** use `feedback.participation()` for `in`, `out`, or `unknown`.
-  To react when the Intro closes, await `feedback.intro(trigger)`:
-  it returns `accepted`, `declined`, or `not-shown`.
-- **Enroll preselected testers:** call `feedback.enroll(trigger)` once their player identity
-  is available. See the [tester example](EXAMPLES.md#4-selected-testers-without-an-intro).
+Set `ASK_PARTICIPANTS_ONLY` in `questions.ts` to choose who receives questions from `ask()`:
 
-Consent lasts for the visit. Configure who receives game-triggered questions with
-`ASK_PARTICIPANTS_ONLY` in `questions.ts`:
+- **`true` (default):** only enrolled participants receive questions.
+- **`false`:** everyone receives questions except players who declined the Intro during this visit.
 
-| Setting | Accepted or enrolled (`in`) | Not yet asked (`unknown`) | Declined (`out`) |
-|---|---|---|---|
-| `true` (default) | Ask | Wait for consent or enrollment | Do not ask |
-| `false` | Ask | Ask | Do not ask |
+There are two ways to enroll a participant for the current visit:
+
+1. **`feedback.intro(trigger)`** — invite the player to participate. Accepting enrolls them;
+   declining opts them out. Call it before the first `ask()`; queued questions wait for the answer.
+   You can also show the Intro earlier and ask questions at a later event:
+   [separate-intro example](EXAMPLES.md#1-intro-now-question-after-play).
+2. **`feedback.enroll(trigger)`** — enroll a player directly, for example a preselected tester.
+   Call it once their player identity is available:
+   [tester example](EXAMPLES.md#4-selected-testers-without-an-intro).
+
+Use `feedback.participation()` to read `in`, `out`, or `unknown`.
+To react to the Intro's result, await `feedback.intro(trigger)`:
+it returns `accepted`, `declined`, or `not-shown`.
 
 With the default setting, `ask()` returns `not-shown` if consent is missing and no Intro
 is pending. It does not open an Intro or replay missed events later.
