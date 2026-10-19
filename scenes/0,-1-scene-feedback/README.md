@@ -38,11 +38,11 @@ shows Questions from the bank, your own rating scales, and a text-only Question.
 
 ### 2. Configure
 
-- **Edit `QUESTIONS`** in [questions.ts](src/scene-feedback/questions.ts): use a bank question
-  or adapt one to your scene.
-- **Set `INTRO`** in the same file with your greeting and invitation to give feedback.
-- **[Optional] Provide a custom `scale`:** replace a [built-in scale](src/scene-feedback/lib/shared/scales.ts)
-  with your own five labels, ordered from 1 to 5.
+Configure [questions.ts](src/scene-feedback/questions.ts):
+
+- **Set `INTRO`** with your greeting and invitation to give feedback.
+- **Edit `QUESTIONS`:** use bank questions or adapt them to your scene.
+- **Choose a `scale`:** use a built-in scale or provide your own five labels.
 
 ```ts
 export const INTRO: IntroSpec | null = {
