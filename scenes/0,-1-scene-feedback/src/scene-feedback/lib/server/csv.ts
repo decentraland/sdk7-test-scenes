@@ -25,7 +25,7 @@ export function formatRow(row: CsvRow): string {
     // "2026-09-30 12:27:33": parsed as a date-time by Sheets and Excel, unlike ISO with a Z.
     new Date(row.serverTs).toISOString().slice(0, 19).replace('T', ' '),
     row.version,
-    row.questionId,
+    field(row.questionId),
     field(row.questionText),
     field(row.trigger),
     row.rating === null ? '' : `${row.rating}`,

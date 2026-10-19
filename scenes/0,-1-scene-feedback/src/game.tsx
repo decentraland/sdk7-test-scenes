@@ -12,7 +12,7 @@ import {
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { feedback } from './playtest-feedback'
+import { feedback } from './scene-feedback'
 import { setupLeaveFeedback } from './leave-feedback'
 
 // Tiny 3-round coin hunt, only to show feedback.ask() at different moments:

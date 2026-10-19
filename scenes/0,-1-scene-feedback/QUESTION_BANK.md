@@ -3,8 +3,8 @@
 113 candidate Questions, by topic, to pick from. When and how to ask them, and ready-made sets:
 [QUESTION_GUIDE.md](QUESTION_GUIDE.md).
 
-Scale codes are in [lib/shared/scales.ts](src/playtest-feedback/lib/shared/scales.ts). The 20 with
-an id are ready in [lib/bank.ts](src/playtest-feedback/lib/bank.ts), with a tailored comment
+Scale codes are in [lib/shared/scales.ts](src/scene-feedback/lib/shared/scales.ts). The 20 with
+an id are ready in [lib/bank.ts](src/scene-feedback/lib/bank.ts), with a tailored comment
 prompt; for the rest, add your own entry in `questions.ts`. Words in [brackets] are placeholders
 for your game's own.
 

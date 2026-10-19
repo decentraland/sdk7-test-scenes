@@ -6,7 +6,7 @@ submitted or skipped — ends up as a row of a CSV that the Multiplayer Server k
 Storage.
 
 This scene is the example: a tiny coin hunt ([src/game.tsx](src/game.tsx)) that asks Questions
-mid-round, after a round, and as a two-Question series. Its [questions.ts](src/playtest-feedback/questions.ts)
+mid-round, after a round, and as a two-Question series. Its [questions.ts](src/scene-feedback/questions.ts)
 shows the three kinds of Question: from the bank, your own on a shared scale, your own on your own scale.
 
 ## Add it to your scene
@@ -14,9 +14,9 @@ shows the three kinds of Question: from the bank, your own on a shared scale, yo
 Requires `@dcl/sdk@auth-server` and `"authoritativeMultiplayer": true` in `scene.json` (only the
 server can write Storage; see the [Multiplayer Server docs](https://docs.decentraland.org/creator/scenes-sdk7/networking/authoritative-servers)).
 
-1. Copy the [src/playtest-feedback/](src/playtest-feedback) folder into your `src/`, and the
-   [assets/playtest-feedback/](assets/playtest-feedback) folder (the panel's images) into your `assets/`.
-2. Edit [src/playtest-feedback/questions.ts](src/playtest-feedback/questions.ts) — the only library file to touch:
+1. Copy the [src/scene-feedback/](src/scene-feedback) folder into your `src/`, and the
+   [assets/scene-feedback/](assets/scene-feedback) folder (the panel's images) into your `assets/`.
+2. Edit [src/scene-feedback/questions.ts](src/scene-feedback/questions.ts) — the only library file to touch:
 
    ```ts
    export const DEBUG = true // "Ask <id>" buttons top-left, for you only; turn off before release
@@ -37,7 +37,7 @@ server can write Storage; see the [Multiplayer Server docs](https://docs.decentr
    in `main()` needed. The trigger names the moment and goes to the CSV:
 
    ```ts
-   import { feedback } from './playtest-feedback'
+   import { feedback } from './scene-feedback'
 
    // dynamic: the Intro right before the first Question; a yes makes the player a participant
    void feedback.intro('after-first-purchase')
@@ -53,7 +53,7 @@ server can write Storage; see the [Multiplayer Server docs](https://docs.decentr
 With `authoritativeMultiplayer` your `main()` runs on the server too. If your scene has no
 server logic, start it with `if (isServer()) return` so the scene code runs only for players.
 
-To update to a newer version, replace `src/playtest-feedback/lib/` and `assets/playtest-feedback/` with the new
+To update to a newer version, replace `src/scene-feedback/lib/` and `assets/scene-feedback/` with the new
 ones; `questions.ts` stays yours.
 
 `ask()` queues the Question and shows it once nothing else is on screen and the server is up
@@ -154,10 +154,10 @@ The panel uses its own UI renderer, so your `ReactEcsRenderer.setUiRenderer` sta
 
 ## Question bank
 
-[src/playtest-feedback/lib/bank.ts](src/playtest-feedback/lib/bank.ts): 20 Questions selected for the pilot, in
+[src/scene-feedback/lib/bank.ts](src/scene-feedback/lib/bank.ts): 20 Questions selected for the pilot, in
 sections (`coreMechanic`, `coreLoop`, `social`, `motivation`, `world`, `technical`). Each comes
 with its rating scale, the moment it is meant for, what the answer tells you, and its code in
-[QUESTION_BANK.md](QUESTION_BANK.md). The 14 scales are in [src/playtest-feedback/lib/shared/scales.ts](src/playtest-feedback/lib/shared/scales.ts),
+[QUESTION_BANK.md](QUESTION_BANK.md). The 14 scales are in [src/scene-feedback/lib/shared/scales.ts](src/scene-feedback/lib/shared/scales.ts),
 shortened to fit under a tile. A Question can also carry five labels of its own. All 113 candidate
 Questions: [QUESTION_BANK.md](QUESTION_BANK.md); ready-made sets and when to ask what: [QUESTION_GUIDE.md](QUESTION_GUIDE.md).
 
@@ -179,7 +179,7 @@ More on timing, wording and reading the answers: [QUESTION_GUIDE.md](QUESTION_GU
   }
   ```
 
-  The demo does this: `coinSpotting` in [questions.ts](src/playtest-feedback/questions.ts) is bank
+  The demo does this: `coinSpotting` in [questions.ts](src/scene-feedback/questions.ts) is bank
   C08 (*important information*, not in `bank.ts`) about coins.
 - **Never change a live Question's text under the same id** — answers to different wordings
   would share it. New wording, new id.
@@ -257,5 +257,5 @@ mfqz8k2x4f7a9c,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in
 
 ## Credits
 
-Rating faces in `assets/playtest-feedback/face-*.png`: [Noto Emoji](https://github.com/googlefonts/noto-emoji), Apache License 2.0
-(text in `assets/playtest-feedback/LICENSE-noto-emoji.txt`, keep it next to the faces).
+Rating faces in `assets/scene-feedback/face-*.png`: [Noto Emoji](https://github.com/googlefonts/noto-emoji), Apache License 2.0
+(text in `assets/scene-feedback/LICENSE-noto-emoji.txt`, keep it next to the faces).

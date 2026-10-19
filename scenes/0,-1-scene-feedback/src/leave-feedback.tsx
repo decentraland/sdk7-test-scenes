@@ -11,7 +11,7 @@ import {
 } from '@dcl/sdk/ecs'
 import { Color4, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { feedback } from './playtest-feedback'
+import { feedback } from './scene-feedback'
 
 // Static mode, three ways in. Each calls feedback.leaveFeedback(batch, trigger): Intro, then
 // the batch as one Group. The trigger tells them apart in the CSV.

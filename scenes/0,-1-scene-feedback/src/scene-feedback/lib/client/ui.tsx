@@ -53,7 +53,7 @@ const DEBUG_BG = Color4.create(0.2, 0.2, 0.25, 0.9)
 const WARN = Color4.fromHexString('#ff9d3aff')
 
 // outside src/: .dclignore drops src/ from the deploy
-const ASSETS = 'assets/playtest-feedback/'
+const ASSETS = 'assets/scene-feedback/'
 // Desktop: bottom-right (Figma 1920x1080 frame). Mobile: centred, 35 from bottom (Figma 1600x720 frame).
 const PANEL_POSITION = { right: 25, bottom: 54 }
 const MOBILE_PANEL_BOTTOM = 35
