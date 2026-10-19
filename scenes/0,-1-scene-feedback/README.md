@@ -25,6 +25,10 @@ This scene contains the feedback library and a small coin-hunt example ([src/gam
 mid-round, after a round, and as a two-Question series. Its [questions.ts](src/scene-feedback/questions.ts)
 demonstrates bank questions, custom rating scales, and a text-only Question.
 
+Start with [four steps to your first response](#add-it-to-your-scene), or give your
+[AI agent the installation prompt](#install-with-an-ai-agent).
+For a specific integration, choose a recipe in [EXAMPLES.md](EXAMPLES.md).
+
 ## Add it to your scene
 
 ### 1. Install
@@ -49,7 +53,8 @@ Configure [questions.ts](src/scene-feedback/questions.ts):
 
 - **Set `INTRO`** with your greeting and invitation to give feedback.
 - **Edit `QUESTIONS`:** use bank questions or adapt them to your scene.
-- **Choose a `scale`:** use a built-in scale or provide your own five labels.
+- **Choose a `scale` for rating questions:** pick a built-in scale or create your own five
+  labels following the example below. For a text answer, use a [text-only question](#comments-and-text-only-questions).
 
 ```ts
 export const INTRO: IntroSpec | null = {
@@ -113,7 +118,9 @@ This opens a browser page with **Scene Storage** (see Fig. 2), where you can bro
 the CSV files (e.g. `scene-feedback-1.csv`).
 
 Use the `questionId` and `trigger` columns to find your test response.
-See [CSV fields](#stored-csv) and [reading the results](QUESTION_GUIDE.md#reading-the-csv).
+Check that its answer matches what you submitted.
+See [CSV fields](#csv-fields), [missing recent responses](#a-recent-response-is-missing),
+and [reading the results](QUESTION_GUIDE.md#reading-the-csv).
 
 ## Install with an AI agent
 
@@ -138,6 +145,15 @@ https://github.com/decentraland/sdk7-test-scenes/blob/main/scenes/0,-1-scene-fee
 ```
 
 ## API reference
+
+Choose the behavior you need:
+
+- [Offer ratings, comments, or text answers](#comments-and-text-only-questions).
+- [Ask during play](#asking-participants-during-play-dynamic-approach).
+- [Let players open a form](#asking-participants-through-a-feedback-form-static-approach).
+
+For return values and panel behavior, see [Queue and results](#queue-and-results)
+and [Group navigation and skipping](#group-navigation-and-skipping).
 
 ### Keep game logic on the client
 
@@ -211,8 +227,8 @@ The table below summarizes who receives questions under each setting:
 ### Asking participants through a feedback form (static approach)
 
 Use `leaveFeedback()` to ask a series of questions when the player chooses to give feedback.
-Invite them through a button, kiosk, or area trigger. The form shows the Intro first,
-followed by the questions.
+Invite them through a button, kiosk, or area trigger. With `INTRO` configured, the form
+shows a greeting before the questions; with `INTRO = null`, it opens the questions directly.
 
 ```ts
 // When the player selects Leave feedback.
@@ -269,17 +285,25 @@ mfqz8k2x4f7a9c,2026-09-30 12:27:33,x7q2mdk4ea,playMore,How interested are you in
 
 Each row contains these fields, in order:
 
+**Identify the response and its question**
+
 - `id`: response identifier used to deduplicate retries.
 - `timeUtc`: when the server received the response, in UTC.
 - `version`: tail of the deployed entity ID; `preview` during local testing.
 - `questionId`: question key from `QUESTIONS`, or `intro` for participation responses.
 - `questionText`: question wording from the deployed configuration; the Intro title for `intro` rows.
 - `trigger`: event label supplied to the API call; `debug` for debug-button responses.
+
+**Read the answer**
+
 - `rating`: selected value from 1 to 5, or empty when no rating was given.
 - `ratingLabel`: selected label, or a response status such as `skipped` or `accepted`.
 - `scale`: built-in scale code or custom labels joined with ` | `; empty for text-only questions.
 - `commentPrompt`: text field prompt shown to the player; empty if the field was not offered.
 - `comment`: submitted text, or empty.
+
+**Place the answer in context**
+
 - `secondsInScene`: time from scene load to the answer, reported by the client.
 - `playersInScene`: number of players present when the server received the response.
 - `address`: the responding player's address, in lowercase.
@@ -303,7 +327,11 @@ Each row contains these fields, in order:
 For comparing answers and drawing conclusions, see
 [Reading the CSV](QUESTION_GUIDE.md#reading-the-csv).
 
-If a recent response is missing, allow up to a minute for it to be written, then refresh Scene Storage.
+### A recent response is missing
+
+Allow up to a minute for the server to write it, then refresh Scene Storage and download
+the latest CSV part. Look for the `questionId` and `trigger` used in your test.
+For data-loss and submission limits, see [Storage behavior and limits](#storage-behavior-and-limits).
 
 ## Details
 
@@ -326,21 +354,42 @@ ones; `questions.ts` stays yours.
 
 ### Queue and results
 
-`ask()` queues the Question and shows it once no other feedback panel is on screen and the server is up
-(~15 s on a cold start). It resolves to `submitted`, `skipped` or `not-shown`: already shown at
-this trigger this visit (pass `{ repeat: true }` to allow it), the server did not come up within
-2 minutes, or the player closed the Group before reaching it.
-A Group resolves to one result per id, in the same order. A typo in the id is a compile error.
+**When a question opens.** `ask()` waits until no other feedback panel is on screen and the
+server is up (~15 s on a cold start). Participation must allow the question; see
+[enrollment rules](#asking-participants-during-play-dynamic-approach).
+
+**When to ask again.** An ID is shown once per trigger per visit. Pass `{ repeat: true }`
+to allow it again. Closing a Group also marks its unreached questions as handled at that trigger.
+
+**What the call returns.** A single question returns one result; a Group returns one per
+requested ID, in the same order:
+
+| Result | Meaning |
+|---|---|
+| `submitted` | A rating or nonblank comment was kept for submission. |
+| `skipped` | The question was reached and left unanswered, skipped, or closed without a kept answer. |
+| `not-shown` | The question was not reached: participation blocked it, it was already handled at this trigger, the server wait exceeded 2 minutes, or the Group closed before it. |
+
+These results describe the player's response, not confirmation of a Storage write.
+Question IDs are checked by TypeScript.
 
 ### Group navigation and skipping
 
-In a Group, **Next** and **Back** move between Questions and keep the answers on the player's
-side; **Submit** on the last one sends them all ("Completed" replaces the progress bar once it
-is answered). Next or Submit with nothing answered counts the Question as skipped; Submit with
-nothing answered in the whole Group just closes it. **Skip** (first Question only) and × close the
-Group: what was answered with Next is still sent, the Question on screen counts as skipped (or,
-if the player came back to it with Back, is sent as it stands on screen), and
-the ones never reached get no Response and are not asked again at that trigger.
+| Player action | Result |
+|---|---|
+| **Next** or **Back** | Keep the draft on the client and move to the adjacent question. |
+| **Submit** on the last question | Send the Group's responses and close it. An unanswered question counts as skipped. |
+| **Skip** on the first question, or **×** | Close the Group and send responses for reached questions using the rules below. |
+
+When the Group closes with **Skip** or **×**:
+
+- Answers kept while navigating are sent.
+- The question on screen counts as skipped if the player has not previously left it.
+  If they returned to it using Back or Next, its current answer is used.
+- Unreached questions produce no CSV row and are not asked again at the same trigger.
+
+An entirely unanswered Group closes without a thank-you message. On an answered last
+question, "Completed" replaces the progress bar; the player still presses **Submit** to send.
 
 ## How to test this scene
 

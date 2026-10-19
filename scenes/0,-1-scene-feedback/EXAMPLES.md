@@ -1,10 +1,19 @@
 # Integration examples
 
 Use these recipes after [installing the module](README.md#add-it-to-your-scene).
-For choosing what to investigate and how to read answers, use the
-[question guide](QUESTION_GUIDE.md). Each recipe below uses the same small configuration;
-copy the relevant entries into your own `questions.ts`, then connect the handlers to events
-your scene already has. Handler names here are illustrative, not SDK events.
+Choose one that fits when and how you want to ask:
+
+| You want to… | Recipe |
+|---|---|
+| Get consent early and ask after play | [1. Intro now, Question after play](#1-intro-now-question-after-play) |
+| Ask permission immediately before a question | [2. Intro followed by a Question](#2-intro-immediately-followed-by-a-question) |
+| Let players choose when to give feedback | [3. Player-opened form](#3-feedback-opened-by-the-player) |
+| Enroll testers selected by wallet | [4. Selected testers](#4-selected-testers-without-an-intro) |
+| Combine ratings and text in one Group | [5. Mixed Group](#5-a-mixed-group-after-the-first-game) |
+
+Copy the relevant entries from the shared configuration into your `questions.ts`, then
+connect the recipe's handlers to events your scene already has. Handler names are examples,
+not SDK events. For choosing and adapting the questions, use the [question guide](QUESTION_GUIDE.md).
 
 ## Shared configuration
 
@@ -47,11 +56,12 @@ starts the module, including the Storage server. Run the handlers and identity p
 on the client, after your scene's existing `isServer()` guard. These recipes use
 `questions.ts` configuration and public API calls from scene code.
 
-The examples are alternative integration patterns, not five flows to run together. In
-dynamic mode, consent is remembered for the visit: `in` accepted, `out` declined, `unknown`
-not answered. With `ASK_PARTICIPANTS_ONLY = true`, only `in` players receive game Questions.
-`ask()` shows an ID once per trigger per visit unless `{ repeat: true }` is passed. Choose
-stable trigger names that describe the moment, rather than new names for each retry.
+The recipes are alternatives, not five flows to install together:
+
+- With `ASK_PARTICIPANTS_ONLY = true`, game questions require consent or direct enrollment.
+  The choice lasts for the visit; see the [participation rules](README.md#asking-participants-during-play-dynamic-approach).
+- Choose stable trigger names describing the moment. `ask()` shows an ID once per trigger
+  per visit unless `{ repeat: true }` is passed.
 
 ## 1. Intro now, Question after play
 
@@ -84,11 +94,14 @@ function onStartAbandonedAndUiClosed() {
 ```
 
 **Expected:** accepting the Intro closes it; no Question follows until a later handler runs.
-Declining prevents game Questions this visit. The scene determines when other UI is clear;
-the module does not detect it. If a game event fires while consent is still unanswered, the
-participation check suppresses that call: it does **not** replay the missed event later.
-If that matters, have the scene remember it and ask at a later safe pause after consent.
-Both start outcomes use one trigger, so abandoning and retrying does not ask twice.
+Declining prevents game Questions this visit. Both start outcomes use one trigger, so
+abandoning and retrying does not ask twice.
+
+**Event timing:**
+
+- Connect the handlers where your scene knows its other UI is clear; the module does not detect it.
+- This recipe's participation check suppresses an event fired before consent. To ask later,
+  have the scene remember that event and wait for a safe pause after consent.
 
 ## 2. Intro immediately followed by a Question
 
@@ -108,16 +121,13 @@ function onFirstGameUiClosed() {
 }
 ```
 
-Call both methods from the same event; the module waits for consent before showing the
-Question. No `await` or acceptance callback is needed. This is the same pattern used by the
-[coin-hunt demo](src/game.tsx) when the player collects their first coin; here it runs after
-the first game's UI closes. With participation required, `ask()` alone does not open an Intro.
-
 **Expected:** the Question waits behind the Intro. Accepting leads into it; declining drops
 it. If the player has already accepted earlier this visit, the Intro is not shown again and
-the Question can open directly. A previous refusal still prevents the Question. There is no
-need to add an acceptance callback. `await feedback.intro(...)` is available if the scene
-needs the result (`accepted`, `declined`, or `not-shown`) for another purpose.
+the Question can open directly. A previous refusal still prevents the Question.
+
+**Call order:** call `intro()` before `ask()` from the same event. No `await` or acceptance
+callback is needed; `ask()` alone does not open an Intro. The [coin-hunt demo](src/game.tsx)
+uses this pattern at the first coin.
 
 ## 3. Feedback opened by the player
 
@@ -184,9 +194,9 @@ reliable identity-ready hook, use it instead of adding this system.
 
 **Expected:** listed wallets become participants and generate an Intro CSV row with
 `ratingLabel` `enrolled`. Other visitors remain `unknown` and receive no game Questions.
-Enrollment should finish before the relevant game event; the participation check does not
-queue missed events. Keep the `feedback` import available to the server even though the
-enrollment system itself only runs on the client.
+
+**Event timing:** finish enrollment before the relevant game event. The participation
+check does not queue missed events.
 
 ## 5. A mixed Group after the first game
 
@@ -212,20 +222,22 @@ function onFirstGameFinishedOrAbandoned() {
 ```
 
 **Expected:** one Group has a rating with an optional comment, a rating without a comment,
-and a text-only Question. The `comment` list controls optional comments on rating Questions
-only. Changing it to `{ comment: false }` hides the optional comment on `playingBowling`;
+and a text-only Question.
+
+**Choose which comments to show:** the `comment` list controls optional comments on rating
+Questions only. Changing it to `{ comment: false }` hides the optional comment on `playingBowling`;
 `bowlingProblems` still shows its text field because that field is the answer.
 
-Back and Next retain drafts; Submit sends the Group. Blank text counts as skipped. Skip or
-× follow the [Group close rules](README.md#group-navigation-and-skipping); they do not silently answer
-Questions the player never reached. A submitted text-only row leaves `rating`, `ratingLabel`
-and `scale` empty; a skipped row uses `ratingLabel` `skipped`. Read each rating on its own
-scale alongside the comments rather than averaging the Group into one score.
+For navigation and empty answers, see the [Group close rules](README.md#group-navigation-and-skipping).
+Use [How to read the responses](README.md#how-to-read-the-responses) to distinguish text answers
+from skipped rows, and [the question guide](QUESTION_GUIDE.md#reading-the-csv) to interpret the ratings.
 
 ## Check your integration
 
-Run `npm start`, exercise the wired events, decline the Intro on another visit, and try
-empty submissions. Test a game event while the Intro is pending as well as after acceptance.
-Then deploy to your own World, submit an answer there and [retrieve the CSV](README.md#4-review).
-Keep test rows identifiable by their trigger and follow the
-[reading guidance](QUESTION_GUIDE.md#reading-the-csv).
+1. Run `npm start` and trigger the chosen events. Check the recipe's expected behavior.
+2. On another visit, decline the Intro. Game questions should stay closed; a player-opened
+   form should still work.
+3. Test events before and after consent, and try blank answers and closing the panel.
+   Check the [result and close rules](README.md#queue-and-results).
+4. Deploy to your World, submit a known answer, and [retrieve the CSV](README.md#4-review).
+   Find its trigger and question ID, then compare the stored answer with what you entered.

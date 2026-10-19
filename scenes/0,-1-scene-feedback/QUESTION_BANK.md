@@ -1,12 +1,19 @@
 # Question bank
 
-113 candidate Questions, by topic, to pick from. When and how to ask them, and ready-made sets:
-[QUESTION_GUIDE.md](QUESTION_GUIDE.md).
+Choose from 113 candidate questions below. For a starting set matched to your playtest goal,
+see the [question guide](QUESTION_GUIDE.md#ready-made-sets).
 
-Scale codes are in [lib/shared/scales.ts](src/scene-feedback/lib/shared/scales.ts). The 20 with
-an id are ready in [lib/bank.ts](src/scene-feedback/lib/bank.ts), with a tailored comment
-prompt; for the rest, add your own entry in `questions.ts`. Words in [brackets] are placeholders
-for your game's own.
+To use an entry:
+
+1. Pick a question about something the player has experienced.
+2. Adapt its wording to your scene; replace words in [brackets] with your own.
+3. If **In bank.ts** contains a key, start from that entry in
+   [lib/bank.ts](src/scene-feedback/lib/bank.ts). Otherwise, define it in `questions.ts`
+   using the suggested [scale](src/scene-feedback/lib/shared/scales.ts) or your own.
+
+The 20 implemented entries include tailored comment prompts. The **Code** column identifies
+questions in this guide; your `QUESTIONS` key is the ID used by the API and CSV.
+For configuration syntax, see [Configure](README.md#2-configure).
 
 ## F · Starting, goals, and finding your way
 
