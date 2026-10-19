@@ -338,11 +338,6 @@ Group: what was answered with Next is still sent, the Question on screen counts 
 if the player came back to it with Back, is sent as it stands on screen), and
 the ones never reached get no Response and are not asked again at that trigger.
 
-## Credits
-
-Rating faces in `assets/scene-feedback/face-*.png`: [Noto Emoji](https://github.com/googlefonts/noto-emoji), Apache License 2.0
-(text in `assets/scene-feedback/LICENSE-noto-emoji.txt`, keep it next to the faces).
-
 ## How to test this scene
 
 1. Run `npm install`, then `npm start` from this scene's folder.
@@ -357,3 +352,8 @@ Rating faces in `assets/scene-feedback/face-*.png`: [Noto Emoji](https://github.
 
 For a real-phone test, run `npm start -- --mobile` and scan the QR code from a phone
 on the same network. For the desktop mobile-layout preview, see [Debug](#debug).
+
+## Credits
+
+Rating faces in `assets/scene-feedback/face-*.png`: [Noto Emoji](https://github.com/googlefonts/noto-emoji), Apache License 2.0
+(text in `assets/scene-feedback/LICENSE-noto-emoji.txt`, keep it next to the faces).
