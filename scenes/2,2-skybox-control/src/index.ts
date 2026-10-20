@@ -1,21 +1,13 @@
-// Test scene for the PBSkybox SDK component (textures + environment overrides) with one LightSource.
+// Test scene for the `Skybox`, `Sun` and `EnvironmentFog` SDK components (procedural sky,
+// directional light and fog overrides, each independently settable on `engine.RootEntity`)
+// with one LightSource for the "True darkness" demo.
 import { Color3, Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import {
-  ColliderLayer,
-  engine,
-  Entity,
-  GltfContainer,
-  LightSource,
-  Material,
-  MeshRenderer,
-  Transform,
-  VideoPlayer
-} from '@dcl/sdk/ecs'
+import { ColliderLayer, engine, GltfContainer, LightSource, Material, MeshRenderer, Transform } from '@dcl/sdk/ecs'
 import { initializeUI } from './ui'
 
 export function main() {
   setupScene()
-  initializeUI(videoPlayerEntity)
+  initializeUI()
 }
 
 function setupScene() {
@@ -24,12 +16,10 @@ function setupScene() {
   createMirror()
   createMaterialCubes()
   createLight()
-  createVideoScreen()
 }
 
-// Reuses the glossy floor asset pack from `0,6-ui-zindex-and-opacity` so reflections
-// (both the derived skybox reflection and the explicit reflectionMap) are visible on
-// a real reflective surface, not just on the test spheres/mirror.
+// Reuses the glossy floor asset pack from `0,6-ui-zindex-and-opacity` so the skybox-derived
+// reflections are visible on a real reflective surface, not just on the test spheres/mirror.
 function createFloor() {
   const floor = engine.addEntity()
 
@@ -44,8 +34,8 @@ function createFloor() {
   })
 }
 
-// A row of four metallic spheres with increasing roughness, so the reflection map
-// (or the skybox-derived reflection) is visible at different levels of blur.
+// A row of four metallic spheres with increasing roughness, so the skybox-derived reflection
+// is visible at different levels of blur.
 const roughnessSteps = [0, 0.25, 0.5, 0.75]
 
 function createSpheres() {
@@ -86,32 +76,6 @@ function createMirror() {
   })
 }
 
-// A small looping video screen on the west wall, mirroring the mirror plane's placement on the
-// east wall (opposite rotation, same room-facing convention). Exported so `ui.tsx` can reference
-// `videoPlayerEntity` for the Sky/Reflection/Clouds "Video" buttons via Material.Texture.Video.
-export const videoPlayerEntity: Entity = engine.addEntity()
-
-function createVideoScreen() {
-  Transform.create(videoPlayerEntity, {
-    position: Vector3.create(2, 1.6, 8),
-    scale: Vector3.create(2, 1.125, 1),
-    rotation: Quaternion.fromEulerDegrees(0, 90, 0)
-  })
-
-  MeshRenderer.setPlane(videoPlayerEntity)
-
-  VideoPlayer.create(videoPlayerEntity, {
-    src: 'assets/video/video-example.mp4',
-    playing: true,
-    loop: true,
-    volume: 0
-  })
-
-  Material.setBasicMaterial(videoPlayerEntity, {
-    texture: Material.Texture.Video({ videoPlayerEntity })
-  })
-}
-
 // A few cubes with contrasting materials, placed around spawn so that in "True darkness" the
 // orbiting light reveals how each surface responds when the player walks up to them.
 function createMaterialCubes() {
@@ -146,9 +110,9 @@ function createMaterialCubes() {
 }
 
 // A single point light with a small emissive marker so its position is obvious. It orbits the
-// player (see orbitLightSystem), so with the "True darkness" environment preset (black
-// sun/sky/ambient/fog, no clouds or stars, sun hidden) it is the only thing illuminating whatever
-// the player walks up to.
+// player (see orbitLightSystem), so with the "True darkness" environment preset (black sky,
+// no clouds or stars, sun hidden, zero sun/fog contribution) it is the only thing illuminating
+// whatever the player walks up to.
 const lightEntity = engine.addEntity()
 const ORBIT_RADIUS = 0.75
 const ORBIT_HEIGHT = 2.5

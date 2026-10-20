@@ -1,6 +1,6 @@
 {
-  "name": "reflection-map",
-  "description": "SDK7 test scene for the Skybox component (skyboxTexture + reflectionMap)",
+  "name": "skybox-control",
+  "description": "SDK7 test scene for the Skybox, Sun and EnvironmentFog components",
   "version": "1.0.0",
   "engines": {
     "node": ">=16.0.0",
@@ -21,9 +21,9 @@
   },
   "devDependencies": {
     "@dcl/ecs": "file:../../../js-sdk-toolchain/packages/@dcl/ecs",
-    "@dcl/js-runtime": "7.0.0",
+    "@dcl/js-runtime": "file:../../../js-sdk-toolchain/packages/@dcl/js-runtime",
     "@dcl/react-ecs": "file:../../../js-sdk-toolchain/packages/@dcl/react-ecs",
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/reflection-map/dcl-sdk-7.29.1-37067584080.commit-a29e795.tgz",
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/reflection-map/dcl-sdk-7.30.2-39508062374.commit-460fc47.tgz",
     "@dcl/sdk-commands": "file:../../../js-sdk-toolchain/packages/@dcl/sdk-commands"
   }
 }

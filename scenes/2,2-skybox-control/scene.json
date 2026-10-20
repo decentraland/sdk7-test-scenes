@@ -2,8 +2,8 @@
   "ecs7": true,
   "runtimeVersion": "7",
   "display": {
-    "title": "Reflection Map & Skybox",
-    "description": "Test scene for the PBSkybox SDK component (skyboxTexture + reflectionMap)",
+    "title": "Skybox Control",
+    "description": "Test scene for the Skybox, Sun and EnvironmentFog SDK components",
     "navmapThumbnail": "images/scene-thumbnail.png",
     "favicon": "favicon_asset"
   },
@@ -49,7 +49,7 @@
     "voiceChat": "enabled",
     "portableExperiences": "enabled"
   },
-  "name": "Reflection Map & Skybox",
+  "name": "Skybox Control",
   "worldConfiguration": {
     "name": "sdk7testscenes.dcl.eth"
   }
