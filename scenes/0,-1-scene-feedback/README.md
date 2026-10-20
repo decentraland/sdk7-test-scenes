@@ -1,5 +1,10 @@
 # Scene Feedback
 
+This Scene Feedback module helps you understand how players experience your game, even when
+you're not there to watch them play. Ask questions during gameplay to find out what's
+confusing, frustrating, or enjoyable. Use their answers to guide improvements and compare
+player experiences across playtests.
+
 Asks players a Question with a labelled 1–5 rating and an optional comment, or a text-only
 Question, at moments the creator picks.
 
