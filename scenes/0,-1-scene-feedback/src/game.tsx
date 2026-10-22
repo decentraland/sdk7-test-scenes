@@ -14,12 +14,24 @@ import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { feedback } from './scene-feedback'
 import { setupLeaveFeedback } from './leave-feedback'
+import {
+  BOOST_PICKUPS,
+  FEEDBACK_BONUS,
+  getBoostPickupsRemaining,
+  getCoinScore,
+  hasContributorTitle,
+  recordCoinPickup,
+  recordFeedbackParticipation,
+  setupFeedbackReward
+} from './feedback-reward'
 
 // Tiny 3-round coin hunt, only to show feedback.ask() at different moments:
 //   first coin         → Intro, then coinSpotting (single, mid-round, with comment)
 //   round 1 complete   → nextGoal, playMore (Group: rating only, then with comment)
 //   hunt complete      → repeatLoop, nextCoinKnown, worthIt (Group, ratings only), and a new hunt
 // A second hunt asks nothing: once per visit per trigger. Player-initiated feedback: leave-feedback.tsx.
+// Completing all questions in one shown Group unlocks an avatar tag, +5 score and x2 next 5 pickups.
+// Coin score is separate from physical pickup progress, and has no spending or persistent value.
 const COINS_PER_ROUND = 5
 const ROUNDS = 3
 
@@ -38,7 +50,7 @@ export function setupGame(): void {
   const sign = engine.addEntity()
   Transform.create(sign, { position: Vector3.create(8, 2.5, 15) })
   TextShape.create(sign, {
-    text: 'COIN HUNT\n\nClick the coins.\nFeedback questions pop up as you play.',
+    text: 'COIN HUNT\n\nClick coins to earn coin score.\n5 pickups per round.\nFeedback rewards are optional.',
     fontSize: 3,
     textColor: Color4.White(),
     textAlign: TextAlignMode.TAM_MIDDLE_CENTER
@@ -47,6 +59,7 @@ export function setupGame(): void {
   engine.addSystem(spinSystem)
   // setUiRenderer stays the scene's: the feedback panel has its own renderer
   ReactEcsRenderer.setUiRenderer(hud)
+  setupFeedbackReward()
   setupLeaveFeedback()
   spawnRound()
 }
@@ -86,17 +99,22 @@ function collect(coin: Entity, disc: Entity): void {
   engine.removeEntity(coin)
   collected++
   totalCollected++
+  recordCoinPickup()
 
   // Intro right before the first Question: Give feedback leads straight into it.
   // With ASK_PARTICIPANTS_ONLY, only players who say yes get the game's Questions.
   // Not awaited: the player keeps playing while they are up.
   if (totalCollected === 1) {
     void feedback.intro('first-coin')
-    void feedback.ask('coinSpotting', 'first-coin')
+    void feedback.ask('coinSpotting', 'first-coin').then(recordFeedbackParticipation)
   }
 
   if (collected < COINS_PER_ROUND) return
-  if (round === 1) void feedback.ask(['nextGoal', 'playMore'], 'round-1-complete', { comment: ['playMore'] })
+  if (round === 1) {
+    void feedback
+      .ask(['nextGoal', 'playMore'], 'round-1-complete', { comment: ['playMore'] })
+      .then(recordFeedbackParticipation)
+  }
   if (round === ROUNDS) return endHunt()
   round++
   spawnRound()
@@ -107,7 +125,10 @@ function collect(coin: Entity, disc: Entity): void {
 function endHunt(): void {
   void feedback
     .ask(['repeatLoop', 'nextCoinKnown', 'worthIt'], 'hunt-complete', { comment: false })
-    .then((results) => console.log(`[SCENE] end-of-hunt feedback: ${results.join(', ')}`))
+    .then((results) => {
+      recordFeedbackParticipation(results)
+      console.log(`[SCENE] end-of-hunt feedback: ${results.join(', ')}`)
+    })
   round = 1
   spawnRound()
 }
@@ -125,14 +146,60 @@ const hud = () => (
       uiTransform={{ width: '100%', height: 60, positionType: 'absolute', position: { top: 16 }, justifyContent: 'center' }}
     >
       <UiEntity
-        uiTransform={{ padding: { left: 20, right: 20 }, justifyContent: 'center', alignItems: 'center' }}
+        uiTransform={{
+          padding: { left: 20, right: 20 },
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}
         uiBackground={{ color: Color4.create(0, 0, 0, 0.5) }}
       >
         <Label
-          value={`Round ${round}/${ROUNDS} · Coins ${collected}/${COINS_PER_ROUND}`}
+          value={`Round ${round}/${ROUNDS} · Found ${collected}/${COINS_PER_ROUND}`}
           fontSize={22}
           color={Color4.White()}
         />
+        <Label value={`Coin score: ${getCoinScore()}`} fontSize={16} color={Color4.fromHexString('#ffc933ff')} />
+      </UiEntity>
+    </UiEntity>
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { top: 92, left: 0 },
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'center'
+      }}
+    >
+      <UiEntity
+        uiTransform={{ padding: 12, flexDirection: 'column', alignItems: 'center' }}
+        uiBackground={{ color: Color4.create(0, 0, 0, 0.75) }}
+      >
+        <Label
+          value={hasContributorTitle() ? 'Feedback reward unlocked' : 'Optional feedback reward'}
+          fontSize={16}
+          color={Color4.fromHexString('#ffc933ff')}
+        />
+        <Label
+          value={hasContributorTitle()
+            ? `+${FEEDBACK_BONUS} coin score awarded · avatar tag applied`
+            : 'Answer every question in one feedback form.'}
+          fontSize={12}
+          color={Color4.White()}
+        />
+        <Label
+          value={hasContributorTitle()
+            ? (getBoostPickupsRemaining() > 0
+                ? `x2 coin score: next ${getBoostPickupsRemaining()}/${BOOST_PICKUPS} pickups`
+                : 'x2 used up · 1 score per pickup')
+            : `+${FEEDBACK_BONUS} score · x2 next ${BOOST_PICKUPS} pickups · avatar tag`}
+          fontSize={14}
+          color={Color4.fromHexString('#ffc933ff')}
+        />
+        {!hasContributorTitle() && (
+          <Label value="Any rating · comments optional · skip and keep playing" fontSize={12} color={Color4.White()} />
+        )}
+        <Label value="This visit only · score is not currency · tag in your view" fontSize={12} color={Color4.White()} />
       </UiEntity>
     </UiEntity>
   </UiEntity>

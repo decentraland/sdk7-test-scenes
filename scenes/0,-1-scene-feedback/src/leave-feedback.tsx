@@ -12,12 +12,17 @@ import {
 import { Color4, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { feedback } from './scene-feedback'
+import { recordFeedbackParticipation } from './feedback-reward'
 
 // Static mode, three ways in. Each calls feedback.leaveFeedback(batch, trigger): Intro, then
 // the batch as one Group. The trigger tells them apart in the CSV.
 
 // Questions that make sense out of context, at any time
 const LEAVE_FEEDBACK_BATCH = ['worthIt', 'playMore', 'coinSpotting'] as const
+
+function requestFeedback(trigger: string): void {
+  void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, trigger).then(recordFeedbackParticipation)
+}
 
 // 2D: button top-right, panel's primary style. Own renderer: 'interactable' keeps it clear of
 // the explorer HUD, scaled like the panel. top 16 = round counter in game.tsx.
@@ -35,7 +40,7 @@ function LeaveFeedbackButton() {
           alignItems: 'center'
         }}
         uiBackground={{ color: Color4.fromHexString('#e84c59ff') }}
-        onMouseDown={() => void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'ui-button')}
+        onMouseDown={() => requestFeedback('ui-button')}
       >
         <Label value="<b>LEAVE FEEDBACK</b>" fontSize={14} color={Color4.fromHexString('#fcfcfcff')} />
       </UiEntity>
@@ -59,7 +64,7 @@ function setupKiosk(): void {
   Material.setPbrMaterial(kiosk, { albedoColor: Color4.fromHexString('#3a6df0ff') })
   pointerEventsSystem.onPointerDown(
     { entity: kiosk, opts: { button: InputAction.IA_POINTER, hoverText: 'Leave feedback' } },
-    () => void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'kiosk')
+    () => requestFeedback('kiosk')
   )
   label('CLICK TO\nLEAVE FEEDBACK', Vector3.create(2, 2, 14.5))
 }
@@ -86,7 +91,7 @@ function setupArea(): void {
     const dx = player.position.x - AREA_CENTER.x
     const dz = player.position.z - AREA_CENTER.z
     const inside = dx * dx + dz * dz < AREA_RADIUS * AREA_RADIUS
-    if (inside && !wasInside) void feedback.leaveFeedback(LEAVE_FEEDBACK_BATCH, 'feedback-area')
+    if (inside && !wasInside) requestFeedback('feedback-area')
     wasInside = inside
   })
 }
