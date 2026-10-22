@@ -28,7 +28,10 @@ The Multiplayer Server saves responses to CSV files in scene Storage, ready to d
 
 This scene contains the feedback library and a small coin-hunt example ([src/game.tsx](src/game.tsx)) that asks Questions
 mid-round, after a round, and as a two-Question series. Its [questions.ts](src/scene-feedback/questions.ts)
-demonstrates bank questions, custom rating scales, and a text-only Question.
+demonstrates bank questions, custom rating scales, and a text-only Question. Submitting any
+answer also unlocks a **Playtest Contributor** HUD title for the current visit, regardless
+of the rating. This optional scene reward is not a platform badge or collectible; see
+[participation rewards](EXAMPLES.md#6-a-scene-local-reward-for-participation) to adapt it.
 
 Ask your coding agent to install and adapt the module using the prompt below.
 Prefer to integrate it yourself? Follow the [four steps](#add-it-to-your-scene).
@@ -402,10 +405,15 @@ question, "Completed" replaces the progress bar; the player still presses **Subm
 1. Run `npm install`, then `npm start` from this scene's folder.
 2. Collect a coin and accept the Intro to test the in-game flow. Alternatively, wait for
    **DEBUG · server online** and use the **Ask** buttons to preview individual questions.
-   **Show intro** only previews the greeting; it does not enroll you.
-3. Submit an answer and inspect the local CSV data in
+   **Show intro** only previews the greeting; it does not enroll you. Debug previews do not
+   award the title: use the actual game or player-opened routes for the reward check below.
+3. Submit any rating, including the lowest, and check that **Playtest Contributor** appears.
+   A second answer should not add another title. On a fresh visit, decline or skip without
+   answering: no title is awarded and the hunt still works. The player-opened routes remain
+   available; submitting there also unlocks the title. Reloading resets this visit-only reward.
+4. Inspect the local CSV data in
    `node_modules/@dcl/sdk-commands/.runtime-data/server-storage.json`.
-4. To test deployed Storage, use the [Review steps](#4-review).
+5. To test deployed Storage, use the [Review steps](#4-review).
    This repository's CI deploys PR and main pushes to `sdk7testscenes.dcl.eth` (`.zone`).
    Keep this demo's `worldConfiguration.name`; use your own World name in your own project.
 

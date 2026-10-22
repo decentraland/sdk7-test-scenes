@@ -14,12 +14,14 @@ import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { feedback } from './scene-feedback'
 import { setupLeaveFeedback } from './leave-feedback'
+import { CONTRIBUTOR_TITLE, hasContributorTitle, recordFeedbackParticipation } from './feedback-reward'
 
 // Tiny 3-round coin hunt, only to show feedback.ask() at different moments:
 //   first coin         → Intro, then coinSpotting (single, mid-round, with comment)
 //   round 1 complete   → nextGoal, playMore (Group: rating only, then with comment)
 //   hunt complete      → repeatLoop, nextCoinKnown, worthIt (Group, ratings only), and a new hunt
 // A second hunt asks nothing: once per visit per trigger. Player-initiated feedback: leave-feedback.tsx.
+// Any submitted answer unlocks a cosmetic title for this visit, independent of the rating.
 const COINS_PER_ROUND = 5
 const ROUNDS = 3
 
@@ -92,11 +94,15 @@ function collect(coin: Entity, disc: Entity): void {
   // Not awaited: the player keeps playing while they are up.
   if (totalCollected === 1) {
     void feedback.intro('first-coin')
-    void feedback.ask('coinSpotting', 'first-coin')
+    void feedback.ask('coinSpotting', 'first-coin').then(recordFeedbackParticipation)
   }
 
   if (collected < COINS_PER_ROUND) return
-  if (round === 1) void feedback.ask(['nextGoal', 'playMore'], 'round-1-complete', { comment: ['playMore'] })
+  if (round === 1) {
+    void feedback
+      .ask(['nextGoal', 'playMore'], 'round-1-complete', { comment: ['playMore'] })
+      .then(recordFeedbackParticipation)
+  }
   if (round === ROUNDS) return endHunt()
   round++
   spawnRound()
@@ -107,7 +113,10 @@ function collect(coin: Entity, disc: Entity): void {
 function endHunt(): void {
   void feedback
     .ask(['repeatLoop', 'nextCoinKnown', 'worthIt'], 'hunt-complete', { comment: false })
-    .then((results) => console.log(`[SCENE] end-of-hunt feedback: ${results.join(', ')}`))
+    .then((results) => {
+      recordFeedbackParticipation(results)
+      console.log(`[SCENE] end-of-hunt feedback: ${results.join(', ')}`)
+    })
   round = 1
   spawnRound()
 }
@@ -135,5 +144,24 @@ const hud = () => (
         />
       </UiEntity>
     </UiEntity>
+    {hasContributorTitle() && (
+      <UiEntity
+        uiTransform={{
+          positionType: 'absolute',
+          position: { top: 84, left: 0 },
+          width: '100%',
+          flexDirection: 'row',
+          justifyContent: 'center'
+        }}
+      >
+        <UiEntity
+          uiTransform={{ padding: 12, flexDirection: 'column', alignItems: 'center' }}
+          uiBackground={{ color: Color4.create(0, 0, 0, 0.75) }}
+        >
+          <Label value={CONTRIBUTOR_TITLE} fontSize={18} color={Color4.fromHexString('#ffc933ff')} />
+          <Label value="Unlocked for this visit" fontSize={12} color={Color4.White()} />
+        </UiEntity>
+      </UiEntity>
+    )}
   </UiEntity>
 )

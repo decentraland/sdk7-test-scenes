@@ -10,6 +10,7 @@ Choose one that fits when and how you want to ask:
 | Let players choose when to give feedback | [3. Player-opened form](#3-feedback-opened-by-the-player) |
 | Enroll testers selected by wallet | [4. Selected testers](#4-selected-testers-without-an-intro) |
 | Combine ratings and text in one Group | [5. Mixed Group](#5-a-mixed-group-after-the-first-game) |
+| Offer an optional in-game participation reward | [6. Scene-local reward](#6-a-scene-local-reward-for-participation) |
 
 Copy the relevant entries from the shared configuration into your `questions.ts`, then
 connect the recipe's handlers to events your scene already has. Handler names are examples,
@@ -231,6 +232,70 @@ Questions only. Changing it to `{ comment: false }` hides the optional comment o
 For navigation and empty answers, see the [Group close rules](README.md#group-navigation-and-skipping).
 Use [How to read the responses](README.md#how-to-read-the-responses) to distinguish text answers
 from skipped rows, and [the question guide](QUESTION_GUIDE.md#reading-the-csv) to interpret the ratings.
+
+## 6. A scene-local reward for participation
+
+**When:** you want to offer a small in-game incentive for answering. Rewards are optional;
+a useful, low-burden request may be enough. Wanting to keep playing and wanting to answer
+feedback are separate questions. Include exposed players who had an unsuccessful attempt,
+and keep declining or skipping free of penalties to normal play.
+
+The Coin Hunt example unlocks a **Playtest Contributor** HUD title after the first submitted
+answer from a game question or any player-opened route. It lasts only for the current visit:
+no minting, wallet transaction, platform badge, saved entitlement or extra hunt progress.
+The Intro explains the purpose, optional comments, reward terms and stored data before
+participation. A low rating earns exactly the same title as a high one. Intro acceptance
+alone, skipped/unshown questions and debug previews do not award it.
+
+The scene-owned helper [feedback-reward.ts](src/feedback-reward.ts) accepts either a single
+result or a Group's results. Connect it at the call site, outside the copied library:
+
+```ts
+import { feedback } from './scene-feedback'
+import { recordFeedbackParticipation } from './feedback-reward'
+
+// Use the event and participation route appropriate to the player's experience.
+void feedback.ask('coinSpotting', 'first-coin').then(recordFeedbackParticipation)
+
+// Keep the same terms for the button, kiosk and feedback area.
+void feedback
+  .leaveFeedback(['worthIt', 'playMore', 'coinSpotting'], 'ui-button')
+  .then(recordFeedbackParticipation)
+```
+
+The helper unlocks once if **any** result is `submitted`; it never reads a rating or text.
+A partly answered Group qualifies too. Closing before sending any answer, declining the
+Intro or receiving only `skipped`/`not-shown` results leaves the title locked. Once earned,
+skipping another question does not revoke it. Repeat forms cannot stack the reward, and a
+new visit resets it. The debug panel previews questions directly and bypasses these scene
+callbacks; test the actual gameplay/player-opened routes to verify the reward.
+
+**Choose a reward your scene can deliver.** Existing game currency, a consumable, a temporary
+boost or a cosmetic title are possible scene-owned choices. Define its amount, duration and
+eligibility before asking; keep it independent of rating direction, praise or desired text.
+If your scene has no economy, a title avoids inventing one just for a playtest. Ordinary
+progress or items already earned through play should not be removed for refusal. A reward
+for answering may change who responds or encourage rushing: retain invitation/reward terms
+alongside your test notes, and compare recruitment and answer quality as well as counts.
+Do not treat response count or the title as evidence of game enjoyment.
+
+For a scene-only animation unlock, use a compatible bundled emote asset and the supported
+[scene-emote API](https://github.com/decentraland/docs/blob/main/creator/sdk7/interactivity/avatars/avatar-animations.md);
+it does not grant an owned emote. Distributing an owned wearable or emote instead requires
+an approved, stocked and funded [Rewards campaign](https://docs.decentraland.org/creator/rewards/overview)
+and its claim flow. For platform-dependent rewards, including badges or scene wearables,
+check current [official creator documentation](https://docs.decentraland.org/llms.txt), the
+maintained example, released SDK, live service and intended desktop/mobile clients together.
+A proposal, merged PR or custom-client preview alone does not prove general availability.
+Verify the chosen reward end to end, including its cap and persistence/expiry; no need to
+implement every option in a playtest.
+
+**Delivery boundary:** `submitted` describes the client's response action, not an
+acknowledgement or confirmed CSV write. This client-only cosmetic title is deliberately
+low stakes and resets on reload. Valuable currency, persistent entitlements or collectible
+rewards need their own trusted eligibility/delivery checks and duplicate-claim handling;
+this callback is not a payout receipt. The module's [queue/result rules](README.md#queue-and-results)
+still apply. Avoid building a paid reward service into this example.
 
 ## Check your integration
 

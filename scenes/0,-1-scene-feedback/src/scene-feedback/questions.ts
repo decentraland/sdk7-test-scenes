@@ -23,8 +23,8 @@ export const ASK_PARTICIPANTS_ONLY = true
 // - an image path ('assets/images/creator-avatar.png') or URL
 // - null: none
 export const INTRO: IntroSpec | null = {
-  title: "Hi, we're the Coin Hunt team!",
-  text: "We're testing a new experience and would love to hear what you think. Your feedback will help us make it better."
+  title: 'Help improve Coin Hunt',
+  text: "Help us check coin visibility and the hunt's flow. Short rating questions appear as you play; comments are optional. Send any answer to earn the Playtest Contributor title for this visit. Any rating counts. Skip anytime; hunt progress is unchanged. Answers and wallet address are saved for review."
 }
 
 // Once live, never change a Question's text under its id: new wording, new id.
