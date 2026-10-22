@@ -38,14 +38,22 @@ Use the [integration recipes](EXAMPLES.md) to connect that event to the module.
   (optional)". Don't ask only low raters to explain.
 - **Bugs aren't ratings.** Lost progress, wrong scores, crashes need reproduction: ask "What
   happened, and what were you trying to do?" and check the logs.
+- **For unexpected issues**, put an open discovery prompt before questions suggesting
+  specific problems; earlier questions can cue later answers.
 
 ## Reading the CSV
 
 For column definitions and response statuses, use the README's
-[CSV reference](README.md#csv-fields). Then work through these steps:
+[CSV reference](README.md#csv-fields). Keep a short note alongside the CSV: who your
+intended players are, whether answers came from invited testers or ordinary visitors,
+the invitation route/eligibility, and any reward terms. Identify intended players who may
+be missing, and retain changed recruitment or reward conditions when comparing tests.
+
+Then work through these steps:
 
 1. **Choose comparable responses.** Keep different questions, wordings, scales and triggers
-   separate. At hosted playtests, note whether you explained something before an answer.
+   separate. For comparisons, keep question order and prompting context comparable too;
+   at hosted playtests, record any explanation given before an answer.
 2. **Inspect the distribution and comments.** Count how many players chose each label.
    For small samples, report counts rather than percentages. A mean alone hides the distribution;
    do not average different questions into one score or rank scenes from small samples.
