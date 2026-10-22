@@ -28,9 +28,10 @@ The Multiplayer Server saves responses to CSV files in scene Storage, ready to d
 
 This scene contains the feedback library and a small coin-hunt example ([src/game.tsx](src/game.tsx)) that asks Questions
 mid-round, after a round, and as a two-Question series. Its [questions.ts](src/scene-feedback/questions.ts)
-demonstrates bank questions, custom rating scales, and a text-only Question. Submitting any
-answer also awards **+5 coin score**, **x2 score for the next 5 pickups**, and a
-**Playtest Contributor** HUD title, once per visit regardless of the rating. Each coin
+demonstrates bank questions, custom rating scales, and a text-only Question. Answering every
+question in one shown Group awards **+5 coin score**, **x2 score for the next 5 pickups**,
+and a **Playtest Contributor** avatar nametag, once per visit regardless of the ratings.
+A single-question request qualifies when that one question is answered. Each coin
 normally earns 1 score; boosted coins earn 2. Score is a visit-local total, not spendable
 currency. Finding 5 actual coins still completes each round; bonus score never advances
 that progress. See [participation rewards](EXAMPLES.md#6-a-scene-local-reward-for-participation)
@@ -93,7 +94,7 @@ Configure [questions.ts](src/scene-feedback/questions.ts):
 ```ts
 export const INTRO: IntroSpec | null = {
   title: "Hi, we're the Coin Hunt team!",
-  text: "We're testing a new experience and would love to hear what you think."
+  text: "We're testing a new experience and would love to hear what you think. Your feedback will help us make it better."
 }
 
 export const QUESTIONS = {
@@ -411,15 +412,21 @@ question, "Completed" replaces the progress bar; the player still presses **Subm
    **Show intro** only previews the greeting; it does not enroll you. Debug previews do not
    award the title: use the actual game or player-opened routes for the reward check below.
 3. Before answering, collect one coin: **Found** advances by 1 and **Coin score** by 1.
-   Submit any rating, including the lowest: **Playtest Contributor** appears, score rises
+   Answer the single game question with any rating, including the lowest: the SDK applies
+   **Playtest Contributor** above your avatar's name in your client, and score rises
    by 5, and the HUD shows x2 for the next 5 pickups. The bonus does not change **Found**.
    Collect 5 more coins: each adds 2 score and uses one boosted pickup, including across a
    round boundary. The next coin adds 1. With 7 coins found and the reward, score is 17.
-   A second answer must not add another bonus or reset the boost. A partly answered Group
-   qualifies once; entirely skipped/unshown questions do not.
+   A later completed Group must not add another bonus or reset the boost. On a fresh visit,
+   leave the first question unanswered and then answer only part of a later Group: no reward.
+   Complete every question in a later shown Group to qualify; skipped/blank/unshown results
+   disqualify that Group, without combining answers across separate Groups.
 4. On a fresh visit, decline or skip without answering: normal collection still earns 1
    score per coin, with no reward. Player-opened forms remain available; submitting there
-   unlocks the same package. Reloading resets score, boost and title for the next visit.
+   unlocks the same package only when every question in that form is answered. Check the
+   separate reward HUD terms before opening a form; the approved Intro stays unchanged.
+   The avatar plate is local to your client, not a profile title or a broadcast to other
+   players. Reloading resets score, boost and reward state for the next visit.
 5. Inspect the local CSV data in
    `node_modules/@dcl/sdk-commands/.runtime-data/server-storage.json`.
 6. To test deployed Storage, use the [Review steps](#4-review).

@@ -241,15 +241,27 @@ feedback are separate questions. Include exposed players who had an unsuccessful
 and keep declining or skipping free of penalties to normal play.
 
 The Coin Hunt example awards **+5 coin score**, **x2 coin score for the next 5 pickups**,
-and a **Playtest Contributor** HUD title after the first submitted answer from a game
-question or any player-opened route. Normal pickups earn 1 score; the next 5 earn 2 each,
+and a **Playtest Contributor** avatar plate after every question in one currently shown
+Group is answered, through a game question or any player-opened route. A single-question
+request needs its one result submitted; a multi-question form needs all its results
+submitted. This does not mean answering every configured scene question or combining
+answers from different events. Normal pickups earn 1 score; the next 5 earn 2 each,
 then return to 1. The HUD shows the total and remaining boosted pickups. All state lasts
 only for this visit: no spendable balance, minting, platform badge or saved entitlement.
 Score is a small arcade total; it does not buy items or promise economic value. The bonus
 and multiplier never count as found coins, finish rounds or fire gameplay feedback events.
-The Intro explains the purpose, optional comments, reward terms and stored data before
-participation. A low rating earns exactly the same package as a high one. Intro acceptance
-alone, skipped/unshown questions and debug previews do not award it.
+The approved Intro text is unchanged. A separate scene reward HUD explains completion,
+amount, expiry, optional comments and cost-free skipping before a form opens. A low rating
+earns exactly the same package as a high one; text-only questions require a nonblank
+answer. Intro acceptance alone, a partial Group, blank/skipped/unshown questions and debug
+previews do not award it.
+
+Recognition uses the installed SDK's [AvatarNametag component](https://github.com/decentraland/protocol/blob/main/proto/decentraland/sdk/components/avatar_nametag.proto)
+on `engine.PlayerEntity`, not a substitute HUD title. The SDK renders the scene label above
+the native avatar name; it does not change the account profile, mint a badge or automatically
+relay it to other players. This example writes only the local player's component and removes
+it when that avatar leaves; an earned tag is reapplied if the avatar returns during the same
+running scene session. Verify actual rendering in a client that supports the component.
 
 The scene-owned helper [feedback-reward.ts](src/feedback-reward.ts) accepts either a single
 result or a Group's results. Connect it at the call site, outside the copied library:
@@ -267,9 +279,11 @@ void feedback
   .then(recordFeedbackParticipation)
 ```
 
-The helper unlocks once if **any** result is `submitted`; it never reads a rating or text.
-A partly answered Group qualifies too. Closing before sending any answer, declining the
-Intro or receiving only `skipped`/`not-shown` results awards nothing. Once earned,
+The helper unlocks once for a nonempty result list only if **every** result is `submitted`;
+it never reads rating values or sentiment. A partial Group does not qualify, even if some
+answers were sent before closing. A later separate Group may qualify if fully answered;
+results are not accumulated across Groups. Declining the Intro, empty lists or any
+`skipped`/`not-shown` result awards nothing. Once earned,
 skipping another question does not revoke it. Repeat forms cannot add another bonus or
 refresh the boost. Unused boosted pickups survive round/hunt transitions but expire when
 the visit ends; a fresh visit resets score, title and boost. The debug panel previews questions

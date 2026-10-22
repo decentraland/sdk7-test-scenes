@@ -1,6 +1,7 @@
+import { AvatarBase, AvatarNametag, engine } from '@dcl/sdk/ecs'
 import type { AskResult } from './scene-feedback'
 
-// Visit-local score and recognition, not spendable currency, a platform badge or a collectible.
+// Visit-local score and an SDK avatar plate, not currency, a profile title or a collectible.
 // Physical pickup/round progress stays in game.tsx and never uses this score.
 export const CONTRIBUTOR_TITLE = 'Playtest Contributor'
 export const FEEDBACK_BONUS = 5
@@ -11,13 +12,28 @@ let boostedPickupsRemaining = 0
 
 export function recordFeedbackParticipation(result: AskResult | readonly AskResult[]): void {
   const results = typeof result === 'string' ? [result] : result
-  // Only participation matters. No rating value or comment sentiment is inspected.
+  // Require an answered current Group; rating values and comment sentiment never matter.
   // submitted describes the client action, not confirmed Storage persistence.
-  if (unlocked || !results.includes('submitted')) return
+  if (unlocked || results.length === 0 || !results.every((answer) => answer === 'submitted')) return
   unlocked = true
   coinScore += FEEDBACK_BONUS
   boostedPickupsRemaining = BOOST_PICKUPS
-  console.log('[SCENE] feedback reward: +5 coin score, x2 for next 5 pickups and ' + CONTRIBUTOR_TITLE)
+  applyContributorTag()
+  console.log('[SCENE] completed-Group reward: +5 coin score, x2 for next 5 pickups and avatar tag')
+}
+
+// AvatarNametag is local to this client; it does not change the player's profile or relay a title.
+function applyContributorTag(): void {
+  AvatarNametag.createOrReplace(engine.PlayerEntity, { label: CONTRIBUTOR_TITLE })
+}
+
+export function setupFeedbackReward(): void {
+  // Only target the reserved local-player entity; never retain a remote player's entity id.
+  AvatarBase.onChange(engine.PlayerEntity, (avatar) => {
+    if (!unlocked) return
+    if (avatar) applyContributorTag()
+    else AvatarNametag.deleteFrom(engine.PlayerEntity)
+  })
 }
 
 // Called once for each actual pickup, after the game's duplicate-click guard.

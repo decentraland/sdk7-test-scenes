@@ -16,13 +16,13 @@ import { feedback } from './scene-feedback'
 import { setupLeaveFeedback } from './leave-feedback'
 import {
   BOOST_PICKUPS,
-  CONTRIBUTOR_TITLE,
   FEEDBACK_BONUS,
   getBoostPickupsRemaining,
   getCoinScore,
   hasContributorTitle,
   recordCoinPickup,
-  recordFeedbackParticipation
+  recordFeedbackParticipation,
+  setupFeedbackReward
 } from './feedback-reward'
 
 // Tiny 3-round coin hunt, only to show feedback.ask() at different moments:
@@ -30,7 +30,7 @@ import {
 //   round 1 complete   → nextGoal, playMore (Group: rating only, then with comment)
 //   hunt complete      → repeatLoop, nextCoinKnown, worthIt (Group, ratings only), and a new hunt
 // A second hunt asks nothing: once per visit per trigger. Player-initiated feedback: leave-feedback.tsx.
-// Any submitted answer unlocks a title, +5 coin score and x2 for the next 5 pickups this visit.
+// Completing all questions in one shown Group unlocks an avatar tag, +5 score and x2 next 5 pickups.
 // Coin score is separate from physical pickup progress, and has no spending or persistent value.
 const COINS_PER_ROUND = 5
 const ROUNDS = 3
@@ -59,6 +59,7 @@ export function setupGame(): void {
   engine.addSystem(spinSystem)
   // setUiRenderer stays the scene's: the feedback panel has its own renderer
   ReactEcsRenderer.setUiRenderer(hud)
+  setupFeedbackReward()
   setupLeaveFeedback()
   spawnRound()
 }
@@ -161,33 +162,45 @@ const hud = () => (
         <Label value={`Coin score: ${getCoinScore()}`} fontSize={16} color={Color4.fromHexString('#ffc933ff')} />
       </UiEntity>
     </UiEntity>
-    {hasContributorTitle() && (
+    <UiEntity
+      uiTransform={{
+        positionType: 'absolute',
+        position: { top: 92, left: 0 },
+        width: '100%',
+        flexDirection: 'row',
+        justifyContent: 'center'
+      }}
+    >
       <UiEntity
-        uiTransform={{
-          positionType: 'absolute',
-          position: { top: 92, left: 0 },
-          width: '100%',
-          flexDirection: 'row',
-          justifyContent: 'center'
-        }}
+        uiTransform={{ padding: 12, flexDirection: 'column', alignItems: 'center' }}
+        uiBackground={{ color: Color4.create(0, 0, 0, 0.75) }}
       >
-        <UiEntity
-          uiTransform={{ padding: 12, flexDirection: 'column', alignItems: 'center' }}
-          uiBackground={{ color: Color4.create(0, 0, 0, 0.75) }}
-        >
-          <Label value={CONTRIBUTOR_TITLE} fontSize={18} color={Color4.fromHexString('#ffc933ff')} />
-          <Label value={`+${FEEDBACK_BONUS} coin score awarded · this visit only`} fontSize={12} color={Color4.White()} />
-          <Label
-            value={
-              getBoostPickupsRemaining() > 0
+        <Label
+          value={hasContributorTitle() ? 'Feedback reward unlocked' : 'Optional feedback reward'}
+          fontSize={16}
+          color={Color4.fromHexString('#ffc933ff')}
+        />
+        <Label
+          value={hasContributorTitle()
+            ? `+${FEEDBACK_BONUS} coin score awarded · avatar tag applied`
+            : 'Answer every question in one feedback form.'}
+          fontSize={12}
+          color={Color4.White()}
+        />
+        <Label
+          value={hasContributorTitle()
+            ? (getBoostPickupsRemaining() > 0
                 ? `x2 coin score: next ${getBoostPickupsRemaining()}/${BOOST_PICKUPS} pickups`
-                : 'x2 used up · 1 score per pickup'
-            }
-            fontSize={14}
-            color={Color4.fromHexString('#ffc933ff')}
-          />
-        </UiEntity>
+                : 'x2 used up · 1 score per pickup')
+            : `+${FEEDBACK_BONUS} score · x2 next ${BOOST_PICKUPS} pickups · avatar tag`}
+          fontSize={14}
+          color={Color4.fromHexString('#ffc933ff')}
+        />
+        {!hasContributorTitle() && (
+          <Label value="Any rating · comments optional · skip and keep playing" fontSize={12} color={Color4.White()} />
+        )}
+        <Label value="This visit only · score is not currency · tag in your view" fontSize={12} color={Color4.White()} />
       </UiEntity>
-    )}
+    </UiEntity>
   </UiEntity>
 )
