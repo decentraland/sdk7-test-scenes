@@ -1,0 +1,122 @@
+{
+  "overrides": [
+    {
+      "files": ["src/examples/guard/guard.domain", "src/examples/squad/yard_guard.domain", "test/fixtures/reference/guard_flat.domain"],
+      "primitives": ["!move_to", "!chase", "!catch", "!look_around", "!wait", "!forget", "!set_waypoint", "!turn_to", "!listen", "!forget_noise"],
+      "bookkeeping": ["!forget", "!forget_noise", "!set_waypoint"]
+    },
+    {
+      "files": ["src/examples/stalker/stalker.domain", "test/fixtures/reference/stalker_flat.domain"],
+      "primitives": [
+        "!move_to", "!chase", "!catch", "!look_around", "!wait", "!forget", "!set_waypoint", "!turn_to", "!listen", "!forget_noise",
+        "!peer", "!stand", "!watch", "!notice", "!head_turn", "!body_turn", "!give_up", "!hear", "!refocus", "!face", "!unfocus", "!despawn"
+      ],
+      "bookkeeping": ["!forget", "!forget_noise", "!set_waypoint", "!watch", "!unfocus", "!refocus"]
+    },
+    {
+      "files": ["src/examples/basics/storekeeper.domain"],
+      "checkMethods": ["active_plan"]
+    },
+    {
+      "files": ["test/htn/fixtures/upstream/Domains/Test/**", "test/htn/fixtures/upstream/cmake/**", "src/examples/upstream/docs/*Consumer.domain", "src/examples/upstream/docs/AxiomIo.domain"],
+      "rules": {
+        "no-fallback": "off",
+        "unconditional-not-last": "info",
+        "shadowed-branch": "info",
+        "recursion-no-base": "info",
+        "recursion-not-tail": "info",
+        "unreachable-method": "info",
+        "duplicated-across-domains": "off"
+      }
+    },
+    {
+      "files": ["src/examples/canon/bridge_troll/**", "test/fixtures/reference/**"],
+      "rules": { "duplicated-across-domains": "off" }
+    },
+    {
+      "files": ["test/htn/fixtures/upstream/HTNHotReloadDemo/**"],
+      "rules": { "duplicated-across-domains": "off" }
+    },
+    {
+      "files": ["test/htn/fixtures/upstream/Domains/RuntimeBacktrackingDemo.domain"],
+      "rules": { "unconditional-not-last": "info" }
+    },
+    {
+      "files": ["src/examples/canon/bridge_troll/*.domain"],
+      "primitives": [
+        "!navigate_to", "!trunk_slam", "!check_bridge", "!idle", "!lift_boulder", "!throw_boulder", "!uproot_trunk", "!roar",
+        "!catch_breath", "!whirlwind", "!recover"
+      ]
+    },
+    {
+      "files": ["src/examples/canon/classics/commuter.domain"],
+      "primitives": ["!walk", "!call_taxi", "!ride_taxi", "!pay_driver", "!leave_taxi"]
+    },
+    {
+      "files": ["src/examples/canon/classics/hunter.domain"],
+      "primitives": ["!move_short", "!move_long", "!strike"]
+    },
+    {
+      "files": ["src/examples/canon/crafting/ore_to_gold.domain"],
+      "primitives": ["!go_to", "!mine_ore", "!smelt_ore", "!sell_metal"]
+    },
+    {
+      "files": ["src/examples/canon/creatures/**"],
+      "primitives": ["!move_near", "!move_to", "!idle_wait", "!wait_until", "!consume", "!unbuckle", "!unpull", "!escape_container", "!juke_away", "!melee_attack"]
+    },
+    {
+      "files": ["src/examples/canon/service_bots/**"],
+      "primitives": ["!move_near", "!move_to", "!idle_wait", "!wait_until", "!wait", "!say", "!inject", "!mark_treated", "!clean", "!extinguish", "!hug", "!melee_attack", "!mark_hugged"]
+    },
+    {
+      "files": ["src/examples/canon/door_helper/**"],
+      "primitives": ["!move", "!unlatch", "!hold_door", "!pass_door", "!release_door", "!take", "!put", "!claim", "!release", "!come_to", "!help_robot", "!report_no_route", "!wait"]
+    },
+    {
+      "files": ["src/examples/canon/fetcher/**"],
+      "primitives": ["!move_to", "!perceive", "!take", "!put", "!charge", "!ask_for_charger", "!hand_back_charger", "!address_emergency", "!report_not_found", "!signal_stranded", "!wait"]
+    },
+    {
+      "files": ["src/examples/canon/sentry_turret/sentry_turret.domain"],
+      "primitives": ["!begin_plan", "!end_plan", "!continue", "!switch_weapon", "!aim_at", "!fire", "!sweep"]
+    },
+    {
+      "files": ["src/examples/canon/swarm/swarm_coordinator.domain"],
+      "primitives": ["!assign_role"]
+    },
+    {
+      "files": ["src/examples/canon/swarm/swarm_drone.domain"],
+      "primitives": [
+        "!begin_plan", "!end_plan", "!continue", "!fly_over", "!descend", "!grab", "!climb", "!fly_to", "!release", "!follow",
+        "!signal_followers", "!hover", "!intercept", "!sting", "!evade"
+      ]
+    },
+    {
+      "files": ["src/examples/canon/villager_day/villager_day.domain"],
+      "primitives": [
+        "!walk_to", "!sleep_hour", "!eat", "!hunt", "!buy", "!wait_for", "!learn_hunting", "!tend_shop", "!sell", "!skin_game",
+        "!do_chores", "!pass_hour", "!wander"
+      ]
+    },
+    {
+      "files": ["src/examples/canon/arrest_team/arrest_team.domain"],
+      "primitives": ["!reserve", "!free", "!wait_until_done", "!restrain", "!cover_target", "!open_combat", "!bandage_self"]
+    },
+    {
+      "files": ["src/examples/canon/infiltrator/infiltrator.domain"],
+      "primitives": [
+        "!go_to_area", "!unlock", "!walk_to", "!switch_lights", "!pick_up", "!reload", "!use_medikit", "!take_cover", "!make_contact",
+        "!sneak_kill", "!shoot", "!close_in", "!stab", "!search_area", "!wait"
+      ]
+    },
+    {
+      "files": ["src/examples/canon/soup_kitchen/soup_kitchen.domain"],
+      "primitives": ["!interact", "!wait"]
+    },
+    {
+      "files": ["src/examples/canon/soup_kitchen/soup_kitchen.invariants.domain"],
+      "primitives": [],
+      "checkMethods": ["one_content_per_holder"]
+    }
+  ]
+}

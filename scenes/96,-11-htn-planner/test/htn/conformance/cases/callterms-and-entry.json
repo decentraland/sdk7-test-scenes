@@ -1,0 +1,178 @@
+[
+  {
+    "name": "nested calls evaluate depth-first left-to-right",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:903",
+    "domain": "upstream/Domains/Test/nested_calls.domain",
+    "worldstate": "upstream/WorldStates/Test/callterms.worldstate",
+    "callterms": "tracing-nested",
+    "method": "test_nested_calls",
+    "expect": {
+      "status": "succeeded",
+      "plan": ["!capture 17", "!capture 19"],
+      "trace": [
+        "inc(1)",
+        "inc(2)",
+        "inc(3)",
+        "inc(4)",
+        "mul(3,5)",
+        "add(2,15)",
+        "inc(4)",
+        "inc(5)",
+        "inc(6)",
+        "inc(7)",
+        "add(6,8)",
+        "add(5,14)"
+      ]
+    }
+  },
+  {
+    "name": "missing unreached callterm does not prevent planning",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1335",
+    "domain": "upstream/Domains/Wanderer.domain",
+    "callterms": "empty",
+    "method": "run",
+    "expect": {"status": "succeeded", "plan": ["!wanderer_idle"]}
+  },
+  {
+    "name": "missing reached callterm returns no_plan",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1513",
+    "domain": "upstream/Domains/Test/callterms.domain",
+    "worldstate": "upstream/WorldStates/Test/callterms.worldstate",
+    "callterms": "empty",
+    "method": "test_callterms",
+    "expect": {"status": "no_plan", "plan": []}
+  },
+  {
+    "name": "top-level method selected by name; unknown method is invalid_call",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1533",
+    "domain": "upstream/Domains/Test/callterms.domain",
+    "worldstate": "upstream/WorldStates/Test/callterms.worldstate",
+    "callterms": "test",
+    "script": [
+      {
+        "op": "decompose",
+        "method": "test_callterms",
+        "expect": {"status": "succeeded", "nonEmpty": true}
+      },
+      {
+        "op": "decompose",
+        "method": "method_that_does_not_exist",
+        "expect": {"status": "invalid_call"}
+      }
+    ]
+  },
+  {
+    "name": "planning unit: completed result survives plan changes",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1572",
+    "domain": "upstream/Domains/Test/callterms.domain",
+    "script": [
+      {
+        "op": "plan",
+        "method": "echo_top_level",
+        "args": ["7", "\"owned payload longer than the inline string capacity\"", "11"],
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!top_level_args 7 \"owned payload longer than the inline string capacity\" 11"]
+        }
+      },
+      {"op": "resolve", "expect": "ready"},
+      {"op": "complete"},
+      {"op": "resolve", "expect": "completed"},
+      {"op": "clear"},
+      {
+        "op": "plan",
+        "method": "echo_top_level",
+        "args": ["8", "\"second\"", "12"],
+        "expect": {"status": "succeeded", "plan": ["!top_level_args 8 \"second\" 12"]}
+      }
+    ]
+  },
+  {
+    "name": "per-entity callterm daemon writes its own target",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1599",
+    "note": "Concurrency stress (8 workers x 128 iterations, target \"enemy<worker>\") reduced to one entity: worker 3.",
+    "domain": "upstream/Domains/Test/callterms.domain",
+    "callterms": "test",
+    "vars": {"target": "\"enemy3\""},
+    "method": "callterm_creates_fact_visible_immediately",
+    "expect": {"status": "succeeded", "plan": ["!target_available_visible \"enemy3\""]}
+  },
+  {
+    "name": "top-level arguments are bound from the call",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:2140",
+    "domain": "upstream/Domains/Test/callterms.domain",
+    "callterms": "test",
+    "method": "echo_top_level",
+    "args": ["7", "striker", "\"role_context\""],
+    "expect": {"status": "succeeded", "plan": ["!top_level_args 7 striker \"role_context\""]}
+  },
+  {
+    "name": "wrong top-level arity is invalid_call and the unit recovers",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:2159",
+    "domain": "upstream/Domains/Test/callterms.domain",
+    "callterms": "test",
+    "script": [
+      {
+        "op": "plan",
+        "method": "echo_top_level",
+        "args": ["7"],
+        "expect": {"status": "invalid_call", "plan": []}
+      },
+      {
+        "op": "plan",
+        "method": "echo_top_level",
+        "args": ["7", "striker", "\"role_context\""],
+        "expect": {"status": "succeeded", "plan": ["!top_level_args 7 striker \"role_context\""]}
+      }
+    ]
+  },
+  {
+    "name": "repeated decompositions give the same plan",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:2182",
+    "domain": "upstream/Domains/Test/complex_scenario.domain",
+    "callterms": "test",
+    "worldstate": "upstream/WorldStates/Test/complex_scenario_combat.worldstate",
+    "script": [
+      {
+        "op": "decompose",
+        "method": "run_scenario",
+        "save": "first",
+        "expect": {"status": "succeeded"}
+      },
+      {
+        "op": "decompose",
+        "method": "run_scenario",
+        "expect": {"status": "succeeded", "samePlanAs": "first"}
+      }
+    ]
+  },
+  {
+    "name": "reloading the world state gives the same plan as a fresh world",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:2217",
+    "note": "Also ReloadingDatabaseInvalidatesPersistentFactSlotCache (line 2271).",
+    "domain": "upstream/Domains/Test/complex_scenario.domain",
+    "callterms": "test",
+    "worldstate": "upstream/WorldStates/Test/complex_scenario_combat.worldstate",
+    "script": [
+      {
+        "op": "decompose",
+        "method": "run_scenario",
+        "expect": {"status": "succeeded"}
+      },
+      {"op": "loadWorldstate", "path": "upstream/WorldStates/Test/complex_scenario_idle.worldstate"},
+      {
+        "op": "decompose",
+        "method": "run_scenario",
+        "save": "reused",
+        "expect": {"status": "succeeded"}
+      },
+      {"op": "clearWorld"},
+      {"op": "loadWorldstate", "path": "upstream/WorldStates/Test/complex_scenario_idle.worldstate"},
+      {
+        "op": "decompose",
+        "method": "run_scenario",
+        "expect": {"status": "succeeded", "samePlanAs": "reused"}
+      }
+    ]
+  }
+]

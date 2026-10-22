@@ -1,0 +1,10 @@
+// v6_partial_plans: in reach and charged whirls.
+// method: be_troll
+// expect: succeeded
+//   1. !whirlwind knight
+//   2. !recover
+
+enemy_visible knight
+enemy_in_reach knight
+trunk_health 1
+power_up 3

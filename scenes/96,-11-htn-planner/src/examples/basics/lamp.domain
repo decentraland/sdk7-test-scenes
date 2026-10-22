@@ -1,0 +1,43 @@
+// Level 2. Branches are checked top to bottom; the first one whose condition holds wins.
+// The keeper fixes the lamp when it is off, but rain beats the lamp: under rain it waits in the shelter even
+// if the lamp is off. When nothing applies, the last branch (no condition) is the fallback.
+//
+// Facts, written by the host every tick:
+//   (lamp on|off)
+//   (raining)          present only while it rains
+// Primitives: (!go_to ?spot) (!say ?text) (!wait ?seconds) (!switch_lamp on|off)
+
+(:domain Lamp top_level_domain
+
+    (:method (behave) top_level_method
+
+        (hide_from_rain
+            (and
+                (raining)
+            )
+            (
+                (!go_to shelter)
+                (!wait 1.0)
+            )
+        )
+
+        (fix_the_lamp
+            (and
+                (lamp off)
+            )
+            (
+                (!go_to lamp)
+                (!switch_lamp on)
+                (!say "light!")
+            )
+        )
+
+        (rest
+            ()
+            (
+                (!go_to bench)
+                (!wait 2.0)
+            )
+        )
+    )
+)

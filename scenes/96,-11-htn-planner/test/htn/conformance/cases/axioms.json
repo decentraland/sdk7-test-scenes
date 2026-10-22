@@ -1,0 +1,714 @@
+[
+  {
+    "name": "axiom assignments initialize parameter slots and restore outputs",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:2829",
+    "domain": "upstream/Domains/Test/axiom_assignments.domain",
+    "facts": [["entity", "1"], ["candidate", "1"], ["candidate", "2"]],
+    "callterms": "axiom-assignments",
+    "script": [
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "regression",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 1}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "literal",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "arithmetic",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "solutions",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 2"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "restore_alternative",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 2"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "restore_caller",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "bound_output",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "literal_output",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "arithmetic_output",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_unbound",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 1}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_bound",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_nested_bound",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_nested_unbound",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 1}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "nested_forwarding",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_restore_caller",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 2}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_solutions",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 2"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_restore_alternative",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 2"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_alt_retry",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 2"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_exhausted",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 1}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_bound_different",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 9"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_nested_bound_different",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 9"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_literal",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_literal_bound",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 9"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_arithmetic_bound",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 9"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "regression",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 1}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "literal",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "arithmetic",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "solutions",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 2"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "restore_alternative",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 2"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "restore_caller",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "bound_output",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "literal_output",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "arithmetic_output",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_unbound",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 1}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_bound",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_nested_bound",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_nested_unbound",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 1}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "nested_forwarding",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_restore_caller",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 2}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_solutions",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 2"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_restore_alternative",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 2"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_alt_retry",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 2"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_exhausted",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 1}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_bound_different",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 9"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_nested_bound_different",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 9"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_literal",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 7"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_literal_bound",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 9"],
+          "calls": {"Calls": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "io_arithmetic_bound",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!result 9"],
+          "calls": {"Calls": 0}
+        }
+      }
+    ]
+  },
+  {
+    "name": "nested axiom choices preserve bindings and backtrack",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:2884",
+    "note": "The HTN_BACKTRACKING_BRANCHES block runs upstream only with runtime backtracking support; its expectations are explicit.",
+    "domain": "upstream/Domains/Test/nested_axiom_choices.domain",
+    "facts": [
+      ["candidate", "1"],
+      ["candidate", "2"],
+      ["seed", "2"],
+      ["first_candidate", "1"],
+      ["pair_candidate", "1", "2"],
+      ["pair_candidate", "2", "2"],
+      ["state", "9"],
+      ["state", "10"],
+      ["seed_state", "9"],
+      ["text_candidate", "\"first candidate with owned string storage\""],
+      ["text_candidate", "\"second candidate with owned string storage\""]
+    ],
+    "script": [
+      {
+        "op": "decompose",
+        "method": "out_backtrack",
+        "expect": {"status": "succeeded", "plan": ["!selected 2"]}
+      },
+      {
+        "op": "decompose",
+        "method": "out_literal",
+        "expect": {"status": "no_plan"}
+      },
+      {
+        "op": "decompose",
+        "method": "out_arithmetic",
+        "expect": {"status": "no_plan"}
+      },
+      {
+        "op": "decompose",
+        "method": "out_bound",
+        "expect": {"status": "no_plan"}
+      },
+      {
+        "op": "decompose",
+        "method": "out_mismatch",
+        "expect": {"status": "succeeded", "plan": ["!fallback"]}
+      },
+      {
+        "op": "decompose",
+        "method": "out_owned_literal",
+        "expect": {"status": "succeeded", "plan": ["!selected 2"]}
+      },
+      {
+        "op": "decompose",
+        "method": "alt_preserves_bound",
+        "expect": {"status": "succeeded", "plan": ["!selected 1"]}
+      },
+      {
+        "op": "decompose",
+        "method": "alias_outputs",
+        "expect": {"status": "succeeded", "plan": ["!selected 2"]}
+      },
+      {
+        "op": "decompose",
+        "method": "nested_and",
+        "expect": {"status": "succeeded", "plan": ["!selected 2"]}
+      },
+      {
+        "op": "decompose",
+        "method": "alt_choice",
+        "expect": {"status": "succeeded", "plan": ["!selected 2"]}
+      },
+      {
+        "op": "decompose",
+        "method": "or_cut",
+        "expect": {"status": "succeeded", "plan": ["!fallback"]}
+      },
+      {
+        "op": "decompose",
+        "method": "not_scope",
+        "expect": {"status": "succeeded", "plan": ["!selected 2"]}
+      },
+      {
+        "op": "decompose",
+        "method": "io_backtrack",
+        "expect": {"status": "succeeded", "plan": ["!selected 2"]}
+      },
+      {
+        "op": "decompose",
+        "method": "deep_backtrack",
+        "expect": {"status": "succeeded", "plan": ["!selected 2"]}
+      },
+      {
+        "op": "decompose",
+        "method": "first_solution",
+        "expect": {"status": "succeeded", "plan": ["!selected 1"]}
+      },
+      {
+        "op": "decompose",
+        "method": "io_bound",
+        "expect": {"status": "succeeded", "plan": ["!selected 2"]}
+      },
+      {
+        "op": "decompose",
+        "method": "io_mismatch",
+        "expect": {"status": "succeeded", "plan": ["!fallback"]}
+      },
+      {
+        "op": "decompose",
+        "method": "exhausted",
+        "expect": {"status": "succeeded", "plan": ["!selected 1"]}
+      },
+      {
+        "op": "decompose",
+        "method": "internal_filter",
+        "expect": {"status": "succeeded", "plan": ["!selected 2"]}
+      },
+      {
+        "op": "decompose",
+        "method": "pair_backtrack",
+        "expect": {"status": "succeeded", "plan": ["!pair 2 10"]}
+      },
+      {
+        "op": "decompose",
+        "method": "pair_bound",
+        "expect": {"status": "succeeded", "plan": ["!pair 2 9"]}
+      },
+      {
+        "op": "decompose",
+        "method": "two_calls",
+        "expect": {"status": "succeeded", "plan": ["!pair 2 2"]}
+      },
+      {
+        "op": "decompose",
+        "method": "string_backtrack",
+        "expect": {"status": "succeeded", "plan": ["!selected \"second candidate with owned string storage\""]}
+      },
+      {
+        "op": "decompose",
+        "method": "out_backtrack",
+        "expect": {"status": "succeeded", "plan": ["!selected 2"]}
+      },
+      {
+        "op": "decompose",
+        "method": "out_literal",
+        "mode": {"factsAndAxioms": false, "branches": true},
+        "expect": {"status": "no_plan"}
+      },
+      {
+        "op": "decompose",
+        "method": "alt_choice",
+        "mode": {"factsAndAxioms": false, "branches": true},
+        "expect": {"status": "no_plan"}
+      },
+      {
+        "op": "decompose",
+        "method": "nested_and",
+        "mode": {"factsAndAxioms": false, "branches": true},
+        "expect": {"status": "no_plan"}
+      },
+      {
+        "op": "decompose",
+        "method": "out_literal",
+        "mode": {"factsAndAxioms": true, "branches": true},
+        "expect": {"status": "no_plan"}
+      },
+      {"op": "removeFact", "name": "candidate", "arity": 1, "index": 0},
+      {"op": "removeFact", "name": "candidate", "arity": 1, "index": 0},
+      {
+        "op": "decompose",
+        "method": "no_candidates",
+        "expect": {"status": "succeeded", "plan": ["!fallback"]}
+      },
+      {"op": "addFact", "fact": ["candidate", "2"]},
+      {
+        "op": "decompose",
+        "method": "out_backtrack",
+        "expect": {"status": "succeeded", "plan": ["!selected 2"]}
+      }
+    ]
+  },
+  {
+    "name": "axiom backtracking resumes without replaying host effects",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:2976",
+    "domain": "upstream/Domains/Test/nested_axiom_choices.domain",
+    "facts": [["candidate", "1"], ["candidate", "2"], ["first_candidate", "1"]],
+    "callterms": "nested-axiom-effects",
+    "script": [
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "effects",
+        "expect": {"status": "succeeded", "trace": ["0", "42", "1", "2"], "plan": ["!selected 2"]}
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "effects_exhausted",
+        "expect": {"status": "succeeded", "trace": ["0", "42", "1", "2"], "plan": ["!fallback"]}
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "effects_nested",
+        "expect": {"status": "succeeded", "trace": ["10", "0", "42", "1", "2"], "plan": ["!selected 2"]}
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "qualified_or",
+        "expect": {"status": "succeeded", "trace": [], "plan": ["!selected 2"]}
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "effects_alt_exhausted",
+        "expect": {"status": "succeeded", "trace": ["1", "2", "10"], "plan": ["!fallback"]}
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "effects",
+        "expect": {"status": "succeeded", "trace": ["0", "42", "1", "2"], "plan": ["!selected 2"]}
+      }
+    ]
+  }
+]

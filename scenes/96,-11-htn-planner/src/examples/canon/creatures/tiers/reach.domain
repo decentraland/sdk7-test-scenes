@@ -1,0 +1,51 @@
+// Shared tier: get within a range of an entity. Re-entrant: the first branch is "already there, nothing to do".
+//
+// Teaches: re-entry handling (a task recognises when it is already done), a range test as an axiom so
+// every tier asks the same question the same way, a parameterised range instead of one copy per range.
+// Source: Space Station 14 (MIT), `MedibotGetInRange` in Resources/Prototypes/NPCs/medibot.yml (move if not in range,
+// else a no-op) and the `rangeKey` of `MoveToOperator`, at commit 614f030530578e248a2393dd71ee9813d68d800d:
+// https://github.com/space-wizards/space-station-14/tree/614f030530578e248a2393dd71ee9813d68d800d/Resources/Prototypes/NPCs
+// Licence: MIT, Copyright (c) 2017-2026 Space Wizards Federation; see src/examples/canon/THIRD_PARTY_NOTICES.md.
+// Adapted (YAML prototypes re-written in our domain language).
+// Deviations: SS14 puts "move" first and the no-op last; ours tests "already there" first, with the range
+// test written out, so the order does not carry the meaning. Paths and the move itself are the host's: `!move_near`
+// walks until the entity is within the range (SS14 `MoveToOperator`, pathfinding outside the planner).
+// Not ported: pathfinding in planning (`pathfindInPlanning`), the move's own `removeKeyOnFinish` / `shutdownState`
+// blackboard cleanup.
+//
+// Facts:      (distance_to ?entity ?metres) host sensor, one row per entity it tracks.
+// Primitives: (!move_near ?entity ?range)
+
+(:domain reach
+
+    // SS14 blackboard default (NPCBlackboard.cs: MeleeRange 1): close enough to bite, eat or hit.
+    (:constants ReachTier
+        (melee_range 1.0)
+    )
+
+    // ?inp_target is within ?inp_range metres.
+    (:axiom (within ?inp_target ?inp_range)
+        (and
+            (distance_to ?inp_target ?d)
+            (<= ?d ?inp_range)
+        )
+    )
+
+    // Contract: afterwards the caller is within ?inp_range of ?inp_target.
+    (:method (get_in_range ?inp_target ?inp_range)
+
+        (already_there
+            (and
+                (#within ?inp_target ?inp_range)
+            )
+            ()
+        )
+
+        (approach
+            ()
+            (
+                (!move_near ?inp_target ?inp_range)
+            )
+        )
+    )
+)

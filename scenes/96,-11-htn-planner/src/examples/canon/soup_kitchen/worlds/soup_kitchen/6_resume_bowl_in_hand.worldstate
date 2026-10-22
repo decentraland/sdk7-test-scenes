@@ -1,0 +1,41 @@
+// soup_kitchen: a replan in the middle of serving: chef2 already holds the bowl and the soup is done. The phase
+// resumes where it was; the deferred wait will find the pot done and add nothing.
+// method: make_soup soup delivery
+// expect: succeeded
+//   1. &wait_cooking chef2 pot1 soup
+//   2. !interact chef2 pot1
+//   3. !interact chef2 delivery
+
+// A split kitchen: chef1 reaches the piles and the counter, chef2 the counter, the pot and the delivery.
+holding chef1 empty
+holding chef2 bowl
+holding pot1 soup
+holding counter empty
+holding delivery empty
+agent chef1
+agent chef2
+pile onion_pile
+pile bowl_pile
+pot pot1
+table counter
+recipe soup onion onion_1
+start_label soup cooking_soup
+cooking_progress cooking_soup cooking_soup_2
+cooking_progress cooking_soup_2 cooking_soup_3
+cooking_progress cooking_soup_3 soup
+holding onion_pile onion
+holding bowl_pile bowl
+exchange chef1 onion_pile empty onion onion onion
+exchange chef1 bowl_pile empty bowl bowl bowl
+exchange chef1 counter onion empty empty onion
+exchange chef1 counter empty onion onion empty
+exchange chef1 counter bowl empty empty bowl
+exchange chef1 counter empty bowl bowl empty
+exchange chef2 counter onion empty empty onion
+exchange chef2 counter empty onion onion empty
+exchange chef2 counter bowl empty empty bowl
+exchange chef2 counter empty bowl bowl empty
+exchange chef2 pot1 onion empty empty onion_1
+exchange chef2 pot1 empty onion_1 empty cooking_soup
+exchange chef2 pot1 bowl soup soup empty
+exchange chef2 delivery soup empty empty soup

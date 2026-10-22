@@ -1,0 +1,49 @@
+// Level 3. Conditions read facts and bind variables.
+// The host writes one (visitor ?who ?distance) row per agent near the greeter (the tester bot, you). The
+// planner tries the rows in order: ?who and ?distance take the row's values, the comparison and `not` filter
+// them, and the bound ?who goes into the steps. (greeted ?who) is written by !remember and dropped by the host
+// once that visitor walks away, so coming back gets a new greeting.
+//
+// Facts: (visitor ?who ?distance) metres, float; (greeted ?who)
+// Primitives: (!go_to ?spot) (!say ?text) (!wait ?seconds) (!face ?who) (!wave ?who) (!remember ?who)
+
+(:domain Greeter top_level_domain
+
+    (:constants Greeter
+        (greet_distance 4.0)
+    )
+
+    (:method (behave) top_level_method
+
+        (greet_new_visitor
+            (and
+                (visitor ?who ?distance)
+                (< ?distance @greet_distance)
+                (not (greeted ?who))
+            )
+            (
+                (!face ?who)
+                (!wave ?who)
+                (!remember ?who)
+            )
+        )
+
+        (watch_visitor
+            (and
+                (visitor ?who ?any_distance)
+            )
+            (
+                (!face ?who)
+                (!wait 1.0)
+            )
+        )
+
+        (sweep_the_porch
+            ()
+            (
+                (!go_to porch_left)
+                (!go_to porch_right)
+            )
+        )
+    )
+)

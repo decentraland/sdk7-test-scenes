@@ -1,0 +1,60 @@
+name: HTN planner scene tests
+
+# Tests, typechecks and validates the domains of the HTN planner scene; runs only when that scene (or this file) changes.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'scenes/96,-11-htn-planner/**'
+      - '.github/workflows/htn-planner-tests.yml'
+  pull_request:
+    paths:
+      - 'scenes/96,-11-htn-planner/**'
+      - '.github/workflows/htn-planner-tests.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test scenes/96,-11-htn-planner
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./scenes/96,-11-htn-planner
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # The repo ignores package-lock.json, so there is no lockfile for npm ci.
+      - name: Install npm packages
+        run: npm install
+
+      - name: Check redistribution notices and SDK publish inclusion
+        run: npm run htn:notices -- --check
+
+      - name: Tests (planner, compiler, generated modules up to date, scene scripts)
+        run: npm test
+
+      - name: Typecheck scene
+        run: npx tsc --noEmit
+
+      - name: Typecheck tools and tests
+        run: npm run typecheck:tools
+
+      # Include/base domains are validated through their top-level consumers.
+      - name: Check every root domain (htn:compile --check)
+        run: npm run htn:compile -- --check $(grep -rl 'top_level_domain' src --include='*.domain' | sort)
+
+      # Errors fail the job; shape warnings (known in guard / stalker) are printed only. The finding counts of every
+      # shipped domain are pinned by the lint baseline test inside npm test.
+      - name: Lint every domain (htn:lint)
+        run: npm run -s htn:lint -- src
+
+      - name: Check the active_plan methods (--check-method; its warnings fail the job)
+        run: |
+          out=$(npm run -s htn:compile -- --check $(grep -rlE '^[[:space:]]*\(:method[[:space:]]+\(active_plan\)' src --include='*.domain' | sort) --check-method active_plan 2>&1) || { echo "$out"; exit 1; }
+          echo "$out"
+          ! echo "$out" | grep -q 'check-method-'

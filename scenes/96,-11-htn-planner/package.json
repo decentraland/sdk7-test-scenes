@@ -1,0 +1,39 @@
+{
+  "name": "htn-planner",
+  "version": "1.0.0",
+  "description": "HTN planner (TS port of urosidoki/htn_planner) for SDK7 NPCs, with a capsule test scene covering the guard, stalker and every upstream example domain",
+  "license": "MIT",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "build": "sdk-commands build",
+    "test": "node scripts/run-tests.mjs",
+    "typecheck:tools": "tsc -p tsconfig.tools.json && tsc -p tsconfig.viewer.json",
+    "htn:compile": "node scripts/htn-compile.mjs",
+    "htn:examples": "node scripts/htn-examples.mjs",
+    "htn:run": "node scripts/htn-run.mjs",
+    "htn:bench": "node scripts/htn-bench.mjs",
+    "htn:level": "node scripts/htn-level.mjs",
+    "htn:golden": "node scripts/htn-golden.mjs",
+    "htn:view": "node scripts/htn-view.mjs",
+    "htn:lint": "node scripts/htn-lint.mjs",
+    "htn:notices": "node scripts/htn-notices.mjs",
+    "prebuild": "npm run htn:notices",
+    "predeploy": "npm run htn:notices"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  },
+  "devDependencies": {
+    "@dcl/js-runtime": "7.30.1",
+    "@dcl/sdk": "7.30.1",
+    "elkjs": "0.10.2"
+  }
+}

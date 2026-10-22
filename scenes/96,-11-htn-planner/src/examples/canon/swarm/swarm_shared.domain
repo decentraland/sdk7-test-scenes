@@ -1,0 +1,35 @@
+// swarm_shared: rules the swarm's coordinator and its drones both use (included by swarm_coordinator.domain and
+// swarm_drone.domain). Shared generic rules in one place, as Killzone 2 shared its basic movement rules between
+// agents.
+// Teaches: one include for the rules a group agent and its members share (`#all_followers_nearby`).
+// Source: the axiom "all swarm followers nearby" of the Decima talk; see swarm_drone.domain.
+// Licence: re-expressed (nothing copied); see swarm_drone.domain and src/examples/canon/THIRD_PARTY_NOTICES.md.
+// Deviations: none beyond swarm_drone.domain's.
+// Not ported: see swarm_drone.domain.
+//
+// Facts it reads (each world has its own copy, written by its host):
+//   (follower ?member)                    a member that follows the leader now
+//   (distance_to_leader ?member ?metres)  how far that member is from the leader
+
+(:domain SwarmShared
+
+    (:constants SwarmShared
+        // How close every follower must be for the swarm to count as gathered.
+        (gather_radius 3.0)
+    )
+
+    // The swarm is gathered: there is no follower known to be farther from the leader than ?inp_max_distance.
+    // A double negation, as Decima writes it: "not (some follower is too far)", so a swarm with no followers is
+    // gathered too.
+    (:axiom (all_followers_nearby ?inp_max_distance)
+        (and
+            (not
+                (and
+                    (follower ?follower)
+                    (distance_to_leader ?follower ?distance)
+                    (> ?distance ?inp_max_distance)
+                )
+            )
+        )
+    )
+)

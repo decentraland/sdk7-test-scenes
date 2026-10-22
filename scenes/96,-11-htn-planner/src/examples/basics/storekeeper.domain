@@ -1,0 +1,136 @@
+// Level 10. Is the running step still valid? (upstream docs/USE_CASES.md section 1, `active_plan`)
+// A storekeeper fetches a crate from the store for a customer at the counter. The level never replans on a fact
+// change: the host runs `active_plan` (GuardAgentOptions.activePlan) on every tick a step runs, with the running step
+// published as `(running <action> <arguments>...)`. A branch that matches lets the step go on; no match cancels it
+// and `behave` is planned at once. So the door shut on the way to the store, or a customer who walked off while the
+// crate is carried to the counter, stops the step mid-walk.
+//
+// `active_plan` has one branch per action, each saying what keeps that action valid, and no catch-all: a last
+// branch with no condition would accept every step (diagnostic active_plan_fallback). It must agree with `behave`:
+// a step it rejects must not be the one `behave` plans again (diagnostic active_plan_conflict). The two waits have
+// their own primitives (!sit, !wait), so the check can tell resting from waiting at the shut door.
+//
+// Facts, written by the host every tick:
+//   (customer ?who)       someone at the counter who has not been served yet: tester | you
+//   (store_open)          present while the store door is open
+//   (holding_crate)       present while the keeper carries a crate
+//   (running ...)         the running step, written by the agent: (running go_to store), (running take_crate)...
+// Primitives: (!go_to ?spot) (!take_crate) (!hand_over ?who) (!say ?text) (!wait ?seconds) (!sit ?seconds)
+
+(:domain Storekeeper top_level_domain
+
+    (:method (behave) top_level_method
+
+        (serve
+            (and
+                (customer ?who)
+                (holding_crate)
+            )
+            (
+                (!go_to counter)
+                (!hand_over ?who)
+            )
+        )
+
+        (fetch
+            (and
+                (customer ?any_who)
+                (store_open)
+            )
+            (
+                (!go_to store)
+                (!take_crate)
+                (&behave)
+            )
+        )
+
+        (store_shut
+            (and
+                (customer ?any_who)
+            )
+            (
+                (!say "the store is shut!")
+                (!wait 5.0)
+            )
+        )
+
+        (rest
+            ()
+            (
+                (!go_to bench)
+                (!sit 3.0)
+            )
+        )
+    )
+
+    // Is the running step still valid? Succeeds with no steps; no plan cancels the step.
+    (:method (active_plan) top_level_method
+
+        (to_counter_valid
+            (and
+                (running go_to counter)
+                (customer ?any_who)
+                (holding_crate)
+            )
+            ()
+        )
+
+        (hand_over_valid
+            (and
+                (running hand_over ?who)
+                (customer ?who)
+            )
+            ()
+        )
+
+        (to_store_valid
+            (and
+                (running go_to store)
+                (customer ?any_who)
+                (store_open)
+                (not (holding_crate))
+            )
+            ()
+        )
+
+        (take_crate_valid
+            (and
+                (running take_crate)
+                (store_open)
+            )
+            ()
+        )
+
+        (say_valid
+            (and
+                (running say ?any_text)
+            )
+            ()
+        )
+
+        (wait_for_door_valid
+            (and
+                (running wait ?any_seconds)
+                (customer ?any_who)
+                (not (store_open))
+            )
+            ()
+        )
+
+        (to_bench_valid
+            (and
+                (running go_to bench)
+                (not (customer ?any_who))
+            )
+            ()
+        )
+
+        (sit_valid
+            (and
+                (running sit ?any_seconds)
+                (not (customer ?any_who))
+            )
+            ()
+        )
+    )
+)

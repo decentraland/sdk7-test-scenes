@@ -1,0 +1,16 @@
+// swarm_coordinator: the leader has led long enough and every follower is within the gather radius: the lead goes
+// to the host's pick, d4. The collector keeps its resource; the old leader follows the new one.
+// method: organise_swarm
+// expect: succeeded
+//   1. !assign_role d4 leader s1
+//   2. !assign_role d1 follower d4
+//   3. !assign_role d3 collector r2
+
+swarm s1
+roster (d1 d3 d4)
+leader d1
+next_leader d4
+lead_time_up
+follower d4
+distance_to_leader d4 2.5
+collecting d3 r2

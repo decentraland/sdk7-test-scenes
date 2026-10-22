@@ -1,0 +1,12 @@
+// pet_follower: threatened: fight before follow.
+// method: behave
+// expect: succeeded
+//   1. !move_near rat 1.0
+//   2. !juke_away rat
+//   3. !melee_attack rat
+
+now 0.0
+leader owner
+distance_to owner 12.0
+distance_to rat 2.0
+hostile rat

@@ -1,0 +1,11 @@
+candidate 1
+candidate 2
+seed 2
+first_candidate 1
+pair_candidate 1 2
+pair_candidate 2 2
+state 9
+state 10
+seed_state 9
+text_candidate "first candidate with owned string storage"
+text_candidate "second candidate with owned string storage"

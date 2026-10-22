@@ -1,0 +1,170 @@
+// swarm_coordinator: the group planner of a small flying swarm. It does not fly; it decides who leads, who collects
+// which resource and who follows, and says so with one `!assign_role` per member. The host writes each order as a
+// `(role <role> <context>)` fact into that drone's own world, where swarm_drone.domain decides how to carry it out.
+//
+// Teaches:
+//   - Roles as facts from a group agent: the drones never negotiate; one planner over the swarm's snapshot hands out
+//     the roles, every drone plans for itself from its role (Decima: group roles come from the group agent and its
+//     role distributor, not from the individual's own decision list).
+//   - Stable roles across decisions: a collector keeps its resource (`collecting`) and the leader keeps the lead
+//     until a hand-over is due, so a new decision on the same snapshot changes nothing.
+//   - A condition with a reason: the hand-over is an axiom, and the branch that keeps the leader says
+//     "no hand-over is due" instead of relying on coming second.
+//   - A role list walked by tail recursion (`split_list`) with a counter for the next free resource, every branch
+//     with its own test, and a base branch.
+//   - A shared rule in an include (`#all_followers_nearby`, swarm_shared.domain), also used by the leader drone.
+//
+// Source (re-expressed from the published description; our own text and names): Tim Verweij, "HTN planning in
+// DECIMA", AI and Games Conference 2024, https://www.guerrilla-games.com/read/htn-planning-in-decima , and the 2026
+// summer-school version of the talk ("From Byrd Box to Debug Boxes"). The talk shows the swarm member's side (roles
+// read as `in_role` / `role_context` facts) and the axiom "all swarm followers nearby" with the note that the
+// leader role changes now and then, only when all followers are nearby. It does not show the group's domain: this
+// coordinator is ours, written to produce exactly those facts.
+// Licence: re-expressed (nothing copied); credits in src/examples/canon/THIRD_PARTY_NOTICES.md.
+//
+// Emulations: none needed for the coordinator itself (no effects: the plan only lists orders). The host keeps what
+// the orders mean between decisions: `leader`, `follower`, `collecting`, and leaves claimed resources out of
+// `free_resource`. Picking the next leader and ranking resources are host sensors (best first), not domain logic.
+// Deviations: none to speak of: the talk does not show a group domain, so this one follows only the facts it must
+// produce (`role` per member) and the hand-over rule.
+// Not ported: Decima's group hierarchy (`in_group`, `other_member`), subgroups, messaging between agents, the
+// role-distribution utility.
+//
+// Facts (the swarm's snapshot, written by the host before each decision; plan again when it changes):
+//   (swarm ?id)                          the swarm this planner runs for
+//   (roster ?members)                    the members that can take a role now (carriers are busy), in order
+//   (leader ?member)                     the current leader, if any
+//   (next_leader ?member)                who should lead next, best first (host's choice)
+//   (lead_time_up)                       the leader has led long enough
+//   (follower ?member), (distance_to_leader ?member ?metres)   see swarm_shared.domain
+//   (collecting ?member ?resource)       a collector on its way to its resource
+//   (free_resource ?rank ?resource)      unclaimed resources, ranked 1, 2, ... best first
+// Primitive: (!assign_role ?member leader|collector|follower ?context), context: the swarm, the resource, the leader.
+// Scenarios: worlds/swarm_coordinator/ (npm run htn:run -- --world swarm_coordinator/<scenario>; --list names them); story: stories.ts.
+
+(:include "swarm_shared.domain")
+
+(:domain SwarmCoordinator top_level_domain
+
+    (:method (organise_swarm) top_level_method
+
+        (hand_over_lead
+            (and
+                (swarm ?swarm)
+                (roster ?members)
+                (#lead_change_due ?new_leader)
+            )
+            (
+                (assign_roles ?swarm ?members ?new_leader)
+            )
+        )
+
+        (keep_lead
+            (and
+                (swarm ?swarm)
+                (roster ?members)
+                (not (#lead_change_due ?candidate))
+                (#leader_now ?leader)
+            )
+            (
+                (assign_roles ?swarm ?members ?leader)
+            )
+        )
+
+        // Nobody can take a role: nothing to order (a successful empty plan).
+        (no_swarm
+            ()
+            ()
+        )
+    )
+
+    // Contract: ?inp_leader is in ?inp_members. Effect: every member in the roster has one role.
+    (:method (assign_roles ?inp_swarm ?inp_members ?inp_leader)
+
+        (assign
+            ()
+            (
+                (!assign_role ?inp_leader leader ?inp_swarm)
+                (assign_rest ?inp_members 1 ?inp_leader)
+            )
+        )
+    )
+
+    // Walk the roster: collectors keep their resource, the others take the next free one in rank order, the rest
+    // follow the leader. ?inp_rank: the rank of the next free resource.
+    (:method (assign_rest ?inp_members ?inp_rank ?inp_leader)
+
+        (skip_leader
+            (and
+                (split_list ?inp_members ?member ?rest)
+                (== ?member ?inp_leader)
+            )
+            (
+                (assign_rest ?rest ?inp_rank ?inp_leader)
+            )
+        )
+
+        (keep_collecting
+            (and
+                (split_list ?inp_members ?member ?rest)
+                (!= ?member ?inp_leader)
+                (collecting ?member ?resource)
+            )
+            (
+                (!assign_role ?member collector ?resource)
+                (assign_rest ?rest ?inp_rank ?inp_leader)
+            )
+        )
+
+        (new_collector
+            (and
+                (split_list ?inp_members ?member ?rest)
+                (!= ?member ?inp_leader)
+                (not (collecting ?member ?any_claimed))
+                (free_resource ?inp_rank ?resource)
+                (= ?next_rank (+ ?inp_rank 1))
+            )
+            (
+                (!assign_role ?member collector ?resource)
+                (assign_rest ?rest ?next_rank ?inp_leader)
+            )
+        )
+
+        (follower
+            (and
+                (split_list ?inp_members ?member ?rest)
+                (!= ?member ?inp_leader)
+                (not (collecting ?member ?any_claimed))
+                (not (free_resource ?inp_rank ?any_free))
+            )
+            (
+                (!assign_role ?member follower ?inp_leader)
+                (assign_rest ?rest ?inp_rank ?inp_leader)
+            )
+        )
+
+        (end_of_roster
+            ()
+            ()
+        )
+    )
+
+    // The lead changes hands now and then, only with the whole swarm gathered (Decima).
+    (:axiom (lead_change_due ?out_new_leader)
+        (and
+            (leader ?old_leader)
+            (lead_time_up)
+            (#all_followers_nearby @gather_radius)
+            (next_leader ?out_new_leader)
+            (!= ?out_new_leader ?old_leader)
+        )
+    )
+
+    // The leader stays; with none yet, the host's first pick leads.
+    (:axiom (leader_now ?out_leader)
+        (or
+            (leader ?out_leader)
+            (next_leader ?out_leader)
+        )
+    )
+)

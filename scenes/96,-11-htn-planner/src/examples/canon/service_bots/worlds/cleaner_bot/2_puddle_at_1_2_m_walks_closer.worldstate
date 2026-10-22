@@ -1,0 +1,10 @@
+// cleaner_bot: puddle at 1.2 m: walks closer.
+// 1.2 m is within the base's approach range (1.5) but not the cleaner's (1.0): the constant override decides.
+// method: behave
+// expect: succeeded
+//   1. !move_near puddle_1 1.0
+//   2. !clean puddle_1
+
+now 0.0
+puddle puddle_1
+distance_to puddle_1 1.2000000476837158

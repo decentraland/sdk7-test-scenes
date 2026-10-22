@@ -1,0 +1,148 @@
+// Bridge troll, step 5b of 6: AFTER, model the reason as a fact. Fixes v5_combo_bug.domain.
+//
+// Teaches: "the real problem here is the domain" (Humphreys). The recovery is needed because the attack tired the
+// troll, so say that in the world state: !trunk_slam and !whirlwind write `tired`, !recover clears it, and
+// `attack_enemy`'s first method is "tired: recover". That first method is also what makes the task re-entrant:
+// it says what to do when the attack is half done (swung, not yet recovered). Now a replan during !recover plans
+// [!recover] again, which is the rest of the running plan, so the host keeps it and the recovery is never cut; the
+// whirlwind waits until the troll has recovered. No reordering, no new top-level branch, the slam and the recovery
+// stay separate steps (the chapter's point: merging them into one animation would hurt modularity).
+//
+// Changed from v5_combo_bug: new fact `tired` and the first method `recover_first` of `attack_enemy`; nothing else.
+// Source: Troy Humphreys, "Exploring HTN Planners through Example", Game AI Pro (CRC Press, 2013), chapter 12,
+//   section 12.8, the `WsIsTired` fix:
+//   https://www.gameaipro.com/GameAIPro/GameAIPro_Chapter12_Exploring_HTN_Planners_through_Example.pdf
+//   The same fix in code: Fluid Troll Bridge's Human domain ("Be tired": stamina > 2 -> rest, attacks raise
+//   stamina), https://github.com/ptrefall/fluid-troll-bridge (MIT; cited, not copied).
+// Licence: the chapter is (c) CRC Press (free to read); re-expressed from its published description, nothing copied.
+// Deviations from the source: the chapter puts `WsIsTired == false` on the whirlwind's precondition and lets MTR
+//   keep the running recovery; we have neither primitive preconditions at plan time nor MTR, so the reason becomes
+//   the task's first method, which also keeps the plan the host is running.
+// Not ported: MTR (see v5_combo_bug.domain); Fluid's stamina counter (a boolean is enough here).
+// Next: v6_partial_plans.domain splits the attack at the long walk.
+//
+// Facts (host sensors): as v5_combo_bug, plus (tired) present from an attack until !recover.
+// Primitives (logged): as v5_combo_bug.
+// Scenarios: worlds/v5_tired/; the fixed story: stories.ts; npm run htn:run -- --story v5_tired/the-recovery-survives-the-replan
+
+(:domain BridgeTrollV5Tired top_level_domain
+
+    (:constants BridgeTrollV5Tired
+        (whirlwind_charge 3)
+    )
+
+    (:method (be_troll) top_level_method
+
+        (fight
+            (and
+                (enemy_visible ?enemy)
+            )
+            (
+                (attack_enemy ?enemy)
+            )
+        )
+
+        (chase
+            (and
+                (enemy_last_seen ?enemy ?place)
+            )
+            (
+                (!navigate_to ?place)
+                (&regain_sight ?enemy)
+            )
+        )
+
+        (patrol
+            (and
+                (next_bridge ?bridge)
+            )
+            (
+                (!navigate_to ?bridge)
+                (!check_bridge ?bridge)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!idle 2.0)
+            )
+        )
+    )
+
+    // Hurt the enemy. Pre: ?inp_enemy is in sight. Effect: one attack made and recovered from, or a new trunk.
+    (:method (attack_enemy ?inp_enemy)
+
+        // Half done: the last attack tired the troll. Recover before anything else.
+        (recover_first
+            (and
+                (tired)
+            )
+            (
+                (!recover)
+            )
+        )
+
+        (whirlwind
+            (and
+                (power_up ?charge)
+                (>= ?charge @whirlwind_charge)
+            )
+            (
+                (!navigate_to ?inp_enemy)
+                (!whirlwind ?inp_enemy)
+                (!recover)
+            )
+        )
+
+        (trunk_slam
+            (and
+                (trunk_health ?hits)
+                (> ?hits 0)
+            )
+            (
+                (!navigate_to ?inp_enemy)
+                (!trunk_slam ?inp_enemy)
+                (!recover)
+            )
+        )
+
+        (rearm
+            (and
+                (trunk_nearby ?tree)
+            )
+            (
+                (!navigate_to ?tree)
+                (!uproot_trunk ?tree)
+                (&attack_enemy ?inp_enemy)
+            )
+        )
+
+        (throw_boulder
+            ()
+            (
+                (!lift_boulder)
+                (!throw_boulder ?inp_enemy)
+            )
+        )
+    )
+
+    (:method (regain_sight ?inp_enemy)
+
+        (roar
+            (and
+                (enemy_visible ?inp_enemy)
+            )
+            (
+                (!roar ?inp_enemy)
+            )
+        )
+
+        (catch_breath
+            ()
+            (
+                (!catch_breath)
+            )
+        )
+    )
+)
