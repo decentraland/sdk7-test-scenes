@@ -14,14 +14,24 @@ import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import ReactEcs, { Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { feedback } from './scene-feedback'
 import { setupLeaveFeedback } from './leave-feedback'
-import { CONTRIBUTOR_TITLE, hasContributorTitle, recordFeedbackParticipation } from './feedback-reward'
+import {
+  BOOST_PICKUPS,
+  CONTRIBUTOR_TITLE,
+  FEEDBACK_BONUS,
+  getBoostPickupsRemaining,
+  getCoinScore,
+  hasContributorTitle,
+  recordCoinPickup,
+  recordFeedbackParticipation
+} from './feedback-reward'
 
 // Tiny 3-round coin hunt, only to show feedback.ask() at different moments:
 //   first coin         → Intro, then coinSpotting (single, mid-round, with comment)
 //   round 1 complete   → nextGoal, playMore (Group: rating only, then with comment)
 //   hunt complete      → repeatLoop, nextCoinKnown, worthIt (Group, ratings only), and a new hunt
 // A second hunt asks nothing: once per visit per trigger. Player-initiated feedback: leave-feedback.tsx.
-// Any submitted answer unlocks a cosmetic title for this visit, independent of the rating.
+// Any submitted answer unlocks a title, +5 coin score and x2 for the next 5 pickups this visit.
+// Coin score is separate from physical pickup progress, and has no spending or persistent value.
 const COINS_PER_ROUND = 5
 const ROUNDS = 3
 
@@ -40,7 +50,7 @@ export function setupGame(): void {
   const sign = engine.addEntity()
   Transform.create(sign, { position: Vector3.create(8, 2.5, 15) })
   TextShape.create(sign, {
-    text: 'COIN HUNT\n\nClick the coins.\nFeedback questions pop up as you play.',
+    text: 'COIN HUNT\n\nClick coins to earn coin score.\n5 pickups per round.\nFeedback rewards are optional.',
     fontSize: 3,
     textColor: Color4.White(),
     textAlign: TextAlignMode.TAM_MIDDLE_CENTER
@@ -88,6 +98,7 @@ function collect(coin: Entity, disc: Entity): void {
   engine.removeEntity(coin)
   collected++
   totalCollected++
+  recordCoinPickup()
 
   // Intro right before the first Question: Give feedback leads straight into it.
   // With ASK_PARTICIPANTS_ONLY, only players who say yes get the game's Questions.
@@ -134,21 +145,27 @@ const hud = () => (
       uiTransform={{ width: '100%', height: 60, positionType: 'absolute', position: { top: 16 }, justifyContent: 'center' }}
     >
       <UiEntity
-        uiTransform={{ padding: { left: 20, right: 20 }, justifyContent: 'center', alignItems: 'center' }}
+        uiTransform={{
+          padding: { left: 20, right: 20 },
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}
         uiBackground={{ color: Color4.create(0, 0, 0, 0.5) }}
       >
         <Label
-          value={`Round ${round}/${ROUNDS} · Coins ${collected}/${COINS_PER_ROUND}`}
+          value={`Round ${round}/${ROUNDS} · Found ${collected}/${COINS_PER_ROUND}`}
           fontSize={22}
           color={Color4.White()}
         />
+        <Label value={`Coin score: ${getCoinScore()}`} fontSize={16} color={Color4.fromHexString('#ffc933ff')} />
       </UiEntity>
     </UiEntity>
     {hasContributorTitle() && (
       <UiEntity
         uiTransform={{
           positionType: 'absolute',
-          position: { top: 84, left: 0 },
+          position: { top: 92, left: 0 },
           width: '100%',
           flexDirection: 'row',
           justifyContent: 'center'
@@ -159,7 +176,16 @@ const hud = () => (
           uiBackground={{ color: Color4.create(0, 0, 0, 0.75) }}
         >
           <Label value={CONTRIBUTOR_TITLE} fontSize={18} color={Color4.fromHexString('#ffc933ff')} />
-          <Label value="Unlocked for this visit" fontSize={12} color={Color4.White()} />
+          <Label value={`+${FEEDBACK_BONUS} coin score awarded · this visit only`} fontSize={12} color={Color4.White()} />
+          <Label
+            value={
+              getBoostPickupsRemaining() > 0
+                ? `x2 coin score: next ${getBoostPickupsRemaining()}/${BOOST_PICKUPS} pickups`
+                : 'x2 used up · 1 score per pickup'
+            }
+            fontSize={14}
+            color={Color4.fromHexString('#ffc933ff')}
+          />
         </UiEntity>
       </UiEntity>
     )}

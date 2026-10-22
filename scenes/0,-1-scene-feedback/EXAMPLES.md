@@ -240,11 +240,15 @@ a useful, low-burden request may be enough. Wanting to keep playing and wanting 
 feedback are separate questions. Include exposed players who had an unsuccessful attempt,
 and keep declining or skipping free of penalties to normal play.
 
-The Coin Hunt example unlocks a **Playtest Contributor** HUD title after the first submitted
-answer from a game question or any player-opened route. It lasts only for the current visit:
-no minting, wallet transaction, platform badge, saved entitlement or extra hunt progress.
+The Coin Hunt example awards **+5 coin score**, **x2 coin score for the next 5 pickups**,
+and a **Playtest Contributor** HUD title after the first submitted answer from a game
+question or any player-opened route. Normal pickups earn 1 score; the next 5 earn 2 each,
+then return to 1. The HUD shows the total and remaining boosted pickups. All state lasts
+only for this visit: no spendable balance, minting, platform badge or saved entitlement.
+Score is a small arcade total; it does not buy items or promise economic value. The bonus
+and multiplier never count as found coins, finish rounds or fire gameplay feedback events.
 The Intro explains the purpose, optional comments, reward terms and stored data before
-participation. A low rating earns exactly the same title as a high one. Intro acceptance
+participation. A low rating earns exactly the same package as a high one. Intro acceptance
 alone, skipped/unshown questions and debug previews do not award it.
 
 The scene-owned helper [feedback-reward.ts](src/feedback-reward.ts) accepts either a single
@@ -265,15 +269,16 @@ void feedback
 
 The helper unlocks once if **any** result is `submitted`; it never reads a rating or text.
 A partly answered Group qualifies too. Closing before sending any answer, declining the
-Intro or receiving only `skipped`/`not-shown` results leaves the title locked. Once earned,
-skipping another question does not revoke it. Repeat forms cannot stack the reward, and a
-new visit resets it. The debug panel previews questions directly and bypasses these scene
-callbacks; test the actual gameplay/player-opened routes to verify the reward.
+Intro or receiving only `skipped`/`not-shown` results awards nothing. Once earned,
+skipping another question does not revoke it. Repeat forms cannot add another bonus or
+refresh the boost. Unused boosted pickups survive round/hunt transitions but expire when
+the visit ends; a fresh visit resets score, title and boost. The debug panel previews questions
+directly and bypasses these scene callbacks; test the actual gameplay/player-opened routes to verify the reward.
 
 **Choose a reward your scene can deliver.** Existing game currency, a consumable, a temporary
 boost or a cosmetic title are possible scene-owned choices. Define its amount, duration and
 eligibility before asking; keep it independent of rating direction, praise or desired text.
-If your scene has no economy, a title avoids inventing one just for a playtest. Ordinary
+This demo keeps score separate from progress instead of adding a spending economy. Ordinary
 progress or items already earned through play should not be removed for refusal. A reward
 for answering may change who responds or encourage rushing: retain invitation/reward terms
 alongside your test notes, and compare recruitment and answer quality as well as counts.
@@ -290,8 +295,13 @@ A proposal, merged PR or custom-client preview alone does not prove general avai
 Verify the chosen reward end to end, including its cap and persistence/expiry; no need to
 implement every option in a playtest.
 
+A score boost changes the experience being measured. Here it affects score only, leaving
+coin placement, collection and round requirements unchanged. When comparing playtests,
+retain reward terms and whether the answer preceded or followed boosted play; do not mix
+rewarded and unrewarded runs as if their context were identical.
+
 **Delivery boundary:** `submitted` describes the client's response action, not an
-acknowledgement or confirmed CSV write. This client-only cosmetic title is deliberately
+acknowledgement or confirmed CSV write. This client-only score/title package is deliberately
 low stakes and resets on reload. Valuable currency, persistent entitlements or collectible
 rewards need their own trusted eligibility/delivery checks and duplicate-claim handling;
 this callback is not a payout receipt. The module's [queue/result rules](README.md#queue-and-results)

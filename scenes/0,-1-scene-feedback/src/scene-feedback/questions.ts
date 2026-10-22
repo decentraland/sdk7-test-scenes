@@ -24,7 +24,7 @@ export const ASK_PARTICIPANTS_ONLY = true
 // - null: none
 export const INTRO: IntroSpec | null = {
   title: 'Help improve Coin Hunt',
-  text: "Help us check coin visibility and the hunt's flow. Short rating questions appear as you play; comments are optional. Send any answer to earn the Playtest Contributor title for this visit. Any rating counts. Skip anytime; hunt progress is unchanged. Answers and wallet address are saved for review."
+  text: "Help us check coin visibility and the hunt's flow with short ratings; comments are optional. Send any answer for +5 coin score, x2 score on your next 5 pickups and the Playtest Contributor title, this visit only. Any rating counts. Skip and keep playing normally. Score is not currency. Answers and wallet address are saved for review."
 }
 
 // Once live, never change a Question's text under its id: new wording, new id.

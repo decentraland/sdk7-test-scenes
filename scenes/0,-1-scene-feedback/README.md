@@ -29,9 +29,12 @@ The Multiplayer Server saves responses to CSV files in scene Storage, ready to d
 This scene contains the feedback library and a small coin-hunt example ([src/game.tsx](src/game.tsx)) that asks Questions
 mid-round, after a round, and as a two-Question series. Its [questions.ts](src/scene-feedback/questions.ts)
 demonstrates bank questions, custom rating scales, and a text-only Question. Submitting any
-answer also unlocks a **Playtest Contributor** HUD title for the current visit, regardless
-of the rating. This optional scene reward is not a platform badge or collectible; see
-[participation rewards](EXAMPLES.md#6-a-scene-local-reward-for-participation) to adapt it.
+answer also awards **+5 coin score**, **x2 score for the next 5 pickups**, and a
+**Playtest Contributor** HUD title, once per visit regardless of the rating. Each coin
+normally earns 1 score; boosted coins earn 2. Score is a visit-local total, not spendable
+currency. Finding 5 actual coins still completes each round; bonus score never advances
+that progress. See [participation rewards](EXAMPLES.md#6-a-scene-local-reward-for-participation)
+to adapt this optional scene reward.
 
 Ask your coding agent to install and adapt the module using the prompt below.
 Prefer to integrate it yourself? Follow the [four steps](#add-it-to-your-scene).
@@ -407,13 +410,19 @@ question, "Completed" replaces the progress bar; the player still presses **Subm
    **DEBUG · server online** and use the **Ask** buttons to preview individual questions.
    **Show intro** only previews the greeting; it does not enroll you. Debug previews do not
    award the title: use the actual game or player-opened routes for the reward check below.
-3. Submit any rating, including the lowest, and check that **Playtest Contributor** appears.
-   A second answer should not add another title. On a fresh visit, decline or skip without
-   answering: no title is awarded and the hunt still works. The player-opened routes remain
-   available; submitting there also unlocks the title. Reloading resets this visit-only reward.
-4. Inspect the local CSV data in
+3. Before answering, collect one coin: **Found** advances by 1 and **Coin score** by 1.
+   Submit any rating, including the lowest: **Playtest Contributor** appears, score rises
+   by 5, and the HUD shows x2 for the next 5 pickups. The bonus does not change **Found**.
+   Collect 5 more coins: each adds 2 score and uses one boosted pickup, including across a
+   round boundary. The next coin adds 1. With 7 coins found and the reward, score is 17.
+   A second answer must not add another bonus or reset the boost. A partly answered Group
+   qualifies once; entirely skipped/unshown questions do not.
+4. On a fresh visit, decline or skip without answering: normal collection still earns 1
+   score per coin, with no reward. Player-opened forms remain available; submitting there
+   unlocks the same package. Reloading resets score, boost and title for the next visit.
+5. Inspect the local CSV data in
    `node_modules/@dcl/sdk-commands/.runtime-data/server-storage.json`.
-5. To test deployed Storage, use the [Review steps](#4-review).
+6. To test deployed Storage, use the [Review steps](#4-review).
    This repository's CI deploys PR and main pushes to `sdk7testscenes.dcl.eth` (`.zone`).
    Keep this demo's `worldConfiguration.name`; use your own World name in your own project.
 
