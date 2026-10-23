@@ -30,7 +30,9 @@ Your TypeScript project should include `src/`; if you use a broad `**/*` include
 
 Add the [complete guard recipe](HOW-TO.md#1-a-capsule-guard) to your existing `main()`, then run your normal preview.
 The squad installs its own update system. Try the patrol, approach the guard, then move away; this is an Explorer check,
-not something a successful build proves.
+not something a successful build proves. For encounter startup, follow
+[Preparation → Ready → Play](HOW-TO.md#7-prepare-ai-before-play): spread setup/activation across frames and optionally
+exercise isolated planning cases before gameplay.
 
 Optional authoring helpers: `--testing` installs `npm run htn:check` and the
 [testing guide](../../docs/consumer-testing.md); `--benchmark` installs `npm run htn:measure` and the

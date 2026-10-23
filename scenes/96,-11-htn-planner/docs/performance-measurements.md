@@ -17,9 +17,9 @@ units with an injected clock and do not assert machine-dependent speed.
 The timer is `performance.now()`: **elapsed wall time around CPU work**, including any scheduler/GC interruption,
 not OS process CPU time. Compilation, imports, process startup, world construction and runner/context creation are
 outside the measured operation. The first operation is recorded separately, in its own fresh process for each repeat;
-it includes first-use/JIT effects of that operation, not a cold system boot. Raw JSON retains each repeat's first value,
-all warm samples, dimensions and counters, OS/CPU/architecture/Node/V8, configuration, source commit/dirty flag and a
-source fingerprint. Keep raw files outside the scene, as in the command above.
+it includes first-use work, not a cold system boot. JIT/lazy allocation are possible but not separately attributed.
+Raw JSON retains each repeat's first value, all warm samples, dimensions and counters, OS/CPU/architecture/Node/V8,
+configuration, source commit/dirty flag and a source fingerprint. Keep raw files outside the scene, as in the command above.
 
 Warm values are microseconds per operation: each elapsed batch is divided by eight. p50/p95/p99 describe **batch means**,
 then the report takes the median of each percentile across repeats. They are not individual-operation tail percentiles.
@@ -89,7 +89,10 @@ sub-microsecond dispatch/wait rows should be read as a rough scale, and cold res
 The primary first planning calls cost about **1.55 ms tiny / 7.53 ms heavy**, while the first 32-guard host tick costs
 about **8.87 ms**; the confirmation cold medians are 1.09 / 6.02 / 8.24 ms respectively. The forced-replan32 first tick
 has cold medians 8.48 / 4.48 ms. A warm heavy plan here is hundreds of microseconds, and a mostly executing 32-guard
-host tick differs from an all-NPC replan burst. First-spawn/cold work must be budgeted separately from warm work.
+host tick differs from an all-NPC replan burst. First-use work needs separate attention from warm work; these
+measurements do not show a cost on every spawn or a single global one-time cost. See
+[Preparation → Ready → Play](../src/htn-planner/HOW-TO.md#7-prepare-ai-before-play) for scheduling it before gameplay
+without running live effects as warm-up.
 
 The tiny planning world has **3 rows in 3 tables**, producing **2 primitive steps**. `FactHeavy100` has **624 rows in 18
 tables**, producing **241 primitive steps**. Both use the existing seven-method `ComplexScenario` IR. Each worker actually

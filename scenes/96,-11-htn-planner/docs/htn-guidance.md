@@ -791,7 +791,8 @@ Tested in `test/npc/three-units.test.ts`, `test/examples/hot-reload-policy.test.
 
 For the current recorded release workload and separate planning/action/host boundaries, start with
 [performance measurements](performance-measurements.md). The tables below retain their historical dates and fixtures;
-they are not a newer run or a target-client frame budget.
+they are not a newer run or a target-client frame budget. For startup scheduling and optional isolated plan-only
+preparation, use [Preparation → Ready → Play](../src/htn-planner/HOW-TO.md#7-prepare-ai-before-play).
 
 - Spread planner calls over frames, cache costly queries; measure planning time per agent: `GuardAgent.metrics`
   (ms last / total / max, plans made, tasks completed; the station board shows them).
@@ -809,7 +810,8 @@ Node numbers from that date; they include no target-client scene-runtime measure
   included; see [Domain variants](htn-level-metrics.md#domain-variants-the-tiered-stalker-and-guard-now-the-default)),
   AAACombatNPC 2-13, upstream's ComplexScenario cases 2-9. The outlier is a plan that walks a hundred entities
   (FactHeavy100: 21 184 rows tested, 243 call frames, about 0.5-1.1 ms). The first plan of a scenario costs
-  up to a few hundred times a warm one (the JIT warming up): 0.01-3 ms.
+  up to a few hundred times a warm one in that run: 0.01-3 ms. First-use allocation and JIT effects were not
+  separated; this does not identify the cause of a target-client spike.
 - **Many NPCs (level 9, guards, 30 ticks/s, a visitor walking in and a bell)**, ms per tick for every agent's whole
   update (perception, hearing, planning, actions), after the first second:
 

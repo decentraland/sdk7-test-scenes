@@ -172,3 +172,47 @@ The source fixture `test/fixtures/consumer/jobs.tests.ts` executes this resource
 find it through the [local-reference and pinned source route](README.md#examples-for-people-and-ai). The source guidance
 also walks through `soup_kitchen`, an executable team plan with handoffs and deferred cooking. Those paper hosts model
 fact writes and recovery; verify actual movement, cancellation and shared authority in your own target-client host.
+
+## 7. Prepare AI before play
+
+Use a host-owned **Preparation → Ready → Play** state when an encounter has noticeable startup work. This can move
+some work before gameplay; it cannot guarantee a spike-free first tick. The recorded Node first-tick measurement
+starts after imports and constructors, and still includes sensing, initial planning, reasoning and action execution.
+First-use allocation and JIT optimisation are possible contributors, not separately measured causes. This is not a
+cost paid by every spawn, nor a guarantee that it happens only once.
+
+### Preparation
+
+Compile domains to TypeScript during authoring/build, as above. Behind your loading state, process a small preparation
+job or activation batch in each actual SDK update, then return and wait for the next engine frame. Keep gameplay
+inactive until those jobs finish. Showing an overlay or awaiting `Promise.resolve()` alone does not yield CPU time to
+the next frame; a long synchronous plan still blocks that update.
+
+Optionally exercise a few representative **plan-only** cases in the target runtime: use `PlanRunner.plan()` with an
+independent world and pure or sandboxed bindings. Do not tick live agents, resolve deferred work or start executors
+as a warm-up shortcut. Planning can invoke callterms, converters, member daemons and context/diagnostic/trace hooks;
+these must not mutate live state, advance simulation time or consume gameplay RNG. `snapshotWorld()` copies table arrays, not nested
+values: sharing rows/Atoms is safe only while respecting their immutability contract. A separate world is insufficient
+if bindings/context still refer to live state; keep mutable values and callback closures independent too. Skip this optional step when effects cannot be isolated or one case is too costly.
+
+### Ready
+
+Discard preparation plans and restore any preparation state before activation. `PlanRunner.clear()` only clears its
+plan cursor/count: it does not undo world/context writes, cancel executors or release buffers. Reusing the same runner
+with its correctly owned world retains its search storage; its world cannot be rebound. A disposable runner offers only
+possible process-level/JIT benefit, with no buffer transfer to the separate runners a `GuardAgent` creates. There is no
+warm-up API or fixed run count that covers all future branches.
+
+### Play
+
+Spread real NPC construction/spawn and activation over frames too. Start their real plans from fresh sensor facts;
+never copy a preparation plan into live execution. A custom host can share one `PlanBudget` instance through each
+agent's `GuardAgentOptions.planBudget`, calling `beginFrame()` once per actual frame before ticking those agents.
+For a `GuardSquad`, provide `budget` options: the squad creates its own budget and resets it inside `update()`.
+Sharing one budget instance across independent squads is not supported. Do not reset a custom host's budget per NPC.
+
+`maxPlansPerFrame` limits whole replan callbacks, including their planning passes/upkeep. `planBudgetMs` is a soft
+check before a callback, not preemption; even zero milliseconds does not pause all planning. Sensing, active-plan
+checks, ongoing action execution, construction and asset loading are outside that limit. Choose small batches from target-client
+measurements. Node warm-up does not warm an Explorer process; new paths, deoptimisation, reloads and new runners may
+still incur first-use costs. Measure model, animation and audio preparation separately from planning.

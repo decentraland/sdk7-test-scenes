@@ -71,7 +71,8 @@ are medians across workers of **batch-mean** percentiles, not individual-operati
 separate reports; p95/p99 come only from the primary one. Warm medians varied by up to about 22%; these are
 observations, not stable speed limits. Initial calls were slower (primary tiny/heavy planning medians 1.55/7.53 ms,
 and 8.87 ms for the first 32-guard tick). Forcing all 32 guards to replan every tick measured 106.3–114.3 µs warm p50,
-a different workload from executing their existing patrol plans.
+a different workload from executing their existing patrol plans. For loading-phase preparation and staged NPC
+activation, follow [Preparation → Ready → Play](src/htn-planner/HOW-TO.md#7-prepare-ai-before-play).
 
 Wait/move advance simulated time without sleeping; their durations are not CPU seconds. The move is flat-terrain
 kinematic steering. These measurements exclude renderer/ECS writes, models, real raycasts, physics, networking and
