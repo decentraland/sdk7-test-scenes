@@ -129,6 +129,8 @@ export interface AgentSetup {
   canSee?: (target: Vec3) => boolean
   /** The running-plan check (GuardAgentOptions.activePlan), e.g. 'active_plan'. */
   activePlan?: string
+  /** Continue-plan convention (GuardAgentOptions.continueTask), e.g. '!continue'; off when absent. */
+  continueTask?: string
   /** Belief upkeep (GuardAgentOptions.reasoning), e.g. 'reasoning'; its runs stay out of the board's recorder. */
   reasoning?: string
   /**
@@ -332,6 +334,7 @@ export abstract class LevelSim {
         perception: setup.perception,
         hearing: setup.hearing,
         activePlan: setup.activePlan,
+        continueTask: setup.continueTask,
         reasoning: setup.reasoning,
         actions: this.actions(),
         syncFacts: a => this.sensed(a),
