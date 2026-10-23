@@ -42,7 +42,7 @@ async function main() {
   }
   await tree(path.join(source, 'src/htn-planner'), 'src/htn-planner')
   // Compiler dependency closure; runner/catalogue/viewer are repository-only tools.
-  for (const name of ['ast', 'check-methods', 'cli', 'compiler', 'diagnostics', 'emit', 'lexer', 'linker', 'loader', 'parser', 'validator', 'worldstate']) {
+  for (const name of ['ast', 'check-methods', 'cli', 'compiler', 'diagnostics', 'emit', 'lexer', 'linker', 'loader', 'parser', 'reachability', 'validator', 'worldstate']) {
     const rel = 'tools/htn/' + name + '.ts'
     add(rel, await fs.readFile(path.join(source, rel)))
   }

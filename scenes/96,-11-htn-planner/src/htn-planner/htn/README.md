@@ -10,7 +10,10 @@ into C. We keep that split:
 
 - **Compiler** `tools/htn/`: lexer, parser, include loader, validator, linker → `DomainIR`
   (`src/htn-planner/htn/ir.ts`); on request (`checkMethods`) `check-methods.ts` warns about branches of a
-  running-plan check that accept anything (rule: `check-method.ts`, shared with the agent). Never bundled into the scene.
+  running-plan check that accept anything (rule: `check-method.ts`, shared with the agent). `reachability.ts` then
+  removes unreachable method/axiom bodies, retaining every public entry and every deferred target (even in dead
+  code). Full-source fact/callterm requirements and validation callsites remain available. Recompile generated
+  modules after compiler updates; method IDs are local to one compiled domain. Never bundled into the scene.
 - **Runtime** `src/htn-planner/htn/`: `atom.ts`, `world-state.ts`, `ir.ts`, `planner.ts` (with `engine.ts`),
   `callterms.ts` (bindings, error policy, call-site validation, list callterms). Ships in the scene.
 - **Debugger capture** (same folder, used only when a recorder is attached): `trace.ts` (upstream's

@@ -269,9 +269,9 @@ test('shared implementations: qualified and effective aliases (Domains/Test/shar
   ])
   const axioms = (run.branches[0].cond as { items: { axiom: number }[] }).items.map(c => `${d.axioms[c.axiom].domain}::${d.axioms[c.axiom].name}`)
   assert.deepEqual(axioms, ['SharedImplementations::choose_value', 'SharedBase::choose_value', 'SharedImplementations::choose_value'])
-  // Unreferenced base declarations are kept (no pruning), so the callterm list is complete.
+  // Dead bodies are pruned, while full-source callterm requirements remain available for host validation.
   assert.ok(d.callterms.includes('unused_condition'))
-  assert.ok(method(d, 'SharedBase::unused', 0))
+  assert.ok(!d.methods.some(m => m.domain === 'SharedBase' && m.name === 'unused'))
   // (:method (client_empty) top_level_method) has no branches.
   assert.deepEqual(method(d, 'SharedImplementations::client_empty', 0).branches, [])
 })

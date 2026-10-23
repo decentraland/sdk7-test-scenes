@@ -1,7 +1,7 @@
 // HTN domain compiler (Node only, never bundled into the scene): .domain source -> linked DomainIR.
 // TS port of the upstream front end (lexer, parser, loader with includes, validator, linker).
 // Stages: lexer.ts -> parser.ts -> loader.ts -> validator.ts -> linker.ts (-> check-methods.ts, on request); emit.ts
-// renders a module.
+// renders a module after reachability.ts removes unreachable declarations.
 import * as fs from 'node:fs'
 import type { DomainIR } from '../../src/htn-planner/htn/ir'
 import type { WorldState } from '../../src/htn-planner/htn/world-state'
@@ -11,6 +11,7 @@ import type { Diagnostic } from './diagnostics'
 import { emitDomainModule as emit } from './emit'
 import type { EmitOptions } from './emit'
 import { linkModules } from './linker'
+import { pruneUnreachable } from './reachability'
 import { loadModules } from './loader'
 import { validateModules } from './validator'
 import { parseWorldStateText } from './worldstate'
@@ -78,7 +79,7 @@ export function compileWithModules(path: string, source: string, options?: Compi
   const ir = linkModules(loaded.modules, loaded.files, diagnostics)
   if (!ir) return done({ ok: false, diagnostics })
   if (options?.checkMethods?.length) lintCheckMethods(ir, loaded.files, options.checkMethods, diagnostics)
-  return done({ ok: true, ir, diagnostics, files: loaded.files })
+  return done({ ok: true, ir: pruneUnreachable(ir), diagnostics, files: loaded.files })
 }
 
 /**

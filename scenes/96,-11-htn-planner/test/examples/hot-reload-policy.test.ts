@@ -87,7 +87,7 @@ const TALKER_2 = `
 (:domain Talker top_level_domain
     (:method (run) top_level_method
         (go () ((!walk) (&comment) (!rest))))
-    (:method (shout)
+    (:method (shout) top_level_method
         (loud () ((!shout "rev 2 shout"))))
     (:method (comment)
         (say () ((!say "rev 2 comment")))))

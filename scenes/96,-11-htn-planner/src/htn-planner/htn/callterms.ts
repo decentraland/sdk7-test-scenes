@@ -633,6 +633,8 @@ export function callSites(domain: DomainIR): CallSite[] {
     }
     out.push({ name: node.name, node, site, source: s === undefined ? undefined : sourceOf(s, site.domain) })
   })
+  // Compiler-pruned bodies still contribute their original validation requirements and source positions.
+  for (const entry of domain.prunedCallSites ?? []) out.splice(entry.index, 0, entry.call)
   return out
 }
 

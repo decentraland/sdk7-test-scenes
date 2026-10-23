@@ -8,16 +8,6 @@ export const wandererDomain: DomainIR = {
   methods: [
     {
       id: 0,
-      name: 'do_wait_for_pathfinding_query',
-      domain: 'movement',
-      arity: 0,
-      params: [],
-      topLevel: false,
-      branches: [],
-      source: { file: 'Includes/movement2.domain', line: 3, col: 5, endLine: 3, endCol: 51 }
-    },
-    {
-      id: 1,
       name: 'construct_path_segments',
       domain: 'movement',
       arity: 3,
@@ -75,7 +65,7 @@ export const wandererDomain: DomainIR = {
             },
             {
               k: 'method',
-              method: 1,
+              method: 0,
               args: [
                 { k: 'var', slot: 0 },
                 {
@@ -95,7 +85,7 @@ export const wandererDomain: DomainIR = {
       source: { file: 'Includes/movement2.domain', line: 8, col: 5, endLine: 27, endCol: 6 }
     },
     {
-      id: 2,
+      id: 1,
       name: 'move_to_async',
       domain: 'movement',
       arity: 2,
@@ -156,7 +146,7 @@ export const wandererDomain: DomainIR = {
           tasks: [
             {
               k: 'method',
-              method: 1,
+              method: 0,
               args: [{ k: 'var', slot: 2 }, { k: 'lit', v: { t: 'int', v: 0 } }, { k: 'var', slot: 3 }],
               source: { file: 'Includes/movement2.domain', line: 49, col: 17, endLine: 49, endCol: 68 }
             }
@@ -187,7 +177,7 @@ export const wandererDomain: DomainIR = {
           tasks: [
             {
               k: 'method',
-              method: 5,
+              method: 4,
               args: [],
               source: { file: 'Includes/movement2.domain', line: 58, col: 17, endLine: 58, endCol: 48 }
             }
@@ -237,7 +227,7 @@ export const wandererDomain: DomainIR = {
       source: { file: 'Includes/movement2.domain', line: 31, col: 5, endLine: 71, endCol: 6 }
     },
     {
-      id: 3,
+      id: 2,
       name: 'run',
       domain: 'Wanderer',
       arity: 0,
@@ -313,13 +303,13 @@ export const wandererDomain: DomainIR = {
           tasks: [
             {
               k: 'method',
-              method: 2,
+              method: 1,
               args: [{ k: 'var', slot: 0 }, { k: 'var', slot: 1 }],
               source: { file: 'Wanderer.domain', line: 29, col: 17, endLine: 29, endCol: 60 }
             },
             {
               k: 'defer',
-              method: 4,
+              method: 3,
               args: [],
               name: '&talk_about_destination',
               source: { file: 'Wanderer.domain', line: 30, col: 17, endLine: 30, endCol: 42 }
@@ -351,7 +341,7 @@ export const wandererDomain: DomainIR = {
       source: { file: 'Wanderer.domain', line: 9, col: 5, endLine: 42, endCol: 6 }
     },
     {
-      id: 4,
+      id: 3,
       name: 'talk_about_destination',
       domain: 'Wanderer',
       arity: 0,
@@ -449,7 +439,7 @@ export const wandererDomain: DomainIR = {
       source: { file: 'Wanderer.domain', line: 47, col: 5, endLine: 77, endCol: 6 }
     },
     {
-      id: 5,
+      id: 4,
       name: 'do_wait_for_pathfinding_query',
       domain: 'Wanderer',
       arity: 0,
@@ -475,7 +465,7 @@ export const wandererDomain: DomainIR = {
     }
   ],
   axioms: [],
-  topLevel: { run: { '0': 3 } },
+  topLevel: { run: { '0': 2 } },
   facts: [
     'pathfinding_segment/3',
     'pathfind_state/4',

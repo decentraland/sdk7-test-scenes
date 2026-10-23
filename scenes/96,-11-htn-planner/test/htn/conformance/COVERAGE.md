@@ -143,7 +143,7 @@ store), **lexer** (token-level checks; the compiler-level outcome is covered els
 | HTNTypeConversionTest.cpp:66, 79, 91, 105, 181, 205, 251 | native and composite converters, metadata, client-context converters, static / member bindings, shared registry | ported (`sCreateCallWithContext` skipped) | `test/htn/planner/callterms.test.ts` |
 | HTNTypeConversionTest.cpp:293 | CoreGeneratedExecutionUsesCurrentContextWithCachedBindings | skipped: C++ API (generated storage); per-run context: :251 | |
 | HTNCoreSdkTest.cpp (3 tests) | SDK layout | skipped: C++ API | |
-| HTNReachabilityTest.cpp (4 tests) | dead-code emission | skipped: codegen | |
+| HTNReachabilityTest.cpp (4 tests) | public/deferred roots, dead cycles/bodies, axiom dependencies, validation metadata, no-root linking | ported: linked-IR pruning; C-only arithmetic/comparison helper emission is not applicable | `test/htn/compiler/reachability.test.ts`, [scope and measurements](../../../docs/htn-reachability.md) |
 | HTNGeneratedDynamicModuleTest.cpp (3 tests) | dynamic modules | skipped: dll | |
 | HTNDomainDocumentStoreTest.cpp (4 tests) | editor document store | skipped: lsp | |
 | HTNProfilingTest.cpp (1 test) | Optick capture | skipped: profiling | |

@@ -3,6 +3,7 @@
 // upstream resolves at translation time; the runtime does no name lookup beyond facts
 // and callterms. Plain JSON-compatible data, so a generated module is just a literal.
 import type { Atom } from './atom'
+import type { CallSite } from './callterms'
 
 // 2: source ranges (endLine/endCol), sources on tasks and and/or/alt/not, constant names on literals, discard
 //    names, split_list_front spelling: what the debugger shows (htn/trace.ts), no change to planning.
@@ -35,10 +36,12 @@ export interface DomainIR {
    * Values are effective method ids (overrides applied). Only these can be planned directly.
    */
   topLevel: Record<string, Record<number, MethodId>>
-  /** Every fact name/arity the domain queries, `name/arity`. The NPC agent replans on a sense only if its facts are here. */
+  /** Source-wide fact requirements, `name/arity` (including pruned bodies). Used for host replan filtering and validation. */
   facts: string[]
-  /** Every callterm the domain may invoke. The host must provide all of them. */
+  /** Source-wide callterm requirements (including pruned bodies). The host must provide all of them. */
   callterms: string[]
+  /** Removed-body callsites, in their original callSites() positions, for full-domain validation (optional in v2). */
+  prunedCallSites?: { index: number; call: CallSite }[]
 }
 
 export interface MethodIR {

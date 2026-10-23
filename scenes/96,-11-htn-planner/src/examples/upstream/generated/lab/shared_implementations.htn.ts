@@ -196,155 +196,6 @@ export const sharedImplementationsDomain: DomainIR = {
     },
     {
       id: 4,
-      name: 'unused',
-      domain: 'SharedBase',
-      arity: 0,
-      params: [],
-      topLevel: false,
-      branches: [
-        {
-          name: 'one',
-          vars: [],
-          cond: null,
-          tasks: [
-            {
-              k: 'prim',
-              name: '!unused',
-              args: [],
-              source: {
-                file: '../Includes/shared_implementation_base.domain',
-                line: 12,
-                col: 32,
-                endLine: 12,
-                endCol: 41
-              }
-            }
-          ],
-          source: {
-            file: '../Includes/shared_implementation_base.domain',
-            line: 12,
-            col: 23,
-            endLine: 12,
-            endCol: 43
-          }
-        }
-      ],
-      source: { file: '../Includes/shared_implementation_base.domain', line: 12, col: 5, endLine: 12, endCol: 44 }
-    },
-    {
-      id: 5,
-      name: 'unused_with_helpers',
-      domain: 'SharedBase',
-      arity: 0,
-      params: [],
-      topLevel: false,
-      branches: [
-        {
-          name: 'one',
-          vars: ['?value'],
-          cond: {
-            k: 'and',
-            items: [
-              {
-                k: 'axiom',
-                axiom: 1,
-                args: [{ k: 'var', slot: 0 }],
-                source: {
-                  file: '../Includes/shared_implementation_base.domain',
-                  line: 16,
-                  col: 19,
-                  endLine: 16,
-                  endCol: 40
-                }
-              },
-              {
-                k: 'cmp',
-                op: '>',
-                a: { k: 'var', slot: 0 },
-                b: { k: 'lit', v: { t: 'int', v: 0 } },
-                source: {
-                  file: '../Includes/shared_implementation_base.domain',
-                  line: 16,
-                  col: 43,
-                  endLine: 16,
-                  endCol: 53
-                }
-              }
-            ],
-            source: {
-              file: '../Includes/shared_implementation_base.domain',
-              line: 16,
-              col: 15,
-              endLine: 16,
-              endCol: 54
-            }
-          },
-          tasks: [
-            {
-              k: 'prim',
-              name: '!unused',
-              args: [
-                { k: 'arith', op: '+', args: [{ k: 'var', slot: 0 }, { k: 'lit', v: { t: 'int', v: 1 } }] },
-                {
-                  k: 'call',
-                  name: 'unused_argument',
-                  args: [{ k: 'var', slot: 0 }],
-                  source: {
-                    file: '../Includes/shared_implementation_base.domain',
-                    line: 17,
-                    col: 36,
-                    endLine: 17,
-                    endCol: 65
-                  }
-                }
-              ],
-              source: {
-                file: '../Includes/shared_implementation_base.domain',
-                line: 17,
-                col: 14,
-                endLine: 17,
-                endCol: 66
-              }
-            }
-          ],
-          source: { file: '../Includes/shared_implementation_base.domain', line: 16, col: 9, endLine: 17, endCol: 68 }
-        }
-      ],
-      source: { file: '../Includes/shared_implementation_base.domain', line: 15, col: 5, endLine: 17, endCol: 69 }
-    },
-    {
-      id: 6,
-      name: 'shared',
-      domain: 'SharedBase',
-      arity: 2,
-      params: ['?inp_left', '?inp_right'],
-      topLevel: false,
-      branches: [
-        {
-          name: 'unused_overload',
-          vars: ['?inp_left', '?inp_right'],
-          cond: null,
-          tasks: [
-            {
-              k: 'prim',
-              name: '!unused_pair',
-              args: [{ k: 'var', slot: 0 }, { k: 'var', slot: 1 }],
-              source: {
-                file: '../Includes/shared_implementation_base.domain',
-                line: 19,
-                col: 30,
-                endLine: 19,
-                endCol: 65
-              }
-            }
-          ],
-          source: { file: '../Includes/shared_implementation_base.domain', line: 19, col: 9, endLine: 19, endCol: 67 }
-        }
-      ],
-      source: { file: '../Includes/shared_implementation_base.domain', line: 18, col: 5, endLine: 19, endCol: 68 }
-    },
-    {
-      id: 7,
       name: 'choose',
       domain: 'SharedImplementations',
       arity: 1,
@@ -369,7 +220,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 7, col: 5, endLine: 8, endCol: 42 }
     },
     {
-      id: 8,
+      id: 5,
       name: 'choose',
       domain: 'SharedImplementations',
       arity: 2,
@@ -394,7 +245,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 9, col: 5, endLine: 10, endCol: 49 }
     },
     {
-      id: 9,
+      id: 6,
       name: 'run',
       domain: 'SharedImplementations',
       arity: 0,
@@ -409,7 +260,7 @@ export const sharedImplementationsDomain: DomainIR = {
             items: [
               {
                 k: 'axiom',
-                axiom: 2,
+                axiom: 1,
                 args: [{ k: 'lit', v: { t: 'int', v: 5 } }, { k: 'var', slot: 0 }],
                 source: { file: 'shared_implementations.domain', line: 12, col: 19, endLine: 12, endCol: 44 }
               },
@@ -422,7 +273,7 @@ export const sharedImplementationsDomain: DomainIR = {
               },
               {
                 k: 'axiom',
-                axiom: 2,
+                axiom: 1,
                 args: [{ k: 'lit', v: { t: 'int', v: 6 } }, { k: 'var', slot: 2 }],
                 source: { file: 'shared_implementations.domain', line: 13, col: 19, endLine: 13, endCol: 69 },
                 name: 'SharedImplementations::choose_value'
@@ -459,7 +310,7 @@ export const sharedImplementationsDomain: DomainIR = {
             },
             {
               k: 'method',
-              method: 7,
+              method: 4,
               args: [{ k: 'lit', v: { t: 'int', v: 3 } }],
               source: { file: 'shared_implementations.domain', line: 15, col: 44, endLine: 15, endCol: 54 }
             },
@@ -472,7 +323,7 @@ export const sharedImplementationsDomain: DomainIR = {
             },
             {
               k: 'method',
-              method: 8,
+              method: 5,
               args: [{ k: 'lit', v: { t: 'int', v: 5 } }, { k: 'lit', v: { t: 'int', v: 6 } }],
               source: { file: 'shared_implementations.domain', line: 16, col: 14, endLine: 16, endCol: 26 }
             },
@@ -489,7 +340,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 11, col: 5, endLine: 16, endCol: 73 }
     },
     {
-      id: 10,
+      id: 7,
       name: 'shared_entry',
       domain: 'SharedImplementations',
       arity: 1,
@@ -521,7 +372,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 17, col: 5, endLine: 18, endCol: 73 }
     },
     {
-      id: 11,
+      id: 8,
       name: 'recursive',
       domain: 'SharedImplementations',
       arity: 1,
@@ -535,13 +386,13 @@ export const sharedImplementationsDomain: DomainIR = {
           tasks: [
             {
               k: 'method',
-              method: 12,
+              method: 9,
               args: [{ k: 'lit', v: { t: 'int', v: 0 } }, { k: 'var', slot: 0 }],
               source: { file: 'shared_implementations.domain', line: 20, col: 19, endLine: 20, endCol: 38 }
             },
             {
               k: 'method',
-              method: 12,
+              method: 9,
               args: [{ k: 'lit', v: { t: 'int', v: 0 } }, { k: 'var', slot: 0 }],
               source: { file: 'shared_implementations.domain', line: 20, col: 39, endLine: 20, endCol: 81 },
               name: 'SharedImplementations::walk'
@@ -553,7 +404,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 19, col: 5, endLine: 20, endCol: 84 }
     },
     {
-      id: 12,
+      id: 9,
       name: 'walk',
       domain: 'SharedImplementations',
       arity: 2,
@@ -585,7 +436,7 @@ export const sharedImplementationsDomain: DomainIR = {
             },
             {
               k: 'method',
-              method: 12,
+              method: 9,
               args: [{ k: 'arith', op: '++', args: [{ k: 'var', slot: 0 }] }, { k: 'var', slot: 1 }],
               source: { file: 'shared_implementations.domain', line: 23, col: 34, endLine: 23, endCol: 67 }
             },
@@ -616,7 +467,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 21, col: 5, endLine: 24, endCol: 44 }
     },
     {
-      id: 13,
+      id: 10,
       name: 'retry',
       domain: 'SharedImplementations',
       arity: 0,
@@ -631,7 +482,7 @@ export const sharedImplementationsDomain: DomainIR = {
             items: [
               {
                 k: 'axiom',
-                axiom: 3,
+                axiom: 2,
                 args: [{ k: 'var', slot: 0 }],
                 source: { file: 'shared_implementations.domain', line: 26, col: 21, endLine: 26, endCol: 43 }
               },
@@ -659,7 +510,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 25, col: 5, endLine: 26, endCol: 87 }
     },
     {
-      id: 14,
+      id: 11,
       name: 'rollback',
       domain: 'SharedImplementations',
       arity: 1,
@@ -679,7 +530,7 @@ export const sharedImplementationsDomain: DomainIR = {
             },
             {
               k: 'method',
-              method: 15,
+              method: 12,
               args: [],
               source: { file: 'shared_implementations.domain', line: 28, col: 39, endLine: 28, endCol: 46 }
             }
@@ -704,7 +555,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 27, col: 5, endLine: 29, endCol: 48 }
     },
     {
-      id: 15,
+      id: 12,
       name: 'never',
       domain: 'SharedImplementations',
       arity: 0,
@@ -714,7 +565,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 30, col: 5, endLine: 30, endCol: 22 }
     },
     {
-      id: 16,
+      id: 13,
       name: 'deferred',
       domain: 'SharedImplementations',
       arity: 0,
@@ -742,21 +593,21 @@ export const sharedImplementationsDomain: DomainIR = {
             },
             {
               k: 'defer',
-              method: 7,
+              method: 4,
               args: [{ k: 'lit', v: { t: 'int', v: 9 } }],
               name: '&choose',
               source: { file: 'shared_implementations.domain', line: 33, col: 20, endLine: 33, endCol: 31 }
             },
             {
               k: 'defer',
-              method: 7,
+              method: 4,
               args: [{ k: 'lit', v: { t: 'int', v: 10 } }],
               name: '&SharedImplementations::choose',
               source: { file: 'shared_implementations.domain', line: 33, col: 32, endLine: 33, endCol: 67 }
             },
             {
               k: 'defer',
-              method: 8,
+              method: 5,
               args: [{ k: 'lit', v: { t: 'int', v: 11 } }, { k: 'lit', v: { t: 'int', v: 12 } }],
               name: '&choose',
               source: { file: 'shared_implementations.domain', line: 33, col: 68, endLine: 33, endCol: 83 }
@@ -768,7 +619,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 31, col: 5, endLine: 33, endCol: 86 }
     },
     {
-      id: 17,
+      id: 14,
       name: 'error_plain',
       domain: 'SharedImplementations',
       arity: 0,
@@ -793,7 +644,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 34, col: 5, endLine: 34, endCol: 71 }
     },
     {
-      id: 18,
+      id: 15,
       name: 'error_qualified',
       domain: 'SharedImplementations',
       arity: 0,
@@ -819,7 +670,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 35, col: 5, endLine: 35, endCol: 87 }
     },
     {
-      id: 19,
+      id: 16,
       name: 'client_entry',
       domain: 'SharedImplementations',
       arity: 0,
@@ -844,7 +695,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 37, col: 5, endLine: 37, endCol: 72 }
     },
     {
-      id: 20,
+      id: 17,
       name: 'client_entry',
       domain: 'SharedImplementations',
       arity: 1,
@@ -869,7 +720,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 38, col: 5, endLine: 38, endCol: 93 }
     },
     {
-      id: 21,
+      id: 18,
       name: 'client_empty',
       domain: 'SharedImplementations',
       arity: 0,
@@ -879,7 +730,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 39, col: 5, endLine: 39, endCol: 46 }
     },
     {
-      id: 22,
+      id: 19,
       name: 'client_cycle',
       domain: 'SharedImplementations',
       arity: 1,
@@ -893,7 +744,7 @@ export const sharedImplementationsDomain: DomainIR = {
           tasks: [
             {
               k: 'method',
-              method: 23,
+              method: 20,
               args: [{ k: 'var', slot: 0 }],
               source: { file: 'shared_implementations.domain', line: 40, col: 66, endLine: 40, endCol: 88 }
             }
@@ -904,7 +755,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 40, col: 5, endLine: 40, endCol: 91 }
     },
     {
-      id: 23,
+      id: 20,
       name: 'even_step',
       domain: 'SharedImplementations',
       arity: 1,
@@ -930,7 +781,7 @@ export const sharedImplementationsDomain: DomainIR = {
           tasks: [
             {
               k: 'method',
-              method: 24,
+              method: 21,
               args: [{ k: 'arith', op: '--', args: [{ k: 'var', slot: 0 }] }],
               source: { file: 'shared_implementations.domain', line: 42, col: 39, endLine: 42, endCol: 65 }
             },
@@ -961,7 +812,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 41, col: 5, endLine: 43, endCol: 34 }
     },
     {
-      id: 24,
+      id: 21,
       name: 'odd_step',
       domain: 'SharedImplementations',
       arity: 1,
@@ -987,7 +838,7 @@ export const sharedImplementationsDomain: DomainIR = {
           tasks: [
             {
               k: 'method',
-              method: 23,
+              method: 20,
               args: [{ k: 'arith', op: '--', args: [{ k: 'var', slot: 0 }] }],
               source: { file: 'shared_implementations.domain', line: 45, col: 39, endLine: 45, endCol: 66 }
             },
@@ -1018,83 +869,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 44, col: 5, endLine: 46, endCol: 33 }
     },
     {
-      id: 25,
-      name: 'dead_cycle_a',
-      domain: 'SharedImplementations',
-      arity: 0,
-      params: [],
-      topLevel: false,
-      branches: [
-        {
-          name: 'one',
-          vars: [],
-          cond: null,
-          tasks: [
-            {
-              k: 'method',
-              method: 26,
-              args: [],
-              source: { file: 'shared_implementations.domain', line: 47, col: 38, endLine: 47, endCol: 52 }
-            }
-          ],
-          source: { file: 'shared_implementations.domain', line: 47, col: 29, endLine: 47, endCol: 54 }
-        }
-      ],
-      source: { file: 'shared_implementations.domain', line: 47, col: 5, endLine: 47, endCol: 55 }
-    },
-    {
-      id: 26,
-      name: 'dead_cycle_b',
-      domain: 'SharedImplementations',
-      arity: 0,
-      params: [],
-      topLevel: false,
-      branches: [
-        {
-          name: 'one',
-          vars: [],
-          cond: null,
-          tasks: [
-            {
-              k: 'method',
-              method: 25,
-              args: [],
-              source: { file: 'shared_implementations.domain', line: 48, col: 38, endLine: 48, endCol: 52 }
-            }
-          ],
-          source: { file: 'shared_implementations.domain', line: 48, col: 29, endLine: 48, endCol: 54 }
-        }
-      ],
-      source: { file: 'shared_implementations.domain', line: 48, col: 5, endLine: 48, endCol: 55 }
-    },
-    {
-      id: 27,
-      name: 'dead_deferred_source',
-      domain: 'SharedImplementations',
-      arity: 0,
-      params: [],
-      topLevel: false,
-      branches: [
-        {
-          name: 'one',
-          vars: [],
-          cond: null,
-          tasks: [
-            {
-              k: 'defer',
-              method: 28,
-              args: [{ k: 'lit', v: { t: 'int', v: 42 } }],
-              name: '&deferred_only',
-              source: { file: 'shared_implementations.domain', line: 50, col: 46, endLine: 50, endCol: 65 }
-            }
-          ],
-          source: { file: 'shared_implementations.domain', line: 50, col: 37, endLine: 50, endCol: 67 }
-        }
-      ],
-      source: { file: 'shared_implementations.domain', line: 50, col: 5, endLine: 50, endCol: 68 }
-    },
-    {
-      id: 28,
+      id: 22,
       name: 'deferred_only',
       domain: 'SharedImplementations',
       arity: 1,
@@ -1149,45 +924,6 @@ export const sharedImplementationsDomain: DomainIR = {
     },
     {
       id: 1,
-      name: 'unused_value',
-      domain: 'SharedBase',
-      arity: 1,
-      params: [{ name: '?out_value', mode: 'out' }],
-      vars: ['?out_value'],
-      cond: {
-        k: 'and',
-        items: [
-          {
-            k: 'fact',
-            name: 'unused_fact',
-            args: [{ k: 'var', slot: 0 }],
-            source: {
-              file: '../Includes/shared_implementation_base.domain',
-              line: 14,
-              col: 14,
-              endLine: 14,
-              endCol: 37
-            }
-          },
-          {
-            k: 'call',
-            name: 'unused_condition',
-            args: [{ k: 'var', slot: 0 }],
-            source: {
-              file: '../Includes/shared_implementation_base.domain',
-              line: 14,
-              col: 39,
-              endLine: 14,
-              endCol: 72
-            }
-          }
-        ],
-        source: { file: '../Includes/shared_implementation_base.domain', line: 14, col: 10, endLine: 14, endCol: 73 }
-      },
-      source: { file: '../Includes/shared_implementation_base.domain', line: 13, col: 5, endLine: 14, endCol: 75 }
-    },
-    {
-      id: 2,
       name: 'choose_value',
       domain: 'SharedImplementations',
       arity: 2,
@@ -1208,7 +944,7 @@ export const sharedImplementationsDomain: DomainIR = {
       source: { file: 'shared_implementations.domain', line: 4, col: 5, endLine: 5, endCol: 49 }
     },
     {
-      id: 3,
+      id: 2,
       name: 'candidate',
       domain: 'SharedImplementations',
       arity: 1,
@@ -1230,18 +966,60 @@ export const sharedImplementationsDomain: DomainIR = {
     }
   ],
   topLevel: {
-    run: { '0': 9 },
-    shared_entry: { '1': 10 },
-    recursive: { '1': 11 },
-    retry: { '0': 13 },
-    rollback: { '1': 14 },
-    deferred: { '0': 16 },
-    error_plain: { '0': 17 },
-    error_qualified: { '0': 18 },
-    client_entry: { '0': 19, '1': 20 },
-    client_empty: { '0': 21 },
-    client_cycle: { '1': 22 }
+    run: { '0': 6 },
+    shared_entry: { '1': 7 },
+    recursive: { '1': 8 },
+    retry: { '0': 10 },
+    rollback: { '1': 11 },
+    deferred: { '0': 13 },
+    error_plain: { '0': 14 },
+    error_qualified: { '0': 15 },
+    client_entry: { '0': 16, '1': 17 },
+    client_empty: { '0': 18 },
+    client_cycle: { '1': 19 }
   },
   facts: ['unused_fact/1', 'candidate_value/1'],
-  callterms: ['unused_condition', 'echo', 'missing_shared_callterm', 'unused_argument']
+  callterms: ['unused_condition', 'echo', 'missing_shared_callterm', 'unused_argument'],
+  prunedCallSites: [
+    {
+      index: 2,
+      call: {
+        name: 'unused_argument',
+        node: {
+          k: 'call',
+          name: 'unused_argument',
+          args: [{ k: 'var', slot: 0 }],
+          source: {
+            file: '../Includes/shared_implementation_base.domain',
+            line: 17,
+            col: 36,
+            endLine: 17,
+            endCol: 65
+          }
+        },
+        site: { kind: 'method', domain: 'SharedBase', method: 'unused_with_helpers', branch: 'one' },
+        source: { domain: 'SharedBase', file: '../Includes/shared_implementation_base.domain', line: 17, col: 36 }
+      }
+    },
+    {
+      index: 3,
+      call: {
+        name: 'unused_condition',
+        node: {
+          k: 'call',
+          name: 'unused_condition',
+          args: [{ k: 'var', slot: 0 }],
+          source: {
+            file: '../Includes/shared_implementation_base.domain',
+            line: 14,
+            col: 39,
+            endLine: 14,
+            endCol: 72
+          }
+        },
+        site: { kind: 'axiom', domain: 'SharedBase', axiom: 'unused_value' },
+        source: { domain: 'SharedBase', file: '../Includes/shared_implementation_base.domain', line: 14, col: 39 }
+      }
+    }
+  ]
 }
