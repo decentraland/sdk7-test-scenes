@@ -173,7 +173,7 @@ future separately distributed skill pinned to that module/tool version rather th
 ## Licences and deployment
 
 Keep both `LICENSE` and `LICENSE.htn_planner` with the library and compiler. The original port/host contributions are MIT,
-copyright 2026 Vitaly Popuzin; the complete upstream MIT notice remains separate. Other copied materials retain their terms.
+copyright 2026 Decentraland Foundation; the complete upstream MIT notice remains separate. Other copied materials retain their terms.
 
 Run `npm run htn:notices` to generate `htn-notices.txt`, then `npm run htn:notices -- --check` to verify it is current and
 included in the SDK deployment list. Keep it tracked in Git and deployed. In the full demo the generator also includes

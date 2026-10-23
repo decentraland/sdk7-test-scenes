@@ -95,6 +95,6 @@ strict running-plan checks. A passing run is separate from trying the intended e
 
 ## Licences
 
-The port, host and original tooling are MIT, copyright 2026 Vitaly Popuzin. Upstream MIT and other component notices remain
+The port, host and original tooling are MIT, copyright 2026 Decentraland Foundation. Upstream MIT and other component notices remain
 separate. Preserve both library licence files; see the [redistribution instructions](src/htn-planner/README.md#licences-and-deployment).
 The installer generates `htn-notices.txt` for deployment. The full demo also includes its example-specific credits there.
