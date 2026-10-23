@@ -5,6 +5,10 @@ This page describes the full demonstration checkout; its debugger, examples and 
 
 ## The playground
 
+Level 12 **Ambush**, with the animated Krampus model and sound, starts in front of you when you enter.
+It keeps its proximity trigger: walk toward the crossing in front of the light (within 13 m), or watch the blue
+tester approach it, for Krampus to step out. It is initially off-stage.
+
 The **Playgrounds** button on the right of the screen opens a list: levels 1-12, **Gallery** and **Language lab**.
 A click spawns that playground in front of you, turned to face you and moved inside the scene if it would stick
 out. One is spawned at a time: the next click replaces it, a click on the spawned one (marked *restart*)
@@ -309,7 +313,9 @@ World `sdk7testscenes.dcl.eth` on `.zone`, position `96,-11`. Switch MetaMask to
 - `http://decentraland.zone/jump/?dclenv=zone&realm=sdk7testscenes.dcl.eth&position=96,-11`
 - `decentraland://?dclenv=zone&realm=sdk7testscenes.dcl.eth&position=96,-11`
 
-You spawn in the middle of the scene, facing north. Open **Playgrounds** (right of the screen).
+You spawn in the middle of the scene, facing north, with **12 Ambush** already started in front of you.
+Approach its crossing to trigger Krampus, or watch the tester. Open **Playgrounds** (right of the screen) to
+switch levels, restart Ambush, or remove it.
 
 1. Levels 1-9: spawn each one and stand in front of the pad for a round of its tester script (about a minute;
    level 7 about two). Every check on the board turns `✓` and the lamp on top stays green. A red `×` names the

@@ -3,7 +3,7 @@
   "runtimeVersion": "7",
   "display": {
     "title": "HTN Planner",
-    "description": "HTN planner playground: pick a playground from the Playgrounds menu and it spawns in front of you. Eight levels from a one-branch plan to a guard squad, each with a tester bot that plays the visitor and checks the reactions and a live plan board, and two reference zones with every upstream example."
+    "description": "HTN planner playground: level 12 Ambush with Krampus starts by default; approach the crossing for it to step out. Use the Playgrounds menu to switch between twelve levels and two reference zones, restart, or remove the current playground. Each level has a tester bot and a live plan board."
   },
   "main": "bin/index.js",
   "tags": [

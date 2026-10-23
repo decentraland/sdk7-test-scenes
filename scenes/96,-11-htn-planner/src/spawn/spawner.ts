@@ -35,6 +35,7 @@ export const MAX_STEP = 0.1
 
 let current: Spawned | null = null
 let ticking = false
+let waiting: (() => void) | null = null
 
 /** The spawned playground, if any. */
 export const spawned = (): Spawned | null => current
@@ -45,6 +46,25 @@ function viewer(): { at: Vector3; facing: number } {
   const rotation = Transform.getOrNull(engine.CameraEntity)?.rotation ?? player?.rotation ?? Quaternion.Identity()
   const forward = Vector3.rotate(Vector3.Forward(), rotation)
   return { at: player?.position ?? Vector3.create(SCENE.x / 2, 0, SCENE.z / 2), facing: Math.atan2(forward.x, forward.z) }
+}
+
+/** Start the default playground once the player's transform arrives; a menu choice or Remove cancels it. */
+export function spawnWhenReady(p: Playground): void {
+  cancelWaiting()
+  if (Transform.has(engine.PlayerEntity)) {
+    spawn(p)
+    return
+  }
+  waiting = () => {
+    if (Transform.has(engine.PlayerEntity)) spawn(p)
+  }
+  engine.addSystem(waiting, undefined, 'playground-startup')
+}
+
+function cancelWaiting(): void {
+  if (!waiting) return
+  engine.removeSystem(waiting)
+  waiting = null
 }
 
 /** Spawn `p` in front of the player instead of the spawned one; if `p` is the spawned one, restart it in place. */
@@ -69,6 +89,7 @@ export function spawn(p: Playground): Spawned {
 
 /** Remove the spawned playground. */
 export function despawn() {
+  cancelWaiting()
   if (!current) return
   current.built.dispose?.()
   removeEntityWithChildren(engine, current.root)
