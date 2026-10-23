@@ -13,7 +13,8 @@ node scripts/htn-install.mjs /path/to/your-sdk7-scene --starter
 
 Use Node 22 or newer and an existing SDK7 scene. The installer preserves your entrypoint, scene settings, assets,
 dependencies and existing SDK/project instructions. Different module files require an explicit `--update`; conflicting
-npm commands fail before writing. It adds:
+npm commands fail before writing. A partially existing starter also stops installation, so your domain is never mixed with
+a generated file from another behaviour. It adds:
 
 | Location in your project | Purpose |
 | --- | --- |

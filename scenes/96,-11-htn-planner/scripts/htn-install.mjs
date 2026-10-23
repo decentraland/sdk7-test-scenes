@@ -59,10 +59,12 @@ async function main() {
   const dirty = ref ? spawnSync('git', ['-C', source, 'status', '--porcelain', '--', '.'], { encoding: 'utf8', windowsHide: true }) : null
   add('src/htn-planner/SOURCE.json', JSON.stringify({ repository, ref, pinned: ref !== null, url: `${repository}/tree/${ref ?? 'feat/htn-planner-port'}/${scenePath}`, localChanges: dirty?.status === 0 ? dirty.stdout.trim() !== '' : null }, null, 2) + '\n')
   if (args.includes('--starter')) {
-    for (const name of ['guard.domain', 'guard_kit.domain', 'guard.htn.ts']) {
+    const names = ['guard.domain', 'guard_kit.domain', 'guard.htn.ts']
+    const present = await Promise.all(names.map(name => read(path.join(target, 'src/npc/guard', name))))
+    if (present.some(file => file !== null) && present.some(file => file === null)) throw new Error('Partial starter in src/npc/guard: complete your existing behaviour before installing --starter. No starter files were changed.')
+    // A complete existing starter belongs to the game; a partial set must not be mixed with fresh defaults.
+    for (const name of present.every(file => file !== null) ? [] : names) {
       const rel = 'src/npc/guard/' + name
-      // Starter code belongs to the game after installation, including on --update.
-      if (await read(path.join(target, rel)) !== null) continue
       const content = (await fs.readFile(path.join(source, 'src/examples/guard', name), 'utf8'))
         .replace('// Source: src/examples/guard/guard.domain', '// Source: src/npc/guard/guard.domain')
       add(rel, content, false)
