@@ -1,0 +1,114 @@
+(:include "../creatures/tiers/reach.domain")
+(:include "../creatures/tiers/idle.domain")
+
+// Service bot base: work on the best job target, else idle. Serving = announce, get in range, do the job. Variants
+// (medic, cleaner, fire, hug) override the hooks; the base is never planned on its own.
+//
+// Teaches: `base` / `overrides` as a template: the base owns the behaviour's shape (`run_bot`, `serve`), the
+// variants fill in the hooks (`job_target` axiom, `announce_approach`, `do_job`) and constants (`approach_range`);
+// a speech line with a cooldown read from a timestamp fact; the guard on the root branch is the target pick itself
+// (`#job_target`), so no branch relies on a failed subtree (see creatures/mouse.domain).
+// Source: Space Station 14 (MIT), the shape shared by `MedibotCompound`, `CleanbotCompound`, `FirebotCompound` and
+// `HugBotCompound` (pick a target, get in range, interact; else idle) in Resources/Prototypes/NPCs/{medibot,
+// cleanbot,firebot,hugbot}.yml at commit 614f030530578e248a2393dd71ee9813d68d800d:
+// https://github.com/space-wizards/space-station-14/tree/614f030530578e248a2393dd71ee9813d68d800d/Resources/Prototypes/NPCs
+// Licence: MIT, Copyright (c) 2017-2026 Space Wizards Federation; see src/examples/canon/THIRD_PARTY_NOTICES.md.
+// Adapted (YAML prototypes re-written in our domain language). Ranges are SS14's (InteractionRange 1.5).
+// Emulations: SS14's `SpeakOperator` has a `cooldownID` and `cooldown` in seconds; here `!say ?line` writes
+// `(spoke ?line ?time)` and `say_line` skips the line while `now - time < @speech_cooldown`. SS14's
+// `UtilityOperator` target pick is the variant's sensor fact, read by the `job_target` axiom (first row = best).
+// Deviations: the four SS14 roots are four copies of one shape; here the shape is written once. SS14 has no common
+// base for them.
+// Not ported: the `UtilityService`s that re-pick the target every tick while the bot works (the host's sensor and
+// a replan on its change), the `hidden: true` speech flag (no chat log here).
+//
+// Facts:      (job ?target) a target the host assigns directly (the base's default pick); (spoke ?line ?seconds);
+//             (now ?seconds); see the reach and idle tiers for the rest.
+// Primitives: (!say ?line); see the reach and idle tiers.
+
+(:domain ServiceBot base
+
+    (:constants ServiceBotConstants base
+        (approach_range 1.5)
+        (speech_cooldown 5.0)
+    )
+
+    // Hook: what to work on now (first row = best). Variants read their own sensor facts.
+    (:axiom (job_target ?out_target) base
+        (and
+            (job ?out_target)
+        )
+    )
+
+    // The behaviour: work on the job target, else idle. Each variant's root delegates here.
+    (:method (run_bot) base
+
+        (work
+            (and
+                (#job_target ?target)
+            )
+            (
+                (serve ?target)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (idle)
+            )
+        )
+    )
+
+    // Contract: ?inp_target got the bot's job done to it; fails only if a variant's do_job does.
+    (:method (serve ?inp_target) base
+
+        (announce_approach_work
+            ()
+            (
+                (announce_approach ?inp_target)
+                (get_in_range ?inp_target @approach_range)
+                (do_job ?inp_target)
+            )
+        )
+    )
+
+    // Hook: what to say on the way. Default: nothing.
+    (:method (announce_approach ?inp_target) base
+
+        (silent
+            ()
+            ()
+        )
+    )
+
+    // Hook: the job itself, once in range. No default: a variant must override it.
+    (:method (do_job ?inp_target) base)
+
+    // ?inp_line was said less than @speech_cooldown seconds ago.
+    (:axiom (spoke_recently ?inp_line)
+        (and
+            (spoke ?inp_line ?at)
+            (now ?n)
+            (< (- ?n ?at) @speech_cooldown)
+        )
+    )
+
+    // Say ?inp_line unless it is on cooldown. Re-entrant: on cooldown, nothing to do.
+    (:method (say_line ?inp_line)
+
+        (on_cooldown
+            (and
+                (#spoke_recently ?inp_line)
+            )
+            ()
+        )
+
+        (speak
+            ()
+            (
+                (!say ?inp_line)
+            )
+        )
+    )
+)

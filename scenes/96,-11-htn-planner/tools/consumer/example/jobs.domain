@@ -1,0 +1,4 @@
+(:domain AuthorJob top_level_domain
+  (:method (pick ?inp_threshold ?inp_work) top_level_method
+    (eligible (and (candidate ?job) (> ?job ?inp_threshold) (call accept ?inp_work))
+      ((!choose ?job)))))

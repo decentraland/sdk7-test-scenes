@@ -1,0 +1,12 @@
+// sentry_turret: a vehicle beyond bullet range but in rocket range, rockets already in hand: wield has nothing to do.
+// method: behave
+// expect: succeeded
+//   1. !begin_plan attack v1
+//   2. !aim_at v1
+//   3. !fire rockets v1
+//   4. !end_plan
+
+wielded rockets
+threat v1 vehicle
+distance_to v1 55.0
+line_of_fire v1

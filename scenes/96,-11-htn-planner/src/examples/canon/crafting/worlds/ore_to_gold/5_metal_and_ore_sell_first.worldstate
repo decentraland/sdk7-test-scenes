@@ -1,0 +1,11 @@
+// ore_to_gold: metal and ore: sell first.
+// method: earn_gold
+// expect: succeeded
+//   1. !sell_metal
+//   2. !go_to outside
+//   3. &earn_gold
+
+gold 1
+has_metal
+has_ore
+location merchant

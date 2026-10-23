@@ -1,0 +1,9 @@
+// grazer: attacked while pulled: break free first.
+// method: behave
+// expect: succeeded
+//   1. !unpull
+
+now 0.0
+hostile wolf
+distance_to wolf 0.800000011920929
+pulled

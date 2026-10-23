@@ -1,0 +1,2547 @@
+{
+  "version": 1,
+  "paths": [
+    "src/examples",
+    "test/fixtures/reference",
+    "test/htn/fixtures/upstream"
+  ],
+  "summary": {
+    "files": 84,
+    "errors": 10,
+    "warnings": 15,
+    "infos": 74,
+    "suppressed": 0
+  },
+  "files": {
+    "src/examples/basics/courier.domain": {
+      "domain": "Courier",
+      "stoppedAt": null,
+      "byRule": {
+        "order-dependent": 1
+      },
+      "metrics": {
+        "methods": 2,
+        "topMethods": 1,
+        "branches": 4,
+        "branchesPerMethod": {
+          "avg": 2,
+          "max": 3
+        },
+        "topBranches": 3,
+        "depth": 2,
+        "oneStepBranches": 0,
+        "oneStepShare": 0,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 2,
+        "primitiveOnlyTopShare": 0.67,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 8,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 1,
+        "includes": 0
+      }
+    },
+    "src/examples/basics/greeter.domain": {
+      "domain": "Greeter",
+      "stoppedAt": null,
+      "byRule": {
+        "order-dependent": 1
+      },
+      "metrics": {
+        "methods": 1,
+        "topMethods": 1,
+        "branches": 3,
+        "branchesPerMethod": {
+          "avg": 3,
+          "max": 3
+        },
+        "topBranches": 3,
+        "depth": 1,
+        "oneStepBranches": 0,
+        "oneStepShare": 0,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 3,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 7,
+        "bookkeepingOccurrences": 1,
+        "bookkeepingShare": 0.14,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 1,
+        "includes": 0
+      }
+    },
+    "src/examples/basics/hello.domain": {
+      "domain": "Hello",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 1,
+        "topMethods": 1,
+        "branches": 1,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 1,
+        "depth": 1,
+        "oneStepBranches": 0,
+        "oneStepShare": 0,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 6,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/basics/lamp.domain": {
+      "domain": "Lamp",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 1,
+        "topMethods": 1,
+        "branches": 3,
+        "branchesPerMethod": {
+          "avg": 3,
+          "max": 3
+        },
+        "topBranches": 3,
+        "depth": 1,
+        "oneStepBranches": 0,
+        "oneStepShare": 0,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 3,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 7,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/basics/storekeeper.domain": {
+      "domain": "Storekeeper",
+      "stoppedAt": null,
+      "byRule": {
+        "order-dependent": 1,
+        "shared-condition": 1
+      },
+      "metrics": {
+        "methods": 2,
+        "topMethods": 2,
+        "branches": 12,
+        "branchesPerMethod": {
+          "avg": 6,
+          "max": 8
+        },
+        "topBranches": 12,
+        "depth": 1,
+        "oneStepBranches": 0,
+        "oneStepShare": 0,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 3,
+        "primitiveOnlyTopShare": 0.25,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 8,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/arrest_team/arrest_team.domain": {
+      "domain": "ArrestTeam",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 7,
+        "topMethods": 1,
+        "branches": 15,
+        "branchesPerMethod": {
+          "avg": 2.14,
+          "max": 4
+        },
+        "topBranches": 4,
+        "depth": 4,
+        "oneStepBranches": 4,
+        "oneStepShare": 0.27,
+        "oneStepTopBranches": 3,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 8,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 4,
+        "constants": 2,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/bridge_troll/v1_priority.domain": {
+      "domain": "BridgeTrollV1",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 1,
+        "topMethods": 1,
+        "branches": 3,
+        "branchesPerMethod": {
+          "avg": 3,
+          "max": 3
+        },
+        "topBranches": 3,
+        "depth": 1,
+        "oneStepBranches": 1,
+        "oneStepShare": 0.33,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 3,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 5,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/bridge_troll/v2_attack_task.domain": {
+      "domain": "BridgeTrollV2",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 2,
+        "topMethods": 1,
+        "branches": 5,
+        "branchesPerMethod": {
+          "avg": 2.5,
+          "max": 3
+        },
+        "topBranches": 3,
+        "depth": 2,
+        "oneStepBranches": 2,
+        "oneStepShare": 0.4,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 2,
+        "primitiveOnlyTopShare": 0.67,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 7,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/bridge_troll/v3_rearm.domain": {
+      "domain": "BridgeTrollV3",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 2,
+        "topMethods": 1,
+        "branches": 6,
+        "branchesPerMethod": {
+          "avg": 3,
+          "max": 3
+        },
+        "topBranches": 3,
+        "depth": 2,
+        "oneStepBranches": 2,
+        "oneStepShare": 0.33,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 2,
+        "primitiveOnlyTopShare": 0.67,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 9,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/bridge_troll/v4_last_seen.domain": {
+      "domain": "BridgeTrollV4",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 3,
+        "topMethods": 1,
+        "branches": 9,
+        "branchesPerMethod": {
+          "avg": 3,
+          "max": 4
+        },
+        "topBranches": 4,
+        "depth": 2,
+        "oneStepBranches": 4,
+        "oneStepShare": 0.44,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 2,
+        "primitiveOnlyTopShare": 0.5,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 12,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/bridge_troll/v5_combo_bug.domain": {
+      "domain": "BridgeTrollV5ComboBug",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 3,
+        "topMethods": 1,
+        "branches": 10,
+        "branchesPerMethod": {
+          "avg": 3.33,
+          "max": 4
+        },
+        "topBranches": 4,
+        "depth": 2,
+        "oneStepBranches": 4,
+        "oneStepShare": 0.4,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 2,
+        "primitiveOnlyTopShare": 0.5,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 16,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 1,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/bridge_troll/v5_tired.domain": {
+      "domain": "BridgeTrollV5Tired",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 3,
+        "topMethods": 1,
+        "branches": 11,
+        "branchesPerMethod": {
+          "avg": 3.67,
+          "max": 5
+        },
+        "topBranches": 4,
+        "depth": 2,
+        "oneStepBranches": 5,
+        "oneStepShare": 0.45,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 2,
+        "primitiveOnlyTopShare": 0.5,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 17,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 1,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/bridge_troll/v6_partial_plans.domain": {
+      "domain": "BridgeTrollV6",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 3,
+        "topMethods": 1,
+        "branches": 12,
+        "branchesPerMethod": {
+          "avg": 4,
+          "max": 6
+        },
+        "topBranches": 4,
+        "depth": 2,
+        "oneStepBranches": 6,
+        "oneStepShare": 0.5,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 2,
+        "primitiveOnlyTopShare": 0.5,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 16,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 1,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/classics/commuter.domain": {
+      "domain": "Commuter",
+      "stoppedAt": null,
+      "byRule": {
+        "no-fallback": 1
+      },
+      "metrics": {
+        "methods": 3,
+        "topMethods": 2,
+        "branches": 8,
+        "branchesPerMethod": {
+          "avg": 2.67,
+          "max": 4
+        },
+        "topBranches": 5,
+        "depth": 3,
+        "oneStepBranches": 3,
+        "oneStepShare": 0.38,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 2,
+        "primitiveOnlyTopShare": 0.4,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 8,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 3,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/classics/hunter.domain": {
+      "domain": "Hunter",
+      "stoppedAt": null,
+      "byRule": {
+        "no-fallback": 1
+      },
+      "metrics": {
+        "methods": 2,
+        "topMethods": 1,
+        "branches": 5,
+        "branchesPerMethod": {
+          "avg": 2.5,
+          "max": 3
+        },
+        "topBranches": 3,
+        "depth": 2,
+        "oneStepBranches": 2,
+        "oneStepShare": 0.4,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 3,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/crafting/ore_to_gold.domain": {
+      "domain": "OreToGold",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 3,
+        "topMethods": 1,
+        "branches": 8,
+        "branchesPerMethod": {
+          "avg": 2.67,
+          "max": 4
+        },
+        "topBranches": 4,
+        "depth": 2,
+        "oneStepBranches": 0,
+        "oneStepShare": 0,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 8,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 1,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/creatures/grazer.domain": {
+      "domain": "Grazer",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 6,
+        "topMethods": 1,
+        "branches": 14,
+        "branchesPerMethod": {
+          "avg": 2.33,
+          "max": 4
+        },
+        "topBranches": 3,
+        "depth": 3,
+        "oneStepBranches": 10,
+        "oneStepShare": 0.71,
+        "oneStepTopBranches": 3,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 11,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 6,
+        "constants": 5,
+        "includes": 4
+      }
+    },
+    "src/examples/canon/creatures/hostile_mob.domain": {
+      "domain": "HostileMob",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 5,
+        "topMethods": 1,
+        "branches": 12,
+        "branchesPerMethod": {
+          "avg": 2.4,
+          "max": 4
+        },
+        "topBranches": 2,
+        "depth": 3,
+        "oneStepBranches": 9,
+        "oneStepShare": 0.75,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 10,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 3,
+        "constants": 3,
+        "includes": 3
+      }
+    },
+    "src/examples/canon/creatures/mouse.domain": {
+      "domain": "Mouse",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 5,
+        "topMethods": 1,
+        "branches": 9,
+        "branchesPerMethod": {
+          "avg": 1.8,
+          "max": 3
+        },
+        "topBranches": 2,
+        "depth": 3,
+        "oneStepBranches": 6,
+        "oneStepShare": 0.67,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 6,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 5,
+        "constants": 5,
+        "includes": 3
+      }
+    },
+    "src/examples/canon/creatures/pet_follower.domain": {
+      "domain": "PetFollower",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 6,
+        "topMethods": 1,
+        "branches": 17,
+        "branchesPerMethod": {
+          "avg": 2.83,
+          "max": 4
+        },
+        "topBranches": 3,
+        "depth": 3,
+        "oneStepBranches": 14,
+        "oneStepShare": 0.82,
+        "oneStepTopBranches": 3,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 12,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 3,
+        "constants": 5,
+        "includes": 4
+      }
+    },
+    "src/examples/canon/door_helper/door_helper.domain": {
+      "domain": "DoorHelper",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 12,
+        "topMethods": 1,
+        "branches": 31,
+        "branchesPerMethod": {
+          "avg": 2.58,
+          "max": 5
+        },
+        "topBranches": 4,
+        "depth": 7,
+        "oneStepBranches": 14,
+        "oneStepShare": 0.45,
+        "oneStepTopBranches": 3,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 0.25,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 23,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 4,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/fetcher/fetcher.domain": {
+      "domain": "Fetcher",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 8,
+        "topMethods": 1,
+        "branches": 26,
+        "branchesPerMethod": {
+          "avg": 3.25,
+          "max": 7
+        },
+        "topBranches": 3,
+        "depth": 6,
+        "oneStepBranches": 12,
+        "oneStepShare": 0.46,
+        "oneStepTopBranches": 3,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 0.33,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 17,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 6,
+        "constants": 1,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/infiltrator/infiltrator.domain": {
+      "domain": "Infiltrator",
+      "stoppedAt": null,
+      "byRule": {
+        "order-dependent": 1
+      },
+      "metrics": {
+        "methods": 10,
+        "topMethods": 1,
+        "branches": 26,
+        "branchesPerMethod": {
+          "avg": 2.6,
+          "max": 5
+        },
+        "topBranches": 5,
+        "depth": 4,
+        "oneStepBranches": 11,
+        "oneStepShare": 0.42,
+        "oneStepTopBranches": 5,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 0.2,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 19,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 6,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/sentry_turret/sentry_turret.domain": {
+      "domain": "SentryTurret",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 5,
+        "topMethods": 1,
+        "branches": 9,
+        "branchesPerMethod": {
+          "avg": 1.8,
+          "max": 2
+        },
+        "topBranches": 2,
+        "depth": 5,
+        "oneStepBranches": 7,
+        "oneStepShare": 0.78,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 0.5,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 7,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 4,
+        "constants": 3,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/service_bots/cleaner_bot.domain": {
+      "domain": "CleanerBot",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 10,
+        "topMethods": 1,
+        "branches": 14,
+        "branchesPerMethod": {
+          "avg": 1.4,
+          "max": 3
+        },
+        "topBranches": 1,
+        "depth": 4,
+        "oneStepBranches": 9,
+        "oneStepShare": 0.64,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 7,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 5,
+        "constants": 6,
+        "includes": 3
+      }
+    },
+    "src/examples/canon/service_bots/fire_bot.domain": {
+      "domain": "FireBot",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 11,
+        "topMethods": 1,
+        "branches": 15,
+        "branchesPerMethod": {
+          "avg": 1.36,
+          "max": 3
+        },
+        "topBranches": 1,
+        "depth": 4,
+        "oneStepBranches": 9,
+        "oneStepShare": 0.6,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 9,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 5,
+        "constants": 5,
+        "includes": 3
+      }
+    },
+    "src/examples/canon/service_bots/hug_bot.domain": {
+      "domain": "HugBot",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 13,
+        "topMethods": 1,
+        "branches": 19,
+        "branchesPerMethod": {
+          "avg": 1.46,
+          "max": 3
+        },
+        "topBranches": 1,
+        "depth": 5,
+        "oneStepBranches": 13,
+        "oneStepShare": 0.68,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 13,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 5,
+        "constants": 6,
+        "includes": 3
+      }
+    },
+    "src/examples/canon/service_bots/medic_bot.domain": {
+      "domain": "MedicBot",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 11,
+        "topMethods": 1,
+        "branches": 16,
+        "branchesPerMethod": {
+          "avg": 1.45,
+          "max": 3
+        },
+        "topBranches": 1,
+        "depth": 5,
+        "oneStepBranches": 9,
+        "oneStepShare": 0.56,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 8,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 5,
+        "constants": 5,
+        "includes": 3
+      }
+    },
+    "src/examples/canon/soup_kitchen/soup_kitchen.domain": {
+      "domain": "SoupKitchen",
+      "stoppedAt": null,
+      "byRule": {
+        "no-fallback": 1,
+        "shared-condition": 7
+      },
+      "metrics": {
+        "methods": 8,
+        "topMethods": 1,
+        "branches": 21,
+        "branchesPerMethod": {
+          "avg": 2.63,
+          "max": 6
+        },
+        "topBranches": 4,
+        "depth": 4,
+        "oneStepBranches": 9,
+        "oneStepShare": 0.43,
+        "oneStepTopBranches": 3,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 19,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 3,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/soup_kitchen/soup_kitchen.invariants.domain": {
+      "domain": "SoupKitchenChecks",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 1,
+        "topMethods": 1,
+        "branches": 1,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 1,
+        "depth": 1,
+        "oneStepBranches": 0,
+        "oneStepShare": 0,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 0,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/canon/swarm/swarm_coordinator.domain": {
+      "domain": "SwarmCoordinator",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 3,
+        "topMethods": 1,
+        "branches": 9,
+        "branchesPerMethod": {
+          "avg": 3,
+          "max": 5
+        },
+        "topBranches": 3,
+        "depth": 3,
+        "oneStepBranches": 3,
+        "oneStepShare": 0.33,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 4,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 3,
+        "constants": 1,
+        "includes": 1
+      }
+    },
+    "src/examples/canon/swarm/swarm_drone.domain": {
+      "domain": "SwarmDrone",
+      "stoppedAt": null,
+      "byRule": {
+        "order-dependent": 2
+      },
+      "metrics": {
+        "methods": 9,
+        "topMethods": 1,
+        "branches": 21,
+        "branchesPerMethod": {
+          "avg": 2.33,
+          "max": 8
+        },
+        "topBranches": 2,
+        "depth": 4,
+        "oneStepBranches": 14,
+        "oneStepShare": 0.67,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 27,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 3,
+        "constants": 2,
+        "includes": 1
+      }
+    },
+    "src/examples/canon/villager_day/villager_day.domain": {
+      "domain": "VillagerDay",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 7,
+        "topMethods": 1,
+        "branches": 21,
+        "branchesPerMethod": {
+          "avg": 3,
+          "max": 6
+        },
+        "topBranches": 5,
+        "depth": 4,
+        "oneStepBranches": 11,
+        "oneStepShare": 0.52,
+        "oneStepTopBranches": 5,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 15,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 6,
+        "constants": 7,
+        "includes": 0
+      }
+    },
+    "src/examples/guard/guard.domain": {
+      "domain": "Guard",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 8,
+        "topMethods": 2,
+        "branches": 17,
+        "branchesPerMethod": {
+          "avg": 2.13,
+          "max": 4
+        },
+        "topBranches": 7,
+        "depth": 3,
+        "oneStepBranches": 10,
+        "oneStepShare": 0.59,
+        "oneStepTopBranches": 6,
+        "primitiveOnlyTopBranches": 3,
+        "primitiveOnlyTopShare": 0.43,
+        "bookkeepingTopBranches": 2,
+        "primitiveOccurrences": 21,
+        "bookkeepingOccurrences": 6,
+        "bookkeepingShare": 0.29,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 9,
+        "includes": 1
+      }
+    },
+    "src/examples/squad/yard_guard.domain": {
+      "domain": "YardGuard",
+      "stoppedAt": null,
+      "byRule": {
+        "no-fallback": 1
+      },
+      "metrics": {
+        "methods": 6,
+        "topMethods": 1,
+        "branches": 12,
+        "branchesPerMethod": {
+          "avg": 2,
+          "max": 5
+        },
+        "topBranches": 5,
+        "depth": 3,
+        "oneStepBranches": 5,
+        "oneStepShare": 0.42,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 3,
+        "primitiveOnlyTopShare": 0.6,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 16,
+        "bookkeepingOccurrences": 2,
+        "bookkeepingShare": 0.13,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 1
+      }
+    },
+    "src/examples/squad/yard_squad.domain": {
+      "domain": "YardSquad",
+      "stoppedAt": null,
+      "byRule": {
+        "order-dependent": 2,
+        "no-fallback": 1
+      },
+      "metrics": {
+        "methods": 3,
+        "topMethods": 1,
+        "branches": 8,
+        "branchesPerMethod": {
+          "avg": 2.67,
+          "max": 3
+        },
+        "topBranches": 2,
+        "depth": 3,
+        "oneStepBranches": 3,
+        "oneStepShare": 0.38,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 3,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/stalker/stalker.domain": {
+      "domain": "Stalker",
+      "stoppedAt": null,
+      "byRule": {
+        "order-dependent": 2,
+        "shared-condition": 1
+      },
+      "metrics": {
+        "methods": 12,
+        "topMethods": 2,
+        "branches": 38,
+        "branchesPerMethod": {
+          "avg": 3.17,
+          "max": 7
+        },
+        "topBranches": 13,
+        "depth": 4,
+        "oneStepBranches": 20,
+        "oneStepShare": 0.53,
+        "oneStepTopBranches": 12,
+        "primitiveOnlyTopBranches": 7,
+        "primitiveOnlyTopShare": 0.54,
+        "bookkeepingTopBranches": 6,
+        "primitiveOccurrences": 53,
+        "bookkeepingOccurrences": 21,
+        "bookkeepingShare": 0.4,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 11,
+        "includes": 0
+      }
+    },
+    "src/examples/upstream/adapted/AAACombatNPC.domain": {
+      "domain": "AAACombatEligibleNPC",
+      "stoppedAt": null,
+      "byRule": {
+        "order-dependent": 1,
+        "shared-condition": 1
+      },
+      "metrics": {
+        "methods": 8,
+        "topMethods": 1,
+        "branches": 54,
+        "branchesPerMethod": {
+          "avg": 6.75,
+          "max": 9
+        },
+        "topBranches": 8,
+        "depth": 3,
+        "oneStepBranches": 6,
+        "oneStepShare": 0.11,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 0.13,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 117,
+        "bookkeepingOccurrences": 1,
+        "bookkeepingShare": 0.01,
+        "duplicatedTails": 1,
+        "longestDuplicatedTail": 3,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 5
+      }
+    },
+    "src/examples/upstream/docs/AxiomIo.domain": {
+      "domain": "AxiomIo",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 1,
+        "topMethods": 1,
+        "branches": 1,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 1,
+        "depth": 1,
+        "oneStepBranches": 1,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 1,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/upstream/docs/BridgeConsumer.domain": {
+      "domain": "BridgeCoverage",
+      "stoppedAt": null,
+      "byRule": {
+        "unconditional-not-last": 1
+      },
+      "metrics": {
+        "methods": 4,
+        "topMethods": 1,
+        "branches": 5,
+        "branchesPerMethod": {
+          "avg": 1.25,
+          "max": 2
+        },
+        "topBranches": 2,
+        "depth": 2,
+        "oneStepBranches": 3,
+        "oneStepShare": 0.6,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 5,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 1,
+        "includes": 0
+      }
+    },
+    "src/examples/upstream/docs/CoreConsumer.domain": {
+      "domain": "PackageCoreConsumer",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 4,
+        "topMethods": 4,
+        "branches": 4,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 4,
+        "depth": 1,
+        "oneStepBranches": 2,
+        "oneStepShare": 0.5,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 4,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 7,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 2,
+        "includes": 0
+      }
+    },
+    "src/examples/upstream/docs/GuardNPC.domain": {
+      "domain": "GuardNPC",
+      "stoppedAt": null,
+      "byRule": {
+        "no-fallback": 1
+      },
+      "metrics": {
+        "methods": 1,
+        "topMethods": 1,
+        "branches": 1,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 1,
+        "depth": 1,
+        "oneStepBranches": 0,
+        "oneStepShare": 0,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 2,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/upstream/docs/IntegrationConsumer.domain": {
+      "domain": "PackageIntegrationConsumer",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 3,
+        "topMethods": 3,
+        "branches": 3,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 3,
+        "depth": 1,
+        "oneStepBranches": 1,
+        "oneStepShare": 0.33,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 3,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 6,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/upstream/docs/Tutorial.domain": {
+      "domain": "Tutorial",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 1,
+        "topMethods": 1,
+        "branches": 2,
+        "branchesPerMethod": {
+          "avg": 2,
+          "max": 2
+        },
+        "topBranches": 2,
+        "depth": 1,
+        "oneStepBranches": 1,
+        "oneStepShare": 0.5,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 2,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 3,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/usecases/director.domain": {
+      "domain": "Director",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 1,
+        "topMethods": 1,
+        "branches": 3,
+        "branchesPerMethod": {
+          "avg": 3,
+          "max": 3
+        },
+        "topBranches": 3,
+        "depth": 1,
+        "oneStepBranches": 0,
+        "oneStepShare": 0,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 2,
+        "primitiveOnlyTopShare": 0.67,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 5,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/usecases/reinforcements.domain": {
+      "domain": "Reinforcements",
+      "stoppedAt": null,
+      "byRule": {
+        "no-fallback": 1
+      },
+      "metrics": {
+        "methods": 8,
+        "topMethods": 7,
+        "branches": 14,
+        "branchesPerMethod": {
+          "avg": 1.75,
+          "max": 2
+        },
+        "topBranches": 13,
+        "depth": 2,
+        "oneStepBranches": 13,
+        "oneStepShare": 0.93,
+        "oneStepTopBranches": 12,
+        "primitiveOnlyTopBranches": 11,
+        "primitiveOnlyTopShare": 0.85,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 13,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/usecases/squad_member.domain": {
+      "domain": "SquadMember",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 1,
+        "topMethods": 1,
+        "branches": 4,
+        "branchesPerMethod": {
+          "avg": 4,
+          "max": 4
+        },
+        "topBranches": 4,
+        "depth": 1,
+        "oneStepBranches": 1,
+        "oneStepShare": 0.25,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 4,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 7,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "src/examples/usecases/squad.domain": {
+      "domain": "Squad",
+      "stoppedAt": null,
+      "byRule": {
+        "order-dependent": 2
+      },
+      "metrics": {
+        "methods": 2,
+        "topMethods": 1,
+        "branches": 6,
+        "branchesPerMethod": {
+          "avg": 3,
+          "max": 3
+        },
+        "topBranches": 3,
+        "depth": 2,
+        "oneStepBranches": 1,
+        "oneStepShare": 0.17,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 4,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/fixtures/reference/guard_flat.domain": {
+      "domain": "GuardFlat",
+      "stoppedAt": null,
+      "byRule": {
+        "flat-root": 1,
+        "bookkeeping-branch": 2,
+        "order-dependent": 2
+      },
+      "metrics": {
+        "methods": 3,
+        "topMethods": 1,
+        "branches": 12,
+        "branchesPerMethod": {
+          "avg": 4,
+          "max": 8
+        },
+        "topBranches": 8,
+        "depth": 2,
+        "oneStepBranches": 6,
+        "oneStepShare": 0.5,
+        "oneStepTopBranches": 3,
+        "primitiveOnlyTopBranches": 6,
+        "primitiveOnlyTopShare": 0.75,
+        "bookkeepingTopBranches": 2,
+        "primitiveOccurrences": 21,
+        "bookkeepingOccurrences": 6,
+        "bookkeepingShare": 0.29,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 9,
+        "includes": 0
+      }
+    },
+    "test/fixtures/reference/stalker_flat.domain": {
+      "domain": "StalkerFlat",
+      "stoppedAt": null,
+      "byRule": {
+        "max-branches": 1,
+        "flat-root": 1,
+        "bookkeeping-branch": 5,
+        "duplicated-tail": 4,
+        "order-dependent": 5,
+        "shared-condition": 1
+      },
+      "metrics": {
+        "methods": 3,
+        "topMethods": 1,
+        "branches": 28,
+        "branchesPerMethod": {
+          "avg": 9.33,
+          "max": 21
+        },
+        "topBranches": 21,
+        "depth": 2,
+        "oneStepBranches": 12,
+        "oneStepShare": 0.43,
+        "oneStepTopBranches": 10,
+        "primitiveOnlyTopBranches": 18,
+        "primitiveOnlyTopShare": 0.86,
+        "bookkeepingTopBranches": 5,
+        "primitiveOccurrences": 68,
+        "bookkeepingOccurrences": 26,
+        "bookkeepingShare": 0.38,
+        "duplicatedTails": 4,
+        "longestDuplicatedTail": 6,
+        "axioms": 0,
+        "constants": 11,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/cmake/LinuxSmoke/linux_smoke.domain": {
+      "domain": "LinuxSmoke",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 3,
+        "topMethods": 3,
+        "branches": 3,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 3,
+        "depth": 1,
+        "oneStepBranches": 3,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 3,
+        "primitiveOnlyTopBranches": 3,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 3,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/AAACombatNPC.domain": {
+      "domain": "AAACombatNPC",
+      "stoppedAt": null,
+      "byRule": {
+        "order-dependent": 1,
+        "shared-condition": 1
+      },
+      "metrics": {
+        "methods": 8,
+        "topMethods": 1,
+        "branches": 54,
+        "branchesPerMethod": {
+          "avg": 6.75,
+          "max": 9
+        },
+        "topBranches": 8,
+        "depth": 3,
+        "oneStepBranches": 6,
+        "oneStepShare": 0.11,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 0.13,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 117,
+        "bookkeepingOccurrences": 1,
+        "bookkeepingShare": 0.01,
+        "duplicatedTails": 1,
+        "longestDuplicatedTail": 3,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 5
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/BuiltinComparisonsDemo.domain": {
+      "domain": "BuiltinComparisonsDemo",
+      "stoppedAt": null,
+      "byRule": {
+        "shared-condition": 4
+      },
+      "metrics": {
+        "methods": 1,
+        "topMethods": 1,
+        "branches": 5,
+        "branchesPerMethod": {
+          "avg": 5,
+          "max": 5
+        },
+        "topBranches": 5,
+        "depth": 1,
+        "oneStepBranches": 5,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 5,
+        "primitiveOnlyTopBranches": 5,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 5,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/EliteNinja.domain": {
+      "domain": "EliteNinja",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 4,
+        "topMethods": 1,
+        "branches": 6,
+        "branchesPerMethod": {
+          "avg": 1.5,
+          "max": 2
+        },
+        "topBranches": 1,
+        "depth": 4,
+        "oneStepBranches": 6,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 3,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 2,
+        "constants": 3,
+        "includes": 2
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Grunt.domain": {
+      "domain": "Grunt",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 2,
+        "topMethods": 1,
+        "branches": 2,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 1,
+        "depth": 2,
+        "oneStepBranches": 2,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 1,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 1,
+        "includes": 1
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/include_demo.domain": {
+      "domain": "IncludeDemo",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 3,
+        "topMethods": 1,
+        "branches": 7,
+        "branchesPerMethod": {
+          "avg": 2.33,
+          "max": 3
+        },
+        "topBranches": 2,
+        "depth": 2,
+        "oneStepBranches": 5,
+        "oneStepShare": 0.71,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 0.5,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 7,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 0,
+        "includes": 3
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/NormalNinja.domain": {
+      "domain": "NormalNinja",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 3,
+        "topMethods": 1,
+        "branches": 4,
+        "branchesPerMethod": {
+          "avg": 1.33,
+          "max": 2
+        },
+        "topBranches": 1,
+        "depth": 3,
+        "oneStepBranches": 4,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 2,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 2,
+        "includes": 2
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/RuntimeBacktrackingDemo.domain": {
+      "domain": "RuntimeBacktrackingDemo",
+      "stoppedAt": null,
+      "byRule": {
+        "unconditional-not-last": 1
+      },
+      "metrics": {
+        "methods": 5,
+        "topMethods": 4,
+        "branches": 10,
+        "branchesPerMethod": {
+          "avg": 2,
+          "max": 2
+        },
+        "topBranches": 8,
+        "depth": 2,
+        "oneStepBranches": 10,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 8,
+        "primitiveOnlyTopBranches": 7,
+        "primitiveOnlyTopShare": 0.88,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 9,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/atom_list_demo.domain": {
+      "domain": "AtomListDemo",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 9,
+        "topMethods": 9,
+        "branches": 11,
+        "branchesPerMethod": {
+          "avg": 1.22,
+          "max": 2
+        },
+        "topBranches": 11,
+        "depth": 1,
+        "oneStepBranches": 10,
+        "oneStepShare": 0.91,
+        "oneStepTopBranches": 10,
+        "primitiveOnlyTopBranches": 11,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 16,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 3,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/axiom_assignments.domain": {
+      "domain": "AxiomAssignments",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 24,
+        "topMethods": 24,
+        "branches": 24,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 24,
+        "depth": 1,
+        "oneStepBranches": 24,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 24,
+        "primitiveOnlyTopBranches": 24,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 24,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 15,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/axiom_overloads.domain": {
+      "domain": "AxiomOverloads",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 6,
+        "topMethods": 6,
+        "branches": 8,
+        "branchesPerMethod": {
+          "avg": 1.33,
+          "max": 2
+        },
+        "topBranches": 8,
+        "depth": 1,
+        "oneStepBranches": 8,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 8,
+        "primitiveOnlyTopBranches": 8,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 8,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 7,
+        "constants": 0,
+        "includes": 1
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/backtracking_policy.domain": {
+      "domain": "BacktrackingPolicyTest",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 3,
+        "topMethods": 3,
+        "branches": 3,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 3,
+        "depth": 1,
+        "oneStepBranches": 1,
+        "oneStepShare": 0.33,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 3,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 6,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/boolean_callterms.domain": {
+      "domain": "BooleanCallTerms",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 8,
+        "topMethods": 7,
+        "branches": 9,
+        "branchesPerMethod": {
+          "avg": 1.13,
+          "max": 2
+        },
+        "topBranches": 8,
+        "depth": 1,
+        "oneStepBranches": 9,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 8,
+        "primitiveOnlyTopBranches": 7,
+        "primitiveOnlyTopShare": 0.88,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 8,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/boolean_compatibility.domain": {
+      "domain": "BooleanCompatibility",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 10,
+        "topMethods": 9,
+        "branches": 10,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 9,
+        "depth": 1,
+        "oneStepBranches": 10,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 9,
+        "primitiveOnlyTopBranches": 8,
+        "primitiveOnlyTopShare": 0.89,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 9,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 2,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/callterms.domain": {
+      "domain": "CallTermsDemo",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 4,
+        "topMethods": 4,
+        "branches": 5,
+        "branchesPerMethod": {
+          "avg": 1.25,
+          "max": 2
+        },
+        "topBranches": 5,
+        "depth": 1,
+        "oneStepBranches": 4,
+        "oneStepShare": 0.8,
+        "oneStepTopBranches": 4,
+        "primitiveOnlyTopBranches": 5,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 7,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/complex_scenario.domain": {
+      "domain": "ComplexScenario",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 7,
+        "topMethods": 1,
+        "branches": 22,
+        "branchesPerMethod": {
+          "avg": 3.14,
+          "max": 5
+        },
+        "topBranches": 3,
+        "depth": 5,
+        "oneStepBranches": 11,
+        "oneStepShare": 0.5,
+        "oneStepTopBranches": 1,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 0.33,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 22,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 2,
+        "constants": 0,
+        "includes": 1
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/hierarchical_backtracking.domain": {
+      "domain": "HierarchicalBacktracking",
+      "stoppedAt": null,
+      "byRule": {
+        "unconditional-not-last": 2,
+        "shadowed-branch": 1
+      },
+      "metrics": {
+        "methods": 9,
+        "topMethods": 6,
+        "branches": 15,
+        "branchesPerMethod": {
+          "avg": 1.67,
+          "max": 2
+        },
+        "topBranches": 10,
+        "depth": 3,
+        "oneStepBranches": 15,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 10,
+        "primitiveOnlyTopBranches": 4,
+        "primitiveOnlyTopShare": 0.4,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 9,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/human.domain": {
+      "domain": "Human",
+      "stoppedAt": null,
+      "byRule": {
+        "unconditional-not-last": 2
+      },
+      "metrics": {
+        "methods": 4,
+        "topMethods": 2,
+        "branches": 10,
+        "branchesPerMethod": {
+          "avg": 2.5,
+          "max": 3
+        },
+        "topBranches": 4,
+        "depth": 3,
+        "oneStepBranches": 6,
+        "oneStepShare": 0.6,
+        "oneStepTopBranches": 4,
+        "primitiveOnlyTopBranches": 3,
+        "primitiveOnlyTopShare": 0.75,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 7,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 2,
+        "constants": 1,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/method_overloads.domain": {
+      "domain": "MethodOverloads",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 15,
+        "topMethods": 6,
+        "branches": 16,
+        "branchesPerMethod": {
+          "avg": 1.07,
+          "max": 2
+        },
+        "topBranches": 6,
+        "depth": 3,
+        "oneStepBranches": 15,
+        "oneStepShare": 0.94,
+        "oneStepTopBranches": 5,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 0.17,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 9,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 1
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/missing_callterms.domain": {
+      "domain": "MissingCallTerms",
+      "stoppedAt": null,
+      "byRule": {
+        "unconditional-not-last": 1
+      },
+      "metrics": {
+        "methods": 8,
+        "topMethods": 7,
+        "branches": 11,
+        "branchesPerMethod": {
+          "avg": 1.38,
+          "max": 2
+        },
+        "topBranches": 10,
+        "depth": 2,
+        "oneStepBranches": 11,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 10,
+        "primitiveOnlyTopBranches": 8,
+        "primitiveOnlyTopShare": 0.8,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 9,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/negative_literals.domain": {
+      "domain": "negative_literals",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 7,
+        "topMethods": 6,
+        "branches": 7,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 6,
+        "depth": 2,
+        "oneStepBranches": 5,
+        "oneStepShare": 0.71,
+        "oneStepTopBranches": 4,
+        "primitiveOnlyTopBranches": 4,
+        "primitiveOnlyTopShare": 0.67,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 8,
+        "bookkeepingOccurrences": 1,
+        "bookkeepingShare": 0.13,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 2,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/nested_axiom_choices.domain": {
+      "domain": "NestedAxiomChoices",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 29,
+        "topMethods": 29,
+        "branches": 36,
+        "branchesPerMethod": {
+          "avg": 1.24,
+          "max": 2
+        },
+        "topBranches": 36,
+        "depth": 1,
+        "oneStepBranches": 36,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 36,
+        "primitiveOnlyTopBranches": 36,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 36,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 19,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/nested_calls.domain": {
+      "domain": "NestedCallsDemo",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 2,
+        "topMethods": 1,
+        "branches": 2,
+        "branchesPerMethod": {
+          "avg": 1,
+          "max": 1
+        },
+        "topBranches": 1,
+        "depth": 2,
+        "oneStepBranches": 1,
+        "oneStepShare": 0.5,
+        "oneStepTopBranches": 0,
+        "primitiveOnlyTopBranches": 0,
+        "primitiveOnlyTopShare": 0,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 2,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/nested_operator_calls.domain": {
+      "domain": "NestedOperatorCalls",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 18,
+        "topMethods": 18,
+        "branches": 20,
+        "branchesPerMethod": {
+          "avg": 1.11,
+          "max": 2
+        },
+        "topBranches": 20,
+        "depth": 1,
+        "oneStepBranches": 20,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 20,
+        "primitiveOnlyTopBranches": 20,
+        "primitiveOnlyTopShare": 1,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 20,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/numeric_expressions.domain": {
+      "domain": "NumericExpressionsDemo",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 18,
+        "topMethods": 16,
+        "branches": 30,
+        "branchesPerMethod": {
+          "avg": 1.67,
+          "max": 4
+        },
+        "topBranches": 27,
+        "depth": 2,
+        "oneStepBranches": 29,
+        "oneStepShare": 0.97,
+        "oneStepTopBranches": 26,
+        "primitiveOnlyTopBranches": 26,
+        "primitiveOnlyTopShare": 0.96,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 30,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 4,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/recursion_dispatch.domain": {
+      "domain": "recursion_dispatch",
+      "stoppedAt": null,
+      "byRule": {
+        "recursion-no-base": 1,
+        "recursion-not-tail": 4
+      },
+      "metrics": {
+        "methods": 7,
+        "topMethods": 3,
+        "branches": 11,
+        "branchesPerMethod": {
+          "avg": 1.57,
+          "max": 2
+        },
+        "topBranches": 4,
+        "depth": 3,
+        "oneStepBranches": 6,
+        "oneStepShare": 0.55,
+        "oneStepTopBranches": 3,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 0.25,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 11,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/runtime_lists.domain": {
+      "domain": "RuntimeLists",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 29,
+        "topMethods": 27,
+        "branches": 30,
+        "branchesPerMethod": {
+          "avg": 1.03,
+          "max": 2
+        },
+        "topBranches": 28,
+        "depth": 2,
+        "oneStepBranches": 29,
+        "oneStepShare": 0.97,
+        "oneStepTopBranches": 27,
+        "primitiveOnlyTopBranches": 26,
+        "primitiveOnlyTopShare": 0.93,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 29,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 4,
+        "constants": 1,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/shared_implementations.domain": {
+      "domain": "SharedImplementations",
+      "stoppedAt": null,
+      "byRule": {
+        "unreachable-method": 4,
+        "unconditional-not-last": 1,
+        "recursion-no-base": 1,
+        "recursion-not-tail": 3
+      },
+      "metrics": {
+        "methods": 29,
+        "topMethods": 12,
+        "branches": 31,
+        "branchesPerMethod": {
+          "avg": 1.07,
+          "max": 2
+        },
+        "topBranches": 12,
+        "depth": 3,
+        "oneStepBranches": 23,
+        "oneStepShare": 0.74,
+        "oneStepTopBranches": 7,
+        "primitiveOnlyTopBranches": 3,
+        "primitiveOnlyTopShare": 0.25,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 21,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 4,
+        "constants": 0,
+        "includes": 1
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Test/worldstate_lookup_scenarios.domain": {
+      "domain": "WorldstateLookupScenarios",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 2,
+        "topMethods": 1,
+        "branches": 4,
+        "branchesPerMethod": {
+          "avg": 2,
+          "max": 2
+        },
+        "topBranches": 2,
+        "depth": 2,
+        "oneStepBranches": 4,
+        "oneStepShare": 1,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 1,
+        "primitiveOnlyTopShare": 0.5,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 3,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 1,
+        "constants": 0,
+        "includes": 0
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Wanderer.domain": {
+      "domain": "Wanderer",
+      "stoppedAt": null,
+      "byRule": {},
+      "metrics": {
+        "methods": 6,
+        "topMethods": 1,
+        "branches": 13,
+        "branchesPerMethod": {
+          "avg": 2.17,
+          "max": 4
+        },
+        "topBranches": 3,
+        "depth": 3,
+        "oneStepBranches": 9,
+        "oneStepShare": 0.69,
+        "oneStepTopBranches": 2,
+        "primitiveOnlyTopBranches": 2,
+        "primitiveOnlyTopShare": 0.67,
+        "bookkeepingTopBranches": 0,
+        "primitiveOccurrences": 9,
+        "bookkeepingOccurrences": 0,
+        "bookkeepingShare": 0,
+        "duplicatedTails": 0,
+        "longestDuplicatedTail": 0,
+        "axioms": 0,
+        "constants": 0,
+        "includes": 1
+      }
+    },
+    "test/htn/fixtures/upstream/HTNDiagnosticTests/DiagnosticParserRecovery.domain": {
+      "domain": "DiagnosticParserRecovery",
+      "stoppedAt": "compile",
+      "byRule": {
+        "compile/expected-constant": 1,
+        "compile/unknown-variable": 2,
+        "compile/unknown-method": 1
+      },
+      "metrics": null
+    },
+    "test/htn/fixtures/upstream/HTNDiagnosticTests/DiagnosticRootWithInclude.domain": {
+      "domain": "DiagnosticRootWithInclude",
+      "stoppedAt": "compile",
+      "byRule": {},
+      "metrics": null
+    },
+    "test/htn/fixtures/upstream/HTNDiagnosticTests/DiagnosticSemanticErrors.domain": {
+      "domain": "DiagnosticSemanticErrors",
+      "stoppedAt": "compile",
+      "byRule": {
+        "compile/unknown-variable": 2,
+        "compile/unknown-method": 1
+      },
+      "metrics": null
+    },
+    "test/htn/fixtures/upstream/HTNHotReloadDemo/Validation/Wanderer.domain": {
+      "domain": null,
+      "stoppedAt": "compile",
+      "byRule": {
+        "compile/include-not-found": 1
+      },
+      "metrics": null
+    },
+    "test/htn/fixtures/upstream/Domains/Includes/aaa_investigation.domain": {
+      "byRule": {
+        "duplicated-tail": 1,
+        "order-dependent": 1
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Includes/aaa_orders.domain": {
+      "byRule": {
+        "order-dependent": 1
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Includes/aaa_combat.domain": {
+      "byRule": {
+        "order-dependent": 3,
+        "shared-condition": 2
+      }
+    },
+    "test/htn/fixtures/upstream/Domains/Includes/react_to_events.domain": {
+      "byRule": {
+        "order-dependent": 1
+      }
+    },
+    "test/htn/fixtures/upstream/HTNDiagnosticTests/Includes/DiagnosticBrokenInclude.domain": {
+      "byRule": {
+        "compile/unknown-variable": 2
+      }
+    }
+  }
+}

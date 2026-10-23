@@ -1,0 +1,16 @@
+// sentry_turret: the sensors rank a soldier first, but he is beyond bullet range and rockets are not for soldiers.
+// The host ranks, the domain filters: the vehicle behind him is the one the turret can hit.
+// method: behave
+// expect: succeeded
+//   1. !begin_plan attack v1
+//   2. !aim_at v1
+//   3. !fire rockets v1
+//   4. !end_plan
+
+wielded rockets
+threat h1 humanoid
+threat v1 vehicle
+distance_to h1 50.0
+distance_to v1 60.0
+line_of_fire h1
+line_of_fire v1

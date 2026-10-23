@@ -1,0 +1,126 @@
+// Ore to gold: a production chain run as a goal loop. Mine ore, smelt it into metal, sell the metal for gold, until
+// there is enough gold.
+//
+// Teaches:
+//   - a goal loop whose methods are ordered from the stage closest to the goal back to the start: enough gold (an
+//     empty plan, the base case) > sell the metal you hold > smelt the ore you hold > mine. Replanning from the top
+//     after every stage resumes the chain wherever it stands (re-entrant by construction);
+//   - "go there, then do it" as a re-entrant task: `ore_to_metal`'s first method is "already at the smelter"; the
+//     other walks there and defers itself (`&ore_to_metal`), so the second decomposition reads the new location;
+//   - every branch states why it applies (`has_metal`, `has_ore`): the source leaves two methods unguarded and relies
+//     on a failed child to fall through to the next method. Our planner does that only with `branches` backtracking
+//     (on in the default mode ALL, off in FACTS_AND_AXIOMS and NONE, where a chosen branch commits); a guard works in
+//     every mode, costs no failed decomposition and says why the branch applies.
+//
+// Source: bevy_htn `miner.htn` (Richard Jones; "Based on bevy_dogoap's miner example"), commit
+//   422c8614ec1cc4d7f0382d93a835bcc6eab36d80:
+//   https://github.com/RJ/bevy_htn/blob/422c8614ec1cc4d7f0382d93a835bcc6eab36d80/bevy_htn/assets/miner.htn
+// Licence: MIT OR Apache-2.0, used under MIT, (c) Richard Jones. Adapted; the licence text is in
+//   ../THIRD_PARTY_NOTICES.md.
+// Deviations from the source:
+//   - the recursive `EarnGold` after each stage and the recursive `TurnOreIntoMetal` / `TurnMetalIntoGold` after a
+//     walk are deferred (`&earn_gold`, `&ore_to_metal`, `&metal_to_gold`): our planner simulates no effects, so the
+//     step after a change of `location`, `has_ore`, `has_metal` or `gold` is decomposed after the change happened;
+//   - "Convert metal to gold" and "Convert ore to gold" get the guards `has_metal` / `has_ore` (commented out in the
+//     source, which falls through by backtracking; test/examples/canon/ore-to-gold.test.ts shows both); "Get some ore" (`has_ore == false`) is the unconditional last
+//     method, the same once `smelt_ore` (`has_ore`) comes first;
+//   - the goal 3 is the constant `gold_goal`; the GoTo* primitives are one `!go_to ?place`.
+// Not ported: the primitives no method uses (Eat, Sleep, GoToHouse, GoToMushroom) and the hunger / energy
+//   preconditions of MineOre, SmeltOre and SellMetal (nothing in the domain restores energy or food, so they are
+//   dead in the source too); bevy_dogoap's GOAP original.
+//
+// Facts: (gold ?amount) int; (has_ore) (has_metal); (location ?place) outside | ore | smelter | merchant.
+// Primitives (logged): (!go_to ?place) (!mine_ore) (!smelt_ore) (!sell_metal)
+// Scenarios: worlds/ore_to_gold/; the story: stories.ts; npm run htn:run -- --world ore_to_gold/1_start_with_nothing
+
+(:domain OreToGold top_level_domain
+
+    (:constants OreToGold
+        (gold_goal 3)
+    )
+
+    // Earn gold until there is @gold_goal. Effect: one stage of the chain done, then the loop decides again.
+    (:method (earn_gold) top_level_method
+
+        (enough_gold
+            (and
+                (gold ?gold)
+                (>= ?gold @gold_goal)
+            )
+            ()
+        )
+
+        (sell_metal
+            (and
+                (has_metal)
+            )
+            (
+                (metal_to_gold)
+                (&earn_gold)
+            )
+        )
+
+        (smelt_ore
+            (and
+                (has_ore)
+            )
+            (
+                (ore_to_metal)
+                (&earn_gold)
+            )
+        )
+
+        (mine_ore
+            ()
+            (
+                (!go_to ore)
+                (!mine_ore)
+                (&earn_gold)
+            )
+        )
+    )
+
+    // Pre: has_ore. Effect: has_metal, back outside.
+    (:method (ore_to_metal)
+
+        (at_smelter
+            (and
+                (location smelter)
+            )
+            (
+                (!smelt_ore)
+                (!go_to outside)
+            )
+        )
+
+        (walk_to_smelter
+            ()
+            (
+                (!go_to smelter)
+                (&ore_to_metal)
+            )
+        )
+    )
+
+    // Pre: has_metal. Effect: one more gold, back outside.
+    (:method (metal_to_gold)
+
+        (at_merchant
+            (and
+                (location merchant)
+            )
+            (
+                (!sell_metal)
+                (!go_to outside)
+            )
+        )
+
+        (walk_to_merchant
+            ()
+            (
+                (!go_to merchant)
+                (&metal_to_gold)
+            )
+        )
+    )
+)

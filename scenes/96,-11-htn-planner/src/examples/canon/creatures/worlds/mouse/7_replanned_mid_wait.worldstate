@@ -1,0 +1,10 @@
+// mouse: replanned mid-wait.
+// A replan in the middle of an idle wait (say, a noise the domain does not react to) keeps the wait.
+// method: behave
+// expect: succeeded
+//   1. !wait_until 9.0
+
+now 5.0
+satiation hunger 80
+idle_until 9.0
+idle_spot spot_b

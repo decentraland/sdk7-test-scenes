@@ -1,0 +1,10 @@
+// grazer: calm, hungry: grazes.
+// method: behave
+// expect: succeeded
+//   1. !move_near grass 1.0
+//   2. !consume grass
+
+now 0.0
+satiation hunger 30
+food grass
+distance_to grass 2.0

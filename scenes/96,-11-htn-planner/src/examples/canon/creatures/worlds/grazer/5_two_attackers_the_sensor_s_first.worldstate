@@ -1,0 +1,12 @@
+// grazer: two attackers: the sensor’s first.
+// method: behave
+// expect: succeeded
+//   1. !move_near fox 1.0
+//   2. !juke_away fox
+//   3. !melee_attack fox
+
+now 0.0
+hostile fox
+hostile wolf
+distance_to wolf 0.5
+distance_to fox 3.0

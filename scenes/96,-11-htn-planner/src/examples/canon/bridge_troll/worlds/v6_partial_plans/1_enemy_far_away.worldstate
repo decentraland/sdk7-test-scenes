@@ -1,0 +1,8 @@
+// v6_partial_plans: enemy far away.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to knight
+
+enemy_visible knight
+trunk_health 3
+power_up 0

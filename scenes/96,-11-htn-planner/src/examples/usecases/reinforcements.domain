@@ -1,0 +1,163 @@
+// Upstream docs/USE_CASES.md (intro, section 5) and DOMAIN_LANGUAGE.md "Conditions and backtracking": callterms run
+// while the planner decomposes, also for candidates and branches it later abandons, and backtracking does not undo
+// what they did. Irreversible work (spawning, spending, deleting facts) belongs in a primitive the host runs after
+// the plan is chosen. The first five methods are the wrong way, kept to show what goes wrong; `reinforce` is the
+// right one. Test: test/examples/usecase-irreversible.test.ts.
+//
+// Facts: (spawn_point ?name) candidates in order; (clear ?name) nobody stands there; (route_blocked) the march
+//        fails; (reserve ?squad) squads waiting; (posted ?squad near|far); (ready ?squad) squads that can go.
+// Callterms (the wrong way): (call spawn ?point) spawns at once; (call take_reserve ?squad) deletes the reserve row;
+//        (call recall_far_posts) deletes the far posted rows; (call call_in_reserve ?squad) adds a reserve row;
+//        (call note_planning) counts planner calls.
+// Primitives: (!spawn ?point) (!march ?point) (!announce ?point) (!hold_position) (!deploy ?squad) (!no_reserve)
+//        (!wait ?seconds)
+
+(:domain Reinforcements top_level_domain
+
+    // Wrong: the spawn is a condition. Every point the planner tries spawns, also the ones it rejects.
+    (:method (reinforce_in_condition) top_level_method
+        (spawn_at_clear_point
+            (and
+                (spawn_point ?point)
+                (call spawn ?point)
+                (clear ?point)
+            )
+            (
+                (!announce ?point)
+            )
+        )
+        (hold
+            ()
+            (
+                (!hold_position)
+            )
+        )
+    )
+
+    // Wrong: the branch is selected and spawns, then its tasks fail; the next branch wins and the spawn stays.
+    (:method (reinforce_in_branch) top_level_method
+        (by_route
+            (and
+                (spawn_point ?point)
+                (clear ?point)
+                (call spawn ?point)
+            )
+            (
+                (march ?point)
+            )
+        )
+        (hold
+            ()
+            (
+                (!hold_position)
+            )
+        )
+    )
+
+    // Wrong: deleting a row of the fact being enumerated. The next candidate is skipped, and the deleted rows stay
+    // deleted although the branch that deleted them was abandoned.
+    (:method (deploy_taking_reserve) top_level_method
+        (deploy_ready_squad
+            (and
+                (reserve ?squad)
+                (call take_reserve ?squad)
+                (ready ?squad)
+            )
+            (
+                (!deploy ?squad)
+            )
+        )
+        (nothing_ready
+            ()
+            (
+                (!no_reserve)
+            )
+        )
+    )
+
+    // Wrong: deleting a row the query does not match, before the one being tried. The retry still reaches the next
+    // candidate (it rescans the table), but the result depends on how the planner enumerates: do not rely on it.
+    (:method (deploy_recalling_far_posts) top_level_method
+        (deploy_ready_squad
+            (and
+                (posted ?squad near)
+                (call recall_far_posts)
+                (ready ?squad)
+            )
+            (
+                (!deploy ?squad)
+            )
+        )
+        (nothing_ready
+            ()
+            (
+                (!no_reserve)
+            )
+        )
+    )
+
+    // Wrong: adding a row of the fact being enumerated, during its enumeration.
+    (:method (deploy_calling_in) top_level_method
+        (deploy_ready_squad
+            (and
+                (reserve ?squad)
+                (call call_in_reserve ?squad)
+                (ready ?squad)
+            )
+            (
+                (!deploy ?squad)
+            )
+        )
+        (nothing_ready
+            ()
+            (
+                (!no_reserve)
+            )
+        )
+    )
+
+    // Right: conditions only read; the spawn is a primitive, rolled back with the branch that failed, and run by
+    // the host once, after the plan is chosen.
+    (:method (reinforce) top_level_method
+        (by_route
+            (and
+                (spawn_point ?point)
+                (clear ?point)
+            )
+            (
+                (!spawn ?point)
+                (march ?point)
+            )
+        )
+        (hold
+            ()
+            (
+                (!hold_position)
+            )
+        )
+    )
+
+    (:method (march ?inp_point)
+        (route_open
+            (and
+                (not (route_blocked))
+            )
+            (
+                (!march ?inp_point)
+            )
+        )
+    )
+
+    // A host that plans candidates (USE_CASES 2) calls this for plans it then drops: a callterm runs per planner
+    // call, not per adopted plan.
+    (:method (behave) top_level_method
+        (stand
+            (and
+                (call note_planning)
+            )
+            (
+                (!wait 5.0)
+            )
+        )
+    )
+)

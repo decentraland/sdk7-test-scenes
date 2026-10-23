@@ -1,0 +1,6 @@
+// ore_to_gold: enough gold.
+// method: earn_gold
+// expect: succeeded
+
+gold 3
+location outside

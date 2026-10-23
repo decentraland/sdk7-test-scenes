@@ -1,0 +1,70 @@
+(:include "reach.domain")
+(:include "idle.domain")
+
+// Shared tier: follow a leader. Too far: catch up. Close and already waiting: keep waiting. Close: loiter at a spot
+// near the leader.
+//
+// Teaches: a re-entrant follow (each replan lands in the branch that fits the distance and the timer), two ranges
+// (start catching up beyond the far one, stop at the close one, so the creature does not twitch at the edge), reuse
+// of the idle tier's `loiter_at` and timer instead of a copy.
+// Source: Space Station 14 (MIT), `FollowCompound` in Resources/Prototypes/NPCs/follow.yml at commit
+// 614f030530578e248a2393dd71ee9813d68d800d:
+// https://github.com/space-wizards/space-station-14/blob/614f030530578e248a2393dd71ee9813d68d800d/Resources/Prototypes/NPCs/follow.yml
+// Licence: MIT, Copyright (c) 2017-2026 Space Wizards Federation; see src/examples/canon/THIRD_PARTY_NOTICES.md.
+// Adapted (YAML prototypes re-written in our domain language). Ranges are SS14's blackboard defaults
+// (NPCBlackboard.cs: FollowRange 7, FollowCloseRange 3).
+// Emulations: the spot near the leader (SS14 `PickAccessibleOperator` while planning) is the host sensor fact
+// `(follow_spot ?leader ?spot)`; the random wait is `!idle_wait` (see idle.domain).
+// Deviations: a fourth branch `stay_close` (wait in place when the host found no spot), so the tier always plans.
+// Not ported: SS14's own caveat in follow.yml (accessibility is checked against the leader entity only) does not
+// apply: the host sensor decides what a reachable spot is.
+//
+// Facts:      (distance_to ?entity ?metres), (follow_spot ?leader ?spot) host sensors; idle.domain's facts.
+// Primitives: (!move_near ?entity ?range) (!wait_until ?seconds) (!move_to ?spot) (!idle_wait ?min ?max)
+
+(:domain follow
+
+    (:constants FollowTier
+        (follow_range 7.0)
+        (follow_close_range 3.0)
+    )
+
+    // Contract: afterwards the caller is within @follow_range of ?inp_leader (or on its way there); never fails.
+    (:method (follow ?inp_leader)
+
+        (catch_up
+            (and
+                (not (#within ?inp_leader @follow_range))
+            )
+            (
+                (get_in_range ?inp_leader @follow_close_range)
+            )
+        )
+
+        (keep_waiting
+            (and
+                (#idle_timer ?until)
+                (#within ?inp_leader @follow_range)
+            )
+            (
+                (!wait_until ?until)
+            )
+        )
+
+        (loiter_near
+            (and
+                (follow_spot ?inp_leader ?spot)
+            )
+            (
+                (loiter_at ?spot)
+            )
+        )
+
+        (stay_close
+            ()
+            (
+                (!idle_wait @idle_min @idle_max)
+            )
+        )
+    )
+)

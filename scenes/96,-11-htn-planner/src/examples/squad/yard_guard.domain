@@ -1,0 +1,110 @@
+// Level 11, one guard of the yard squad (yard_squad.domain gives the orders). It gets its role as the fact
+// (order <role>) and decides how to carry it out from its own world: what it sees, what it remembers, where its posts
+// are. It does not chase on its own: an intruder is chased by the guard the squad orders to.
+//
+// Facts (each guard's own world):
+//   (order chase|hold|flank|patrol)    from the squad planner (GuardSquadOptions.squad); absent: no order (a break)
+//   (target_visible ?target ?position) (last_seen ?target ?position ?time) (waypoint ?index ?position)
+//   (waypoint_count ?count) (current_waypoint ?index)    the guard kit's own (htn-planner/npc/blackboard.ts)
+//   (gate_post ?post ?outside)          where the gate is held from, and the point outside it faces
+//   (flank_post ?post)                  this guard's flanking spot
+//   (bench ?spot)                       where a guard without an order waits
+// Primitives (htn-planner/npc/actions.ts): (!chase ?target) (!catch ?target) (!move_to ?position ?gait)
+//   (!look_around ?seconds) (!forget ?target) (!wait ?seconds) (!set_waypoint ?index) (!turn_to ?position)
+//
+// Shape (docs/htn-guidance.md, Domain design): `behave` dispatches the order; the chase order is a tier (`pursue`:
+// chase or search). What it shares with guard/guard.domain (the chase, the check of a last-seen spot, the patrol
+// walk and advance_patrol) is in guard/guard_kit.domain, included by both. No belief upkeep: it has none to do (its
+// one memory write, the search's !forget, is a step of that behaviour). Its behaviour branch names (chase, search,
+// hold, flank, patrol, off_duty) are what level 11 reads: AgentSetup.chosenDepth 2.
+
+(:include "../guard/guard_kit.domain")
+
+(:domain YardGuard top_level_domain
+
+    (:method (behave) top_level_method
+
+        // Ordered to chase, with someone to chase or a place to search; else (nothing left to chase until the squad
+        // decides again) the guard goes off duty.
+        (pursue
+            (and
+                (order chase)
+                (or
+                    (target_visible ?any_target ?any_position)
+                    (last_seen ?any_seen ?any_seen_position ?any_time)
+                )
+            )
+            (
+                (pursue)
+            )
+        )
+
+        (hold
+            (and
+                (order hold)
+                (gate_post ?post ?outside)
+            )
+            (
+                (!move_to ?post hurry)
+                (!turn_to ?outside)
+                (!wait 2.0)
+            )
+        )
+
+        (flank
+            (and
+                (order flank)
+                (flank_post ?post)
+            )
+            (
+                (!move_to ?post run)
+                (!look_around 2.0)
+            )
+        )
+
+        (patrol
+            (and
+                (order patrol)
+                (current_waypoint ?index)
+                (waypoint ?index ?position)
+            )
+            (
+                (walk_patrol ?position 1.0)
+            )
+        )
+
+        // No order (a break), or a chase order with nothing left to chase until the squad decides again.
+        (off_duty
+            (and
+                (bench ?spot)
+            )
+            (
+                (!move_to ?spot walk)
+                (!wait 2.0)
+            )
+        )
+    )
+
+    // Contract: a chase order, and a target in sight or remembered. Chases the one in sight, else searches where the
+    // remembered one was last seen.
+    (:method (pursue)
+
+        (chase
+            (and
+                (target_visible ?target ?any_position)
+            )
+            (
+                (catch_target ?target 1.5)
+            )
+        )
+
+        (search
+            (and
+                (last_seen ?target ?position ?any_time)
+            )
+            (
+                (check_last_seen ?target ?position 3.0)
+            )
+        )
+    )
+)

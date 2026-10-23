@@ -1,0 +1,418 @@
+[
+  {
+    "name": "deferred: Wanderer &talk_about_destination observes fresh world state and recovers after failure",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:175",
+    "note": "RunDeferredWorldStateTest via GeneratedUsesFreshWorldStateAndRecoversAfterResolutionFailure (line 354). PlanningUnit default method is \"run\".",
+    "domain": "upstream/Domains/Wanderer.domain",
+    "facts": [
+      ["wanderer_state", "walking"],
+      ["wanderer_location", "(0 0)"],
+      ["wanderer_destination", "(15 0)"],
+      ["pathfind_state", "succeeded", "(0 0)", "(15 0)", "1"],
+      ["pathfinder", "1", "1", "(0 0)", "(15 0)"],
+      ["pathfinding_segment", "1", "0", "(15 0)"]
+    ],
+    "callterms": "deferred-wanderer",
+    "script": [
+      {
+        "op": "plan",
+        "method": "talk_about_destination",
+        "expect": {"status": "invalid_call", "remaining": []}
+      },
+      {
+        "op": "plan",
+        "method": "run",
+        "expect": {"status": "succeeded"}
+      },
+      {
+        "op": "resolve",
+        "expect": "ready",
+        "currentStep": {"head": "!walk_segment"}
+      },
+      {"op": "complete"},
+      {"op": "removeFact", "name": "wanderer_location", "arity": 1, "index": 0},
+      {"op": "resolve", "expect": "failed", "remaining": []},
+      {"op": "clearFacts", "name": "wanderer_location", "arity": 1},
+      {"op": "addFact", "fact": ["wanderer_location", "(0 0)"]},
+      {
+        "op": "plan",
+        "method": "run",
+        "expect": {"status": "succeeded"}
+      },
+      {"op": "resolve", "expect": "ready"},
+      {"op": "complete"},
+      {"op": "clearFacts", "name": "wanderer_location", "arity": 1},
+      {"op": "addFact", "fact": ["wanderer_location", "(2 2)"]},
+      {
+        "op": "resolve",
+        "expect": "ready",
+        "currentStep": {
+          "head": "!say",
+          "argCount": 1,
+          "types": {"0": "str"},
+          "args": {"0": "\"Both coordinates are even!\""}
+        }
+      },
+      {"op": "complete"},
+      {
+        "op": "resolve",
+        "expect": "ready",
+        "currentStep": {"head": "!after_destination_comment"}
+      },
+      {"op": "complete"},
+      {"op": "resolve", "expect": "completed"}
+    ]
+  },
+  {
+    "name": "deferred: &call target is dispatchable but not top-level",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:361",
+    "note": "Upstream asserts FindMethod(\"later\")->IsTopLevel() is false (and generated dispatch details); here: planning it directly is invalid_call.",
+    "domain": "DeferredCallGenerated.domain",
+    "sources": {
+      "DeferredCallGenerated.domain": "\n(:domain DeferredCallGenerated top_level_domain\n    (:method (run) top_level_method\n        (branch\n            ()\n            ((&later 7))\n        )\n    )\n    (:method (later ?inp_value)\n        (branch\n            ()\n            ((!capture ?inp_value))\n        )\n    )\n)\n"
+    },
+    "method": "later",
+    "args": ["7"],
+    "expect": {"status": "invalid_call"}
+  },
+  {
+    "name": "compiler: method parameter without inp_ prefix is rejected",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:424",
+    "domain": "InvalidParameter.domain",
+    "sources": {
+      "InvalidParameter.domain": "(:domain InvalidParameter top_level_domain\n  (:method (run) top_level_method (start () ((child 1))))\n  (:method (child ?value) (body () ((!act ?value))))\n)\n"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3},
+      "upstreamMessage": "must use the inp_ prefix"
+    }
+  },
+  {
+    "name": "compiler: axiom parameter without inp_/out_/io_ prefix is rejected",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:441",
+    "domain": "InvalidAxiom.domain",
+    "sources": {
+      "InvalidAxiom.domain": "(:domain InvalidAxiom top_level_domain\n  (:axiom (bad ?value) ())\n  (:method (run) top_level_method (start () ((!act))))\n)\n"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "must use an inp_, out_ or io_ prefix"}
+  },
+  {
+    "name": "compiler: complex_scenario links (ComplexScenario)",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:450",
+    "domain": "upstream/Domains/Test/complex_scenario.domain",
+    "expect": {"compile": "ok", "irName": "ComplexScenario"}
+  },
+  {
+    "name": "compiler: AAACombatNPC links with includes",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:474",
+    "domain": "upstream/Domains/AAACombatNPC.domain",
+    "expect": {"compile": "ok", "irName": "AAACombatNPC"}
+  },
+  {
+    "name": "compiler: in-memory source",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:496",
+    "domain": "CompilerBuffer.domain",
+    "sources": {
+      "CompilerBuffer.domain": "(:domain CompilerBuffer top_level_domain\n  (:method (run) top_level_method (ready () ((!act))))\n)\n"
+    },
+    "expect": {"compile": "ok", "irName": "CompilerBuffer"}
+  },
+  {
+    "name": "compiler: declarations in any order",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:512",
+    "domain": "UnorderedDeclarations.domain",
+    "sources": {
+      "UnorderedDeclarations.domain": "(:domain UnorderedDeclarations top_level_domain\n  (:method (run) top_level_method (ready (and (#is_ready 7)) ((!act))))\n  (:axiom (is_ready ?inp_value) (and (ready_value ?inp_value)))\n  (:constants (expected 7))\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "compiler: lexer error location",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:531",
+    "domain": "BrokenLexer.domain",
+    "sources": {
+      "BrokenLexer.domain": "(:domain BrokenLexer top_level_domain\n  (:method (run) top_level_method (ready () ((!act $value))))\n)\n"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 2, "col": 52},
+      "upstreamMessage": "Character [$] not recognized"
+    }
+  },
+  {
+    "name": "compiler: validator rejects ?out_ method parameter",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:549",
+    "domain": "InvalidCompilerSignature.domain",
+    "sources": {
+      "InvalidCompilerSignature.domain": "(:domain InvalidCompilerSignature top_level_domain\n  (:method (run ?out_target) top_level_method (ready () ((!act ?out_target))))\n)\n"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 2},
+      "upstreamMessage": "inp_ prefix"
+    }
+  },
+  {
+    "name": "compiler: independent syntax errors are all reported",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:566",
+    "domain": "BrokenCompiler.domain",
+    "sources": {
+      "BrokenCompiler.domain": "(:domain BrokenCompiler top_level_domain\n  (:axiom (broken_axiom) (unknown_condition))\n  (:method (run) top_level_method (broken_branch))\n)\n"
+    },
+    "expect": {"compile": "error", "errorCount": 2, "errorLines": [2, 3]}
+  },
+  {
+    "name": "compiler: incomplete form 1 is rejected",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:584",
+    "domain": "Incomplete.domain",
+    "sources": {
+      "Incomplete.domain": "(:domain Broken top_level_domain (:method (run) top_level_method (branch (and) ((!act))"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "compiler: incomplete form 2 is rejected",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:584",
+    "domain": "Incomplete.domain",
+    "sources": {
+      "Incomplete.domain": "(:domain Broken top_level_domain (:method (run) top_level_method (branch (and) ((!act ?)))) )"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "compiler: incomplete form 3 is rejected",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:584",
+    "domain": "Incomplete.domain",
+    "sources": {
+      "Incomplete.domain": "(:domain Broken top_level_domain (:method (run) top_level_method (branch (and (call)) ((!act)))))"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "compiler: include_demo links reusable modules",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:942",
+    "domain": "upstream/Domains/include_demo.domain",
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "compiler: qualified Base:: axiom call from override",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1083",
+    "domain": "Root.domain",
+    "sources": {
+      "Base.domain": "(:domain Base base\n (:axiom (can_engage ?inp_target) base (and (base_ready ?inp_target)))\n)\n",
+      "Root.domain": "(:include \"Base.domain\")\n(:domain Root top_level_domain\n (:axiom (can_engage ?inp_target) overrides Base\n   (and (#Base::can_engage ?inp_target) (root_ready ?inp_target)))\n (:method (run) top_level_method\n   (b (and (#can_engage enemy)) ((!engage enemy))))\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "compiler: qualified empty base axiom inside or",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1142",
+    "domain": "Root.domain",
+    "sources": {
+      "Base.domain": "(:domain Base base\n (:axiom (always_true ?inp_value) base ())\n)\n",
+      "Root.domain": "(:include \"Base.domain\")\n(:domain Root top_level_domain\n (:axiom (test ?inp_value)\n   (or\n     (#Base::always_true ?inp_value)\n     (second_guard ?inp_value)))\n (:method (run) top_level_method\n   (b (and (#test enemy)) ((!done enemy))))\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "compiler: Grunt empty base axiom",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1226",
+    "domain": "upstream/Domains/Grunt.domain",
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "compiler: EliteNinja override chain",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1060",
+    "domain": "upstream/Domains/EliteNinja.domain",
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "compiler: top-level method with three arguments",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1291",
+    "domain": "GeneratedTopLevelArguments.domain",
+    "sources": {
+      "GeneratedTopLevelArguments.domain": "\n(:domain GeneratedTopLevelArguments top_level_domain\n    (:method (get_priority_for_role ?inp_candidate ?inp_role_id ?inp_role_context) top_level_method\n        (accept () ((!return ?inp_candidate ?inp_role_id ?inp_role_context)))\n    )\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "compiler: builtin comparison domain",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1470",
+    "domain": "BuiltinComparisonGenerated.domain",
+    "sources": {
+      "BuiltinComparisonGenerated.domain": "\n(:domain BuiltinComparisonGenerated top_level_domain\n    (:method (run ?inp_value) top_level_method\n        (branch_main\n            (and\n                (>= ?inp_value 5))\n            ((!capture ?inp_value))\n        )\n    )\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "compiler: ?any_ singleton used as a task argument is rejected",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1514",
+    "domain": "AnyPrefix.domain",
+    "sources": {
+      "AnyPrefix.domain": "(:domain AnyPrefix top_level_domain\n  (:method (run) top_level_method\n    (branch_main () ((!capture ?any_threat)))\n  )\n)\n"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "Singleton variable"}
+  },
+  {
+    "name": "compiler: unbound ?company_value task argument is rejected (not a singleton)",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1531",
+    "domain": "AnyPrefix.domain",
+    "sources": {
+      "AnyPrefix.domain": "(:domain AnyPrefix top_level_domain\n  (:method (run) top_level_method\n    (branch_main () ((!capture ?company_value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "compiler: unbound ?any task argument is rejected (not a singleton)",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1534",
+    "domain": "AnyPrefix.domain",
+    "sources": {
+      "AnyPrefix.domain": "(:domain AnyPrefix top_level_domain\n  (:method (run) top_level_method\n    (branch_main () ((!capture ?any)))\n  )\n)\n"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "compiler: distinct ?any_ singletons in facts compile",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1539",
+    "domain": "AnySingletonGenerated.domain",
+    "sources": {
+      "AnySingletonGenerated.domain": "\n(:domain AnySingletonGenerated top_level_domain\n    (:method (run) top_level_method\n        (branch_main\n            (and\n                (threat ?any_threat_0)\n                (visible ?any_threat_1))\n            ((!capture))\n        )\n    )\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "compiler: method overload validation 1",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1599",
+    "domain": "Bad.domain",
+    "sources": {"Bad.domain": "(:domain Bad top_level_domain (:method (run) top_level_method) (:method (run)))"},
+    "expect": {"compile": "error", "upstreamMessage": "uplicate"}
+  },
+  {
+    "name": "compiler: method overload validation 2",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1599",
+    "domain": "Bad.domain",
+    "sources": {
+      "Bad.domain": "(:domain Bad top_level_domain (:method (run) top_level_method (b () ((work 1 2)))) (:method (work)) (:method (work ?inp_x)))"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "no overload accepts 2"}
+  },
+  {
+    "name": "compiler: method overload validation 3",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1599",
+    "domain": "Bad.domain",
+    "sources": {
+      "Bad.domain": "(:domain Bad top_level_domain (:method (run) top_level_method (b () ((Bad::work 1)))) (:method (work)))"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "no overload accepts 1"}
+  },
+  {
+    "name": "compiler: method overload validation 4",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1599",
+    "domain": "Bad.domain",
+    "sources": {
+      "Bad.domain": "(:domain Bad top_level_domain (:method (run) top_level_method (b () ((&work 1)))) (:method (work)))"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "no overload accepts 1"}
+  },
+  {
+    "name": "compiler: axiom overload validation 1",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1620",
+    "domain": "Bad.domain",
+    "sources": {
+      "Bad.domain": "(:domain Bad top_level_domain (:method (run) top_level_method) (:axiom (a ?inp_x) ()) (:axiom (a ?out_y) ()))"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "uplicate"}
+  },
+  {
+    "name": "compiler: axiom overload validation 2",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1620",
+    "domain": "Bad.domain",
+    "sources": {
+      "Bad.domain": "(:domain Bad top_level_domain (:method (run) top_level_method) (:method (work) (b (and (#a 1 2)) ())) (:axiom (a) ()) (:axiom (a ?inp_x) ()))"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "no overload accepts 2"}
+  },
+  {
+    "name": "compiler: axiom overload validation 3",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1620",
+    "domain": "Bad.domain",
+    "sources": {
+      "Bad.domain": "(:domain Bad top_level_domain (:method (run) top_level_method) (:axiom (a) (and (#Bad::a 1))))"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "no overload accepts 1"}
+  },
+  {
+    "name": "compiler: axiom overload validation 4",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1620",
+    "domain": "Bad.domain",
+    "sources": {
+      "Bad.domain": "(:domain Bad top_level_domain (:method (run) top_level_method) (:axiom (a) (and (not (#missing 1)))))"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "no overload accepts 1"}
+  },
+  {
+    "name": "compiler: axiom overload validation 5",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1620",
+    "domain": "Bad.domain",
+    "sources": {
+      "Bad.domain": "(:domain Bad top_level_domain (:method (run) top_level_method) (:axiom (a) (and (#a 1))) (:axiom (a ?inp_x) (and (#a))))"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "Cyclic axiom dependency"}
+  },
+  {
+    "name": "compiler: axiom overloads resolve by arity",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1642",
+    "domain": "Good.domain",
+    "sources": {
+      "Good.domain": "(:domain Good top_level_domain (:method (run) top_level_method (b (and (#a) (#a 1)) ())) (:axiom (a) (and (#a 1))) (:axiom (a ?inp_x) (and (== ?inp_x 1))))"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "compiler: nested multi-solution out axioms compile",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1664",
+    "domain": "HTNNestedAxiomChoices_out.domain",
+    "sources": {
+      "HTNNestedAxiomChoices_out.domain": "(:domain NestedAxiomChoices top_level_domain\n  (:method (run) top_level_method\n    (choose (and (#outer ?value) (== ?value 2)) ((!selected ?value))))\n  (:axiom (outer ?out_value) (and (#inner ?out_value)))\n  (:axiom (inner ?out_value) (and (candidate ?out_value)))\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "compiler: nested multi-solution io axioms compile",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1664",
+    "domain": "HTNNestedAxiomChoices_io.domain",
+    "sources": {
+      "HTNNestedAxiomChoices_io.domain": "(:domain NestedAxiomChoices top_level_domain\n  (:method (run) top_level_method\n    (choose (and (#outer ?value) (== ?value 2)) ((!selected ?value))))\n  (:axiom (outer ?io_value) (and (#inner ?io_value)))\n  (:axiom (inner ?io_value) (and (candidate ?io_value)))\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "compiler: parser error UnclosedList",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1713",
+    "domain": "Broken.domain",
+    "sources": {"Broken.domain": "(:domain Broken"},
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "compiler: parser error IncompleteSyntax",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1713",
+    "domain": "Broken.domain",
+    "sources": {"Broken.domain": "(:domain Broken (:method))"},
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "compiler: parser error AxiomPrefixInTaskList",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1713",
+    "domain": "Broken.domain",
+    "sources": {"Broken.domain": "(:domain Broken (:method (run) (branch () ((#later)))))"},
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "compiler: parser error InvalidArithmeticArity",
+    "upstream": "HTNTest/src/HTNDecompositionTest.cpp:1713",
+    "domain": "Broken.domain",
+    "sources": {"Broken.domain": "(:domain Broken (:method (run) (branch () ((!done (++ 1 2))))))"},
+    "expect": {"compile": "error"}
+  }
+]

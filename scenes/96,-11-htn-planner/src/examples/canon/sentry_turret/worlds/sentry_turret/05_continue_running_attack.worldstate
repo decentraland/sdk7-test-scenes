@@ -1,0 +1,14 @@
+// sentry_turret: mid-attack on the vehicle (the host wrote active_plan at !begin_plan) a soldier comes closer and the
+// sensors rank him first. The vehicle is still attackable, so the continue branch keeps the running plan.
+// method: behave
+// expect: succeeded
+//   1. !continue
+
+active_plan attack v1
+wielded rockets
+threat h2 humanoid
+threat v1 vehicle
+distance_to h2 10.0
+distance_to v1 55.0
+line_of_fire h2
+line_of_fire v1

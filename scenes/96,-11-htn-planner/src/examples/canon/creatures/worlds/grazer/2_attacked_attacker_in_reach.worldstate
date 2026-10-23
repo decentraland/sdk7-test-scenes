@@ -1,0 +1,9 @@
+// grazer: attacked, attacker in reach.
+// method: behave
+// expect: succeeded
+//   1. !juke_away wolf
+//   2. !melee_attack wolf
+
+now 0.0
+hostile wolf
+distance_to wolf 0.800000011920929

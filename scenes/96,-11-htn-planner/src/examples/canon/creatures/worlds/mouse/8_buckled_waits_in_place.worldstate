@@ -1,0 +1,9 @@
+// mouse: buckled: waits in place.
+// method: behave
+// expect: succeeded
+//   1. !idle_wait 2.0 7.0
+
+now 0.0
+satiation hunger 80
+buckled
+idle_spot spot_a

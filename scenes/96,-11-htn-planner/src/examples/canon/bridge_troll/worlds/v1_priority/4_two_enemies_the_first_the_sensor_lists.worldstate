@@ -1,0 +1,8 @@
+// v1_priority: two enemies: the first the sensor lists.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to knight
+//   2. !trunk_slam knight
+
+enemy_visible knight
+enemy_visible squire

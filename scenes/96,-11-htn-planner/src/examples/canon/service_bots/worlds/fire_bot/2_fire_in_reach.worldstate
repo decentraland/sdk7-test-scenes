@@ -1,0 +1,11 @@
+// fire_bot: fire in reach.
+// method: behave
+// expect: succeeded
+//   1. !say fire_detected
+//   2. !wait 1.0
+//   3. !extinguish stove
+
+now 0.0
+on_fire stove
+distance_to stove 1.0
+spoke fire_detected 0.0
