@@ -4,7 +4,7 @@ How to build NPCs on this planner: host integration, domain design, tools and pe
 Language and host semantics follow [urosidoki/htn_planner 2.4.0](https://github.com/urosidoki/htn_planner/tree/aec08fa36f2c521c4da00c045bf23b8aed7bfa92),
 especially `docs/DOMAIN_LANGUAGE.md`, `docs/USE_CASES.md` and `docs/GENERATED_RECURSION.md`.
 Examples and measurements below describe this port and their stated test conditions.
-Read the [planner limitations](../scenes/96,-11-htn-planner/src/htn-planner/htn/README.md#planner-limitations)
+Read the [planner limitations](../src/htn-planner/htn/README.md#planner-limitations)
 before adapting it to another game.
 
 ## The split: planner vs host
@@ -85,7 +85,7 @@ These opt-in checks run in test tooling; production planning does not infer or e
   world. Re-publish the facts and plan again at once, with a small budget of passes per tick (upstream HTNDemo: 4)
   so a domain that never gets past an empty plan cannot spin. Our agent: `maxPlanningPasses`, `syncFacts` between
   passes. Example: a goal task whose first method is "already done", `already_there` in
-  [classics/commuter.domain](../scenes/96,-11-htn-planner/src/examples/canon/classics/commuter.domain).
+  [classics/commuter.domain](../src/examples/canon/classics/commuter.domain).
 - **Throttle trigger replans, not retries** and avoid flip-flopping between two close branches: keep the current
   one unless a new one clearly wins (Transformers: Fall of Cybertron). Our agent: `replanThrottle` (default 0, as upstream; set 0.25 s if a trigger flickers) paces
   perception / hearing / fact-change replans; a no-plan retry, a completed plan or a failed step replans at once.
@@ -150,7 +150,7 @@ These opt-in checks run in test tooling; production planning does not infer or e
   task. A method that selected its last branch keeps its frames until the plan ends, so a recursion step that calls
   such a method costs four frames, not two (1000 idle entities in complex_scenario peak at 3843). Axioms are free.
   Raise `maxDepth` for longer lists. A loop that plans one step and defers the rest (`(step) (&loop)`) needs no depth:
-  each `&` is a new decomposition ([classics/hunter.domain](../scenes/96,-11-htn-planner/src/examples/canon/classics/hunter.domain),
+  each `&` is a new decomposition ([classics/hunter.domain](../src/examples/canon/classics/hunter.domain),
   `&hunt` after every move).
 - A fact whose variables are all bound at that point (method parameters, `?inp_` axiom parameters, variables
   bound earlier in the `and` or by every `or`/`alt` child) or `?any_` has one solution: duplicate rows do not
@@ -835,7 +835,7 @@ The planner reuses its buffers, so what it hands out follows three rules:
   it (the atoms in it may be kept). Return shared atoms where you can (`bool()`, small `int()`, a constant list): a
   callterm that builds a list or a float per call is what is left in bytes per plan.
 
-What still allocates while planning ([Planner limitations](../scenes/96,-11-htn-planner/src/htn-planner/htn/README.md#planner-limitations)): values the domain makes
+What still allocates while planning ([Planner limitations](../src/htn-planner/htn/README.md#planner-limitations)): values the domain makes
 (float arithmetic, ints outside -128..1023, runtime lists, `split_list` of a new list), host callterms, diagnostics,
 a step that changed, a deferred expansion, and anything under a trace recorder (a debugging tool, 3-5× the time).
 

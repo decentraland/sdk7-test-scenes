@@ -3,7 +3,7 @@
 For library use or host integration, start with [README.md](README.md), the
 [runtime reference](src/htn-planner/htn/README.md) and
 [agent reference](src/htn-planner/npc/README.md).
-For domain design, debugging and tooling, read [HTN guidance](../../docs/htn-guidance.md)
+For domain design, debugging and tooling, read [HTN guidance](docs/htn-guidance.md)
 and the relevant lint, world-invariant or measurement reference linked there.
 
 The reusable code is `src/htn-planner/`; examples and playgrounds are consumers.

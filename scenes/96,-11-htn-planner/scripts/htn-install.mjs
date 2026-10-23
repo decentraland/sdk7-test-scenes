@@ -71,10 +71,7 @@ async function main() {
     }
   }
   if (args.includes('--reference')) {
-    for (const name of ['src', 'assets', 'tools', 'scripts', 'test', 'benchmarks']) await tree(path.join(source, name), 'reference/htn/' + name)
-    for (const name of ['htn-examples-catalog', 'htn-guidance', 'htn-level-metrics', 'htn-lint', 'htn-world-invariants']) {
-      add('reference/htn/docs/' + name + '.md', (await fs.readFile(path.resolve(source, '../../docs', name + '.md'), 'utf8')).replaceAll('../scenes/96,-11-htn-planner/', '../'))
-    }
+    for (const name of ['src', 'assets', 'tools', 'scripts', 'test', 'benchmarks', 'docs']) await tree(path.join(source, name), 'reference/htn/' + name)
     add('reference/htn/README.md', await fs.readFile(path.join(source, 'REFERENCE.md')))
     add('reference/htn/DEMO.md', await fs.readFile(path.join(source, 'DEMO.md')))
     add('reference/htn/SOURCE.json', planned.get('src/htn-planner/SOURCE.json').data)

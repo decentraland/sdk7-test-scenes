@@ -58,8 +58,8 @@ and assets into your own runtime folders and keep its applicable notices.
 - [Module installation and AI handoff](src/htn-planner/README.md)
 - [Integration recipes](src/htn-planner/HOW-TO.md)
 - [Demonstration, debugger and repository-only CLI tools](DEMO.md)
-- [Domain design and host contracts](../../docs/htn-guidance.md)
-- [Example catalogue](../../docs/htn-examples-catalog.md)
+- [Domain design and host contracts](docs/htn-guidance.md)
+- [Example catalogue](docs/htn-examples-catalog.md)
 - [Planner semantics and limitations](src/htn-planner/htn/README.md#planner-limitations)
 
 The planner does not simulate action effects or repair part of a plan. Your executors change the world; each replan builds

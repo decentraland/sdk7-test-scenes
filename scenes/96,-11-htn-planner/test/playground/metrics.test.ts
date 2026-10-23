@@ -284,8 +284,8 @@ test('a real run: level 5 notices and catches the tester every round, its guard 
   assert.ok(Math.abs(shares.reduce((a, b) => a + b, 0) - 1) < 1e-9)
 })
 
-test('the docs define every metric (docs/htn-level-metrics.md at the repo root names each key)', () => {
-  const doc = readFileSync(join(ROOT, '../../docs/htn-level-metrics.md'), 'utf8')
+test('the docs define every metric (docs/htn-level-metrics.md inside the scene names each key)', () => {
+  const doc = readFileSync(join(ROOT, 'docs/htn-level-metrics.md'), 'utf8')
   const missing = METRICS.map(m => m.key).filter(k => !doc.includes(`\`${k}\``))
   assert.deepEqual(missing, [])
 })

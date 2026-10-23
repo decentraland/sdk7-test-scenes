@@ -130,7 +130,7 @@ test('minimal install needs no starter/reference and rejects different files bef
 
 test('the demonstration deployment excludes development data while retaining active demo assets and licences', async () => {
   const files = await published(ROOT)
-  assert.ok(!files.some(p => /^(benchmarks|tools|test|scripts|reference)\/|^htn-lint\.json$|^tsconfig\./.test(p)), files.join('\n'))
+  assert.ok(!files.some(p => /^(benchmarks|tools|test|scripts|reference|docs)\/|^htn-lint\.json$|^tsconfig\./.test(p)), files.join('\n'))
   assert.ok(files.includes('assets/stalker/stalker.glb'), 'full demo intentionally uses this model')
   assert.ok(files.includes('htn-notices.txt'))
 })
@@ -163,14 +163,17 @@ test('notice symlinks and dangling links are rejected before writes, including d
   } finally { clean(dir); clean(outside) }
 })
 
-test('a ZIP-style source records unpinned provenance rather than inventing a commit', { timeout: 30000 }, () => {
+test('a scene-only ZIP installs full references and records unpinned provenance without a parent repository', { timeout: 30000 }, () => {
   const dir = fixture(), archive = fixture()
   try {
     const source = path.join(archive, 'download')
-    for (const folder of ['src/htn-planner', 'tools/htn', 'scripts']) {
+    for (const folder of ['src', 'tools', 'scripts', 'assets', 'test', 'benchmarks', 'docs']) {
       fs.cpSync(path.join(ROOT, folder), path.join(source, folder), { recursive: true })
     }
-    ok(node(ROOT, path.join(source, 'scripts/htn-install.mjs'), dir))
+    for (const file of ['DEMO.md', 'REFERENCE.md']) fs.copyFileSync(path.join(ROOT, file), path.join(source, file))
+    assert.ok(!fs.existsSync(path.join(archive, 'docs')), 'no repository-level docs in the standalone fixture')
+    ok(node(ROOT, path.join(source, 'scripts/htn-install.mjs'), dir, '--reference'))
+    assert.ok(fs.existsSync(path.join(dir, 'reference/htn/docs/htn-guidance.md')))
     const provenance = JSON.parse(fs.readFileSync(path.join(dir, 'src/htn-planner/SOURCE.json'), 'utf8'))
     assert.equal(provenance.pinned, false)
     assert.equal(provenance.ref, null)
