@@ -198,27 +198,29 @@ function defaultClock(): number {
   return typeof performance !== 'undefined' && typeof performance.now === 'function' ? performance.now() : Date.now()
 }
 
-/** Planner calls of one agent (upstream HTNDemo shows the same per NPC). Deferred expansions are not counted. */
+/** Decision/replan metrics of one agent, plus separate check/upkeep counts and times. Deferred expansions are not counted. */
 export interface PlanningMetrics {
-  /** Duration of the last planner call, ms. */
+  /** Duration of the last decision/replan decomposition, ms. */
   lastPlanMs: number
   totalPlanMs: number
   maxPlanMs: number
-  /** Planner calls: every pass, of an adopted plan or of a dropped candidate. */
+  /** Decision/replan decompositions: every pass, of an adopted plan or a dropped candidate. */
   plansMade: number
   /** Steps that ended `done`. */
   tasksCompleted: number
-  /** Call frames the last planner call peaked at (upstream peak_call_frames); 0 if the runner does not say. */
+  /** Call frames the last decision/replan decomposition peaked at; 0 if the runner does not say. */
   lastPeakCallFrames: number
-  /** The highest peak of any planner call, against `callFrameCapacity`: how much of maxDepth the domain uses. */
+  /** The highest decision/replan peak, against `callFrameCapacity`: how much of maxDepth those decompositions use. */
   maxPeakCallFrames: number
   /** The runner's call-frame capacity (PlannerOptions.maxDepth); 0 if the runner does not say. */
   callFrameCapacity: number
-  /** The last planner call's runtime error (upstream last_error), or null. */
+  /** The last decision/replan decomposition's runtime error (upstream last_error), or null. */
   lastError: RuntimeDiagnostic | null
   /**
-   * Structural counters of the last planner call and their sum over all calls; null unless the runner counts
-   * (PlannerOptions.stats). Replaced, never changed in place, so a copied `metrics` keeps its numbers.
+   * Structural counters of the last decision/replan decomposition and their sum over those passes only.
+   * Running-plan checks, reasoning upkeep and deferred expansions are excluded; check/upkeep counts and times
+   * are reported separately below. Null unless the runner counts (PlannerOptions.stats). Replaced, never changed
+   * in place, so a copied `metrics` keeps its numbers.
    */
   lastStats: PlanStats | null
   totalStats: PlanStats | null

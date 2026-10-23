@@ -227,8 +227,9 @@ export abstract class LevelSim {
   keepRetired = false
   /** NPCs a rebuild replaced, oldest first (only with keepRetired). */
   retired: CrewMember[] = []
-  /** Every runner counts its structural counters (PlannerOptions.stats), summed in each agent's `metrics.totalStats`;
-   *  off by default. Set before init(): the deterministic counter gate (scripts/bench/counters.ts) reads them. */
+  /** Enable runner structural counters (PlannerOptions.stats). Each agent's `metrics.totalStats` sums only
+   *  decision/replan decompositions, excluding checks, reasoning upkeep and deferred expansions. Off by default.
+   *  Set before init(): the deterministic counter gate (scripts/bench/counters.ts) reads those decision totals. */
   countStats = false
   /** A planning budget per frame shared by the crew (plan-budget.ts), or null. Set before init(); reset() keeps it.
    *  Deterministic with `maxPlansPerFrame` only: `planBudgetMs` reads the wall clock (inject PlanBudgetOptions.clock). */
