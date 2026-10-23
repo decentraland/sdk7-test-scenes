@@ -5,7 +5,8 @@ Language and host semantics follow [urosidoki/htn_planner 2.4.0](https://github.
 especially `docs/DOMAIN_LANGUAGE.md`, `docs/USE_CASES.md` and `docs/GENERATED_RECURSION.md`.
 Examples and measurements below describe this port and their stated test conditions.
 Read the [planner limitations](../src/htn-planner/htn/README.md#planner-limitations)
-before adapting it to another game.
+before adapting it to another game. Start integration with the [manual copy setup](../src/htn-planner/README.md#install-by-copying),
+including the compiler for normal `.domain` authoring; the automated installer is an alternative.
 
 ## The split: planner vs host
 

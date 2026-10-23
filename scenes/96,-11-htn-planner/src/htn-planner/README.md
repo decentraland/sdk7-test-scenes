@@ -3,42 +3,90 @@
 Use this folder for planning and SDK7 NPC execution. Examples, debugger UI, tests and Node tools are separate consumers.
 A capsule guard needs no model, audio, gallery or debugger assets.
 
-## Install
+## Install by copying
 
-From a downloaded checkout of the HTN demo scene, run:
+Start with an existing SDK7 scene and a downloaded, versioned copy of this source scene. Use Node 22+ for authoring
+commands. Keep your scene's entrypoint, assets, settings, dependencies and project instructions. Copy these paths
+relative to the source scene; create destination folders as needed:
+
+| From this source scene | Into your scene |
+| --- | --- |
+| Entire `src/htn-planner/` | Same path, including `LICENSE` and `LICENSE.htn_planner`. |
+| Compiler files below, plus `tools/htn/LICENSE` and `tools/htn/LICENSE.htn_planner` | Same `tools/htn/` paths; authoring only. |
+| `scripts/htn-compile.mjs`, `scripts/htn-notices.mjs` | Same paths; authoring only. |
+| `src/examples/guard/guard.domain`, `guard_kit.domain`, `guard.htn.ts` | All three into `src/npc/guard/`; these belong to your game. |
+
+Copy these **13 compiler files** from `tools/htn/` (the runner, viewer and catalogues are not needed):
+
+```text
+ast.ts             check-methods.ts  cli.ts          compiler.ts
+diagnostics.ts     emit.ts           lexer.ts        linker.ts
+loader.ts          parser.ts         reachability.ts validator.ts
+worldstate.ts
+```
+
+Install your SDK scene dependencies normally. The compiler uses `esbuild` from the existing SDK toolchain; there is
+no new runtime npm package. Keep TypeScript's include scoped to `src/`; if it uses `**/*`, exclude `tools/htn` and any
+`reference/htn` folder.
+
+Merge these entries into `package.json`'s `scripts`, preserving its other commands:
+
+```json
+"htn:compile": "node scripts/htn-compile.mjs",
+"htn:notices": "node scripts/htn-notices.mjs"
+```
+
+Run `npm run htn:notices` before both build and deploy: set `prebuild`/`predeploy` to it when absent, or prepend
+`npm run htn:notices && ` to each existing hook without removing that hook's command. Resolve an existing different
+`htn:compile` or `htn:notices` command before replacing it.
+
+Append these support-file exclusions to your existing `.dclignore` (keep its existing game exclusions):
+
+```text
+src/htn-planner
+tools/htn
+scripts/htn-compile.mjs
+scripts/htn-notices.mjs
+src/npc/guard/*.domain
+reference/htn
+```
+
+The SDK bundles imported TypeScript into `bin/`; these exclusions keep authoring sources out of the raw deployment.
+Do **not** exclude the generated root `htn-notices.txt`. Generate and check it after copying:
+
+```sh
+npm run htn:compile -- --check src/npc/guard/guard.domain
+npm run htn:compile -- src/npc/guard/guard.domain src/npc/guard/guard.htn.ts guardDomain
+npm run htn:notices
+npm run htn:notices -- --check
+```
+
+Edit your `guard.domain` and its `guard_kit.domain` include, then regenerate `guard.htn.ts`; do not edit generated code
+by hand. Commit these game-owned sources/output together. Record the source repository URL and full commit in your
+game's README or source note, including any local changes; manual copying does not create `SOURCE.json` automatically.
+Keep that pin for examples and future updates.
+
+Add the [complete guard recipe](HOW-TO.md#1-a-capsule-guard) to your existing `main()`, then run your normal build and
+preview. The squad installs its own update system. Try the patrol, approach the guard, then move away; this is an
+Explorer check, not something a successful build proves. For encounter startup, follow
+[Preparation → Ready → Play](HOW-TO.md#7-prepare-ai-before-play).
+
+### Alternative: automated copy
+
+From the downloaded source scene, run:
 
 ```sh
 node scripts/htn-install.mjs /path/to/your-sdk7-scene --starter
 ```
 
-Use Node 22 or newer and an existing SDK7 scene. The installer preserves your entrypoint, scene settings, assets,
-dependencies and existing SDK/project instructions. Different module files require an explicit `--update`; conflicting
-npm commands fail before writing. A partially existing starter also stops installation, so your domain is never mixed with
-a generated file from another behaviour. It adds:
+This performs the copy, npm hooks, exclusions, notices and source metadata setup above. It preserves the entrypoint,
+settings, assets and existing instructions. Conflicting npm commands or a partial starter stop before writing;
+different module files require `--update`. A complete existing `src/npc/guard/` stays game-owned and is not replaced.
 
-| Location in your project | Purpose |
-| --- | --- |
-| `src/htn-planner/` | Library, this guide, HOW-TO and both licence files. |
-| `tools/htn/` | Only the compiler's source dependencies and licences; excluded from deployment. |
-| `scripts/htn-compile.mjs`, `scripts/htn-notices.mjs` | Local authoring commands; excluded from deployment. |
-| `src/npc/guard/` with `--starter` | Your initial domain, its include and generated module. Keep/customize these. |
-| `reference/htn/` with `--reference` | Optional source examples, assets, tests, tools and guidance. Entirely removable. |
-
-It adds `htn:compile` and `htn:notices` npm commands, chains notice generation before your existing build/deploy hooks,
-and adds deployment exclusions. Install your scene dependencies normally; esbuild is supplied by the SDK toolchain.
-Your TypeScript project should include `src/`; if you use a broad `**/*` include, exclude `reference/htn` and `tools/htn`.
-
-Add the [complete guard recipe](HOW-TO.md#1-a-capsule-guard) to your existing `main()`, then run your normal preview.
-The squad installs its own update system. Try the patrol, approach the guard, then move away; this is an Explorer check,
-not something a successful build proves. For encounter startup, follow
-[Preparation → Ready → Play](HOW-TO.md#7-prepare-ai-before-play): spread setup/activation across frames and optionally
-exercise isolated planning cases before gameplay.
-
-Optional authoring helpers: `--testing` installs `npm run htn:check` and the
-[testing guide](../../docs/consumer-testing.md); `--benchmark` installs `npm run htn:measure` and the
-[benchmark guide](../../docs/consumer-benchmark.md). These local guide links become available only after installing
-the corresponding option. Before installation, read the guide from the source URL in `SOURCE.json`, appending
-`docs/consumer-testing.md` or `docs/consumer-benchmark.md`.
+Optional conveniences: `--reference` copies removable examples/assets into `reference/htn/`; `--testing` adds
+`htn:check` and the [testing guide](../../docs/consumer-testing.md); `--benchmark` adds `htn:measure` and the
+[benchmark guide](../../docs/consumer-benchmark.md). Those local guide links exist only when their option is installed.
+Otherwise read them at your recorded source commit (or the `SOURCE.json.url` from automated installation).
 
 ## Choose the right planning contract
 
@@ -64,11 +112,12 @@ For integration, customization or debugging, start with [HOW-TO](HOW-TO.md).
 For a source example, first look in your project's optional `reference/htn/` snapshot:
 `src/examples/`, `src/playground/`, `src/debugger/` and `docs/`. These are reference sources, not your game entrypoint.
 
-If that folder is absent or lacks the example, read it from GitHub. The installer writes `SOURCE.json` next to this file,
+If that folder is absent or lacks the example, use your recorded source commit on GitHub. Automated installation also
+writes `SOURCE.json` next to this file,
 with a `url` for the installed module. `pinned: true` identifies an exact checkout commit; append the example's relative path
 to that URL. A ZIP or unrelated parent repository has `pinned: false` and a moving branch URL: verify its version before use.
 `localChanges: true`
-means the source checkout had uncommitted changes, so the linked commit is only its base. Without that metadata, use the
+means the source checkout had uncommitted changes, so the linked commit is only its base. Without a recorded commit or that metadata, use the
 [public module source](https://github.com/decentraland/sdk7-test-scenes/tree/feat/htn-planner-port/scenes/96,-11-htn-planner)
 and check its version before applying an example. If online material is inaccessible, say what could not be read.
 
@@ -78,11 +127,11 @@ installing the full demo. You can delete `reference/htn/` at any time without ch
 
 ## Update
 
-Run the installer from the desired new source version with `--update`. It replaces installed library/compiler files
-and refreshes source metadata; existing `src/npc/guard/` files are yours and remain untouched, even with `--starter`.
-Keep your domains, action factories, facts, models and scene wiring outside `src/htn-planner/`.
-Recompile your domains after updating and check them in your game. For a source layout change, compare the old and new file lists before removing obsolete library files: `--update`
-does not delete them. Review each path against your game imports and ownership; an ambiguous cleanup needs a separate
+Copy the library/compiler files from the desired source revision using the same list above; preserve your game-owned
+`src/npc/guard/`, actions, facts, assets and scene wiring. Alternatively run the installer with `--update`; it refreshes
+module files/metadata and leaves a complete existing guard unchanged, even with `--starter`.
+Recompile your domains after updating and check them in your game. Compare old/new file lists before removing obsolete
+library files; automated `--update` does not delete them. Review each path against your game imports and ownership; an ambiguous cleanup needs a separate
 change, not automatic deletion. Keep the previous source pin so you can reproduce or roll back the update.
 
 To update a reference snapshot, remove its entire folder and reinstall with `--reference`. Its files are optional copies;
@@ -92,7 +141,7 @@ keep any adaptations you need in game-owned files before removing it.
 
 This source scene declares package version `1.0.0` and pins upstream **2.4.0** at
 [`aec08fa36f2c521c4da00c045bf23b8aed7bfa92`](https://github.com/urosidoki/htn_planner/tree/aec08fa36f2c521c4da00c045bf23b8aed7bfa92).
-Use the installed `SOURCE.json.ref` for the exact port revision; package version alone does not identify its code.
+Use your recorded source commit (or installed `SOURCE.json.ref`) for the exact port revision; package version alone does not identify its code.
 Authoring/install commands are tested and recommended on **Node 22+** (hosted CI uses Node 24); the source package
 declares an engine floor of Node 20, which is not independently validated here. The scene uses **SDK 7.30.1**
 and ES2020 runtime output.
@@ -102,7 +151,7 @@ not an API-identical C++ package: native allocators/ABI are inapplicable, and st
 
 For a maintained update or release:
 
-1. Record the port commit, upstream pin, Node/SDK versions and `SOURCE.json` flags. `pinned: false` or
+1. Record the port commit, upstream pin, Node/SDK versions and any `SOURCE.json` flags. `pinned: false` or
    `localChanges: true` needs the actual source snapshot alongside the commit to be reproducible.
 2. Review runtime/compiler changes together. Recompile your game-owned `.domain` sources; generated method IDs and
    deferred steps belong to one compiled revision. Reload through the host; do not reuse old plan steps.
@@ -132,7 +181,7 @@ the canonical example notices; optional reference-only copies in a consumer do n
 When you promote an example into runtime, carry its applicable notices too; this generator is not a licence scanner.
 
 The compiler, reference sources and their assets belong on disk for authoring, not in your deployed game. Tree shaking
-removes unused code from the bundle; `.dclignore` separately controls raw files uploaded by the SDK. The installer sets
-both sides up for its copied files. Its exclusions do not hide assets already used by your game.
+removes unused code from the bundle; `.dclignore` separately controls raw files uploaded by the SDK. Use the manual
+exclusions above or let the alternative installer add them; keep assets used by your game published.
 
 For deeper integration, read the [planner reference](htn/README.md) and [NPC host reference](npc/README.md).

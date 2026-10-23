@@ -6,15 +6,11 @@ The reusable module is `src/htn-planner/`; the scene at **96,-11** demonstrates 
 
 ## Add it to your scene
 
-From this scene's directory, with Node 22 or newer:
-
-```sh
-node scripts/htn-install.mjs /path/to/your-sdk7-scene --starter
-```
-
-This installs the library, the domain compiler and licence-notice command. `--starter` also adds a game-owned capsule-guard
-behaviour under `src/npc/guard/`. Your scene's entrypoint and existing assets stay yours.
-Then add this to your scene's `src/index.ts`:
+Follow the [manual copy setup](src/htn-planner/README.md#install-by-copying): copy the library, domain compiler, notice
+command and game-owned guard files into your SDK7 scene. Edit its `.domain` sources and regenerate TypeScript as you
+develop the behaviour. Keep your scene's entrypoint, assets and settings. The guide also offers `htn-install.mjs` as an
+alternative automated copy with optional reference/testing tools.
+Then merge this setup into your scene's `src/index.ts`:
 
 ```ts
 import { createCapsuleBody, GuardSquad, plannerFor, v3 } from './htn-planner'
@@ -37,11 +33,12 @@ Read the [module README](src/htn-planner/README.md) for installation options, up
 
 ```text
 Install the HTN module from <module-source-folder> into this SDK7 scene.
-Read its README and use its installer with --starter. Preserve existing game code and merge the setup into main().
+Read its module README and follow the manual copy setup, including compiler, notices and game-owned guard files.
+Preserve existing game code and merge the setup into main(). Use the automated installer only as an alternative.
 Keep my own behaviour, actions and assets outside the library. Read the installed module guide for examples and checks.
 ```
 
-Add `--reference` if you want the optional examples/assets on disk. The module guide gives the AI a local-first,
+The alternative installer offers `--reference` for optional examples/assets on disk. The module guide gives the AI a local-first,
 version-specific GitHub fallback when that reference folder is absent.
 
 ## Explore before integrating
@@ -49,7 +46,7 @@ version-specific GitHub fallback when that reference folder is absent.
 Run `npm install`, then `npm start` here to try the [full demo](DEMO.md). Its **Playgrounds** menu and debugger are example
 consumers of the library. They are not installed in your game by default.
 
-Add `--reference` to the install command to keep a removable source snapshot under `reference/htn/`, including example assets
+The alternative installer's `--reference` option keeps a removable source snapshot under `reference/htn/`, including example assets
 and tools. It is excluded from your game's deployment. To use a selected example in the game, adapt just the needed code
 and assets into your own runtime folders and keep its applicable notices.
 

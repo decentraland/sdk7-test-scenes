@@ -1,6 +1,7 @@
 # HTN integration recipes
 
-Paths below are relative to your scene's `src/index.ts`. Install with `--starter` for the guard domain and its include.
+Paths below are relative to your scene's `src/index.ts`. First follow the [manual copy setup](README.md#install-by-copying)
+for the library, compiler and game-owned guard files; automated installation with `--starter` is an alternative.
 If your scene already has `main()`, merge the relevant setup into it. Your game owns the code outside `htn-planner/`.
 
 ## 1. A capsule guard
