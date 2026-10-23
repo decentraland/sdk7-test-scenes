@@ -32,6 +32,11 @@ Add the [complete guard recipe](HOW-TO.md#1-a-capsule-guard) to your existing `m
 The squad installs its own update system. Try the patrol, approach the guard, then move away; this is an Explorer check,
 not something a successful build proves.
 
+For game-owned scenario and host-story checks, install with `--testing` and follow the
+[portable testing workflow](../../docs/consumer-testing.md) (`npm run htn:check`).
+For repeatable custom-domain measurements, install with `--benchmark` and follow the
+[benchmark workflow](../../docs/consumer-benchmark.md) (`npm run htn:measure`). Both are optional authoring helpers.
+
 ## Examples for people and AI
 
 For integration, customization or debugging, start with [HOW-TO](HOW-TO.md).

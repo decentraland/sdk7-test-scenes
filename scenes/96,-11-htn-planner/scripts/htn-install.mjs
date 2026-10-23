@@ -7,10 +7,10 @@ import { spawnSync } from 'node:child_process'
 const source = fileURLToPath(new URL('../', import.meta.url))
 const repository = 'https://github.com/decentraland/sdk7-test-scenes'
 const scenePath = 'scenes/96,-11-htn-planner'
-const usage = 'Usage: node scripts/htn-install.mjs <SDK7 scene> [--starter] [--reference] [--update]'
+const usage = 'Usage: node scripts/htn-install.mjs <SDK7 scene> [--starter] [--reference] [--testing] [--benchmark] [--update]'
 const args = process.argv.slice(2)
 if (args.length === 1 && args[0] === '--help') {
-  console.log(usage + '\n--starter: add a game-owned guard; --reference: removable source examples/assets; --update: replace installed module files, keeping game files.')
+  console.log(usage + '\n--starter: add a game-owned guard; --reference: removable source examples/assets; --testing: portable game-owned scenario/story checks; --benchmark: portable measurements; --update: replace installed module files, keeping game files.')
 } else {
   main().catch(error => { console.error(error.message); process.exitCode = 1 })
 }
@@ -20,7 +20,7 @@ async function read(file) {
 }
 
 async function main() {
-  if (!args[0] || args[0].startsWith('--') || args.slice(1).some(a => !['--starter', '--reference', '--update'].includes(a))) throw new Error(usage)
+  if (!args[0] || args[0].startsWith('--') || args.slice(1).some(a => !['--starter', '--reference', '--testing', '--benchmark', '--update'].includes(a))) throw new Error(usage)
   const target = await fs.realpath(path.resolve(args[0]))
   const sourceReal = await fs.realpath(source)
   const inside = (base, file) => { const rel = path.relative(base, file); return rel === '' || (!rel.startsWith('..' + path.sep) && rel !== '..' && !path.isAbsolute(rel)) }
@@ -48,6 +48,23 @@ async function main() {
   }
   for (const name of ['LICENSE', 'LICENSE.htn_planner']) add('tools/htn/' + name, await fs.readFile(path.join(source, 'tools/htn', name)))
   for (const name of ['htn-compile', 'htn-notices']) add('scripts/' + name + '.mjs', await fs.readFile(path.join(source, 'scripts', name + '.mjs')))
+  if (args.includes('--testing') || args.includes('--benchmark')) {
+    await tree(path.join(source, 'src/htn-testing'), 'src/htn-testing')
+    for (const name of ['manifest', 'load']) add('tools/consumer/' + name + '.ts', await fs.readFile(path.join(source, 'tools/consumer', name + '.ts')))
+    add('tools/htn/world-invariants.ts', await fs.readFile(path.join(source, 'tools/htn/world-invariants.ts')))
+  }
+  if (args.includes('--testing')) {
+    for (const name of ['check']) add('tools/consumer/' + name + '.ts', await fs.readFile(path.join(source, 'tools/consumer', name + '.ts')))
+    add('scripts/htn-check.mjs', await fs.readFile(path.join(source, 'scripts/htn-check.mjs')))
+    add('docs/consumer-testing.md', await fs.readFile(path.join(source, 'docs/consumer-testing.md')))
+  }
+  if (args.includes('--benchmark')) {
+    await tree(path.join(source, 'tools/consumer/example'), 'tools/consumer/example')
+    add('tools/consumer/bench.ts', await fs.readFile(path.join(source, 'tools/consumer/bench.ts')))
+    for (const name of ['compare', 'alloc']) add('scripts/bench/' + name + '.ts', await fs.readFile(path.join(source, 'scripts/bench', name + '.ts')))
+    add('scripts/htn-measure.mjs', await fs.readFile(path.join(source, 'scripts/htn-measure.mjs')))
+    add('docs/consumer-benchmark.md', await fs.readFile(path.join(source, 'docs/consumer-benchmark.md')))
+  }
   const gitRoot = spawnSync('git', ['-C', source, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', windowsHide: true })
   let ownCheckout = false
   if (gitRoot.status === 0) {
@@ -77,7 +94,8 @@ async function main() {
     add('reference/htn/SOURCE.json', planned.get('src/htn-planner/SOURCE.json').data)
   }
   pkg.scripts ??= {}
-  for (const [name, command] of Object.entries({ 'htn:compile': 'node scripts/htn-compile.mjs', 'htn:notices': 'node scripts/htn-notices.mjs' })) {
+  const optionalScripts = { ...(args.includes('--testing') ? { 'htn:check': 'node scripts/htn-check.mjs' } : {}), ...(args.includes('--benchmark') ? { 'htn:measure': 'node scripts/htn-measure.mjs' } : {}) }
+  for (const [name, command] of Object.entries({ ...optionalScripts, 'htn:compile': 'node scripts/htn-compile.mjs', 'htn:notices': 'node scripts/htn-notices.mjs' })) {
     if (pkg.scripts[name] && pkg.scripts[name] !== command) throw new Error('Conflicting npm script: ' + name + '. Resolve it before installing.')
     pkg.scripts[name] = command
   }
@@ -86,7 +104,7 @@ async function main() {
   }
   add('package.json', JSON.stringify(pkg, null, 2) + '\n', true)
   const ignored = (await read(path.join(target, '.dclignore')))?.toString() ?? ''
-  const patterns = ['src/htn-planner', 'tools/htn', 'scripts/htn-compile.mjs', 'scripts/htn-notices.mjs', 'reference/htn', 'src/npc/guard/*.domain']
+  const patterns = ['src/htn-planner', 'tools/htn', 'scripts/htn-compile.mjs', 'scripts/htn-notices.mjs', 'reference/htn', 'src/npc/guard/*.domain', 'src/htn-testing', 'tools/consumer', 'scripts/htn-check.mjs', 'scripts/htn-measure.mjs', 'scripts/bench', 'htn-tests', 'htn-reports', 'test', 'docs/consumer-testing.md', 'docs/consumer-benchmark.md']
   const existing = new Set(ignored.split(/\r?\n/).map(s => s.trim().replace(/\/$/, '')))
   const extra = patterns.filter(p => !existing.has(p))
   add('.dclignore', ignored + (ignored && !ignored.endsWith('\n') ? '\n' : '') + extra.map(p => p + '\n').join(''), true)
