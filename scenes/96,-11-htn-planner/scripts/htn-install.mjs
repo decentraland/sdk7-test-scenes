@@ -104,7 +104,7 @@ async function main() {
   }
   add('package.json', JSON.stringify(pkg, null, 2) + '\n', true)
   const ignored = (await read(path.join(target, '.dclignore')))?.toString() ?? ''
-  const patterns = ['src/htn-planner', 'tools/htn', 'scripts/htn-compile.mjs', 'scripts/htn-notices.mjs', 'reference/htn', 'src/npc/guard/*.domain', 'src/htn-testing', 'tools/consumer', 'scripts/htn-check.mjs', 'scripts/htn-measure.mjs', 'scripts/bench', 'htn-tests', 'htn-reports', 'test', 'docs/consumer-testing.md', 'docs/consumer-benchmark.md']
+  const patterns = ['src/htn-planner', 'tools/htn', 'scripts/htn-compile.mjs', 'scripts/htn-notices.mjs', 'reference/htn', 'src/npc/guard/*.domain', 'src/htn-testing', 'tools/consumer', 'scripts/htn-check.mjs', 'scripts/htn-measure.mjs', 'scripts/bench', 'htn-tests', 'htn-reports', 'docs/consumer-testing.md', 'docs/consumer-benchmark.md']
   const existing = new Set(ignored.split(/\r?\n/).map(s => s.trim().replace(/\/$/, '')))
   const extra = patterns.filter(p => !existing.has(p))
   add('.dclignore', ignored + (ignored && !ignored.endsWith('\n') ? '\n' : '') + extra.map(p => p + '\n').join(''), true)
