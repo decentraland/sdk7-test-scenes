@@ -55,22 +55,23 @@ and assets into your own runtime folders and keep its applicable notices.
 
 ## Measured planning and action work
 
-Recorded on 2026-10-23 at clean source `eac4363f24c7446db054dc43606de4baf867bbf5`, Windows x64,
-Intel Core Ultra 9 275HX, Node 22.22.2. These are elapsed Node timings around CPU work, **microseconds per operation**:
+Recorded on 2026-10-23 at clean source `11d2f5f617a4d127ae0bba8f42431d9c6ce5b740`, Windows 10.0.26300 x64,
+Intel Core Ultra 9 275HX (24 logical CPUs), Node 22.22.2. These are elapsed Node timings around CPU work, **microseconds per operation**:
 
 | Workload | Warm p50, two reports | Primary p95 | Primary p99 |
 | --- | ---: | ---: | ---: |
-| Plan: 3 fact rows, 2 steps | 5.6–6.2 | 14.5 | 32.5 |
-| Plan: 624 fact rows, 241 steps | 188.5–232.7 | 295.1 | 333.7 |
-| Built-in wait: factory/start/15 updates/done | 0.43–0.54 | 1.19 | 2.33 |
-| Built-in move: factory/start/109 updates/done | 12.3–18.3 | 17.1 | 36.0 |
-| Tick all 32 patrol guards | 46.7–53.2 | 88.1 | 111.8 |
+| Plan: 3 fact rows, 2 steps | 5.0–5.9 | 14.4 | 24.1 |
+| Plan: 624 fact rows, 241 steps | 240.7–308.0 | 375.3 | 441.1 |
+| Built-in wait: factory/start/15 updates/done | 0.68–0.71 | 1.54 | 4.13 |
+| Built-in move: factory/start/109 updates/done | 18.6–19.8 | 30.2 | 42.0 |
+| Tick all 32 patrol guards | 67.2–71.0 | 102.6 | 140.2 |
 
 Each report uses three fresh workers, 30 warm-up batches and 200 measured batches of eight operations. Percentiles
 are medians across workers of **batch-mean** percentiles, not individual-operation tails. The p50 column spans two
-separate reports; p95/p99 come only from the primary one. Several confirmation medians moved by roughly 10–50%.
-Initial calls were slower (tiny/heavy planning medians 1.33/4.85 ms). Forcing all 32 guards to replan every tick
-measured 120.5–142.4 µs warm p50, a different workload from executing their existing patrol plans.
+separate reports; p95/p99 come only from the primary one. Warm medians varied by up to about 22%; these are
+observations, not stable speed limits. Initial calls were slower (primary tiny/heavy planning medians 1.55/7.53 ms,
+and 8.87 ms for the first 32-guard tick). Forcing all 32 guards to replan every tick measured 106.3–114.3 µs warm p50,
+a different workload from executing their existing patrol plans.
 
 Wait/move advance simulated time without sleeping; their durations are not CPU seconds. The move is flat-terrain
 kinematic steering. These measurements exclude renderer/ECS writes, models, real raycasts, physics, networking and
