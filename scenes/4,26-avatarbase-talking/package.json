@@ -20,7 +20,7 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/avatarbase-talking/dcl-sdk-7.30.2-38614710896.commit-e1e1e35.tgz",
-    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/avatarbase-talking/@dcl/js-runtime/dcl-js-runtime-7.30.2-38614710896.commit-e1e1e35.tgz"
+    "@dcl/sdk": "7.31.1-39942109730.commit-afd7f79",
+    "@dcl/js-runtime": "7.31.1-39942109730.commit-afd7f79"
   }
 }
