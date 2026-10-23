@@ -23,7 +23,8 @@
     "htn:lint": "node scripts/htn-lint.mjs",
     "htn:notices": "node scripts/htn-notices.mjs",
     "prebuild": "npm run htn:notices",
-    "predeploy": "npm run htn:notices"
+    "predeploy": "npm run htn:notices",
+    "htn:perf": "node scripts/htn-perf.mjs"
   },
   "engines": {
     "node": ">=20.0.0",
