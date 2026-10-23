@@ -361,7 +361,8 @@ export class Agent {
   private isRest(candidate: readonly PlanStep[]): boolean {
     let c = candidate
     if (c.length > 0 && c[0].kind === 'deferred') {
-      const r = decomposeDeferred(this.domain, this.world, c[0] as Extract<PlanStep, { kind: 'deferred' }>, { mode: this.options.mode })
+      // Use the execution bindings and diagnostics, but keep this comparison probe out of the session recorder.
+      const r = decomposeDeferred(this.domain, this.world, c[0] as Extract<PlanStep, { kind: 'deferred' }>, { ...this.options, trace: undefined })
       if (r.status !== 'succeeded') return false
       c = [...r.plan, ...c.slice(1)]
     }
