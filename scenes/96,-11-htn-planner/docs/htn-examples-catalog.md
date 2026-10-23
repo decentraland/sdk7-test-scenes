@@ -1,6 +1,6 @@
 # HTN planner — example plans catalog
 
-The examples the capsule test scene must cover. The examples are separate from the planner itself. A creator imports the planner without them and adapts it to their own game. Source and licence details are recorded in the domain headers and notices below.
+The examples shipped with the capsule test scene and its headless tools. The examples are separate from the planner itself. A creator imports the planner without them and adapts it to their own game. Source and licence details are recorded in the domain headers and notices below.
 
 ## Where they run
 
@@ -148,6 +148,12 @@ logged). Every domain header says what it teaches, its source and licence, how i
 ported; copied code's notices: `src/examples/canon/THIRD_PARTY_NOTICES.md`. How to add one:
 [Adding a canonical example](htn-guidance.md#adding-a-canonical-example); the format follows here.
 
+The shipped paper collection has **27 runnable stations, 166 scenarios and 39 stories**. Its 35 `.domain` files
+include five shared creature tiers, a service-bot base, a swarm include and a kitchen invariant; these are not
+35 independent examples. Browse the [story index](../src/examples/canon/index.ts) and
+[source notices](../src/examples/canon/THIRD_PARTY_NOTICES.md), or list the runnable cases with `htn:run -- --list`.
+The examples below describe adaptations of specific source fragments, not complete ports of their source games.
+
 **One format, one harness.** A *station* is a domain with scenarios: `<example>/<stem>.domain` and the folder
 `<example>/worlds/<stem>/`. A *scenario* is one `.worldstate` file there, named `<n>_<what>.worldstate` (the file
 stem is its name); its header says how to plan it and what it must give, in the lines `npm run htn:run` prints:
@@ -200,7 +206,7 @@ internals and the plan runner's step-precondition monitoring (our substitute: an
 `basics/storekeeper.domain`), the figure-only SuperSlam / Taunt variant of section 12.4, Fluid Troll Bridge's human
 domain (cited only).
 
-### Classics — `classics/` (textbook and benchmark examples, golden plans from the sources)
+### Classics — `classics/` (textbook plans and benchmark execution checks)
 
 | Example | Domain | Teaches | Source (licence) | Scenarios / stories |
 |---|---|---|---|---|
