@@ -225,6 +225,7 @@ For an AI agent, `npm run -s htn:view -- orders.json --text` prints the same as 
 
 ```bash
 npm install
+npm run htn:ci           # complete scene CI checks on Windows, macOS or Linux (Node 22+); stops at the first failure
 npm test                 # headless: planner, compiler, conformance, agents, playground scripts, gallery and lab plans, scene smoke tests;
                          # fails if a committed *.htn.ts / *.facts.ts differs from its source, naming the command to regenerate it,
                          # or if the planner's structural counters differ from benchmarks/counters.baseline.json (the perf gate)
@@ -233,7 +234,7 @@ npm run build            # scene typecheck + bundle
 npm run htn:examples     # regenerate src/examples/upstream/generated (gallery + lab) from test/htn/fixtures/upstream
 npm run htn:golden       # rebuild upstream (aec08fa) in WSL / Linux with g++ and rewrite test/fixtures/upstream-golden
                          # (its reference plans for the gallery and lab); -- --export-only: only the manifest and worlds
-npm run htn:compile -- --check $(find src -name '*.domain')   # validate every scene domain, write nothing
+npm run htn:compile -- --check src/examples/guard/guard.domain   # validate one root and its includes, write nothing
 npm run -s htn:lint -- src/examples [--json] [--strict]   # domain-shape lint in layers (compile, symbols, structure): per
                          # finding the rule, place, why and fix; shape metrics per domain (docs/htn-lint.md); config
                          # htn-lint.json; -- --update-baseline after a deliberate change (test/tools/htn-lint.baseline.json)
@@ -273,8 +274,34 @@ with the row it needed vs the world's rows, "never reached: an earlier branch su
 method never decomposed with why its callers were not taken, or "not in the domain" with names alike (`--json`:
 the `why` field).
 
-CI (`.github/workflows/htn-planner-tests.yml` at the repo root) runs `npm test`, both typechecks and the `--check`
-line above on every push to main or pull request that changes this scene.
+`npm run htn:ci` is the same complete check locally and in CI. It checks redistribution notices and SDK publish
+inclusion, runs the headless tests (including generated-module freshness), checks scene, tools/tests and viewer types,
+compiles every `top_level_domain` under `src` through its includes, lints `src`, and checks `active_plan` methods.
+Ordinary lint shape warnings remain informational; every `check-method-*` diagnostic fails the strict `active_plan`
+pass. Root and method discovery parses declarations, including methods from included/base modules; comments and strings
+do not select roots or methods. All commands and paths belong to this scene: a standalone copy needs only `npm install`
+and `npm run htn:ci`, with no parent repository or shell utilities. Do not run two test commands concurrently in the
+same copy: the test runner recreates `.test-build`.
+
+GitHub discovers workflows only in the repository-root `.github/workflows`. The small
+`htn-planner-tests.yml` launcher there installs Node/dependencies and calls `npm run htn:ci`; it is the hosting exception,
+not a game runtime dependency. Its filters select these events:
+
+| Event/change | HTN workflow selected |
+| --- | --- |
+| Pull request changing only another scene | No |
+| Pull request changing HTN `src`, docs, scripts, or any other scene-local file | Yes |
+| Pull request changing the HTN launcher itself | Yes |
+| Push to `main` with HTN or launcher changes | Yes |
+| Push to another branch | No (use its pull request or manual dispatch) |
+| Manual `workflow_dispatch` | Yes |
+
+Do not make this filtered workflow a globally required check: a skipped required check can leave an unrelated pull
+request pending. GitHub path filtering has rare limits: a large diff can miss a matching file beyond the
+filter window; a push over 1,000 commits or a diff-generation timeout runs workflows regardless of path filters. See
+[GitHub trigger rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)
+and [workflow location](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+The table describes the configured selection rules; local checks do not establish a hosted Actions run.
 
 ## How to test
 

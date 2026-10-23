@@ -32,29 +32,5 @@ jobs:
       - name: Install npm packages
         run: npm install
 
-      - name: Check redistribution notices and SDK publish inclusion
-        run: npm run htn:notices -- --check
-
-      - name: Tests (planner, compiler, generated modules up to date, scene scripts)
-        run: npm test
-
-      - name: Typecheck scene
-        run: npx tsc --noEmit
-
-      - name: Typecheck tools and tests
-        run: npm run typecheck:tools
-
-      # Include/base domains are validated through their top-level consumers.
-      - name: Check every root domain (htn:compile --check)
-        run: npm run htn:compile -- --check $(grep -rl 'top_level_domain' src --include='*.domain' | sort)
-
-      # Errors fail the job; shape warnings (known in guard / stalker) are printed only. The finding counts of every
-      # shipped domain are pinned by the lint baseline test inside npm test.
-      - name: Lint every domain (htn:lint)
-        run: npm run -s htn:lint -- src
-
-      - name: Check the active_plan methods (--check-method; its warnings fail the job)
-        run: |
-          out=$(npm run -s htn:compile -- --check $(grep -rlE '^[[:space:]]*\(:method[[:space:]]+\(active_plan\)' src --include='*.domain' | sort) --check-method active_plan 2>&1) || { echo "$out"; exit 1; }
-          echo "$out"
-          ! echo "$out" | grep -q 'check-method-'
+      - name: Check HTN scene
+        run: npm run htn:ci

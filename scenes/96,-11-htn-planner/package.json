@@ -8,6 +8,7 @@
     "deploy": "sdk-commands deploy",
     "build": "sdk-commands build",
     "test": "node scripts/run-tests.mjs",
+    "htn:ci": "node scripts/htn-ci.mjs",
     "typecheck:tools": "tsc -p tsconfig.tools.json && tsc -p tsconfig.viewer.json",
     "htn:measure": "node scripts/htn-measure.mjs",
     "htn:check": "node scripts/htn-check.mjs",
