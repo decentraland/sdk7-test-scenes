@@ -43,7 +43,7 @@ function main() {
       for (const item of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
         const file = path.join(dir, item.name)
         if (item.isDirectory()) visit(file)
-        else { implementation.update(path.relative(root, file).replace(/\\/g, '/')); implementation.update(fs.readFileSync(file)) }
+        else { implementation.update(path.relative(root, file).split(path.sep).join('/')); implementation.update(fs.readFileSync(file)) }
       }
     }
     visit(path.join(root, folder))

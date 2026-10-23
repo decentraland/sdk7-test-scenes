@@ -61,4 +61,49 @@ The existing broader `htn:bench` suite and crowd scenarios remain available for 
 
 ## Recorded release run
 
-Final quiet-window results and source/environment pin are recorded here after harness validation.
+Measured on 2026-10-23 at clean commit `eac4363f24c7446db054dc43606de4baf867bbf5` (runtime base `52971a96`).
+Windows `10.0.26300`, x64, Intel Core Ultra 9 275HX (24 logical CPUs), Node `v22.22.2`, V8 `12.4.254.21-node.39`.
+Two separate default reports completed successfully in about seven elapsed seconds each. Each report has three fresh
+workers per workload, 30 warm-up batches and 200 measured batches of eight; tracing/stats/history are off. Development
+builds/tests by the other release workers were paused during these runs; unrelated OS load was not controlled.
+
+Values below are **microseconds**. Cold is the primary report first-operation median (three observations); warm p50/p95/p99
+are medians of repeat percentiles of batch means. Confirmation p50 comes from the second independent full report.
+
+| Workload | Cold median | Warm p50 | Warm p95 | Warm p99 | Confirmation p50 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `plan-idle` | 1332.000 | 6.187 | 14.487 | 32.512 | 5.550 |
+| `plan-heavy100` | 4853.300 | 232.713 | 295.138 | 333.675 | 188.525 |
+| `dispatch-1` | 90.500 | 0.163 | 0.188 | 0.825 | 0.200 |
+| `dispatch-deferred32` | 261.900 | 1.550 | 8.612 | 26.087 | 1.700 |
+| `action-wait` | 103.000 | 0.425 | 1.188 | 2.325 | 0.538 |
+| `action-move` | 429.200 | 12.300 | 17.138 | 35.962 | 18.338 |
+| `tick-1` | 2076.300 | 2.175 | 5.038 | 29.237 | 3.300 |
+| `tick-32` | 5035.500 | 53.225 | 88.113 | 111.838 | 46.712 |
+| `tick-32-replan` | 6058.500 | 142.413 | 226.900 | 271.450 | 120.512 |
+
+These are observations of this build/machine, not stable speed limits: several confirmation p50 values moved by roughly
+10–50%, despite pausing other build workers. No timing regression verdict follows from these two reports. In particular,
+sub-microsecond dispatch/wait rows should be read as a rough scale, and cold results include first-use/JIT noise. A heavy
+plan here is hundreds of microseconds warm while its first call is milliseconds; a burst of 32 forced guard replans has a
+different cost from mostly executing an existing plan. Those distinctions matter more than small decimal differences.
+
+The tiny planning world has **3 rows in 3 tables**, producing **2 primitive steps**. `FactHeavy100` has **624 rows in 18
+tables**, producing **241 primitive steps**. Both use the existing seven-method `ComplexScenario` IR. Each worker actually
+ran 1,841 operations: one cold, 240 warm-up and 1,600 measured. Dispatch32 completed 58,912 synthetic primitives per worker;
+its deferred expansion is included in timing. Wait completed 1,841 lifecycles with 27,615 updates (15 each); move completed
+1,841 lifecycles with 200,669 updates (109 each). These updates advance simulation directly without sleeping: move takes
+109/30 simulated seconds and wait 0.5 simulated seconds, independently of the CPU-work numbers above.
+
+Per worker, whole-tick runs advance 1,841 frames, about 61.37 simulated seconds. Tick1 made 4 decision plans and 4 reasoning
+plans; tick32 made 148 of each across 58,912 NPC ticks. Requested-replan32 made 58,912 of each, with zero active checks.
+The two reports agree on all these counters. Forced replanning also changes execution progression (48,400 completed steps,
+versus 351 in the normal 32-guard patrol); it is an artificial candidate/replan stress case, not the same patrol played faster.
+The JSON keeps these counts separate and includes final fact-row/movement counts; planning-time counters alone do not
+measure an arbitrary game host or its callbacks.
+
+The raw files are `report.json` (primary) and `confirmation.json`, recorded with the release task evidence. They are not
+uploaded with the scene. Reproduce new files using the commands above; the summary intentionally retains this measured
+revision even when documentation or release wiring later changes. Primary selected-source SHA-256:
+`b299df2fb62415f31ea307746193e7bc4ead08703d4aca1635dce9e2ae08e37c`. This hashes the runtime, selected guard/upstream generated examples, benchmark helpers
+and driver bytes; it is not a complete transitive dependency lock. The Git commit and environment remain the primary pin.
