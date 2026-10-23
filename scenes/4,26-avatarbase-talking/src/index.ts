@@ -15,7 +15,7 @@ import { Color4, Vector3 } from '@dcl/sdk/math'
 // (e.g. Nearby voice chat disabled), false = not talking, true = talking.
 type TalkingState = 'no data' | 'silent' | 'talking'
 
-type Marker = { anchor: Entity; label: Entity; state: TalkingState }
+type Marker = { address: string; anchor: Entity; label: Entity; state: TalkingState }
 
 const COLORS: Record<TalkingState, Color4> = {
   'no data': Color4.Gray(),
@@ -34,7 +34,7 @@ function resolveState(player: Entity): TalkingState {
 function paint(player: Entity, marker: Marker, state: TalkingState) {
   marker.state = state
   TextShape.createOrReplace(marker.label, { text: state, fontSize: 3, textColor: COLORS[state] })
-  console.log(`[talking] ${AvatarBase.getOrNull(player)?.name ?? player}: ${state}`)
+  console.log(`[talking] ${AvatarBase.getOrNull(player)?.name || player}: ${state}`)
 }
 
 // Parenting to a remote player's entity does not work: the engine only writes its Transform for the
@@ -50,12 +50,13 @@ function createMarker(player: Entity): Marker | undefined {
   Transform.create(label, { parent: anchor, position: Vector3.create(0, 0.6, 0) })
   Billboard.create(label)
 
-  return { anchor, label, state: 'no data' }
+  return { address, anchor, label, state: 'no data' }
 }
 
 function talkingMarkerSystem() {
   for (const [player, marker] of markers) {
-    if (AvatarBase.has(player)) continue
+    // player entity ids are reused, so a new address on the same entity needs a new marker
+    if (AvatarBase.has(player) && PlayerIdentityData.getOrNull(player)?.address === marker.address) continue
     engine.removeEntity(marker.label)
     engine.removeEntity(marker.anchor)
     markers.delete(player)
