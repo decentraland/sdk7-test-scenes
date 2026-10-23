@@ -143,8 +143,8 @@ Two `perception.ts` options for a world with light and smell; both off by defaul
 
 - A guard repeating the same plan forever usually means a fact never changes after its action. For
   example, `!set_waypoint` must update `current_waypoint`.
-- `decompose` only reads the world state. Primitives change the world through executors and the
-  blackboard, never during planning.
+- Primitives are only planned during decomposition; their executors update the world when they run.
+  Explicit mutating callterms can write immediately during planning; those writes survive backtracking.
 - Callterms (`(call f ...)`) run during planning, may run several times, and are not rolled back. Prefer
   facts unless a computation is needed.
 - Recursion depth is limited (`maxDepth`, default 8192 call frames counted like upstream: about two per method level).

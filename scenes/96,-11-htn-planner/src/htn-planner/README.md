@@ -38,6 +38,24 @@ Optional authoring helpers: `--testing` installs `npm run htn:check` and the
 the corresponding option. Before installation, read the guide from the source URL in `SOURCE.json`, appending
 `docs/consumer-testing.md` or `docs/consumer-benchmark.md`.
 
+## Choose the right planning contract
+
+| Constraint | Consequence for your game |
+| --- | --- |
+| Total-order tasks, ordered branches; no cost-optimal search | Put intended priorities in branch order. Host-ranked candidate facts can select a target; they do not optimise a whole plan. |
+| No simulated primitive effects | Planning `!pick_up` does not change inventory. Pass a known result as an argument, end the plan, or use `&task` for a decision after execution. |
+| A selected condition commits | Fact/axiom alternatives are searched within that condition when enabled. Later task failure does not reopen them; `mode.branches` can try the next branch. Both backtracking options default to on. |
+| No plan repair or MTR comparison | Replanning builds a whole candidate. `GuardAgent` can keep an equivalent remaining plan; opt-in `continueTask` expresses commitment, and `activePlan` checks validity. These host policies do not repair a plan. |
+| Callterms execute immediately | Their writes survive failed search; they may run repeatedly. Prefer read-only queries. Never spend, spawn or delete as a condition's side effect; a thrown exception escapes planning under every error policy. |
+| Bounded decomposition | `maxDepth` defaults to 8192 call frames; exhaustion returns `depth_exceeded`. Give recursion a base case and progress, and bound host loops/deferred execution too. |
+| Warm storage reuse has limits | `PlanRunner` reuses search buffers. New values, changed steps, deferred expansions, host code, diagnostics and tracing can allocate. `decompose()` creates a fresh engine per call. Measure your workload. |
+| Local NPC execution | The SDK adapter simulates NPCs on one client. Your game owns multiplayer authority, synchronization and conflict handling. |
+| Headless checks are models | Plans, paper hosts and Node timings do not establish movement, rendering, networking or frame cost in a target client. Preview the actual encounter there. |
+
+The [planner reference](htn/README.md#semantics-checklist-verify-against-upstream-do-not-guess) gives precise language,
+error and value-ownership rules. The [NPC reference](npc/README.md) describes executor lifecycle and host policies.
+Start a small domain with the [worked authoring recipe](HOW-TO.md#6-design-and-check-a-small-domain).
+
 ## Examples for people and AI
 
 For integration, customization or debugging, start with [HOW-TO](HOW-TO.md).
@@ -61,11 +79,45 @@ installing the full demo. You can delete `reference/htn/` at any time without ch
 Run the installer from the desired new source version with `--update`. It replaces installed library/compiler files
 and refreshes source metadata; existing `src/npc/guard/` files are yours and remain untouched, even with `--starter`.
 Keep your domains, action factories, facts, models and scene wiring outside `src/htn-planner/`.
-Recompile your domains after updating and check them in your game. For a source layout change, consult its release diff
-and remove obsolete module files; the installer does not delete files from your project.
+Recompile your domains after updating and check them in your game. For a source layout change, compare the old and new file lists before removing obsolete library files: `--update`
+does not delete them. Review each path against your game imports and ownership; an ambiguous cleanup needs a separate
+change, not automatic deletion. Keep the previous source pin so you can reproduce or roll back the update.
 
 To update a reference snapshot, remove its entire folder and reinstall with `--reference`. Its files are optional copies;
 keep any adaptations you need in game-owned files before removing it.
+
+## Version, provenance and release checks
+
+This source scene declares package version `1.0.0` and pins upstream **2.4.0** at
+[`aec08fa36f2c521c4da00c045bf23b8aed7bfa92`](https://github.com/urosidoki/htn_planner/tree/aec08fa36f2c521c4da00c045bf23b8aed7bfa92).
+Use the installed `SOURCE.json.ref` for the exact port revision; package version alone does not identify its code.
+Authoring/install commands are tested and recommended on **Node 22+** (hosted CI uses Node 24); the source package
+declares an engine floor of Node 20, which is not independently validated here. The scene uses **SDK 7.30.1**
+and ES2020 runtime output.
+Changing SDK or client versions calls for another build and client check. This is a TypeScript port plus an SDK host,
+not an API-identical C++ package: native allocators/ABI are inapplicable, and stored unused facts and host policies differ.
+[Semantics and conformance](htn/README.md) document the boundary. A separate AI skill is not required by this installation.
+
+For a maintained update or release:
+
+1. Record the port commit, upstream pin, Node/SDK versions and `SOURCE.json` flags. `pinned: false` or
+   `localChanges: true` needs the actual source snapshot alongside the commit to be reproducible.
+2. Review runtime/compiler changes together. Recompile your game-owned `.domain` sources; generated method IDs and
+   deferred steps belong to one compiled revision. Reload through the host; do not reuse old plan steps.
+3. In the source checkout, regenerate committed examples with `npm run htn:examples` and run `npm run htn:ci`.
+   Inspect generated and baseline diffs. For a changed conformance expectation, retain its upstream test locator;
+   regenerate golden plans from the independently built pinned C++ driver (`npm run htn:golden`, source conformance
+   guide), never from the TypeScript result being tested. A matching self-generated plan is only a regression check.
+4. In a clean consumer, install/update, compile a customized game-owned domain, run installed `htn:check` cases when
+   `--testing` is selected, build with the SDK and check `npm run htn:notices -- --check`. Verify the entrypoint,
+   customized behaviour and runtime assets remain yours, and development/reference files are excluded from publication.
+5. Preserve both library licences and any promoted example/asset notices. Inspect domain headers,
+   `src/examples/canon/THIRD_PARTY_NOTICES.md` and asset `SOURCES.md` through the source route below. No notice generator
+   infers third-party rights. Report CI/headless checks, production build and target-client smoke as separate evidence.
+
+`htn:ci`, example generation and the C++ golden driver are source-checkout commands, not installed consumer commands.
+The optional testing and benchmark guides match the installer revision; update them with the same source. Keep any
+future separately distributed skill pinned to that module/tool version rather than assuming a moving example is compatible.
 
 ## Licences and deployment
 

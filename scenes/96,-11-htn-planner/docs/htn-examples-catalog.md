@@ -250,9 +250,16 @@ keeps the running plan; `ACTIVE_PLAN` in `paper.ts` writes and drops the bracket
 | `infiltrator/` | SimpleFPS HTN (Soemers, HTN_Plan_Reuse, MIT, C++ task classes) → copied / adapted | strategy by what is in hand (stealth / ranged / melee); prerequisite tiers before the attack (heal, arm, open the way); a pickup ends the plan with `&behave`, or the item is passed on as a parameter; re-entrant move / lights / contact / cover | 8 + a fetch whose deferred `&behave` plans the attack with the gun just picked up (story) | costs → branch order; effects → `&behave` / parameters; sorted item lists and path queries → host facts |
 | `soup_kitchen/` | HDDLGym Overcooked-AI HDDL (MIT, `overcooked_short_domain_with_collab.hddl`) → copied / adapted | a team plan over two cooks; one generic `!interact` plus an exchange-rule table (smart objects); alternatives ordered done / half done / solo / through the counter; future holdings passed as parameters; a deferred wait loop; one phase per planning run | 8 + a whole soup in a split kitchen, phase by phase (story) | effects → one phase per run and parameters; the `wait` action's effect → `&wait_cooking` expanded while the host cooks; HDDL method choice → branch order |
 
+For a connected authoring walkthrough, read [a soup in a split kitchen](htn-guidance.md#worked-example-a-soup-in-a-split-kitchen):
+fact writers, phase guards, future-state parameters, deferred waiting, re-entry and the limits of its paper host.
+
 ## Scope of the Swarm paper story
 
 The coordinator/drone story demonstrates role assignment, commitment and interruption.
 Its drone host implements grab and plan brackets, but does not execute release, navigation or automatic
 coordinator updates. It does not establish a full collect-deliver-return cycle or all-agent progress.
-Those need a shared execution host; the existing real-GuardAgent integration remains follow-up work.
+A separate [headless integration test](../test/playground/continue-canon.test.ts) now drives the shipped turret/drone
+domains through `LevelSim`, `GuardAgent` and `PlanRunner` with `continueTask` on and off. Deterministic timed executors
+check attack progress/target loss, a collect-and-deliver cycle, role/enemy interruption and marker cleanup on
+completion, cancellation, reload, reset and stop. The test supplies coordinator roles as fixtures; it does not establish
+a full coordinator-driven swarm. It adds no registered SDK level, production turret/drone executors or Explorer evidence.

@@ -117,3 +117,58 @@ Import `PlanRunner` from `./htn-planner/htn/planner` and `WorldState` from `./ht
 planning. These modules are SDK-independent; the top-level barrel also exposes SDK adapters. You provide facts,
 callterms and action execution. Follow the [planner interface and semantics](htn/README.md); the planner does not
 simulate primitive effects or repair part of a plan.
+## 6. Design and check a small domain
+
+First write the decision in words: **alarm before work; completed work ends; resume your own claim; acquire only a free
+resource; otherwise wait**. Record who writes the facts and when: the sensor owns `alarm/0`; successful `!claim` writes
+`owner/1`; successful `!finish` removes that claim and writes `done/1`. Cancellation releases this actor's reservation,
+while completed physical effects remain true. Test cleanup in the executor/host as well as in the domain.
+
+Save this small planning example as `src/npc/job.domain` (the shared-job pattern from the source consumer fixtures):
+
+```lisp
+(:domain Job top_level_domain
+  (:method (job ?inp_who) top_level_method
+    (danger (and (alarm)) ((!flee ?inp_who)))
+    (done (and (done ?inp_who)) ())
+    (resume (and (owner ?inp_who)) ((!finish ?inp_who)))
+    (acquire (and (not (owner ?any_owner)))
+      ((!claim ?inp_who) (!finish ?inp_who)))
+    (wait () ((!wait ?inp_who)))
+  )
+)
+```
+
+The root already explains its priorities; extra wrapper tasks would add little. Extract a parameterised task or axiom
+when several behaviours share a sequence or condition. Put general belief expiry in the host or a wired `reasoning`
+method, so it does not compete with a job for priority. There is no minimum branch count or required depth.
+
+Before running `job a`, derive these complete expectations from the strategy:
+
+| Relevant world | Expected status and plan | Reason |
+| --- | --- | --- |
+| No owner, no alarm, not done | `succeeded`: `!claim a`, `!finish a` | Acquire free work. |
+| `owner b` | `succeeded`: `!wait a` | Another actor owns it. |
+| `owner a` | `succeeded`: `!finish a` | Re-enter after the claim without claiming twice. |
+| `done a` | `succeeded`: empty | Deliberate completion; the host stops or waits for another event. |
+| `alarm`, even with `owner a` | `succeeded`: `!flee a` | Interrupt first; the host releases this actor's claim. |
+
+```sh
+npm run htn:compile -- --check src/npc/job.domain
+npm run htn:compile -- src/npc/job.domain src/npc/job.htn.ts jobDomain
+```
+
+Compilation validates syntax, not execution. Implement and register every primitive before using the domain with an
+NPC; `!wait` must let time pass. A later condition cannot see the effect of a planned `!claim`: put that decision in
+`&task` or in the next plan after the executor writes it. A deferred loop still needs progress and a stop bound.
+
+For reproducible checks, install `--testing` from the same module source and follow its `docs/consumer-testing.md` to
+encode the table in a game-owned manifest. Add an invariant that rejects two different `owner` rows. A shared-host
+story should interrupt after claiming, fail once, then verify another actor can work and no stale claim remains.
+Do not fill expectations from actual planner output. Run a near-miss that changes the chosen branch, and deliberately
+break one expectation to check that your test command fails.
+
+The source fixture `test/fixtures/consumer/jobs.tests.ts` executes this resource/cleanup pattern with explicit bindings;
+find it through the [local-reference and pinned source route](README.md#examples-for-people-and-ai). The source guidance
+also walks through `soup_kitchen`, an executable team plan with handoffs and deferred cooking. Those paper hosts model
+fact writes and recovery; verify actual movement, cancellation and shared authority in your own target-client host.

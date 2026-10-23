@@ -53,10 +53,36 @@ Add `--reference` to the install command to keep a removable source snapshot und
 and tools. It is excluded from your game's deployment. To use a selected example in the game, adapt just the needed code
 and assets into your own runtime folders and keep its applicable notices.
 
+## Measured planning and action work
+
+Recorded on 2026-10-23 at clean source `eac4363f24c7446db054dc43606de4baf867bbf5`, Windows x64,
+Intel Core Ultra 9 275HX, Node 22.22.2. These are elapsed Node timings around CPU work, **microseconds per operation**:
+
+| Workload | Warm p50, two reports | Primary p95 | Primary p99 |
+| --- | ---: | ---: | ---: |
+| Plan: 3 fact rows, 2 steps | 5.6–6.2 | 14.5 | 32.5 |
+| Plan: 624 fact rows, 241 steps | 188.5–232.7 | 295.1 | 333.7 |
+| Built-in wait: factory/start/15 updates/done | 0.43–0.54 | 1.19 | 2.33 |
+| Built-in move: factory/start/109 updates/done | 12.3–18.3 | 17.1 | 36.0 |
+| Tick all 32 patrol guards | 46.7–53.2 | 88.1 | 111.8 |
+
+Each report uses three fresh workers, 30 warm-up batches and 200 measured batches of eight operations. Percentiles
+are medians across workers of **batch-mean** percentiles, not individual-operation tails. The p50 column spans two
+separate reports; p95/p99 come only from the primary one. Several confirmation medians moved by roughly 10–50%.
+Initial calls were slower (tiny/heavy planning medians 1.33/4.85 ms). Forcing all 32 guards to replan every tick
+measured 120.5–142.4 µs warm p50, a different workload from executing their existing patrol plans.
+
+Wait/move advance simulated time without sleeping; their durations are not CPU seconds. The move is flat-terrain
+kinematic steering. These measurements exclude renderer/ECS writes, models, real raycasts, physics, networking and
+pathfinding; they establish no Explorer FPS, universal per-action cost or NPC capacity.
+[Method, full nine-workload table and reproduction commands](docs/performance-measurements.md) distinguish planning,
+preplanned dispatch/deferred expansion, action lifecycles and whole-host ticks. Run `npm run htn:perf` in the source
+checkout to reproduce; installed consumer planning measurements use the separate optional `htn:measure` command.
+
 ## Documentation
 
 - [Module installation and AI handoff](src/htn-planner/README.md)
-- [Integration recipes](src/htn-planner/HOW-TO.md)
+- [Integration recipes and a small-domain authoring example](src/htn-planner/HOW-TO.md)
 - [Demonstration, debugger and repository-only CLI tools](DEMO.md)
 - [Domain design and host contracts](docs/htn-guidance.md)
 - [Example catalogue](docs/htn-examples-catalog.md)
@@ -64,6 +90,9 @@ and assets into your own runtime folders and keep its applicable notices.
 
 The planner does not simulate action effects or repair part of a plan. Your executors change the world; each replan builds
 another whole plan. Start with a small working behaviour and consult the limitations before adapting it.
+
+For source-checkout verification, run `npm run htn:ci`: notices, headless tests, types, root-domain checks, lint and
+strict running-plan checks. A passing run is separate from trying the intended encounter in a target client.
 
 ## Licences
 

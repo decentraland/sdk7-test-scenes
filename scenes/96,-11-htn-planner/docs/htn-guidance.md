@@ -13,7 +13,8 @@ before adapting it to another game.
   (`PlanRunner`, upstream `HTNPlanningUnit`). The host owns everything else: when to replan, what to cancel,
   executing steps, writing facts, budgets. Upstream README: "the engine owns action dispatch, replanning policy,
   scheduling and world-state updates".
-- So a replan bug is almost always a host bug. Check the agent (`src/htn-planner/npc/agent.ts`) before the domain.
+- For an unexpected replan, check both the domain's guards and the host's fact writers, triggers and cancellation
+  (`src/htn-planner/npc/agent.ts`). A correct plan alone does not establish a correct executor lifecycle.
 
 ## World state and facts
 
@@ -127,14 +128,21 @@ These opt-in checks run in test tooling; production planning does not infer or e
       does that.
   - **When to use one**: compare responsiveness and plan stability with an ablation; the measurements:
     [htn-level-metrics.md](htn-level-metrics.md#continue-branches-guardagentoptionscontinuetask).
-  - Examples: the sentry turret keeps its running attack when the sensors rank another threat first
-    (`src/examples/canon/sentry_turret/sentry_turret.domain`, on the canon's paper host), and the agent tests
-    `test/npc/continue.test.ts`.
+  - Examples: the sentry turret keeps its running attack when sensors rank another threat first. Its canonical
+    story uses a paper host; [real-host integration tests](../test/playground/continue-canon.test.ts) separately run
+    turret/drone domains through `LevelSim` → `GuardAgent` with deterministic timed/effect executors and on/off
+    `continueTask` ablations. They check progress, interruptions and cleanup, with fixture-fed swarm roles. They
+    do not establish production SDK executors, a full coordinator loop or Explorer behaviour. The smaller agent
+    tests remain in `test/npc/continue.test.ts`.
 - **Replanning on your own effects can skip pauses** (a combo skipped its recovery). Represent the
   recovery state in facts and guard it explicitly, rather than relying only on branch order.
 - **Irreversible actions only after a plan is chosen**, never inside conditions or callterms (USE_CASES).
 
 ## Domain design
+
+Start with the installed [small-domain recipe](../src/htn-planner/HOW-TO.md#6-design-and-check-a-small-domain):
+strategy → facts and writers → ordered guards → executors → independent cases and recovery. It needs no AI skill.
+The rules below are defaults with a purpose, not branch-count or depth quotas.
 
 - Keep the root readable; group related behaviours into named tasks where that removes complexity.
   Branch order expresses priority. Guard entry conditions and document who writes each fact.
@@ -149,8 +157,8 @@ These opt-in checks run in test tooling; production planning does not infer or e
 - Recursion depth is limited like upstream's: `maxDepth` 8192 call frames, two per method level, one per running
   task. A method that selected its last branch keeps its frames until the plan ends, so a recursion step that calls
   such a method costs four frames, not two (1000 idle entities in complex_scenario peak at 3843). Axioms are free.
-  Raise `maxDepth` for longer lists. A loop that plans one step and defers the rest (`(step) (&loop)`) needs no depth:
-  each `&` is a new decomposition ([classics/hunter.domain](../src/examples/canon/classics/hunter.domain),
+  Check the measured peak before increasing `maxDepth`. A loop that plans one step and defers the rest
+  (`(step) (&loop)`) starts a new bounded decomposition at each `&`, rather than accumulating recursive frames ([classics/hunter.domain](../src/examples/canon/classics/hunter.domain),
   `&hunt` after every move).
 - A fact whose variables are all bound at that point (method parameters, `?inp_` axiom parameters, variables
   bound earlier in the `and` or by every `or`/`alt` child) or `?any_` has one solution: duplicate rows do not
@@ -164,6 +172,77 @@ These opt-in checks run in test tooling; production planning does not infer or e
   (`discard-consumed`, as upstream's code generator): name the variable normally (`?moves`) even if nothing reads
   it. In tasks, calls, comparisons, assignments and `split_list` the compiler rejects a discard too. As an axiom
   `?inp_` argument it is an unbound input: a body fact that reads it matches nothing.
+
+### Worked example: a soup in a split kitchen
+
+Read [the domain](../src/examples/canon/soup_kitchen/soup_kitchen.domain),
+[worlds](../src/examples/canon/soup_kitchen/worlds/soup_kitchen/) and
+[host story](../src/examples/canon/soup_kitchen/stories.ts) together. This is **one team plan** whose steps name a cook,
+with one shared world. It is an executable paper model, without NPC movement or two independent cook planners.
+Its source is HDDLGym's collaborative Overcooked domain at `f19db8ff0c60c54e2a832e0ea2a8b5241fb3b5b7`;
+the domain header records the adaptation and the [MIT notice](../src/examples/canon/THIRD_PARTY_NOTICES.md#soup_kitchen-soup_kitchen)
+is retained. The example models one ingredient and one soup, not a complete kitchen game.
+
+**Strategy:** choose the phase nearest completion: served → deliver → start cooking → add ingredient.
+Within a phase, resume an existing handoff before fetching again; prefer a solo route when one cook reaches everything.
+In the split world chef1 reaches supplies/counter; chef2 reaches counter/pot/delivery. Guards bind the participating
+cooks and check all required `exchange` rows. The shared `handoff_ingredient` / `handoff_bowl` tasks avoid copied tails.
+
+| Facts | Writer and meaning |
+| --- | --- |
+| `agent/1`, `pile/1`, `pot/1`, `table/1`, `recipe/3`, `exchange/6`, `start_label/2`, `cooking_progress/2` | Fixture/setup defines participants, the one-ingredient recipe and permitted state transitions. `exchange` includes both before and after holdings. |
+| `holding/2` | Fixture initially; `KITCHEN_HOST.!interact` checks a matching exchange and replaces both holdings when the interaction succeeds. Piles are replenishing sources, so repeated food types are valid. |
+| `cooking/2` | The host adds it when an interaction starts the pot; `!wait` advances one scripted stage and removes it on completion. |
+
+The planner does not apply the table as effects. A phase passes known future holdings as parameters; it ends before
+the next phase needs to inspect them. Serving includes `&wait_cooking`: each expansion reads the pot **then**, emits one
+wait and another deferred check while cooking, or an empty expansion when ready. The fixture has three progress stages;
+a real host needs its own clock and completion event. Deferred recursion alone guarantees neither progress nor termination.
+
+Derive expectations from those rules, not from a captured planner trace. For example, scenario
+`2_add_onion_through_counter` cannot take the solo route: no cook has both the supply and pot exchange rows. It must give:
+
+```text
+!interact chef1 onion_pile
+!interact chef1 counter
+!interact chef2 counter
+!interact chef2 pot1
+```
+
+These existing worlds cover the other phase/re-entry decisions:
+
+| World | Expected decision and reason |
+| --- | --- |
+| `1_add_onion_solo` | Two interactions by chef1: the same cook can fetch and fill the pot. |
+| `3_start_cooking` | Only `!interact chef2 pot1`: the ingredient is already in the pot. |
+| `4_deliver_solo_waits` / `5_deliver_through_counter` | Fetch a bowl directly / hand it across; defer the cooking check, then serve and deliver. |
+| `6_resume_bowl_in_hand` | `&wait_cooking chef2 pot1 soup`, then pot and delivery interactions; no second bowl fetch. |
+| `7_resume_hand_in` / `8_served` | One delivery interaction / successful empty plan: finish what is in hand, or stop after completion. |
+
+After an interrupted handoff, the item may already be in a cook's hand or on the counter. Those are real effects;
+cancellation does not put it back in the pile. Re-entry branches continue from those holdings. The
+[recovery test](../test/examples/canon/recovery.test.ts) interrupts the ingredient and bowl transfers, injects one failure,
+and semantically requires soup at delivery and an empty counter within 24 steps. It establishes those modelled recovery
+cases, not arbitrary multiplayer contention. There are no reservation locks to release in this example; for a claimed
+helper's post-crossing cleanup, compare [door_helper](../src/examples/canon/door_helper/door_helper.domain).
+
+The [invariant](../src/examples/canon/soup_kitchen/soup_kitchen.invariants.domain) rejects conflicting contents for one
+holder; it does not prove reachability, all recipe constraints or unique physical ingredient identity. Test a nearby
+world with a needed exchange row removed: it must choose another available route or return `no_plan`, not silently
+succeed. `no_plan` is intentional for an impossible kitchen; a served soup is a different result, `succeeded` with no steps.
+
+Run from the source scene (the repository-only runner is not part of a minimal module installation):
+
+```sh
+npm run -s htn:run -- --world soup_kitchen/2_add_onion_through_counter
+npm run -s htn:run -- --world soup_kitchen/6_resume_bowl_in_hand
+npm run -s htn:run -- --story soup_kitchen/a-soup-in-a-split-kitchen
+npm test -- examples/canon
+```
+
+To adapt it, write your facts/executor contract and expected cases first, then lint, check applicable invariants and run
+an execution story. Keep source/licence/deviation notes. A future two-planner kitchen would need its own shared-resource
+and cancellation contract; this team-plan example does not establish that integration.
 
 ## Authoring tools
 
@@ -232,7 +311,8 @@ stories, generated modules and lint; update the baseline only for explained chan
 
 - Spawning, spending, deleting: a primitive the host runs after the plan is chosen, never a callterm in a condition.
   A condition's callterm runs for every candidate tried, for branches later abandoned, and again on every planner
-  call (a host that plans candidates calls it for plans it drops). A primitive in a failed branch is rolled back.
+  call (a host that plans candidates calls it for plans it drops). Primitive steps from a failed branch are removed
+  from the candidate plan; their executors have not run, so this is not rollback of physical game effects.
 - Never let a callterm add or delete rows of a fact while it is being enumerated: candidates are skipped or added
   depending on row order (as upstream, the n-th retry takes the n-th matching row of the table as it is then).
 - Squad: one planner over a shared snapshot emits `!order member role`; the host writes each order as a fact into
@@ -506,7 +586,7 @@ The scene's **HTN debugger** panel (scene README, "The HTN debugger") shows the 
   disc and the last noise it heard with that noise's radius; red seen, purple smelled, orange in sight but not yet
   detected. A cone that does not reach a target it should see: its light (visibility) or the head; a target seen
   through a wall: the line of sight; no cone at all: the domain reads no sight fact, so the agent does not see.
-- **Planning time in the Explorer:** the clock moves in 1 ms steps; read the mean over many plans, not one plan's
+- **Planning time with a coarse target-client clock:** if it moves in 1 ms steps, read the mean over many plans, not one plan's
   ms. A recorder makes planning several times slower; hosts that can record only while debugging should.
 
 ### How an AI agent runs a playground level headless (`npm run htn:level`)
@@ -709,17 +789,22 @@ Tested in `test/npc/three-units.test.ts`, `test/examples/hot-reload-policy.test.
 
 ## Performance
 
+For the current recorded release workload and separate planning/action/host boundaries, start with
+[performance measurements](performance-measurements.md). The tables below retain their historical dates and fixtures;
+they are not a newer run or a target-client frame budget.
+
 - Spread planner calls over frames, cache costly queries; measure planning time per agent: `GuardAgent.metrics`
   (ms last / total / max, plans made, tasks completed; the station board shows them).
-- In the Explorer `performance.now` is a `Date.now` shim (whole milliseconds), so one fast plan reads 0 or 1 ms:
-  judge by the total and the max over many plans, or measure in Node (sub-millisecond).
+- The host uses `performance.now()` when available, otherwise `Date.now()`. Check resolution in your target client:
+  with whole-millisecond ticks, one fast plan reads 0 or 1 ms. Aggregate many calls; Node timings below use a separate
+  environment and do not establish the target client's clock implementation.
 
-### Frame budgets (measured)
+### Historical frame measurements (2026-10-15)
 
 `npm run htn:bench` (scene `benchmarks/main_benchmark.txt`, Node 22 / V8 on a desktop CPU, 2026-10-15). These are
-Node numbers; the Explorer's scene runtime is not measured yet (and its clock has 1 ms steps), so keep a margin.
+Node numbers from that date; they include no target-client scene-runtime measurement or universal clock-resolution claim.
 
-- **One plan is microseconds.** Warm µs per plan: guard.domain 1-5, stalker.domain (21 branches) 8-10 (the flat
+- **Warm plans in these historical fixtures**, µs per plan: guard.domain 1-5, stalker.domain (21 branches) 8-10 (the flat
   domains, measured before the 2026-10-18 restructure; the tiered ones cost about the same per replan, upkeep pass
   included; see [Domain variants](htn-level-metrics.md#domain-variants-the-tiered-stalker-and-guard-now-the-default)),
   AAACombatNPC 2-13, upstream's ComplexScenario cases 2-9. The outlier is a plan that walks a hundred entities
@@ -740,10 +825,8 @@ Node numbers; the Explorer's scene runtime is not measured yet (and its clock ha
   Replans are rare (about 0.3 per NPC per second; a tick with any planning in 5-7 % of ticks), so the average is
   tiny; the maxima are single spikes (a garbage collection, or every NPC replanning in the tick the visitor walks
   in: the first tick plans all N at once).
-- **Budget for ~10 NPCs**: plan for about 0.5 ms per frame on average and allow spikes of a few ms; in a runtime
-  10× slower than Node that is still 1-2 ms at p95. What breaks a frame is not one plan but many in the same tick
-  (the visitor seen by all, a bell heard by all): spread such replans over frames with a shared budget (below)
-  and keep `replanThrottle`.
+- Choose a frame budget from measurements in your target client; these Node fixture rows do not establish a
+  universal NPC count, a per-action cost or a safe frame-time allowance.
 - **One budget for all planning of a frame** (`PlanBudget`, `npc/plan-budget.ts`; `GuardSquad` option `budget`,
   `GuardAgentOptions.planBudget` for any other host, which calls `beginFrame()` once per frame). It gates every
   replan of every agent and the squad decision: `maxPlansPerFrame` (runs; one run = one replan with all its
@@ -773,12 +856,13 @@ Node numbers; the Explorer's scene runtime is not measured yet (and its clock ha
   The spike it cuts is the first tick and the walk-in (all N plan at once; the first tick 3-12× less); the steady state hardly
   changes, since replans are rare. A count cap bounds the work per frame whatever a plan costs, at the price of
   waits (50 NPCs at 3 a frame: up to 16 frames, half a second, behind); a time budget lets cheap plans through in
-  bulk and holds back only when they add up. In the Explorer, whose clock has 1 ms steps, prefer
+  bulk and holds back only when they add up. On a client whose clock has 1 ms steps, prefer
   `maxPlansPerFrame` (a 0.25 ms budget reads every plan as 0 or 1 ms). The scene's level 9 uses 3 a frame
   (`CROWD_BUDGET`, a control switches it off). Tick times move by tens of % between runs (garbage collections),
   and so do the time-budget rows (what gets through depends on measured time); the count-budget rows repeat exactly.
-- **No trace recorder in production.** It multiplies planning by 3-5 (planning p95 0.008 → 0.044 ms for 10
-  NPCs) and doubles the worst plan; the playground has one per NPC for its board, a scene squad needs none.
+- **Trace capture is optional debugging work.** It allocates and increased planning time in these historical
+  fixtures (for example planning p95 0.008 → 0.044 ms for 10 NPCs). Leave it off when unused and measure it separately
+  when enabled; the playground uses a recorder for its board.
 
 What to watch, per NPC (`GuardAgent.metrics`):
 - `maxPlanMs` against `lastPlanMs`: one slow plan versus all slow; `plansMade` per second: replanning churn
@@ -787,14 +871,18 @@ What to watch, per NPC (`GuardAgent.metrics`):
   few times the peak, not the default 8192, to fail fast on runaway recursion.
 - `lastError`: a runtime error of the last plan even when nobody listens to `onDiagnostic` (a missing callterm
   under a fallback branch still plans).
-- With counters (`plannerFor(domain, { stats: newPlanStats() })`, `lastStats` / `totalStats`):
+- With counters (`plannerFor(domain, { stats: newPlanStats() })`, `lastStats` / `totalStats`), agent snapshots/totals
+  cover decision/replan decompositions only. They exclude running-plan checks, reasoning upkeep and deferred expansions;
+  use `checksMade` / `totalCheckMs` and `reasoningMade` / `totalReasoningMs` for those two categories. Deferred
+  expansion needs a separate runner/host measurement when total cost matters. In those decision counters:
   `factRowsTested` / `factRowsMatched` high: a fact scanned row by row whose first argument could be bound
   earlier (reorder the condition); `factChoiceRetries` and `unbinds` high: backtracking through fact solutions
   (put the selective condition first); `branchRetries` close to `branches`: the common case is a late branch
   (move it up); `branchBacktracks`: branches whose tasks failed after their condition held (check in the condition
-  what the task needs). Counting costs at most ~10 % (row-heavy plans), nothing when off.
+  what the task needs). The historical row-heavy fixtures measured roughly 10% counting overhead; this is not
+  an upper bound for another workload.
 
-### Allocations and NPCs per ms of frame (measured)
+### Historical allocations and NPCs per ms (2026-10-16)
 
 `npm run htn:bench` also reports, per scenario, the **V8 heap bytes per warm plan** and the garbage collections they
 cause, and from the level 9 crowd the **game metric**: how many NPCs one ms of frame runs (the whole AI update:
@@ -816,8 +904,8 @@ perception, hearing, planning, actions), at 30 and 60 fps. Node 22, desktop CPU,
   `GCProfiler`), net of an empty loop, the smaller of two measurements: a 2-field object measures 40 B, an array of
   100 numbers 848 B (`test/htn/planner/perf-compare.test.ts`). It counts what reaches the JS heap (not native memory;
   allocations the optimiser removes do not count, as for the GC). Times are wall clock on a desktop that runs other
-  things: p95 moves 30-70 % between runs, the medians of 5 processes by 10-30 %. The Explorer's runtime is not
-  measured (1 ms clock steps; sum many ticks there).
+  things: p95 moves 30-70 % between runs, the medians of 5 processes by 10-30 %. No current target-client measurement
+  accompanies these historical rows; verify its clock resolution and aggregate enough ticks there.
 
 ### Plans, steps and callterm arguments: who owns what
 
@@ -837,7 +925,7 @@ The planner reuses its buffers, so what it hands out follows three rules:
 
 What still allocates while planning ([Planner limitations](../src/htn-planner/htn/README.md#planner-limitations)): values the domain makes
 (float arithmetic, ints outside -128..1023, runtime lists, `split_list` of a new list), host callterms, diagnostics,
-a step that changed, a deferred expansion, and anything under a trace recorder (a debugging tool, 3-5× the time).
+a step that changed, a deferred expansion, and trace capture. Recorder overhead depends on the workload.
 
 ### How an AI agent checks a change's cost
 
@@ -865,8 +953,8 @@ a step that changed, a deferred expansion, and anything under a trace recorder (
 ### New planner features: opt-in, and paid for in the bench
 
 The planner is a game HTN like upstream's: total order, the first matching branch wins, the host replans instead of
-repairing a plan, and it plans with zero allocations once warm, as upstream does. That is a frame-budget choice: a plan must cost
-microseconds and be predictable, for dozens of NPCs. Academic HTN features (effects simulated during planning, plan
+repairing a plan. It reuses warm search storage; values, changed steps, deferred expansion and host/debug code can
+still allocate. Measure cost and outcome for the workload that needs a feature and for the intended frame budget. Academic HTN features (effects simulated during planning, plan
 repair, partial order, cost-optimal search) buy expressiveness with search, memory or both. So any new planner
 feature:
 

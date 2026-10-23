@@ -25,26 +25,27 @@ into C. We keep that split:
 
 ## Planner limitations
 
-- **Domains have no effects.** Planning only reads the world; the action executors are what change it.
-  - `decompose` never simulates world-state changes between steps, so a later step cannot rely on facts an earlier step "would" produce.
-  - Every action must write its own facts to the `WorldState` when it runs. If it doesn't, the plan repeats forever (e.g. `!set_waypoint` must update `current_waypoint`).
-  - The workaround for "the state after step N" is a deferred task (`&x`): it is decomposed only when the runner reaches it, against the current world.
-- **No partial replanning (MTR). The whole plan is always replanned.** There is no comparison of method traversal records, so a higher-priority branch is not detected without a replan. Upstream has no MTR either. The domain-side substitute is a continue branch (Killzone 2): the domain itself answers a replan with "keep the running plan" (`GuardAgentOptions.continueTask`, H21).
-- **Callterms have side effects.** They run during planning, possibly several times, and are never rolled back. Upstream allows writing facts from a callterm (its Pathfinder does); they are visible at once and survive backtracking.
-- **Branch conditions commit once selected.** A later task failure does not reopen that condition's fact/axiom choices; only `mode.branches` makes the planner try the next branch.
-- **Depth limit.** The default `maxDepth` is 8192 call frames, counted like upstream; exceeding it returns `depth_exceeded`.
-- **Allocation-free only once warm, and only the planner.** A `PlanRunner` allocates nothing per plan after its first few (its buffers grow to the domain's size, then are reused), as upstream's generated planner; `decompose()` / `decomposeDeferred()` make a new engine per call (use a runner in a game loop). Values the domain creates still allocate (float arithmetic, ints outside -128..1023, runtime lists, `split_list` of a list it has not split before), as do host callterms, diagnostics, a plan step that differs from the last plan's, steps from `resolve()`, and everything under a trace recorder. Steps are values: a runner may hand out the same `PlanStep` object again (`docs/htn-guidance.md`, "Plans, steps and callterm arguments: who owns what").
-- **Lifting any of these (effects, plan repair, partial order) is opt-in under the feature-cost rule**
-  (`docs/htn-guidance.md`, "New planner features"): zero cost when off (the counter gate and bytes per plan
-  unchanged), its own bench rows when on, decided from that table.
+The installed [module guide](../README.md#choose-the-right-planning-contract) is the consumer summary: ordered,
+total-order planning; no effect simulation, cheapest-plan search, plan repair or MTR; immediate callterms;
+bounded depth/storage; and the boundary between local host simulation and target-client evidence.
+
+- Primitives are plan output, not executed effects. Write decision-relevant facts when the real action changes them;
+  use `&task` or the next plan when a later decision needs those results. Explicit mutating callterms are different:
+  their writes are immediate and survive backtracking; throwing bindings escape `plan()`.
+- A selected condition commits. `mode.factsAndAxioms` searches alternatives within it; `mode.branches` can try the
+  next branch after task failure. Both default to on. Details and intentional port differences follow below.
+- `maxDepth` defaults to 8192 call frames; exhaustion returns `depth_exceeded`. `PlanRunner` reuses internal search
+  storage once warm, but new values, changed steps, deferred expansion, host code, diagnostics and trace capture
+  can allocate. `decompose()` / `decomposeDeferred()` create fresh engines. Use runners in game loops and measure
+  the actual domain/bindings rather than assuming universal zero allocation.
 
 ## Runtime constraints (scene bundle, Unity Explorer V8 / esbuild)
 
 - ES2020 only (`lib: ES2020` in the scene tsconfig): no `Array.prototype.at`, `Object.hasOwn`, etc.
 - Synchronous. No `eval`, `new Function`, `Proxy`, `async`, WASM, Node APIs, `~system/*` imports.
 - No module-level mutable singletons in `htn/`: several planners/NPCs run side by side.
-- Allocation-free once warm (as upstream's generated planner): a `PlanRunner` plans with no heap allocation after
-  its first plans (`engine.ts` header; `test/htn/planner/alloc.test.ts` guards it). In the engine: buffers from its
+- Reuse internal search storage once warm (`engine.ts` header; `test/htn/planner/alloc.test.ts` guards selected
+  stable workloads); the allocation exceptions above still apply. In the engine: buffers from its
   pools (`sized()` per length, a top index; never cut a pooled array to length 0), continuations as `Cont` records,
   no closure, spread, generator or temporary object per node. Plan steps and atoms are values (never change them; a
   runner hands out an equal step again); a callterm's `args` array is valid during the call only
@@ -168,9 +169,12 @@ const runner = new PlanRunner(domain, world, {
   ```
   Every decomposition zeroes it first. Names follow upstream's (`HTNGeneratedProfiling.h:65-82`); ours add
   `conditions`, `branchBacktracks`, `bindings` / `unbinds` (`PlanStats` in `planner.ts` says what each counts). Off,
-  each counting point is one field test (no measurable cost); on, at most ~10% on row-heavy plans.
+  each counting point tests whether counters are enabled. Measure overhead for your workload; historical row-heavy
+  fixtures measured roughly 10%, not a universal upper bound.
 - **Per agent**: `GuardAgent.metrics` adds `lastPeakCallFrames`, `maxPeakCallFrames`, `callFrameCapacity`,
   `lastError`, and with a counting runner (`plannerFor(domain, { stats: newPlanStats() })`) `lastStats` / `totalStats`.
+  These snapshots/totals cover decision/replan decompositions, excluding `activePlan` checks, reasoning and deferred
+  expansion. Checks and reasoning have separate counts/times; measure deferred expansion separately for total host cost.
 - **Benchmark**: `npm run htn:bench` (`-- --quick`, `-- --out benchmarks/main_benchmark.txt`), see Commands.
 
 ## Commands
