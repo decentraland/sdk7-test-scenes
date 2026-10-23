@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const root = new URL('../', import.meta.url)
-const output = new URL('third-party-notices.txt', root)
+const output = new URL('htn-notices.txt', root)
 const check = process.argv.length === 3 && process.argv[2] === '--check'
 
 async function main() {
@@ -24,17 +24,17 @@ async function main() {
   const expected = sections.join('\n\n' + '='.repeat(72) + '\n\n').replace(/\r\n/g, '\n').replace(/[ \t]+$/gm, '') + '\n'
   if (check) {
     const actual = await readFile(output, 'utf8')
-    if (actual.replace(/\r\n/g, '\n') !== expected) throw new Error('Stale third-party-notices.txt: run npm run htn:notices')
+    if (actual.replace(/\r\n/g, '\n') !== expected) throw new Error('Stale htn-notices.txt: run npm run htn:notices')
     const require = createRequire(import.meta.url)
     const { getPublishableFiles } = require('@dcl/sdk-commands/dist/logic/project-files')
     const files = await getPublishableFiles({ fs }, fileURLToPath(root))
-    if (!files.some((path) => path.replace(/\\/g, '/') === 'third-party-notices.txt')) {
-      throw new Error('third-party-notices.txt is excluded from the SDK publishable file list; update .dclignore')
+    if (!files.some((path) => path.replace(/\\/g, '/') === 'htn-notices.txt')) {
+      throw new Error('htn-notices.txt is excluded from the SDK publishable file list; update .dclignore')
     }
     console.log('HTN notices match their sources and are included in the SDK publishable file list.')
   } else {
     await writeFile(output, expected)
-    console.log('Updated third-party-notices.txt')
+    console.log('Updated htn-notices.txt')
   }
 }
 

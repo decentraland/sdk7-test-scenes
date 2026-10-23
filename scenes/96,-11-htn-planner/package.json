@@ -9,6 +9,7 @@
     "build": "sdk-commands build",
     "test": "node scripts/run-tests.mjs",
     "typecheck:tools": "tsc -p tsconfig.tools.json && tsc -p tsconfig.viewer.json",
+    "htn:install": "node scripts/htn-install.mjs",
     "htn:compile": "node scripts/htn-compile.mjs",
     "htn:examples": "node scripts/htn-examples.mjs",
     "htn:run": "node scripts/htn-run.mjs",

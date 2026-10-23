@@ -2,7 +2,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { engine, Entity, Material, MeshRenderer, Raycast, Transform } from '@dcl/sdk/ecs'
-import { float, formatAtom, sym, vec3 } from '../../src/htn-planner/htn/atom'
+import { bool, float, formatAtom, sym, vec3 } from '../../src/htn-planner/htn/atom'
 import type { GuardEvent } from '../../src/htn-planner/npc/actions'
 import type { DomainIR } from '../../src/htn-planner/htn/ir'
 import { RUNNING_FACT, type GuardAgent } from '../../src/htn-planner/npc/agent'
@@ -560,4 +560,35 @@ test('GuardSquad without budget has none: every replan runs when due, as before'
   assert.deepEqual(s.squad.guards.map(g => g.agent.metrics.plansMade), [1, 1])
   assert.equal(s.decisions[0].waitedFrames, 0)
   s.squad.despawn()
+})
+
+test('a squad runs game-owned actions and facts without changing the library', () => {
+  const compiled = compileDomainSource('custom.domain', `(:domain Custom top_level_domain
+    (:method (behave) top_level_method
+      (ring (and (door_open 1)) ((!ring_bell) (!wait 100)))
+      (rest () ((!wait 100)))))`)
+  assert.ok(compiled.ok)
+  if (!compiled.ok) return
+  let doorOpen = false
+  let rings = 0
+  const squad = new GuardSquad({
+    planner: plannerFor(compiled.ir), system: false, noise: null,
+    lineOfSight: CLEAR_LINE_OF_SIGHT,
+    syncFacts(agent) {
+      agent.blackboard.world.set('door_open', bool(doorOpen))
+      return String(doorOpen)
+    },
+    actions: {
+      '!ring_bell': () => ({ start() { rings++; return 'done' }, update() { return 'done' }, cancel() {} })
+    }
+  })
+  try {
+    squad.spawn([{ id: 'custom', route: [v3(4, 0, 4)], body: createCapsuleBody }])
+    squad.update(0.1)
+    assert.equal(rings, 0)
+    doorOpen = true
+    squad.update(0.1)
+    assert.equal(rings, 1, 'syncFacts requests a new plan and the custom action executes')
+    assert.equal(squad.guards[0].agent.currentAction, '!wait', 'built-in actions remain available')
+  } finally { squad.despawn() }
 })

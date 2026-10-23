@@ -272,6 +272,8 @@ export interface GuardSquadOptions extends SquadPlanningOptions {
   system?: boolean
   /** Extra facts for every guard (GuardAgentOptions.syncFacts); with `squad`, after the orders, keys joined by '|'. */
   syncFacts?: GuardAgentOptions['syncFacts']
+  /** Game-owned action factories, merged over the built-in guard actions for each agent. */
+  actions?: GuardAgentOptions['actions']
   /** A squad planner whose orders reach the guards as facts. Unset: the guards plan on their own. */
   squad?: SquadPlannerOptions
   /**
@@ -387,6 +389,7 @@ export class GuardSquad {
         onEvent: this.opts.onEvent,
         history: this.opts.history?.(spec),
         planBudget: this.budget ?? undefined,
+        actions: this.opts.actions,
         syncFacts: this.opts.squad ? a => this.syncOrders(a) : this.opts.syncFacts
       })
       body.write(agent.kinematic)

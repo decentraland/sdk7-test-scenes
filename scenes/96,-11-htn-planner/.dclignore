@@ -25,3 +25,7 @@ tools
 test
 scripts
 .test-build
+benchmarks
+htn-lint.json
+tsconfig.viewer.json
+reference

@@ -52,14 +52,17 @@ Example domains built on this kit (`src/examples/`, not part of the library):
    To swap the domain of running agents: `agent.reload(plannerFor(domain))` or `squad.reload(...)` (world kept,
    running step cancelled, plan and pending deferred steps dropped, replan next tick). In the dev server a
    regenerated `.htn.ts` restarts the whole scene instead.
-3. **New facts** the domain reads: write them in `GuardBlackboard` (`blackboard.ts`) and update its schema
-   comment. Facts are keyed by name and arity; write them whenever the underlying state changes so a replan
+3. **New game facts**: use `syncFacts` on `GuardSquad` or `GuardAgent` to write into `agent.blackboard.world`
+   and return a key that changes when those facts do. Keep the writer in game-owned code; reserve `blackboard.ts`
+   changes for changes to the library itself. Facts are keyed by name and arity; write them whenever the underlying state changes so a replan
    or deferred step in the same tick sees them.
-4. **New primitives** `!name`: add an `ActionFactory` to `GUARD_ACTIONS` in `actions.ts` (or pass
-   `actions` in `GuardAgentOptions`). An executor implements `start()`, `update(dt)` returning
+4. **New primitives** `!name`: pass game-owned `ActionFactory` entries through `GuardSquadOptions.actions` or
+   `GuardAgentOptions.actions`, merged over the built-in `GUARD_ACTIONS`. Keep custom executors outside the library. An executor implements `start()`, `update(dt)` returning
    `running | done | failed`, and `cancel()`. A step with no executor (or whose factory returns null for its
    arguments) runs as a 0.05 s no-op, as upstream's demo host does; a `diagnostic` event says so once per primitive.
-5. **New replan triggers**: in `agent.ts`. The current triggers are plan done/failed, a change in
+5. **Game replan triggers**: change the key returned by `syncFacts` or call `agent.requestReplan(reason)`.
+   See [the integration recipes](../HOW-TO.md#3-add-your-own-facts-and-actions). Change `agent.ts` only when changing the
+   library policy itself. The current triggers are plan done/failed, a change in
    visible or remembered targets, and a hearing escalation (a noise after quiet, or the alert becoming
    alarmed; never while a target is visible, if the domain reads `target_visible`), paced by `replanThrottle` (default 0, as upstream); with a
    shared `planBudget` (`GuardSquad` option `budget`) a replan may also wait for a later frame, the step running on. Sight
