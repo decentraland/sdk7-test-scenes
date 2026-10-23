@@ -61,7 +61,8 @@ The existing broader `htn:bench` suite and crowd scenarios remain available for 
 
 ## Recorded release run
 
-Measured on 2026-10-23 at clean commit `eac4363f24c7446db054dc43606de4baf867bbf5` (runtime base `52971a96`).
+Measured on 2026-10-23 at clean public release-source commit `11d2f5f617a4d127ae0bba8f42431d9c6ce5b740`.
+This commit includes the integrated runtime, benchmark harness and first-release consumer contracts.
 Windows `10.0.26300`, x64, Intel Core Ultra 9 275HX (24 logical CPUs), Node `v22.22.2`, V8 `12.4.254.21-node.39`.
 Two separate default reports completed successfully in about seven elapsed seconds each. Each report has three fresh
 workers per workload, 30 warm-up batches and 200 measured batches of eight; tracing/stats/history are off. Development
@@ -72,21 +73,23 @@ are medians of repeat percentiles of batch means. Confirmation p50 comes from th
 
 | Workload | Cold median | Warm p50 | Warm p95 | Warm p99 | Confirmation p50 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `plan-idle` | 1332.000 | 6.187 | 14.487 | 32.512 | 5.550 |
-| `plan-heavy100` | 4853.300 | 232.713 | 295.138 | 333.675 | 188.525 |
-| `dispatch-1` | 90.500 | 0.163 | 0.188 | 0.825 | 0.200 |
-| `dispatch-deferred32` | 261.900 | 1.550 | 8.612 | 26.087 | 1.700 |
-| `action-wait` | 103.000 | 0.425 | 1.188 | 2.325 | 0.538 |
-| `action-move` | 429.200 | 12.300 | 17.138 | 35.962 | 18.338 |
-| `tick-1` | 2076.300 | 2.175 | 5.038 | 29.237 | 3.300 |
-| `tick-32` | 5035.500 | 53.225 | 88.113 | 111.838 | 46.712 |
-| `tick-32-replan` | 6058.500 | 142.413 | 226.900 | 271.450 | 120.512 |
+| `plan-idle` | 1545.500 | 5.900 | 14.362 | 24.125 | 4.975 |
+| `plan-heavy100` | 7533.600 | 307.950 | 375.312 | 441.125 | 240.675 |
+| `dispatch-1` | 155.100 | 0.275 | 0.312 | 1.087 | 0.275 |
+| `dispatch-deferred32` | 350.800 | 1.837 | 11.112 | 34.063 | 1.950 |
+| `action-wait` | 146.300 | 0.675 | 1.537 | 4.125 | 0.713 |
+| `action-move` | 656.700 | 19.775 | 30.188 | 41.950 | 18.550 |
+| `tick-1` | 3566.300 | 3.463 | 11.975 | 63.250 | 3.575 |
+| `tick-32` | 8870.800 | 67.150 | 102.588 | 140.150 | 70.988 |
+| `tick-32-replan` | 8484.900 | 114.325 | 195.612 | 220.862 | 106.262 |
 
-These are observations of this build/machine, not stable speed limits: several confirmation p50 values moved by roughly
-10–50%, despite pausing other build workers. No timing regression verdict follows from these two reports. In particular,
-sub-microsecond dispatch/wait rows should be read as a rough scale, and cold results include first-use/JIT noise. A heavy
-plan here is hundreds of microseconds warm while its first call is milliseconds; a burst of 32 forced guard replans has a
-different cost from mostly executing an existing plan. Those distinctions matter more than small decimal differences.
+These are observations of this build/machine, not stable speed limits: confirmation p50 values moved by up to about
+22%, despite pausing other build workers. No timing regression verdict follows from these two reports. In particular,
+sub-microsecond dispatch/wait rows should be read as a rough scale, and cold results include first-use/JIT noise.
+The primary first planning calls cost about **1.55 ms tiny / 7.53 ms heavy**, while the first 32-guard host tick costs
+about **8.87 ms**; the confirmation cold medians are 1.09 / 6.02 / 8.24 ms respectively. The forced-replan32 first tick
+has cold medians 8.48 / 4.48 ms. A warm heavy plan here is hundreds of microseconds, and a mostly executing 32-guard
+host tick differs from an all-NPC replan burst. First-spawn/cold work must be budgeted separately from warm work.
 
 The tiny planning world has **3 rows in 3 tables**, producing **2 primitive steps**. `FactHeavy100` has **624 rows in 18
 tables**, producing **241 primitive steps**. Both use the existing seven-method `ComplexScenario` IR. Each worker actually
@@ -102,8 +105,8 @@ versus 351 in the normal 32-guard patrol); it is an artificial candidate/replan 
 The JSON keeps these counts separate and includes final fact-row/movement counts; planning-time counters alone do not
 measure an arbitrary game host or its callbacks.
 
-The raw files are `report.json` (primary) and `confirmation.json`, recorded with the release task evidence. They are not
-uploaded with the scene. Reproduce new files using the commands above; the summary intentionally retains this measured
-revision even when documentation or release wiring later changes. Primary selected-source SHA-256:
-`b299df2fb62415f31ea307746193e7bc4ead08703d4aca1635dce9e2ae08e37c`. This hashes the runtime, selected guard/upstream generated examples, benchmark helpers
+The raw files are `final-report.json` (primary) and `final-confirmation.json`, recorded with the release task evidence.
+They are not uploaded with the scene. Reproduce new files using the commands above; the summary intentionally retains
+this measured public-source revision even when documentation or release wiring later changes. Primary selected-source SHA-256:
+`25ec3efe93b0b5c61f7e3cee7ef8161db1a2e51b6eaedad4d9f9e6cae57f8f10`. This hashes the runtime, selected guard/upstream generated examples, benchmark helpers
 and driver bytes; it is not a complete transitive dependency lock. The Git commit and environment remain the primary pin.
