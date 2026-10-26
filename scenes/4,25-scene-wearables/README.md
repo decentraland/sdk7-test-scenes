@@ -27,6 +27,20 @@ client of the scene decides what it shows.
 Local picks are applied after synced ones, so they win within a category. A player who leaves the scene loses the
 synced outfit.
 
+### AvatarShape ON A PLAYER ENTITY
+
+- A field left unset keeps the profile value.
+- `wearables`: a non-empty list **replaces** the whole wearable set, like on an NPC. Unlisted categories fall to
+  defaults. Catalog URNs and scene `.glb` paths are both allowed. An empty list keeps the profile wearables.
+- `bodyShape`, `skinColor`, `hairColor`, `eyeColor`, `showOnlyWearables` apply when set.
+- `name`, `expressionTriggerId`, `expressionTriggerTimestamp`, `emotes` and `talking` are ignored: the nametag stays the
+  profile name and no emote plays.
+- The override is local to the client and only active while the scene is current. NPCs are unchanged.
+
+Because the list replaces, this scene writes the player's equipped items (`AvatarEquippedData.wearableUrns`) followed
+by the picked scene paths, which come last and so win per category. It re-dresses when the equipped items change, waits
+for `AvatarEquippedData` and `AvatarBase` to exist, and deletes `AvatarShape` when nothing is picked.
+
 | Concern | Where |
 | --- | --- |
 | Wearable list and paths | `src/shared/wearables.ts` |
@@ -41,6 +55,8 @@ synced outfit.
 2. Run, jump, glide, play an emote. Expected: wearables follow the rig.
 3. Walk off the parcel and back. Expected: profile look outside, scene outfit again inside.
 4. Take off all. Expected: exact profile look.
+   A profile item disappears from the look unless it comes back through `AvatarEquippedData`, so change a profile item
+   in the backpack and take everything off again. Expected: the new item shows, the old one is gone.
 5. **Mannequin**: toggle wearables in both examples. Expected: they replace its base items.
 6. Two clients, A and B. A wears an item in **Local only**. Expected: B does not see it. A wears an item in **Synced**.
    Expected: B sees it on A, and on the mannequin too. A late joiner sees the synced outfits right away.
@@ -55,5 +71,5 @@ What scene wearables changed in `AvatarShape` and what they must keep. Compare a
 | **Control** NPC: catalog items only | Red t-shirt, safari pants, sneakers | Same |
 | **Same category** NPC: red t-shirt and black jacket, both `upper_body` | Both items render on top of each other | Only the black jacket, the later item |
 | **Missing path** NPC: red t-shirt plus a `.glb` path the scene does not ship | Not checked yet | Red t-shirt; the path is skipped with a `Scene wearable ... skipped` warning |
-| **Full AvatarShape on me**: name, body, colours, catalog items and the `wave` expression on the player entity | A second avatar named `OVERRIDDEN` appears and waves; the real one is unchanged | No second avatar, no wave; only the scene wearables picked in the panel apply |
+| **Full AvatarShape on me**: name, body, colours, catalog items and the `wave` expression on the player entity | A second avatar named `OVERRIDDEN` appears and waves; the real one is unchanged | No second avatar. The real avatar takes the male body, green skin, red hair and the catalog items (black jacket, brown pants, classic shoes, short hair), then the scene wearables picked in the panel. The name stays the profile name, no wave |
 | **Full AvatarShape on others**: the same on every other player | A second avatar on each of them | Same as above, on each of them |

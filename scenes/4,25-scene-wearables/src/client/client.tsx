@@ -1,4 +1,4 @@
-import { AvatarBase, AvatarShape, engine, Entity, PlayerIdentityData, Transform } from '@dcl/sdk/ecs'
+import { AvatarBase, AvatarEquippedData, AvatarShape, engine, Entity, PlayerIdentityData, Transform } from '@dcl/sdk/ecs'
 import { Color3, Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import ReactEcs, { Button, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
@@ -14,8 +14,8 @@ const NPC_BASE_LOOK = ['eyes_00', 'eyebrows_00', 'mouth_00', 'casual_hair_01', '
 const base = (...names: string[]) => names.map((w) => BASE + w)
 const HEAD = base('eyes_00', 'eyebrows_00', 'mouth_00', 'casual_hair_01')
 
-// Edge cases: a full AvatarShape on a player entity, from before scene wearables. Builds without them spawn a second
-// avatar from it; builds with them keep the real avatar and take only this scene's wearables
+// Edge case: a full AvatarShape on a player entity. It replaces the look of the real avatar (body, colours and
+// wearables); `name` and `expressionTriggerId` are ignored on players
 const PROFILE_OVERRIDE = {
   name: 'OVERRIDDEN',
   bodyShape: BASE + 'BaseMale',
@@ -96,9 +96,10 @@ function dressAvatarsSystem() {
 
   // Every client dresses every player in the scene: the explorer applies AvatarShape locally and broadcasts nothing
   for (const [player, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
-    // Body shape picks the male / female model
+    // Body shape picks the male / female model; the equipped items are the profile look that the list replaces
     const avatarBase = AvatarBase.getOrNull(player)
-    if (!avatarBase) continue
+    const equipped = AvatarEquippedData.getOrNull(player)
+    if (!avatarBase || !equipped) continue
 
     const address = identity.address.toLowerCase()
     const names = merge(outfits.get(address) ?? [], player === engine.PlayerEntity ? local.me : [])
@@ -106,7 +107,7 @@ function dressAvatarsSystem() {
     const override = player === engine.PlayerEntity ? overrideMe : overrideOthers
 
     // Player entity ids are recycled, so the address is part of the key
-    dress(player, `${address}|${override}`, paths, () => {
+    dress(player, `${address}|${override}|${equipped.wearableUrns.join(',')}`, paths, () => {
       if (override)
         AvatarShape.createOrReplace(player, {
           ...PROFILE_OVERRIDE,
@@ -115,7 +116,13 @@ function dressAvatarsSystem() {
           emotes: []
         })
       else if (paths.length === 0) AvatarShape.deleteFrom(player)
-      else AvatarShape.createOrReplace(player, { id: identity.address, wearables: paths, emotes: [] })
+      else
+        AvatarShape.createOrReplace(player, {
+          id: identity.address,
+          // Scene wearables last: they replace the equipped items of the same category
+          wearables: [...equipped.wearableUrns, ...paths],
+          emotes: []
+        })
     })
   }
 }
