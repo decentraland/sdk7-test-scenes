@@ -1,5 +1,5 @@
 import { AvatarBase, AvatarShape, engine, Entity, PlayerIdentityData, Transform } from '@dcl/sdk/ecs'
-import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
+import { Color3, Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import ReactEcs, { Button, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { room } from '../shared/messages'
@@ -11,6 +11,19 @@ const BASE_FEMALE = (BASE + 'BaseFemale').toLowerCase()
 const NPC_BASE_LOOK = ['eyes_00', 'eyebrows_00', 'mouth_00', 'casual_hair_01', 'red_tshirt', 'safari_pants', 'sneakers'].map(
   (w) => BASE + w
 )
+const base = (...names: string[]) => names.map((w) => BASE + w)
+const HEAD = base('eyes_00', 'eyebrows_00', 'mouth_00', 'casual_hair_01')
+
+// Edge cases: a full AvatarShape on a player entity, from before scene wearables. Builds without them spawn a second
+// avatar from it; builds with them keep the real avatar and take only this scene's wearables
+const PROFILE_OVERRIDE = {
+  name: 'OVERRIDDEN',
+  bodyShape: BASE + 'BaseMale',
+  skinColor: Color3.create(0.3, 0.8, 0.3),
+  hairColor: Color3.create(0.9, 0.1, 0.1),
+  expressionTriggerId: 'wave',
+  wearables: base('black_jacket', 'brown_pants', 'classic_shoes', 'short_hair')
+}
 
 type Target = 'me' | 'npc'
 type Mode = 'local' | 'synced'
@@ -18,6 +31,8 @@ type Mode = 'local' | 'synced'
 let npc: Entity
 let target: Target = 'me'
 let mode: Mode = 'local'
+let overrideMe = false
+let overrideOthers = false
 
 // Example 1: picks that only this client applies; other players keep seeing the profile
 const local: Record<Target, string[]> = { me: [], npc: [] }
@@ -31,8 +46,19 @@ export function startClient() {
   npc = engine.addEntity()
   Transform.create(npc, { position: Vector3.create(8, 0, 10), rotation: Quaternion.fromEulerDegrees(0, 180, 0) })
 
+  // Edge cases: AvatarShape NPCs that do not use scene wearables
+  spawnNpc('Control', 3, [...HEAD, ...base('red_tshirt', 'safari_pants', 'sneakers')])
+  spawnNpc('Same category', 5.5, [...HEAD, ...base('red_tshirt', 'black_jacket', 'safari_pants', 'sneakers')])
+  spawnNpc('Missing path', 10.5, [...HEAD, ...base('red_tshirt'), 'wearables/missing/missing_upper_body.glb'])
+
   engine.addSystem(dressAvatarsSystem)
   ReactEcsRenderer.setUiRenderer(panel, { virtualWidth: 1920, virtualHeight: 1080 })
+}
+
+function spawnNpc(name: string, x: number, wearables: string[]) {
+  const entity = engine.addEntity()
+  Transform.create(entity, { position: Vector3.create(x, 0, 13), rotation: Quaternion.fromEulerDegrees(0, 180, 0) })
+  AvatarShape.create(entity, { id: `edge-${name}`, name, bodyShape: BASE + 'BaseMale', wearables, emotes: [] })
 }
 
 function readSynced(): Map<string, string[]> | undefined {
@@ -77,10 +103,18 @@ function dressAvatarsSystem() {
     const address = identity.address.toLowerCase()
     const names = merge(outfits.get(address) ?? [], player === engine.PlayerEntity ? local.me : [])
     const paths = toPaths(names, avatarBase.bodyShapeUrn.toLowerCase() === BASE_FEMALE)
+    const override = player === engine.PlayerEntity ? overrideMe : overrideOthers
 
     // Player entity ids are recycled, so the address is part of the key
-    dress(player, address, paths, () => {
-      if (paths.length === 0) AvatarShape.deleteFrom(player)
+    dress(player, `${address}|${override}`, paths, () => {
+      if (override)
+        AvatarShape.createOrReplace(player, {
+          ...PROFILE_OVERRIDE,
+          id: identity.address,
+          wearables: [...PROFILE_OVERRIDE.wearables, ...paths],
+          emotes: []
+        })
+      else if (paths.length === 0) AvatarShape.deleteFrom(player)
       else AvatarShape.createOrReplace(player, { id: identity.address, wearables: paths, emotes: [] })
     })
   }
@@ -164,6 +198,21 @@ const panel = () => {
         value={disabled ? 'Waiting for the server…' : `Worn: ${names.join(', ') || '-'}`}
         fontSize={14}
         uiTransform={{ margin: { top: 8 } }}
+      />
+      <Label value="Edge cases (this client only)" fontSize={14} uiTransform={{ margin: { top: 12 } }} />
+      <Button
+        value="Full AvatarShape on me"
+        variant={overrideMe ? 'primary' : 'secondary'}
+        fontSize={16}
+        uiTransform={{ width: '100%', height: 36, margin: { top: 4 } }}
+        onMouseDown={() => (overrideMe = !overrideMe)}
+      />
+      <Button
+        value="Full AvatarShape on others"
+        variant={overrideOthers ? 'primary' : 'secondary'}
+        fontSize={16}
+        uiTransform={{ width: '100%', height: 36, margin: { top: 4 } }}
+        onMouseDown={() => (overrideOthers = !overrideOthers)}
       />
     </UiEntity>
   )
