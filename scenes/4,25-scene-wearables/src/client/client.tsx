@@ -13,26 +13,40 @@ const NPC_BASE_LOOK = ['eyes_00', 'eyebrows_00', 'mouth_00', 'casual_hair_01', '
 )
 const base = (...names: string[]) => names.map((w) => BASE + w)
 const HEAD = base('eyes_00', 'eyebrows_00', 'mouth_00', 'casual_hair_01')
+const MISSING_PATH = 'wearables/missing/missing_upper_body.glb'
+const GREEN_SKIN = Color3.create(0.3, 0.8, 0.3)
+const RED_HAIR = Color3.create(0.9, 0.1, 0.1)
 
 // Edge case: a full AvatarShape on a player entity. It replaces the look of the real avatar (body, colours and
 // wearables); `name` and `expressionTriggerId` are ignored on players
 const PROFILE_OVERRIDE = {
   name: 'OVERRIDDEN',
   bodyShape: BASE + 'BaseMale',
-  skinColor: Color3.create(0.3, 0.8, 0.3),
-  hairColor: Color3.create(0.9, 0.1, 0.1),
+  skinColor: GREEN_SKIN,
+  hairColor: RED_HAIR,
   expressionTriggerId: 'wave',
   wearables: base('black_jacket', 'brown_pants', 'classic_shoes', 'short_hair')
 }
 
 type Target = 'me' | 'npc'
 type Mode = 'local' | 'synced'
+type PlayerCase = 'add' | 'colours' | 'replace' | 'body' | 'showOnly' | 'dropped' | 'full'
+
+const PLAYER_CASES: [PlayerCase, string][] = [
+  ['add', 'Add on top'],
+  ['colours', 'Colours only'],
+  ['replace', 'Replace list'],
+  ['body', 'Other body'],
+  ['showOnly', 'Show only wearables'],
+  ['dropped', 'Only a missing path'],
+  ['full', 'Full AvatarShape']
+]
 
 let npc: Entity
 let target: Target = 'me'
 let mode: Mode = 'local'
-let overrideMe = false
-let overrideOthers = false
+let caseMe: PlayerCase = 'add'
+let caseOthers: PlayerCase = 'add'
 
 // Example 1: picks that only this client applies; other players keep seeing the profile
 const local: Record<Target, string[]> = { me: [], npc: [] }
@@ -49,7 +63,7 @@ export function startClient() {
   // Edge cases: AvatarShape NPCs that do not use scene wearables
   spawnNpc('Control', 3, [...HEAD, ...base('red_tshirt', 'safari_pants', 'sneakers')])
   spawnNpc('Same category', 5.5, [...HEAD, ...base('red_tshirt', 'black_jacket', 'safari_pants', 'sneakers')])
-  spawnNpc('Missing path', 10.5, [...HEAD, ...base('red_tshirt'), 'wearables/missing/missing_upper_body.glb'])
+  spawnNpc('Missing path', 10.5, [...HEAD, ...base('red_tshirt'), MISSING_PATH])
 
   engine.addSystem(dressAvatarsSystem)
   ReactEcsRenderer.setUiRenderer(panel, { virtualWidth: 1920, virtualHeight: 1080 })
@@ -102,30 +116,47 @@ function dressAvatarsSystem() {
     if (!avatarBase || !equipped) continue
 
     const address = identity.address.toLowerCase()
+    const female = avatarBase.bodyShapeUrn.toLowerCase() === BASE_FEMALE
     const names = merge(outfits.get(address) ?? [], player === engine.PlayerEntity ? local.me : [])
-    const paths = toPaths(names, avatarBase.bodyShapeUrn.toLowerCase() === BASE_FEMALE)
-    const override = player === engine.PlayerEntity ? overrideMe : overrideOthers
+    const paths = toPaths(names, female)
+    const playerCase = player === engine.PlayerEntity ? caseMe : caseOthers
 
     // Player entity ids are recycled, so the address is part of the key
-    dress(player, `${address}|${override}|${equipped.wearableUrns.join(',')}`, paths, () => {
-      if (override)
-        AvatarShape.createOrReplace(player, {
-          ...PROFILE_OVERRIDE,
-          id: identity.address,
-          wearables: [...PROFILE_OVERRIDE.wearables, ...paths],
-          emotes: []
-        })
-      else if (paths.length === 0) AvatarShape.deleteFrom(player)
-      else
-        AvatarShape.createOrReplace(player, {
-          id: identity.address,
-          // Scene wearables last: they replace the equipped items of the same category
-          wearables: [...equipped.wearableUrns, ...paths],
-          emotes: []
-        })
+    dress(player, `${address}|${playerCase}|${equipped.wearableUrns.join(',')}`, paths, () => {
+      const shape = playerShape(playerCase, equipped.wearableUrns, paths, female)
+      if (shape) AvatarShape.createOrReplace(player, { id: identity.address, emotes: [], ...shape })
+      else AvatarShape.deleteFrom(player)
     })
   }
 }
+
+// Fields left out keep the profile value; an empty `wearables` keeps the profile wearables
+function playerShape(playerCase: PlayerCase, equipped: readonly string[], paths: string[], female: boolean) {
+  switch (playerCase) {
+    case 'add':
+      // The list replaces, so the equipped items go first and the scene wearables last, winning per category
+      return paths.length === 0 ? undefined : { wearables: [...equipped, ...paths] }
+    case 'colours':
+      return { skinColor: GREEN_SKIN, hairColor: RED_HAIR, wearables: [] }
+    case 'replace':
+      return { wearables: [...base('black_jacket'), ...paths] }
+    case 'body':
+      return { bodyShape: BASE + (female ? 'BaseMale' : 'BaseFemale'), wearables: [] }
+    case 'showOnly':
+      return { showOnlyWearables: true, wearables: [] }
+    case 'dropped':
+      return { wearables: [MISSING_PATH] }
+    case 'full':
+      return { ...PROFILE_OVERRIDE, wearables: [...PROFILE_OVERRIDE.wearables, ...paths] }
+  }
+}
+
+function nextCase(current: PlayerCase): PlayerCase {
+  const i = PLAYER_CASES.findIndex(([value]) => value === current)
+  return PLAYER_CASES[(i + 1) % PLAYER_CASES.length][0]
+}
+
+const caseLabel = (value: PlayerCase) => PLAYER_CASES.find(([v]) => v === value)![1]
 
 function dress(entity: Entity, key: string, paths: string[], write: (paths: string[]) => void) {
   const state = `${key}|${paths.join(',')}`
@@ -208,18 +239,18 @@ const panel = () => {
       />
       <Label value="Edge cases (this client only)" fontSize={14} uiTransform={{ margin: { top: 12 } }} />
       <Button
-        value="Full AvatarShape on me"
-        variant={overrideMe ? 'primary' : 'secondary'}
+        value={`On me: ${caseLabel(caseMe)}`}
+        variant={caseMe === 'add' ? 'secondary' : 'primary'}
         fontSize={16}
         uiTransform={{ width: '100%', height: 36, margin: { top: 4 } }}
-        onMouseDown={() => (overrideMe = !overrideMe)}
+        onMouseDown={() => (caseMe = nextCase(caseMe))}
       />
       <Button
-        value="Full AvatarShape on others"
-        variant={overrideOthers ? 'primary' : 'secondary'}
+        value={`On others: ${caseLabel(caseOthers)}`}
+        variant={caseOthers === 'add' ? 'secondary' : 'primary'}
         fontSize={16}
         uiTransform={{ width: '100%', height: 36, margin: { top: 4 } }}
-        onMouseDown={() => (overrideOthers = !overrideOthers)}
+        onMouseDown={() => (caseOthers = nextCase(caseOthers))}
       />
     </UiEntity>
   )
