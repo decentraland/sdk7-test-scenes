@@ -2,7 +2,6 @@ import { AvatarBase, AvatarShape, engine, Entity, PlayerIdentityData, Transform 
 import { Color3, Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { isStateSyncronized } from '@dcl/sdk/network'
 import ReactEcs, { Button, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
-import { AvatarSceneWearables } from '../shared/avatar-scene-wearables'
 import { room } from '../shared/messages'
 import { Outfits } from '../shared/schemas'
 import { NPC_KEY, WEARABLE_NAMES, WEARABLES } from '../shared/wearables'
@@ -15,7 +14,8 @@ const NPC_BASE_LOOK = ['eyes_00', 'eyebrows_00', 'mouth_00', 'casual_hair_01', '
 const base = (...names: string[]) => names.map((w) => BASE + w)
 const HEAD = base('eyes_00', 'eyebrows_00', 'mouth_00', 'casual_hair_01')
 
-// Edge cases: a full AvatarShape on a player entity, written independently of the scene wearables
+// Edge cases: a full AvatarShape on a player entity, from before scene wearables. Builds without them spawn a second
+// avatar from it; builds with them keep the real avatar and take only this scene's wearables
 const PROFILE_OVERRIDE = {
   name: 'OVERRIDDEN',
   bodyShape: BASE + 'BaseMale',
@@ -40,7 +40,7 @@ const local: Record<Target, string[]> = { me: [], npc: [] }
 let synced: Map<string, string[]> | undefined
 const NO_OUTFITS = new Map<string, string[]>()
 
-const applied = new Map<string, string>()
+const applied = new Map<Entity, string>()
 
 export function startClient() {
   npc = engine.addEntity()
@@ -83,19 +83,18 @@ function dressAvatarsSystem() {
   synced = isStateSyncronized() ? readSynced() : undefined
   const outfits = synced ?? NO_OUTFITS
 
-  const npcPaths = toPaths(merge(outfits.get(NPC_KEY) ?? [], local.npc), false)
-  dress(npc, 'shape', npcPaths.join(','), () =>
+  dress(npc, NPC_KEY, toPaths(merge(outfits.get(NPC_KEY) ?? [], local.npc), false), (paths) =>
     AvatarShape.createOrReplace(npc, {
       id: 'scene-wearables-npc',
       name: 'Mannequin',
       bodyShape: BASE + 'BaseMale',
       // Scene wearables last: they replace the base look's items of the same category
-      wearables: [...NPC_BASE_LOOK, ...npcPaths],
+      wearables: [...NPC_BASE_LOOK, ...paths],
       emotes: []
     })
   )
 
-  // Every client dresses every player in the scene: scene wearables are applied locally and broadcast nothing
+  // Every client dresses every player in the scene: the explorer applies AvatarShape locally and broadcasts nothing
   for (const [player, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
     // Body shape picks the male / female model
     const avatarBase = AvatarBase.getOrNull(player)
@@ -106,24 +105,26 @@ function dressAvatarsSystem() {
     const paths = toPaths(names, avatarBase.bodyShapeUrn.toLowerCase() === BASE_FEMALE)
     const override = player === engine.PlayerEntity ? overrideMe : overrideOthers
 
-    // Player entity ids are recycled, so the address is part of the state
-    dress(player, 'wearables', `${address}|${paths.join(',')}`, () => {
-      if (paths.length === 0) AvatarSceneWearables.deleteFrom(player)
-      else AvatarSceneWearables.createOrReplace(player, { wearables: paths })
-    })
-    dress(player, 'shape', `${address}|${override}`, () => {
-      if (override) AvatarShape.createOrReplace(player, { ...PROFILE_OVERRIDE, id: identity.address, emotes: [] })
-      else AvatarShape.deleteFrom(player)
+    // Player entity ids are recycled, so the address is part of the key
+    dress(player, `${address}|${override}`, paths, () => {
+      if (override)
+        AvatarShape.createOrReplace(player, {
+          ...PROFILE_OVERRIDE,
+          id: identity.address,
+          wearables: [...PROFILE_OVERRIDE.wearables, ...paths],
+          emotes: []
+        })
+      else if (paths.length === 0) AvatarShape.deleteFrom(player)
+      else AvatarShape.createOrReplace(player, { id: identity.address, wearables: paths, emotes: [] })
     })
   }
 }
 
-// Each component of an entity has its own slot, so one changing does not rewrite the other
-function dress(entity: Entity, slot: string, state: string, write: () => void) {
-  const id = `${entity}|${slot}`
-  if (applied.get(id) === state) return
-  applied.set(id, state)
-  write()
+function dress(entity: Entity, key: string, paths: string[], write: (paths: string[]) => void) {
+  const state = `${key}|${paths.join(',')}`
+  if (applied.get(entity) === state) return
+  applied.set(entity, state)
+  write(paths)
 }
 
 function worn(): string[] {
