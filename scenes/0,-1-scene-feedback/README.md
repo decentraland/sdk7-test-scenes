@@ -286,13 +286,15 @@ parts. Each write saves the whole part so far as a new file,
 then deletes the file it replaces, so the newest file of a part holds all its rows. The module limits
 each part to 400 KB; when the next batch would exceed that limit, it starts the next part.
 
-A part can briefly have more than one file: two server instances overlapping after a redeploy, or a
-Storage read that missed a file. The next write merges them back into one. Until then, download all
+Besides an old-format file (below), a part can briefly have more than one file: two server instances
+overlapping after a redeploy, or a Storage read that missed a file. The next write merges them back into one. Until then, download all
 files of the part and drop duplicate `id`s.
 
 Files from an older version of the module, `scene-feedback-N.csv`, are merged into the new files
-at every write, and deleted once they have stayed unchanged for 10 minutes: during a redeploy, a
-server still on the old code may append to them. If their columns differ, they are left as they are.
+at every write and never deleted: a server still on the old code may append to them during a
+redeploy, and Storage can serve an old value of a key for a long time, so only you can tell the new
+files hold all their rows. Delete one once no server runs the old code and the newest file of its
+part has all its `id`s. If their columns differ, they are left as they are.
 
 `scene-feedback-csv-head` stores the number of the part currently being written.
 This is an internal bookkeeping key: **do not delete or modify it**.

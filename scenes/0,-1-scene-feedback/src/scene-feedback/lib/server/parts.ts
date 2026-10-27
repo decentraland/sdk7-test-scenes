@@ -38,16 +38,12 @@ function versionKey(part: number, now: number): string {
   return `scene-feedback-${part}-${stamp}-${tail}.csv`
 }
 
-// before versions: one key per part, rewritten in place. Merged like a version; deleted only once it
-// stopped changing, since an instance still on the old code keeps appending to it during a redeploy.
+// before versions: one key per part, rewritten in place. Merged like a version, never deleted: it is
+// the one key another writer (an instance still on the old code) can change, and Storage may serve
+// an old value of it for an hour, so no read proves the merge holds all its rows.
 export function legacyPartKey(part: number): string {
   return `scene-feedback-${part}.csv`
 }
-// far longer than a redeploy overlap
-const LEGACY_SETTLE_MS = 10 * 60_000
-
-// legacy key → its content and since when this server has seen it unchanged
-export type LegacySeen = Map<string, { csv: string; since: number }>
 
 // past this many versions of one part, read-backs keep failing: every flush then copies the whole part again
 const MANY_VERSIONS = 3
@@ -56,7 +52,6 @@ export async function writeBatch(
   store: PartStore,
   batch: [string, string][],
   knownPart: number,
-  legacySeen: LegacySeen,
   now = Date.now()
 ): Promise<BatchWrite> {
   let part = Math.max(knownPart, (await store.get<number>(CURRENT_PART_KEY)) ?? 1)
@@ -66,11 +61,10 @@ export async function writeBatch(
     // a part with other columns (older code) is left as it is
     const ours = versions.filter((v) => v.csv.split('\n', 1)[0] === CSV_HEADER)
     const otherColumns = ours.length < versions.length
-    if (ours.length > MANY_VERSIONS) {
-      console.log(`[SERVER] Part ${part} has ${ours.length} versions: new versions do not read back, old ones are kept`)
-    }
-    for (const { key, csv } of ours) {
-      if (key === legacyPartKey(part) && legacySeen.get(key)?.csv !== csv) legacySeen.set(key, { csv, since: now })
+    // the old-format file stays for good: it is no race to merge
+    const versionCount = ours.filter((v) => v.key !== legacyPartKey(part)).length
+    if (versionCount > MANY_VERSIONS) {
+      console.log(`[SERVER] Part ${part} has ${versionCount} versions: new versions do not read back, old ones are kept`)
     }
     const rows = mergeRows(ours)
     const added = batch.filter(([id]) => !rows.has(id))
@@ -80,8 +74,8 @@ export async function writeBatch(
 
     if (added.length > 0 && (otherColumns || full)) {
       // versions left by a race are merged before the part closes: no flush comes back to it
-      if (ours.length > 1 && utf8Length(merged) <= PART_MAX_BYTES) {
-        await writeVersion(store, part, merged, ours, legacySeen, now)
+      if (versionCount > 1 && utf8Length(merged) <= PART_MAX_BYTES) {
+        await writeVersion(store, part, merged, ours, now)
       }
       part++
       rolledOver = true
@@ -90,12 +84,12 @@ export async function writeBatch(
       continue
     }
     // all stored, in one version (a retry after a lost write result), or too big to merge
-    if (added.length === 0 && (ours.length <= 1 || full)) {
+    if (added.length === 0 && (versionCount <= 1 || full)) {
       return { part, key: null, written: 0, bytes: utf8Length(csv), merged: 0, rolledOver }
     }
 
-    const key = await writeVersion(store, part, csv, ours, legacySeen, now)
-    return { part, key, written: added.length, bytes: utf8Length(csv), merged: ours.length, rolledOver }
+    const key = await writeVersion(store, part, csv, ours, now)
+    return { part, key, written: added.length, bytes: utf8Length(csv), merged: versionCount, rolledOver }
   }
 }
 
@@ -106,18 +100,15 @@ async function writeVersion(
   part: number,
   csv: string,
   replaces: Version[],
-  legacySeen: LegacySeen,
   now: number
 ): Promise<string> {
   const key = versionKey(part, now)
   if (!(await store.set(key, csv))) throw new Error('Storage.set returned false')
   if ((await store.get<string>(key)) !== csv) return key
   for (const version of replaces) {
-    const seen = legacySeen.get(version.key)
-    if (version.key === legacyPartKey(part) && (!seen || now - seen.since < LEGACY_SETTLE_MS)) continue
+    if (version.key === legacyPartKey(part)) continue
     try {
       await store.delete(version.key)
-      legacySeen.delete(version.key)
     } catch (e) {
       console.log(`[SERVER] Could not delete ${version.key}, the next flush merges it again:`, e)
     }
