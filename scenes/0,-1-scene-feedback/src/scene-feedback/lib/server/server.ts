@@ -17,7 +17,7 @@ import { scaleLabels, scaleName } from '../shared/scales'
 import { ServerHeartbeat } from '../shared/schemas'
 import { sinceLoad } from '../shared/clock'
 import { CsvRow, formatRow, sanitizeId, utf8Length } from './csv'
-import { CURRENT_PART_KEY, PartStore, partKey, writeBatch } from './parts'
+import { CURRENT_PART_KEY, PartStore, writeBatch } from './parts'
 
 // Responses buffer in memory, then flush into numbered CSV parts in scene Storage.
 // Flush after FLUSH_COOLDOWN_MS, or at once when the last player leaves: no shutdown hook.
@@ -56,13 +56,17 @@ let heartbeatEntity: Entity
 // flushes always read what Storage holds now, not the SDK's cache
 const store: PartStore = {
   get: <T>(key: string) => Storage.get<T>(key, { fresh: true }),
-  set: (key, value) => Storage.set(key, value)
+  set: (key, value) => Storage.set(key, value),
+  delete: (key) => Storage.delete(key),
+  list: async (prefix) => {
+    const entries: { key: string; value: unknown }[] = []
+    for (;;) {
+      const page = await Storage.getValues({ prefix, offset: entries.length })
+      entries.push(...page.data)
+      if (page.data.length === 0 || entries.length >= page.pagination.total) return entries
+    }
+  }
 }
-
-// tells this server's log lines from another instance's, if two run at once
-const instance = Math.floor(Math.random() * 36 ** 4).toString(36).padStart(4, '0')
-// what this server last stored: a later read shorter than that would overwrite rows
-let lastStored = { part: 0, bytes: 0, at: 0 }
 
 let intro: IntroSpec | null = null
 
@@ -82,7 +86,7 @@ export async function startServer(introSpec: IntroSpec | null): Promise<void> {
   // clients count the server alive only once beatAt changes: not before responses are accepted
   engine.addSystem(heartbeatSystem)
   engine.addSystem(flushSystem)
-  console.log(`[SERVER] Feedback server ${instance} ready at +${sinceLoad()}, writing ${partKey(currentPart)}, ${countPlayers()} player(s)`)
+  console.log(`[SERVER] Feedback server ready at +${sinceLoad()}, writing part ${currentPart}, ${countPlayers()} player(s)`)
 }
 
 // Entity id tail: new on every deploy, so builds never mix. Every CID starts with "bafkrei".
@@ -244,7 +248,7 @@ function forgetOld(): void {
   for (const address of [...recentRows.keys()]) withinRate(address)
 }
 
-// Re-read and merge by id right before writing: after a redeploy two instances overlap briefly.
+// After a redeploy two instances overlap briefly: writeBatch() never rewrites a key, so neither loses the other's rows.
 async function flush(): Promise<void> {
   if (flushing || pending.size === 0) return
   flushing = true
@@ -259,20 +263,13 @@ async function flush(): Promise<void> {
   const more = batch.length < pending.size
   try {
     const result = await writeBatch(store, batch, currentPart)
-    const { csv, written, readBytes } = result
-    if (lastStored.part === result.part && readBytes < lastStored.bytes) {
-      const ago = Math.round((Date.now() - lastStored.at) / 1000)
-      console.log(
-        `[SERVER] ${instance}: ${partKey(result.part)} read ${readBytes} B, shorter than the ${lastStored.bytes} B stored ${ago} s ago: this flush loses rows`
-      )
-    }
     currentPart = result.part
-    if (result.rolledOver) console.log(`[SERVER] ${result.rolledOver}, rolled over to ${partKey(currentPart)}`)
-    if (written > 0) lastStored = { part: currentPart, bytes: utf8Length(csv), at: Date.now() }
+    if (result.rolledOver) console.log(`[SERVER] Rolled over to part ${currentPart}`)
     for (const [id] of batch) pending.delete(id)
     // the rest of an oversized batch goes next; rows that arrived during this flush keep a request
     flushRequested = more || (flushRequested && pending.size > 0)
-    console.log(`[SERVER] ${instance} flushed ${written} row(s) to ${partKey(currentPart)} (${utf8Length(csv)} B)`)
+    const where = result.key ? `${result.key} (${result.bytes} B, merged ${result.merged} version(s))` : `part ${currentPart}`
+    console.log(`[SERVER] Flushed ${result.written} row(s) to ${where}`)
   } catch (e) {
     // rows stay pending: retried after FLUSH_RETRY_MS if requested, else at the next cooldown
     failedAt = Date.now()

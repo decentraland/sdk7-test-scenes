@@ -1,54 +1,112 @@
-import { CSV_HEADER, rowIds, utf8Length } from './csv'
+import { CSV_HEADER, utf8Length } from './csv'
 
+// A flush never rewrites a key. It writes the open part as a new version: every version it read,
+// merged by row id, plus its new rows. Once the new version reads back, it deletes the versions it
+// read, and only those. Two servers flushing at once, or a read that misses a version, leave an extra
+// version for the next flush to merge, never a lost row.
 // Keys named like files: owners find them in the storage UI.
-export const CURRENT_PART_KEY = 'scene-feedback-csv-head' // the number of the part being written
+export const CURRENT_PART_KEY = 'scene-feedback-csv-head' // the part being written; a hint, a server may be behind
 const PART_MAX_BYTES = 400 * 1024 // Storage caps one value at 512 KB
 
 // Storage as a flush uses it: scene Storage with fresh reads on the server, a fake in tests
 export type PartStore = {
   get<T>(key: string): Promise<T | null>
   set(key: string, value: unknown): Promise<boolean>
+  delete(key: string): Promise<boolean>
+  // every key starting with prefix, with its value
+  list(prefix: string): Promise<{ key: string; value: unknown }[]>
 }
 
 export type BatchWrite = {
   part: number
+  // the new version, null if nothing needed writing
+  key: string | null
   // rows of the batch not yet in the part
   written: number
-  csv: string
-  readBytes: number
-  rolledOver: 'Columns changed' | 'Part full' | null
+  bytes: number
+  // versions merged into the new one
+  merged: number
+  rolledOver: boolean
 }
 
-export function partKey(index: number): string {
-  return `scene-feedback-${index}.csv`
+type Version = { key: string; csv: string }
+
+// "scene-feedback-1-20261027-130512-k3fz.csv": part, then UTC time of the flush, so versions sort by age
+export function versionKey(part: number, now: number): string {
+  const stamp = new Date(now).toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-')
+  const tail = Math.floor(Math.random() * 36 ** 4).toString(36).padStart(4, '0')
+  return `scene-feedback-${part}-${stamp}-${tail}.csv`
 }
 
-// Re-read the part, append the rows it lacks (by id), write the whole part back.
-export async function writeBatch(store: PartStore, batch: [string, string][], knownPart: number): Promise<BatchWrite> {
-  const storedPart = (await store.get<number>(CURRENT_PART_KEY)) ?? 1
-  let part = Math.max(knownPart, storedPart)
+// before versions: one key per part, rewritten in place. Merged like a version, then deleted.
+export function legacyPartKey(part: number): string {
+  return `scene-feedback-${part}.csv`
+}
 
-  let csv = (await store.get<string>(partKey(part))) ?? CSV_HEADER
-  const readBytes = utf8Length(csv)
-  const stored = rowIds(csv)
-  const rows = batch.filter(([id]) => !stored.has(id)).map(([, row]) => row)
-  const appended = rows.length > 0 ? `${csv}\n${rows.join('\n')}` : csv
+export async function writeBatch(
+  store: PartStore,
+  batch: [string, string][],
+  knownPart: number,
+  now = Date.now()
+): Promise<BatchWrite> {
+  let part = Math.max(knownPart, (await store.get<number>(CURRENT_PART_KEY)) ?? 1)
+  let rolledOver = false
+  for (;;) {
+    const versions = await readVersions(store, part)
+    // a part with other columns (older code) is left as it is
+    const ours = versions.filter((v) => v.csv.split('\n', 1)[0] === CSV_HEADER)
+    const otherColumns = ours.length < versions.length
+    const rows = mergeRows(ours)
+    const added = batch.filter(([id]) => !rows.has(id))
+    const csv = [CSV_HEADER, ...rows.values(), ...added.map(([, row]) => row)].join('\n')
+    const full = utf8Length(csv) > PART_MAX_BYTES && rows.size > 0
 
-  // never append to a part with other columns (older code)
-  const otherColumns = csv.split('\n', 1)[0] !== CSV_HEADER
-  const full = utf8Length(appended) > PART_MAX_BYTES && csv !== CSV_HEADER
-  let rolledOver: BatchWrite['rolledOver'] = null
-  if (rows.length > 0 && (otherColumns || full)) {
-    const nextPart = part + 1
-    if (!(await store.set(CURRENT_PART_KEY, nextPart))) throw new Error('could not advance the part index')
-    part = nextPart
-    csv = `${CSV_HEADER}\n${rows.join('\n')}`
-    rolledOver = otherColumns ? 'Columns changed' : 'Part full'
-  } else {
-    csv = appended
+    if (added.length > 0 && (otherColumns || full)) {
+      part++
+      rolledOver = true
+      // a lost hint only makes the next flush walk here again
+      await store.set(CURRENT_PART_KEY, part)
+      continue
+    }
+    // all stored, in one version (a retry after a lost write result), or too big to merge
+    if (added.length === 0 && (ours.length <= 1 || full)) {
+      return { part, key: null, written: 0, bytes: utf8Length(csv), merged: 0, rolledOver }
+    }
+
+    const key = versionKey(part, now)
+    if (!(await store.set(key, csv))) throw new Error('Storage.set returned false')
+    // until the new version reads back, the old ones stay: the next flush merges them all again
+    if ((await store.get<string>(key)) === csv) {
+      for (const version of ours) {
+        try {
+          await store.delete(version.key)
+        } catch (e) {
+          console.log(`[SERVER] Could not delete ${version.key}, the next flush merges it again:`, e)
+        }
+      }
+    }
+    return { part, key, written: added.length, bytes: utf8Length(csv), merged: ours.length, rolledOver }
   }
+}
 
-  // all already stored (a retry after a lost write result): nothing to rewrite
-  if (rows.length > 0 && !(await store.set(partKey(part), csv))) throw new Error('Storage.set returned false')
-  return { part, written: rows.length, csv, readBytes, rolledOver }
+// the legacy key first, then versions oldest first
+async function readVersions(store: PartStore, part: number): Promise<Version[]> {
+  const legacy = (await store.list(legacyPartKey(part))).filter((e) => e.key === legacyPartKey(part))
+  const versions = (await store.list(`scene-feedback-${part}-`)).sort((a, b) => (a.key < b.key ? -1 : 1))
+  const all: Version[] = []
+  for (const { key, value } of [...legacy, ...versions]) if (typeof value === 'string') all.push({ key, csv: value })
+  return all
+}
+
+// id → row, first seen wins. Ids are [A-Za-z0-9-] and fields have no newlines: a row's id is everything
+// before its first comma.
+function mergeRows(versions: Version[]): Map<string, string> {
+  const rows = new Map<string, string>()
+  for (const { csv } of versions) {
+    for (const line of csv.split('\n').slice(1)) {
+      const id = line.slice(0, line.indexOf(','))
+      if (id && !rows.has(id)) rows.set(id, line)
+    }
+  }
+  return rows
 }

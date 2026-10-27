@@ -23,7 +23,7 @@ The Multiplayer Server saves responses to CSV files in scene Storage, ready to d
     <img src="assets/images/scene-storage.png" width="480" alt="Scene Storage showing a CSV file and its download button">
   </a>
   <br>
-  <em>Figure 2. Download responses from Scene Storage. This screenshot shows the older file names; new files use scene-feedback-N.csv.</em>
+  <em>Figure 2. Download responses from Scene Storage. This screenshot shows the older file names; new files are named scene-feedback-N-&lt;time&gt;.csv.</em>
 </p>
 
 This scene contains the feedback library and a small coin-hunt example ([src/game.tsx](src/game.tsx)) that asks Questions
@@ -150,7 +150,7 @@ In Creator Hub, open **Manage → your World's ⋮ menu → View Storage**.
 </p>
 
 This opens a browser page with **Scene Storage** (see Fig. 2), where you can browse and download
-the CSV files (e.g. `scene-feedback-1.csv`).
+the CSV files (e.g. `scene-feedback-1-20261027-130512-k3fz.csv`).
 
 Use the `questionId` and `trigger` columns to find your test response.
 Check that its answer matches what you submitted.
@@ -280,11 +280,20 @@ or the demo's [button, kiosk, and area handlers](src/leave-feedback.tsx).
 
 ## Stored CSV
 
-The authoritative Multiplayer Server saves feedback responses in your scene's Storage as
-`scene-feedback-1.csv`, `scene-feedback-2.csv`, and so on. The module limits each CSV file to
-400 KB; when the next batch would exceed that limit, it writes the new responses to the next file.
+The authoritative Multiplayer Server saves feedback responses in your scene's Storage in numbered
+parts. Each write saves the whole part so far as a new file,
+`scene-feedback-<part>-<UTC time>-<random>.csv` (e.g. `scene-feedback-1-20261027-130512-k3fz.csv`),
+then deletes the file it replaces, so the newest file of a part holds all its rows. The module limits
+each part to 400 KB; when the next batch would exceed that limit, it starts the next part.
 
-`scene-feedback-csv-head` stores the number of the file currently being written.
+A part can briefly have more than one file: two server instances overlapping after a redeploy, or a
+Storage read that missed a file. The next write merges them back into one. Until then, download all
+files of the part and drop duplicate `id`s.
+
+Files from an older version of the module, `scene-feedback-N.csv`, are merged into the new files
+at the next write and deleted; if their columns differ, they are left as they are.
+
+`scene-feedback-csv-head` stores the number of the part currently being written.
 This is an internal bookkeeping key: **do not delete or modify it**.
 
 Storage allows up to 512 KB per value and 10 MB per World, shared by all its scenes.
@@ -343,7 +352,7 @@ For comparing answers and drawing conclusions, see
 ### A recent response is missing
 
 Allow up to a minute for the server to write it, then refresh Scene Storage and download
-the latest CSV part. Look for the `questionId` and `trigger` used in your test.
+the newest file of the latest part. Look for the `questionId` and `trigger` used in your test.
 For data-loss and submission limits, see [Storage behavior and limits](#storage-behavior-and-limits).
 
 ## Details
@@ -354,8 +363,9 @@ For data-loss and submission limits, see [Storage behavior and limits](#storage-
   to prevent spreadsheet formulas from running.
 - The server acknowledges responses when buffered, before writing to Storage. A crash or
   redeploy can lose up to a minute of responses; acknowledged rows are not resent.
-- Storage has no compare-and-set: overlapping server instances after a redeploy can
-  overwrite each other's rows.
+- Storage has no compare-and-set, so the server never rewrites a file: overlapping server
+  instances or a Storage read that misses a file leave an extra file for the next write to merge,
+  never a lost row.
 - One address can submit at most 100 rows per 10 minutes; further responses are dropped.
 - The server buffers at most 2000 rows. Beyond that it stops acknowledging responses;
   the client retries every 3 seconds for up to 30 seconds.
