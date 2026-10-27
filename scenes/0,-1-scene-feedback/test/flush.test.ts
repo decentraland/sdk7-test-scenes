@@ -120,6 +120,7 @@ describe('flush keeps every row it has stored', () => {
     await flushAt(['n1'], t0)
     await flushAt(['n2'], t0 + 11 * MINUTE)
     expect(lost(store, ['l1', 'o1', 'n1', 'n2'])).toEqual([])
+    expect(store.values.has(legacyPartKey(1))).toBe(true)
   })
 
   it('H2: reads come back one write behind', async () => {
@@ -142,9 +143,12 @@ describe('flush keeps every row it has stored', () => {
     // an instance still on the old code appended o1; Storage keeps serving the value before it
     await store.set(legacyPartKey(1), `${stale}\n${row('o1')[1]}`)
     store.stuck.set(legacyPartKey(1), stale)
-    for (let minute = 0; minute <= 60; minute += 10) await flushAt([`n${minute}`], t0 + minute * MINUTE)
-    store.stuck.clear()
-    expect(lost(store, ['l1', 'o1'])).toEqual([])
+    const ids: string[] = []
+    for (let minute = 0; minute <= 60; minute += 10) {
+      ids.push(`n${minute}`)
+      await flushAt([`n${minute}`], t0 + minute * MINUTE)
+    }
+    expect(lost(store, ['l1', 'o1', ...ids])).toEqual([])
   })
 
   it('H2 stuck: listing stays several writes behind for many flushes', async () => {
@@ -187,6 +191,31 @@ describe('parts', () => {
     // the old file and one version holding all its rows
     expect(store.values.has(legacyPartKey(1))).toBe(true)
     expect(store.csvKeys()).toHaveLength(2)
+  })
+
+  it('writes nothing for a retry whose rows a part with an old-format file already holds', async () => {
+    const store = new FakeStorage()
+    await store.set(legacyPartKey(1), [CSV_HEADER, row('l1')[1]].join('\n'))
+    await flush(store, 'a1')
+    const keys = store.csvKeys()
+    const result = await writeBatch(store, [row('a1')], 1)
+    expect(result.key).toBeNull()
+    expect(store.csvKeys()).toEqual(keys)
+  })
+
+  it('rolls a part with an old-format file over without copying it again', async () => {
+    const store = new FakeStorage()
+    const big = 'x'.repeat(250 * 1024)
+    await store.set(legacyPartKey(1), [CSV_HEADER, row('l1')[1]].join('\n'))
+    await writeBatch(store, [row('a1', big)], 1)
+    const written: string[] = []
+    store.beforeSet = async (key) => {
+      written.push(key)
+    }
+    const result = await writeBatch(store, [row('b1', big)], 1)
+    expect(result.part).toBe(2)
+    expect(written.filter((key) => key.startsWith('scene-feedback-1-'))).toEqual([])
+    expect(lost(store, ['l1', 'a1', 'b1'])).toEqual([])
   })
 
   it('leaves a part with other columns as it is and writes the next one', async () => {

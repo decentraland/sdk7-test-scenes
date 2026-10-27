@@ -61,8 +61,10 @@ export async function writeBatch(
     // a part with other columns (older code) is left as it is
     const ours = versions.filter((v) => v.csv.split('\n', 1)[0] === CSV_HEADER)
     const otherColumns = ours.length < versions.length
-    if (ours.length > MANY_VERSIONS) {
-      console.log(`[SERVER] Part ${part} has ${ours.length} versions: new versions do not read back, old ones are kept`)
+    // the old-format file stays for good: it is no race to merge
+    const versionCount = ours.filter((v) => v.key !== legacyPartKey(part)).length
+    if (versionCount > MANY_VERSIONS) {
+      console.log(`[SERVER] Part ${part} has ${versionCount} versions: new versions do not read back, old ones are kept`)
     }
     const rows = mergeRows(ours)
     const added = batch.filter(([id]) => !rows.has(id))
@@ -72,7 +74,7 @@ export async function writeBatch(
 
     if (added.length > 0 && (otherColumns || full)) {
       // versions left by a race are merged before the part closes: no flush comes back to it
-      if (ours.length > 1 && utf8Length(merged) <= PART_MAX_BYTES) {
+      if (versionCount > 1 && utf8Length(merged) <= PART_MAX_BYTES) {
         await writeVersion(store, part, merged, ours, now)
       }
       part++
@@ -82,12 +84,12 @@ export async function writeBatch(
       continue
     }
     // all stored, in one version (a retry after a lost write result), or too big to merge
-    if (added.length === 0 && (ours.length <= 1 || full)) {
+    if (added.length === 0 && (versionCount <= 1 || full)) {
       return { part, key: null, written: 0, bytes: utf8Length(csv), merged: 0, rolledOver }
     }
 
     const key = await writeVersion(store, part, csv, ours, now)
-    return { part, key, written: added.length, bytes: utf8Length(csv), merged: ours.length, rolledOver }
+    return { part, key, written: added.length, bytes: utf8Length(csv), merged: versionCount, rolledOver }
   }
 }
 

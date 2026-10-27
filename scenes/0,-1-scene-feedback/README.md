@@ -286,8 +286,8 @@ parts. Each write saves the whole part so far as a new file,
 then deletes the file it replaces, so the newest file of a part holds all its rows. The module limits
 each part to 400 KB; when the next batch would exceed that limit, it starts the next part.
 
-A part can briefly have more than one file: two server instances overlapping after a redeploy, or a
-Storage read that missed a file. The next write merges them back into one. Until then, download all
+Besides an old-format file (below), a part can briefly have more than one file: two server instances
+overlapping after a redeploy, or a Storage read that missed a file. The next write merges them back into one. Until then, download all
 files of the part and drop duplicate `id`s.
 
 Files from an older version of the module, `scene-feedback-N.csv`, are merged into the new files
