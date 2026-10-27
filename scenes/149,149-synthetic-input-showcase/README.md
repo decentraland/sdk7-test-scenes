@@ -4,8 +4,9 @@ A 2x2-parcel SDK7 test scene built to be **driven live by an MCP-connected agent
 unity-explorer's embedded MCP server, exercising every capability of the synthetic input
 simulation layer (branch `feat/synthetic-input-simulation`, PR #9889): `walk`, `camera_look`,
 `look_at`, `click_entity`, `click_at`, `hover_entity`, `press_input`, and the `ui_*` family
-(`ui_list`, `ui_click`, `ui_set_text`, `ui_scroll`, `ui_drag`) -- including writing text into a
-scene's `<Input />` fields and dragging a held pointer across a world surface to paint on it.
+(`ui_list`, `ui_click`, `ui_set_text`, `ui_scroll`, `ui_drag`, `ui_hover`) -- including writing text
+into a scene's `<Input />` fields, parking a hover on scene UI, and dragging a held pointer across a
+world surface to paint on it.
 
 See **`MCP_SHOWCASE.md`** in this folder for the step-by-step driving script (exact tool
 calls, expected results, and expected observables per station) -- that is the document the
@@ -25,13 +26,13 @@ Drive the Explorer's synthetic input simulation layer live over MCP against this
 verify it end-to-end.
 
 Scene: this folder -- base parcel 149,149, world offset (2384, 0, 2384).
-Driving script: MCP_SHOWCASE.md here, stations S1..S10. Yes to the intent gate: I want this
+Driving script: MCP_SHOWCASE.md here, stations S1..S11. Yes to the intent gate: I want this
 run against a live Explorer.
 
 Setup: I have the Explorer running with the MCP enabled and connected to the scene already.
 
 Read MCP_SHOWCASE.md top to bottom first, including its Driving notes and Known open issues.
-Run the pre-flight, then all ten stations as the regression, including every negative case.
+Run the pre-flight, then all eleven stations as the regression, including every negative case.
 Cross-examine every claim across at least two channels (tool result + get_scene_logs, or a
 screenshot + get_player_state); read the readout boards with get_entity_details ->
 PBTextShape.text rather than from screenshots.
@@ -87,11 +88,12 @@ Variations worth knowing:
 | S8 -- Scene UI | `ui_list`/`ui_click`/`ui_set_text`/`ui_scroll`/`ui_drag` against `ReactEcsRenderer` UI | toggle button (13, 1, 16) | panel opens on world-button click |
 | S9 -- UI text entry | `ui_set_text` as *state*: uncontrolled vs controlled `<Input />`, change vs submit, a `disabled` field that refuses the write, a form read by a later `ui_click` | toggle button (10, 1, 16) | left-anchored panel; never overlaps S8's centered one |
 | S10 -- Paint surface | pointer positions become geometry: one dot per click vs a trail from a held, sweeping pointer | canvases (10, 2.1, 9) and (14, 2.2, 9) | stand mark (12, 0, 5.5); decoy strip (14, 0.6, 9); clear button (8, 1, 6) |
+| S11 -- UI hover | `ui_hover` parks a hover on scene UI until ended; a click after a hover delivers the hover's leave first; only the addressed element is entered; a cover refuses | toggle button (16, 1, 20) | right-anchored panel; approach from S7's stand mark (16, 0, 16) |
 
 A world **RESET ALL STATIONS** button sits at local `(19, 1, 16)` / world `(2403, 1, 2400)`,
 and a matching "RESET ALL (UI)" button lives inside the S8 panel. Both call the same
 `resetAllStations()` in `src/state.ts`, which zeroes every counter, clears any active
-`InputModifier`, closes both UI panels, removes every dot painted at S10, and restores every
+`InputModifier`, closes every UI panel, removes every dot painted at S10, and restores every
 station's visuals -- the scene never needs a reload to be re-run from a clean state.
 
 ## SDK APIs used
@@ -108,8 +110,9 @@ station's visuals -- the scene never needs a reload to be re-run from a clean st
 - **Pointer / raycast**: `PrimaryPointerInfo` (`worldRayDirection`) + `raycastSystem.registerGlobalDirectionRaycast`
   for S10's held-pointer stroke, and `PBPointerEventsResult.hit.position` for its per-click stamps.
 - **UI**: `@dcl/sdk/react-ecs` (`ReactEcsRenderer.setUiRenderer`, `UiEntity`, `Label`, `Button`, `Input`, `Dropdown`),
-  including `<Input value=... />` (controlled) and `<Input disabled />`. `setUiRenderer` is called
-  once, from `src/stations/ui_root.tsx`, which renders S8's and S9's panels side by side. Virtual
+  including `<Input value=... />` (controlled), `<Input disabled />`, and `onMouseEnter`/`onMouseLeave`
+  on `UiEntity` (S11). `setUiRenderer` is called once, from `src/stations/ui_root.tsx`, which renders
+  S8's, S9's and S11's panels side by side. Virtual
   screen pinned to `1920x1080` per the `build-ui` skill's default rule.
 
 No GLB models are used (primitives + `TextShape` only, per the scene-size constraint). No
@@ -162,12 +165,21 @@ makes the station silently stop proving anything.
   late callback opens a phantom stroke and the next gesture is silently merged into it; without the
   other two, "the ray missed", "there was no ray" and "the ray never moved" are indistinguishable
   and the next session chases the wrong bug.
-- **One UI root.** `ReactEcsRenderer.setUiRenderer` may only be called once per scene, so S8 and S9
-  both render through `src/stations/ui_root.tsx`. S8's panel is centered and S9's is left-anchored
-  so they cannot overlap -- an overlap makes `ui_click`'s occlusion pre-check report one station's
-  panel as a cover over the other's element.
+- **One UI root.** `ReactEcsRenderer.setUiRenderer` may only be called once per scene, so S8, S9 and
+  S11 all render through `src/stations/ui_root.tsx`. S8's panel is centered, S9's left-anchored and
+  S11's right-anchored so they cannot overlap -- an overlap makes `ui_click`'s occlusion pre-check
+  report one station's panel as a cover over another's element.
+- **S11's tiles paint themselves from an open count (`enters - leaves - dropped`), not from the last
+  event.** A boolean set on enter and cleared on leave reads correctly even when a leave is lost --
+  the next enter sets it again -- so it cannot show the defect S11 exists to catch. The count turns a
+  lost leave into a tile stuck `HOVERED` after a click, and a duplicated event into a red `DEFECT`.
+  Closing the panel moves any open hover into `dropped`, because a removed element gets no leave.
+- **S11's toggle is north of the hub row, at (16, 1, 20).** On the `z 16` row it would sit on the
+  line to RESET, the way S8's and S9's toggles already occlude each other from the east.
+- **S11 is set up after S10** so every earlier entity keeps the `crdtEntityId` that `MCP_SHOWCASE.md`
+  quotes (S11's sign and toggle are the last two `[INIT]` entities).
 
-## The two UI stations
+## The text-entry, paint and hover stations
 
 - **S9 -- UI text entry.** Six `<Input />` fields across five cases, separating what a single field
   conflates: uncontrolled vs. controlled (`value`), change vs. submit, a `disabled` field that must
@@ -185,6 +197,13 @@ makes the station silently stop proving anything.
   whatever is in front of the camera: samples that leave the canvas onto the strip are counted and
   painted nowhere. The station also reports a single-dot stroke explicitly, and distinguishes its
   two causes (see the design notes), so neither passes as a short stroke.
+- **S11 -- UI hover.** Six tiles for `ui_hover`, which parks the pointer on a scene-UI element so its
+  hover state can be screenshotted between calls. A and B prove the hover is parked and that the next
+  hover ends the previous one; C counts down/up as well and keeps its event sequence, so a hover then
+  a click must read `enter > leave > enter > down > up > leave` -- the client drains the hover's
+  leave before the click's enter, and a lost leave leaves C stuck `HOVERED`; D contains E, proving
+  that only the addressed element is entered; F sits under a toggleable cover that refuses the hover
+  unless `force: true`.
 
 ## Substitutions from the original spec
 

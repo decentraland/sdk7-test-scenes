@@ -129,8 +129,9 @@ click_entity  x: 2403  y: 1  z: 2400
 Expected result: `hit: true` **and `crdtEntityId 582`**. Expected log: `[RESET] reset #1 requested ...`
 then `[RESET] reset #1 complete -- all counters zeroed, all InputModifiers cleared`. Every counter
 shown in every station's readout board goes back to its initial value, and any active
-`InputModifier` is cleared -- confirm with a screenshot of any readout board
-Every dot painted at S10 is removed too, and both UI panels close.
+`InputModifier` is cleared -- confirm by reading any readout board (`get_entity_details` ->
+`PBTextShape.text`; see **Deriving Arch entity ids cheaply** in the Driving notes). Every dot
+painted at S10 is removed too, and every UI panel (S8, S9, S11) closes.
 
 > **`hit: true` alone is NOT proof you hit what you aimed at -- check `crdtEntityId` on every
 > world-aimed call in this script.** A `click_entity`/`hover_entity` aim point is a *direction*, and
@@ -229,7 +230,7 @@ emit `IA_FORWARD`.
    ```
    press_input  action: forward
    ```
-   Screenshot the S1 (or S6) readout again: `global IA_FORWARD count: 1` -- proves divergence
+   Read the S1 (or S6) readout again, the same way: `global IA_FORWARD count: 1` -- proves divergence
    **(3)**: only `press_input FORWARD` increments the SDK input-action counter; `walk` never
    does, even though both move-shaped inputs exist.
 
@@ -240,8 +241,9 @@ emit `IA_FORWARD`.
 Proves: **(1)**/(2) jump-gated movement via the real pipeline, contrasted with the global
 `IA_JUMP` action.
 
-1. Stand ~2.5m south of the platform (`move_to` world `(2388, 0, 2406.5)`) and jump onto it in one
-   call (platform top is at world y=1.2, the platform sits at world `(2388, 0.6, 2409)`):
+1. Stand ~2.5m south of the platform (`move_to` world `(2388, 0, 2406.5)`, then `look_at 2388, 1, 2415`
+   -- `walk` is camera-relative, and S1 step 6 leaves the camera pitched into the sky) and jump onto
+   it in one call (platform top is at world y=1.2, the platform sits at world `(2388, 0.6, 2409)`):
    ```
    walk  directionX: 0  directionY: 1  seconds: 0.5  kind: jog  jump: true
    ```
@@ -257,7 +259,7 @@ Proves: **(1)**/(2) jump-gated movement via the real pipeline, contrasted with t
 2. Try the same approach **without** `jump: true` from the base of the platform -- the player
    should not mount it (1.2m is taller than the avatar's step-over height), demonstrating the
    platform really requires the jump flag, not just proximity. Use a *longer* burst than step 1 so
-   the result is unambiguous: from the same `(2388, 0, 2406.5)` mark, `seconds: 1.5 kind: jog`
+   the result is unambiguous: from the same `(2388, 0, 2406.5)` mark and `look_at`, `seconds: 1.5 kind: jog`
    measured **0.12 m** (`endPosition.y` unchanged at 0.08, no `platform arrival #2` log) -- the
    avatar capsule is already flush against the platform face at that mark, which is why the same
    start position that mounts it *with* `jump: true` yields near-zero travel without.
@@ -290,7 +292,8 @@ escapes it; the run-only sub-zone shows the degrade-through-fallback case.
    against the ~20 m a free 2 s run covers) -- that truncation is the first half of the proof,
    before step 2 even runs. Either landing spot is inside zone A, which is all the step needs.
    Expected log: `[S3-FREEZE] zone A entered (#1) -- InputModifier disableAll+disableJump applied`.
-   Screenshot: the S3 readout at world `(2395, 3, 2407)` shows `modifier: zone A: disableAll + disableJump`.
+   Readout: the S3 board at world `(2395, 3, 2407)` (read it via `get_entity_details`) shows
+   `modifier: zone A: disableAll + disableJump`.
 2. While standing in zone A, try to walk further:
    ```
    walk  directionX: 0  directionY: 1  seconds: 2  kind: run
@@ -686,13 +689,15 @@ Board: world `(2408, 3.4, 2411)`. Suppression target: world `(2404, 1, 2413)` (b
 >    routinely misread as "suppression is broken". If a future edit replaces the direct gset
 >    read with any `isTriggered` call, this station silently stops proving anything.
 
-1. Stand away from the suppression target and press with no aim:
+1. Stand away from the suppression target but inside its `maxDistance: 16` for step 2 -- S5's far
+   mark `(2412, 0, 2408)` is ~9.4 m from it and clear -- clear the reticle (note 1), and press with
+   no aim:
    ```
    press_input  action: primary
    ```
    Expected result: `entityBound: false`, plus a `hint` explaining the scene-root delivery.
    Expected log: `[S6-GLOBAL] IA_PRIMARY scene-root broadcast -- count now 1`.
-   Screenshot the board: `scene-root PRIMARY: 1   entity PRIMARY: 0`.
+   Read the board (`get_entity_details` -> `PBTextShape.text`): `scene-root PRIMARY: 1   entity PRIMARY: 0`.
 2. Now press the same action **aimed at** the suppression target:
    ```
    press_input  action: primary  x: 2404  y: 1  z: 2413
@@ -700,8 +705,10 @@ Board: world `(2408, 3.4, 2411)`. Suppression target: world `(2404, 1, 2413)` (b
    Expected result: `entityBound: true`, `entityId`/`crdtEntityId` of the target, `hitPoint`,
    `distance`, and `hoverText: "press_input PRIMARY aimed here (entity-bound)"`.
    Expected log: `[S6-GLOBAL] entity-bound PRIMARY on suppression target (#1) -- global PRIMARY should NOT increment this frame`.
-   Screenshot the board again: `scene-root PRIMARY` is **still 1** (unchanged), `entity PRIMARY: 1`
-   — the entity-bound edge suppressed the scene-root broadcast. The target's box flashes green.
+   Read the board again: `scene-root PRIMARY` is **still 1** (unchanged), `entity PRIMARY: 1`
+   — the entity-bound edge suppressed the scene-root broadcast. The target's box flashes green
+   (its `PBMaterial` albedo reads green straight after the press). `look_at` the target before
+   this press -- the pitch-to-sky from step 1 is still on the camera.
    (Get within the target's `maxDistance: 16` first; the result reports the distance it used.)
 3. Repeat step 2 addressing the target by id instead of by point, to exercise the other form:
    ```
@@ -756,7 +763,6 @@ Stand mark: world `(2400, 0, 2400)`. Markers (world):
 3. ```
    camera_look  deltaX: 6  deltaY: 0  seconds: 1.5
    ```
-   Turn right with a relative pan; watch yaw increase in the tool result and in the readout.
    Turn right with a relative pan; the assertion is that **yaw moves, in the tool result and in
    the readout board** -- how far depends on your calibrated rate.
 
@@ -829,7 +835,7 @@ through the virtual mouse.
    `z 2396` is north of the canvases and south of the button, so nothing is in the line -- see the
    table in the **Pre-flight**.
    Expected log: `[S8-UI] panel opened`. Screenshot: the panel appears **centered** on the
-   screen (S9's is the left-anchored one; the bottom-left status bar names which are open).
+   screen (S9's is the left-anchored one; the top-centre status bar names which are open).
 2. Discover every element's CRDT id (this scene's React UI does not print its own CRDT ids to
    the log -- they are reconciler-managed, so `ui_list` is the source of truth):
    ```
@@ -872,7 +878,11 @@ through the virtual mouse.
    > **Nine is the count while the modal is closed; expect TEN whenever it is open.** That includes
    > any re-list after step 9 in the same pass, and a re-open that follows step 9 without closing the
    > modal first -- the modal is part of the panel's state and step 10 says that state is idempotent.
-   > The overlay lists at `center (0.4321, 0.1791)`, covering the whole button row. Ten elements is
+   > These counts are S8's alone: S9's and S11's elements join the listing whenever their panels are
+   > open too (S11's all sit right of `center.x 0.7`).
+   > The overlay lists at `center (0.4321, 0.1791)`, covering Buttons 1 and 2 but **not** the modal
+   > opener to their right (`s8_ui.tsx` gives it a fixed width of 500, so the opener stays clickable
+   > and closes it). Ten elements is
    > not drift -- close the modal, or re-list and ignore the overlay.
 3. **Semantic click:**
    ```
@@ -1012,7 +1022,7 @@ other's element, the layout has drifted -- that is the false positive this layou
    Expected log: `[S9-TEXT] panel opened`. Confirm you hit the **S9** toggle and not S8's: the result
    must report `crdtEntityId 584` (S8's is `581`, 3 m away on the same line -- see the README's
    substitutions note). Screenshot: a panel anchored hard to the **left** of the screen -- dark
-   translucent ground with green field labels, *not* a green panel -- and the bottom-left status bar
+   translucent ground with green field labels, *not* a green panel -- and the top-centre status bar
    flips to `S9 panel: OPEN`.
 2. Discover the element ids (React reconciler-managed, so `ui_list` is the only source):
    ```
@@ -1188,13 +1198,14 @@ Layout (world; local = world - `(2384, 0, 2384)`):
 | CLEAR CANVAS button | `(2392, 1, 2390)` | -- | wipes every dot |
 | S10 readout | `(2396, 5, 2393)` | -- | live dot / stroke / off-canvas counts |
 
-1. Get in position and face the canvases:
+1. Get in position on the stand mark and face the canvases:
    ```
-   walk    directionX: 0  directionY: 1  seconds: 1  kind: jog
+   move_to  x: 2396  y: 0  z: 2389.5
    look_at  x: 2396  y: 2.1  z: 2393
    ```
-   (or `move_to` the stand mark directly -- S10 watches no trigger volumes, so a teleport is
-   harmless here). Screenshot: two dark panels ahead, the right one with a red strip under it.
+   S10 watches no trigger volumes, so a teleport is harmless here (a `walk` would need a defined
+   start and facing, which the previous station does not leave you with). Screenshot: two dark
+   panels ahead, the right one with a red strip under it.
 2. **Stamp a diagonal (the deterministic path).** Five clicks stepping across the left canvas:
    ```
    click_entity  x: 2392.8  y: 1.3  z: 2393
@@ -1384,6 +1395,191 @@ Layout (world; local = world - `(2384, 0, 2384)`):
    with every other counter untouched. (`RESET ALL STATIONS` also wipes the dots, but zeroes the
    counters with them.)
 
+## S11 -- UI hover (`ui_hover`)
+
+Proves: **(11)** `ui_hover` **parks** a hover on scene UI: the enter is delivered and the element
+stays hovered *across calls* -- long enough to screenshot -- until `ui_hover leave: true`, the
+next `ui_hover`, or any other `ui_*` gesture ends it (that gesture reports `hoverEnded`). A click
+after a hover on the same element delivers the hover's leave *before* its own enter; only the
+addressed element is entered; a cover refuses the hover unless `force: true`; a hover on an
+element that has since been removed is ended without a leave, and says so.
+
+Every tile on the panel counts its own enters and leaves and paints itself from its **open count**
+(`enters - leaves - dropped`): `idle` at 0, green `HOVERED` at 1, and red `DEFECT (open N)` for
+anything else -- a hover can never be open twice, or less than zero times. **Read every claim off
+`get_scene_logs`; the screenshot is for the hover *state*, which is the one thing only a
+screenshot shows.**
+
+S11's panel is anchored hard to the **right**, so it overlaps neither S8's centered panel nor
+S9's left one. As in S8/S9, a cover naming another station's panel means the layout drifted.
+
+1. Open the panel. **Stand on S7's stand mark and look north** -- `move_to (2400, 0, 2400)` then
+   `look_at 2400, 1, 2404`, a 4 m clear shot:
+   ```
+   click_entity  x: 2400  y: 1  z: 2404
+   ```
+   Confirm **`crdtEntityId 594`** -- the `[INIT] S11 world toggle button ... => entityId` line is the
+   authority. The toggle sits north of the `z 2400` row on purpose: on that row it would share
+   RESET's line, the way S8's and S9's toggles already share each other's.
+   Expected log: `[S11-HOVER] panel opened`. Screenshot: a panel anchored to the **right**, six
+   blue `idle` tiles, and the status bar's third line reading `S11 panel: OPEN`.
+2. Discover the ids:
+   ```
+   ui_list  stack: sdk
+   ```
+   S11 contributes **eight** elements: tiles A, B, C, D, E, F, the `Cover F` toggle and
+   `CLEAR S11 COUNTS` (the cover itself has no pointer events and is never listed). Every one has
+   `center.x` above `0.7`, which is what separates them from S8's and S9's when those panels are
+   open too. `pointerEventTypes` sorts them: **C** is the only one declaring all four
+   (`PetHoverEnter`, `PetHoverLeave`, `PetDown`, `PetUp`); the two buttons declare only `PetDown`;
+   A, B, D, E and F declare the hover pair only. Tell those five apart by layout -- **identify by
+   `center`, never by id** (ids renumber on every panel open, see S8 step 2):
+
+   | element | where | `center` (derived from the layout at 16:9, not measured) |
+   |---|---|---|
+   | `<aId>` HOVER A | row 1, left | `~(0.783, 0.159)` |
+   | `<bId>` HOVER B | row 1, right | `~(0.915, 0.159)` |
+   | `<cId>` HOVER + CLICK C | full width, row 2 | `~(0.849, 0.278)` |
+   | `<dId>` CONTAINER D | full width, row 3 | `~(0.849, 0.426)` |
+   | `<eId>` CHILD E | inside D, its right part, same y | `~(0.919, 0.426)` |
+   | `<fId>` HOVER F | row 4, left | `~(0.783, 0.554)` |
+   | `<coverId>` `Cover F` toggle | row 4, right | `~(0.915, 0.554)` |
+   | `<clearS11Id>` CLEAR S11 COUNTS | bottom, left | `~(0.783, 0.636)` |
+
+   D and E share a `y`; D's `center` lies in its own label column, left of E, so a hover on D is
+   not a hover on E.
+3. **A parked hover outlives its call:**
+   ```
+   ui_hover  stack: sdk  crdtId: <aId>
+   ```
+   Expected result: `ok: true`, `hovering` naming the address, and the `screenRect` + `center` +
+   `screen` triple. No `hoverEnded` -- nothing was parked before. Expected log:
+   `[S11-HOVER] A: enter (#1) -- open 1`. Now, **in separate calls**, take a `screenshot` (tile A is
+   green and reads `HOVERED`) and then `get_scene_logs` again: there is still **no** `A: leave`.
+   That is the whole point of the tool -- `ui_click` would have entered and left inside one call,
+   and there would have been nothing to photograph.
+4. **The next hover ends the previous one:**
+   ```
+   ui_hover  stack: sdk  crdtId: <bId>
+   ```
+   Expected result: `hoverEnded` naming A's address. Expected logs, in this order:
+   `A: leave (#1) -- open 0`, then `B: enter (#1) -- open 1`. Screenshot: A blue `idle`, B green.
+5. **`leave: true` ends it, and says when there was nothing to end:**
+   ```
+   ui_hover  leave: true
+   ```
+   Expected result: `ok: true`, `left` naming B's address. Expected log: `B: leave (#1) -- open 0`.
+   Issue the same call again: `ok: true`, `left: null`, and `info: "no hover was parked, so nothing
+   was left"` -- and no S11 log.
+6. **A click after a hover on the same element** -- the case the client drains for. First a
+   baseline click with nothing parked:
+   ```
+   ui_click  stack: sdk  crdtId: <cId>
+   ```
+   Expected: the logs end with `C: leave (#1) -- open 0 -- sequence: enter > down > up > leave`,
+   and the panel's `C sequence:` line reads the same. Clear it with
+   `ui_click stack: sdk crdtId: <clearS11Id>` (log: `counts and C sequence cleared ...`), then:
+   ```
+   ui_hover  stack: sdk  crdtId: <cId>
+   ui_click  stack: sdk  crdtId: <cId>
+   ```
+   Expected: the click's result carries `hoverEnded` naming C, and C's sequence is exactly
+   **`enter > leave > enter > down > up > leave`** -- `enters 2 / leaves 2 / downs 1 / ups 1`, and C
+   back to blue `idle` after the click.
+
+   **The regression signature is `enter > enter > down > up > leave` with C stuck green `HOVERED`
+   after the click** (open 1, nothing parked): the hover's leave was overwritten by the click's
+   own enter before the scene read it. The client drains the element's pending event before a
+   semantic SDK click or drag for exactly this reason. A red `DEFECT` tile is the same family.
+
+   **A third shape is a different fault, not this regression:**
+   `enter > enter > leave > down > up > leave` with C back to `idle` and `enters 2 / leaves 2 /
+   downs 1 / ups 1`. Nothing is lost and nothing arrived late: the hover's leave and the click's
+   enter reached the scene **in the same tick**, and the SDK runs one tick's handlers in the order
+   the element registered them -- C registers `onMouseEnter`, `onMouseLeave`, `onMouseDown`,
+   `onMouseUp`, so a leave and an enter sharing a tick run as enter, then leave. Any two of C's
+   events sharing a tick reorder the same way (an `up` and `leave` pair would read `leave > up`).
+   See **Known open issues** row 4; re-run the step (`CLEAR S11 COUNTS`, hover, click) and record
+   every result.
+
+   > **This is not what a human produces, and that is documented, not a finding.** A person
+   > hovering then clicking gives `enter > down > up` and keeps hovering; the tool ends the hover
+   > before the click, so a hover count across a click is off by one. Assert on the click's own
+   > events (`downs 1 / ups 1`) and on the sequence above.
+7. **Any other `ui_*` gesture ends the hover too:**
+   ```
+   ui_hover  stack: sdk  crdtId: <aId>
+   ui_click  stack: sdk  crdtId: <coverId>
+   ```
+   Expected: the click's result carries `hoverEnded` naming A; logs `A: enter (#1) -- open 1`,
+   `A: leave (#1) -- open 0`, then `cover over F ON` (step 6's CLEAR zeroed every tile). Screenshot: A `idle`, and a dark `COVER` over
+   F. Leave the cover **on** for step 9. (`ui_set_text`, `ui_scroll` and `ui_drag` end a parked
+   hover the same way; this step uses a click only because the panel needs one anyway.)
+8. **Only the addressed element is entered:**
+   ```
+   ui_hover  stack: sdk  crdtId: <eId>
+   ```
+   Expected log: `E: enter (#1) -- open 1` and **no `D: enter`**; screenshot: E green inside a blue
+   D. Then:
+   ```
+   ui_hover  stack: sdk  crdtId: <dId>
+   ui_hover  leave: true
+   ```
+   Expected: `hoverEnded` naming E; logs `E: leave (#1)`, `D: enter (#1)`, then `D: leave (#1)`.
+
+   > A real mouse moving onto E enters D as well -- UI Toolkit enters every ancestor under the
+   > pointer -- so a human *would* fire D's `onMouseEnter` here. The semantic hover enters only the
+   > addressed element (the same scope as `ui_click`), so a container's `onMouseEnter` needs the
+   > container's own `crdtId`. **If `D: enter` fires in the first call, the client's scope changed:
+   > report it**, since the `unity-explorer-mcp` skill states this scope.
+9. **A cover refuses the hover -- and the refusal still ends the hover parked before it.** With the
+   cover on from step 7:
+   ```
+   ui_hover  stack: sdk  crdtId: <bId>
+   ui_hover  stack: sdk  crdtId: <fId>
+   ```
+   Expected: the second call fails with `reason: "another element covers the target at its
+   center"` and a `blockedBy` naming the cover, and **no `F: enter` log**. It still carries
+   `hoverEnded` naming B and B logs its leave (`B: enter (#1)`, then `B: leave (#1)`): the parked
+   hover is ended before the new one is checked, so a refused hover leaves nothing parked
+   (`ui_hover leave: true` now reports `left: null`). Then:
+   ```
+   ui_hover  stack: sdk  crdtId: <fId>  force: true
+   ```
+   Expected: `ok: true`, log `F: enter (#1) -- open 1` -- `force` hovered straight through the
+   cover. End it with `ui_hover leave: true` (`F: leave (#1)`), click `<coverId>` once more
+   (`cover over F OFF`), and a plain `ui_hover` on `<fId>` now succeeds with no `force`
+   (`F: enter (#2)`). `ui_hover leave: true` to finish.
+10. **Refusals that change nothing.** Park one first so you can see that each refusal leaves it in
+    place:
+    ```
+    ui_hover  stack: sdk  crdtId: <aId>
+    ui_hover  stack: sdk  crdtId: <aId>  device: true
+    ui_hover  leave: true  stack: sdk  crdtId: <aId>
+    ```
+    Expected: the second call fails with `"device:true applies only to client UI: the virtual mouse
+    does not reach the scene's UI panels. Omit device to hover scene UI."`; the third fails with
+    `"leave:true ends whichever hover is parked and takes no address; drop 'stack'."` (it names the
+    first address argument it finds, so `'stack'` here). Neither delivers anything: A logged one
+    `enter`, **no `leave`**, and is still green. `ui_hover leave: true` alone then ends it as usual.
+11. **The element goes away under a parked hover.** Park on A, then close the panel with a *world*
+    click -- `click_entity` is not a `ui_*` gesture, so it leaves the hover parked:
+    ```
+    ui_hover      stack: sdk  crdtId: <aId>
+    click_entity  x: 2400  y: 1  z: 2404
+    ```
+    Expected logs: `A: enter`, `panel closed`, then `panel closed while A was hovered (open 1) -- a
+    removed element gets no leave; dropped`. Now, **before reopening the panel**:
+    ```
+    ui_hover  leave: true
+    ```
+    Expected: `ok: true`, with `left` naming A's address **followed by `(the element is gone; no
+    leave was sent)`**, and no `A: leave` log. Reopen the panel: A is `idle` with `dropped 1` in its
+    counts. (Leave first, then reopen: the reopened panel builds new elements, and the parked one
+    must not be mistaken for one of them.)
+
+    Close the panel from the world button when done, or leave it open -- its state is idempotent.
+
 ---
 
 ## Negative-case summary (for quick reference)
@@ -1405,6 +1601,11 @@ Layout (world; local = world - `(2384, 0, 2384)`):
 | Covered by *client* UI | `ui_click stack:sdk crdtId:<formSubmitId>` (S9, normalized `y 0.5366`) | failure + `blockedBy ".../ChatMessages/Viewport"` -- the chat feed's transparent viewport. Repeat that one call with `force: true`; see S9 step 8 |
 | Device path does not reach scene UI | `ui_click stack:sdk crdtId:<btn1Id> device:true` | `ok:true` with an `info` line saying the element observed nothing, and no click log |
 | Unreachable camera target | `look_at x:2400 y:20 z:2400` from the S7 stand mark | `aimErrorDegrees` >> 2 + a `warning` about the pitch clamp |
+| Covered `ui_hover` | `ui_hover stack:sdk crdtId:<fId>` while S11's cover is on | failure, `reason: "another element covers the target at its center"` + `blockedBy` naming the cover, no `F: enter` log. A hover parked before it is still ended (`hoverEnded`) |
+| `device:true` on scene UI | `ui_hover stack:sdk crdtId:<aId> device:true` | fails with "device:true applies only to client UI ..."; a parked hover stays parked |
+| `leave:true` with an address | `ui_hover leave:true stack:sdk crdtId:<aId>` | fails with "... takes no address; drop 'stack'."; a parked hover stays parked |
+| Nothing to leave | `ui_hover leave:true` with no hover parked | `ok:true`, `left: null`, `info: "no hover was parked, so nothing was left"`, no log |
+| Hover then click is not one hover | `ui_hover` then `ui_click` on S11's C | C's sequence `enter > leave > enter > down > up > leave`, C `idle` after. `enter > enter > down > up > leave` with C stuck `HOVERED` is the lost-leave regression (S11 step 6); an occasional `enter > enter > leave > down > up > leave` ending `idle` is Known open issues row 4 |
 | Scroll into a clamp | `ui_scroll stack:sdk crdtId:<scrollId> dy:-400` at the top of the list | `ok` + an `info` line saying the offset did not move |
 | Disabled `<Input />` refuses a write | `ui_set_text stack:sdk crdtId:<disabledId> text:"nope"` | no `[S9-TEXT]` log; panel line 4 stays white at `0` |
 | A write without `submit` does not submit | `ui_set_text stack:sdk crdtId:<submitOnlyId> text:"x"` | no log, `submits 0` |
@@ -1445,12 +1646,12 @@ shape that survives the variation. If your measurement differs from a figure quo
 | Aim-cone entry angles (`entered aim (angle N)`) | orbit-boom settling, run to run | each marker enters **once** and does not flap; the 18 deg cone plus 30 deg release is what buys that (S7) |
 | `aimErrorDegrees` on close, slightly-downward aims, and its rig-limit `warning` | camera pose | let the following `click_entity`/`hover_entity` be the test; meaningful only above ~10 deg |
 | `held <N>ms` on the charge commit | how long you waited | that a commit fired at all (S4 step 2) |
-| Scene-**UI** `crdtId`s (`ui_list`, S8/S9) | every panel open, non-monotonically | match by `center`; never carry an id across a panel open |
+| Scene-**UI** `crdtId`s (`ui_list`, S8/S9/S11) | every panel open, non-monotonically | match by `center`; never carry an id across a panel open |
 | Whether the chat feed's transparent viewport covers `y 0.5366` | screen size and chat state | issue the plain click first and read the result (S9 step 8) |
 | Client `averageFps` | machine | nothing; it is context for the turn rate at most |
 
 **What *is* stable, and therefore worth asserting:** world coordinates and the `[INIT] MARK`
-lines; the scene's own **entity** `crdtEntityId`s (`512`-`592`, allocation-ordered at `[INIT]` and
+lines; the scene's own **entity** `crdtEntityId`s (`512`-`594`, allocation-ordered at `[INIT]` and
 identical across reloads -- unlike scene-UI ids); every log line's text; each element's normalized
 `center` at a given screen size; the exact wording of the client's refusal messages; and every
 structural claim -- which path a tool takes, that an entity-bound edge suppresses the root
@@ -1533,8 +1734,8 @@ Confirmed present on the current scene + client. Everything else in this script 
 each pass's evidence to `MCP_SHOWCASE_RESULTS.md`** (create it if it is not there) rather than
 into this file.
 
-**All three rows are client-owned**, and all three reproduce on every pass. The scene itself has
-no open issues.
+**All four rows are client-owned.** Rows 1-3 reproduce on every pass; row 4 is intermittent, so
+its absence on a pass is not a fix. The scene itself has no open issues.
 
 **Do not add a per-pass confirmation paragraph here, and do not date these rows.** If a row still
 reproduces, that is the documented state and needs no edit; record the pass in
@@ -1559,3 +1760,4 @@ Issue the plain click and read the result.
 | S9 steps 5, 8, 9 | **A controlled `<Input />` does not follow a programmatic reset.** A field the scene passes a `value` to displays a write correctly, but when the scene later clears it the box keeps the old string: after CLEAR FIELDS the FORM boxes still show `delta-9` / `77123` while the scene reads `""` -- proved by `FORM submit #N -- REJECTED callsign="" code=""` firing from those same populated-looking boxes, and the SEEDED box still shows `overwritten` while its own label reads the grey `still the seed value`. The scene's state is always right; only the rendering lags | client |
 | S10 step 3 | `ui_drag path:"device"` returns no `screenRect`/`center` -- reasonable, since no element is involved. It does carry `screen`, `path` and `pointerOver`. **The `info` line naming `sweep_pointer` comes only when both ends are `"world"`** (the S10 case); the same call over scene UI (S8 step 8) returns `pointerOver` naming both elements and **no `info` at all**, since there is nothing to explain | minor, client |
 | S8 step 8, S8 step 9 | **Scene-UI elements are reported under two id spaces.** `ui_list` and `pointerOver` name an element by its current id; `ui_click`'s `blockedBy` and `ui_drag path:sdk`'s `info` name it by the id of the mount generation it was created in. Nothing misbehaves -- but the two cannot be cross-referenced after a panel re-open | minor, client |
+| S11 step 6 | **Two of an element's events can reach the scene in one tick, and then run in handler-registration order.** `ui_hover` then `ui_click` on C intermittently yields `enter > enter > leave > down > up > leave` instead of `enter > leave > enter > down > up > leave`, ending `idle` with balanced counts and `hoverEnded` reported. The client sent the leave first; but its drain waited only until the client had *written* each result, and the scene reads everything written since its last tick as one batch, where the SDK's `PointerEventSystem` fires each registered type once in registration order. The client's drain now also waits until the scene has read each result (`WaitForSceneToReadAsync`, two scene ticks); on a client with it this should not reproduce -- remove the row once a pass of six or more hover-then-click runs shows none | client |

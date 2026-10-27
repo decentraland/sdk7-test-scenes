@@ -10,6 +10,7 @@ import { setupS7Camera } from './stations/s7_camera'
 import { setupS8Ui } from './stations/s8_ui'
 import { setupS9TextEntry } from './stations/s9_text_entry'
 import { setupS10Paint } from './stations/s10_paint'
+import { setupS11UiHover } from './stations/s11_ui_hover'
 import { setupSceneUi } from './stations/ui_root'
 
 export function main() {
@@ -23,7 +24,7 @@ export function main() {
   )
   console.log(
     '[INIT] station order: S1 locomotion -> S2 jump -> S3 freeze -> S4 click -> S5 hover -> S6 global input -> ' +
-      'S7 camera -> S8 UI -> S9 text entry -> S10 paint surface'
+      'S7 camera -> S8 UI -> S9 text entry -> S10 paint surface -> S11 UI hover'
   )
   console.log('[INIT] every interactable purpose->entityId mapping and floor "stand here" mark follows below')
 
@@ -37,6 +38,8 @@ export function main() {
   setupS8Ui()
   setupS9TextEntry()
   setupS10Paint()
+  // After S10 so every earlier station keeps the entity ids MCP_SHOWCASE.md quotes.
+  setupS11UiHover()
   // Last: both UI stations render through one ReactEcsRenderer root, which may only be set once.
   setupSceneUi()
 

@@ -103,7 +103,9 @@ export const counters = {
   s10NoDirectionSamples: 0,
   s10LongestStrokeDots: 0,
   s10PoolRecycles: 0,
-  s10Clears: 0
+  s10Clears: 0,
+  // S11 -- UI hover; the per-tile counts live in the station, which clears them on reset
+  s11PanelOpen: false
 }
 
 type ResetFn = () => void

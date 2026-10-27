@@ -52,7 +52,7 @@ export function setupS3Freeze() {
       `modifier: ${counters.s3CurrentModifier}\n` +
         `zone A enters: ${counters.s3ZoneAEnters}\n` +
         `zone B enters: ${counters.s3ZoneBEnters}\n` +
-        `zone B: run degrades to jog -- compare a ~1s run burst\n` +
+        `zone B: run degrades to jog -- compare a ~0.8s run burst\n` +
         `inside the corridor against one outside it`
     )
   }

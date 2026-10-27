@@ -167,6 +167,15 @@ export const S10_DECOY = Vector3.create(14, 0.6, 9) // directly below the stroke
 export const S10_DECOY_SCALE = Vector3.create(3.6, 0.8, 0.2)
 export const S10_CLEAR_BUTTON = Vector3.create(8, 1, 6)
 
+// ---------------------------------------------------------------------------------------
+// S11 -- UI hover (`ui_hover`). North of S7's stand mark, off the z=16 hub row: the three world
+// buttons there already occlude each other from the east, and a fourth would sit on RESET's line.
+// The panel is anchored to the RIGHT of the screen, so it overlaps neither S8's centered panel nor
+// S9's left one.
+// ---------------------------------------------------------------------------------------
+export const S11_TOGGLE_BUTTON = Vector3.create(16, 1, 20)
+export const S11_SIGN = Vector3.create(16, 3.4, 20)
+
 /**
  * A DCL sphere primitive is 804 triangles (24x16 UV sphere, `SphereFactory` in the client), and a
  * 2x2 scene's whole triangle budget is 40,000. The rest of this scene spends ~2,000, so the paint
