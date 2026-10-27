@@ -17,7 +17,7 @@ import { scaleLabels, scaleName } from '../shared/scales'
 import { ServerHeartbeat } from '../shared/schemas'
 import { sinceLoad } from '../shared/clock'
 import { CsvRow, formatRow, sanitizeId, utf8Length } from './csv'
-import { CURRENT_PART_KEY, PartStore, writeBatch } from './parts'
+import { CURRENT_PART_KEY, LegacySeen, PartStore, writeBatch } from './parts'
 
 // Responses buffer in memory, then flush into numbered CSV parts in scene Storage.
 // Flush after FLUSH_COOLDOWN_MS, or at once when the last player leaves: no shutdown hook.
@@ -67,6 +67,7 @@ const store: PartStore = {
     }
   }
 }
+const legacySeen: LegacySeen = new Map()
 
 let intro: IntroSpec | null = null
 
@@ -262,7 +263,7 @@ async function flush(): Promise<void> {
   }
   const more = batch.length < pending.size
   try {
-    const result = await writeBatch(store, batch, currentPart)
+    const result = await writeBatch(store, batch, currentPart, legacySeen)
     currentPart = result.part
     if (result.rolledOver) console.log(`[SERVER] Rolled over to part ${currentPart}`)
     for (const [id] of batch) pending.delete(id)

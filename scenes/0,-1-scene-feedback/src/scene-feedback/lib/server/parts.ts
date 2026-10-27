@@ -32,21 +32,31 @@ export type BatchWrite = {
 type Version = { key: string; csv: string }
 
 // "scene-feedback-1-20261027-130512-k3fz.csv": part, then UTC time of the flush, so versions sort by age
-export function versionKey(part: number, now: number): string {
+function versionKey(part: number, now: number): string {
   const stamp = new Date(now).toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-')
   const tail = Math.floor(Math.random() * 36 ** 4).toString(36).padStart(4, '0')
   return `scene-feedback-${part}-${stamp}-${tail}.csv`
 }
 
-// before versions: one key per part, rewritten in place. Merged like a version, then deleted.
+// before versions: one key per part, rewritten in place. Merged like a version; deleted only once it
+// stopped changing, since an instance still on the old code keeps appending to it during a redeploy.
 export function legacyPartKey(part: number): string {
   return `scene-feedback-${part}.csv`
 }
+// far longer than a redeploy overlap
+const LEGACY_SETTLE_MS = 10 * 60_000
+
+// legacy key → its content and since when this server has seen it unchanged
+export type LegacySeen = Map<string, { csv: string; since: number }>
+
+// past this many versions of one part, read-backs keep failing: every flush then copies the whole part again
+const MANY_VERSIONS = 3
 
 export async function writeBatch(
   store: PartStore,
   batch: [string, string][],
   knownPart: number,
+  legacySeen: LegacySeen,
   now = Date.now()
 ): Promise<BatchWrite> {
   let part = Math.max(knownPart, (await store.get<number>(CURRENT_PART_KEY)) ?? 1)
@@ -56,12 +66,23 @@ export async function writeBatch(
     // a part with other columns (older code) is left as it is
     const ours = versions.filter((v) => v.csv.split('\n', 1)[0] === CSV_HEADER)
     const otherColumns = ours.length < versions.length
+    if (ours.length > MANY_VERSIONS) {
+      console.log(`[SERVER] Part ${part} has ${ours.length} versions: new versions do not read back, old ones are kept`)
+    }
+    for (const { key, csv } of ours) {
+      if (key === legacyPartKey(part) && legacySeen.get(key)?.csv !== csv) legacySeen.set(key, { csv, since: now })
+    }
     const rows = mergeRows(ours)
     const added = batch.filter(([id]) => !rows.has(id))
-    const csv = [CSV_HEADER, ...rows.values(), ...added.map(([, row]) => row)].join('\n')
+    const merged = [CSV_HEADER, ...rows.values()].join('\n')
+    const csv = [merged, ...added.map(([, row]) => row)].join('\n')
     const full = utf8Length(csv) > PART_MAX_BYTES && rows.size > 0
 
     if (added.length > 0 && (otherColumns || full)) {
+      // versions left by a race are merged before the part closes: no flush comes back to it
+      if (ours.length > 1 && utf8Length(merged) <= PART_MAX_BYTES) {
+        await writeVersion(store, part, merged, ours, legacySeen, now)
+      }
       part++
       rolledOver = true
       // a lost hint only makes the next flush walk here again
@@ -73,20 +94,35 @@ export async function writeBatch(
       return { part, key: null, written: 0, bytes: utf8Length(csv), merged: 0, rolledOver }
     }
 
-    const key = versionKey(part, now)
-    if (!(await store.set(key, csv))) throw new Error('Storage.set returned false')
-    // until the new version reads back, the old ones stay: the next flush merges them all again
-    if ((await store.get<string>(key)) === csv) {
-      for (const version of ours) {
-        try {
-          await store.delete(version.key)
-        } catch (e) {
-          console.log(`[SERVER] Could not delete ${version.key}, the next flush merges it again:`, e)
-        }
-      }
-    }
+    const key = await writeVersion(store, part, csv, ours, legacySeen, now)
     return { part, key, written: added.length, bytes: utf8Length(csv), merged: ours.length, rolledOver }
   }
+}
+
+// Writes csv as a new version of the part. Until it reads back, the versions it replaces stay: the next
+// flush merges them all again.
+async function writeVersion(
+  store: PartStore,
+  part: number,
+  csv: string,
+  replaces: Version[],
+  legacySeen: LegacySeen,
+  now: number
+): Promise<string> {
+  const key = versionKey(part, now)
+  if (!(await store.set(key, csv))) throw new Error('Storage.set returned false')
+  if ((await store.get<string>(key)) !== csv) return key
+  for (const version of replaces) {
+    const seen = legacySeen.get(version.key)
+    if (version.key === legacyPartKey(part) && (!seen || now - seen.since < LEGACY_SETTLE_MS)) continue
+    try {
+      await store.delete(version.key)
+      legacySeen.delete(version.key)
+    } catch (e) {
+      console.log(`[SERVER] Could not delete ${version.key}, the next flush merges it again:`, e)
+    }
+  }
+  return key
 }
 
 // the legacy key first, then versions oldest first

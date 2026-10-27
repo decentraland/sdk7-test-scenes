@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CSV_HEADER } from '../src/scene-feedback/lib/server/csv'
-import { CURRENT_PART_KEY, PartStore, legacyPartKey, writeBatch } from '../src/scene-feedback/lib/server/parts'
+import { CURRENT_PART_KEY, LegacySeen, PartStore, legacyPartKey, writeBatch } from '../src/scene-feedback/lib/server/parts'
 
 // Scene Storage in memory. Every call yields first, like a network round trip, so two flushes
 // started together interleave their reads and writes.
@@ -12,6 +12,8 @@ class FakeStorage implements PartStore {
   lag = 0
   // H3: the next read misses these keys although they exist
   readonly missOnce = new Set<string>()
+  // runs before the next write lands, e.g. another server writing in between
+  beforeSet?: (key: string) => Promise<void>
 
   async get<T>(key: string): Promise<T | null> {
     await Promise.resolve()
@@ -21,6 +23,7 @@ class FakeStorage implements PartStore {
 
   async set(key: string, value: unknown): Promise<boolean> {
     await Promise.resolve()
+    if (this.beforeSet) await this.beforeSet(key)
     this.values.set(key, value)
     this.snapshots.push(new Map(this.values))
     return true
@@ -59,10 +62,16 @@ class FakeStorage implements PartStore {
 }
 
 const row = (id: string, filler = ''): [string, string] => [id, `${id},2026-10-27 12:00:00,abc,coinSpotting${filler}`]
+const MINUTE = 60_000
 
-// one server flushing its pending rows, as flush() does
+// one server: each call flushes its pending rows, as flush() does
+function server(store: FakeStorage) {
+  const legacySeen: LegacySeen = new Map()
+  return (ids: string[], now = Date.now()) => writeBatch(store, ids.map((id) => row(id)), 1, legacySeen, now)
+}
+
 async function flush(store: FakeStorage, ...ids: string[]): Promise<void> {
-  await writeBatch(store, ids.map((id) => row(id)), 1)
+  await server(store)(ids)
 }
 
 function lost(store: FakeStorage, ids: string[]): string[] {
@@ -94,6 +103,28 @@ describe('flush keeps every row it has stored', () => {
     expect(store.csvKeys()).toHaveLength(1)
   })
 
+  it('H1 on the old-format part: an instance still on the old code appends to it during the redeploy', async () => {
+    const store = new FakeStorage()
+    const flushAt = server(store)
+    const t0 = Date.now()
+    await store.set(legacyPartKey(1), [CSV_HEADER, row('l1')[1]].join('\n'))
+    // between the new instance listing the part and writing its version
+    store.beforeSet = async (key) => {
+      if (!key.startsWith('scene-feedback-1-')) return
+      store.beforeSet = undefined
+      const legacy = await store.get<string>(legacyPartKey(1))
+      await store.set(legacyPartKey(1), `${legacy}\n${row('o1')[1]}`)
+    }
+    await flushAt(['n1'], t0)
+    expect(lost(store, ['l1', 'o1', 'n1'])).toEqual([])
+    // it changed since this server last saw it: kept another 10 minutes
+    await flushAt(['n2'], t0 + 11 * MINUTE)
+    expect(store.values.has(legacyPartKey(1))).toBe(true)
+    await flushAt(['n3'], t0 + 22 * MINUTE)
+    expect(store.values.has(legacyPartKey(1))).toBe(false)
+    expect(lost(store, ['l1', 'o1', 'n1', 'n2', 'n3'])).toEqual([])
+  })
+
   it('H2: reads come back one write behind', async () => {
     const store = new FakeStorage()
     await flush(store, 'a1')
@@ -118,14 +149,19 @@ describe('flush keeps every row it has stored', () => {
 })
 
 describe('parts', () => {
-  it('merges a part written by the old code in place, then deletes it', async () => {
+  it('merges a part written by the old code in place, and deletes it once unchanged for 10 minutes', async () => {
     const store = new FakeStorage()
+    const flushAt = server(store)
+    const t0 = Date.now()
     await store.set(CURRENT_PART_KEY, 1)
     await store.set(legacyPartKey(1), [CSV_HEADER, row('old1')[1], row('old2')[1]].join('\n'))
-    await flush(store, 'b1')
+    await flushAt(['b1'], t0)
     expect(lost(store, ['old1', 'old2', 'b1'])).toEqual([])
-    expect(store.csvKeys()).toHaveLength(1)
+    expect(store.values.has(legacyPartKey(1))).toBe(true)
+    await flushAt(['b2'], t0 + 11 * MINUTE)
+    expect(lost(store, ['old1', 'old2', 'b1', 'b2'])).toEqual([])
     expect(store.values.has(legacyPartKey(1))).toBe(false)
+    expect(store.csvKeys()).toHaveLength(1)
   })
 
   it('leaves a part with other columns as it is and writes the next one', async () => {
@@ -142,10 +178,20 @@ describe('parts', () => {
   it('rolls over to the next part when the open one is full', async () => {
     const store = new FakeStorage()
     const big = 'x'.repeat(250 * 1024)
-    await writeBatch(store, [row('a1', big)], 1)
-    const result = await writeBatch(store, [row('b1', big)], 1)
+    await writeBatch(store, [row('a1', big)], 1, new Map())
+    const result = await writeBatch(store, [row('b1', big)], 1, new Map())
     expect(result.part).toBe(2)
     expect(result.rolledOver).toBe(true)
     expect(lost(store, ['a1', 'b1'])).toEqual([])
+  })
+
+  it('merges versions left by a race before the part rolls over', async () => {
+    const store = new FakeStorage()
+    await Promise.all([flush(store, 'a1'), flush(store, 'a2')])
+    expect(store.csvKeys()).toHaveLength(2)
+    const result = await writeBatch(store, [row('b1', 'x'.repeat(450 * 1024))], 1, new Map())
+    expect(result.part).toBe(2)
+    expect(store.csvKeys().filter((key) => key.startsWith('scene-feedback-1-'))).toHaveLength(1)
+    expect(lost(store, ['a1', 'a2', 'b1'])).toEqual([])
   })
 })

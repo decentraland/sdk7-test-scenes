@@ -291,7 +291,8 @@ Storage read that missed a file. The next write merges them back into one. Until
 files of the part and drop duplicate `id`s.
 
 Files from an older version of the module, `scene-feedback-N.csv`, are merged into the new files
-at the next write and deleted; if their columns differ, they are left as they are.
+at every write, and deleted once they have stayed unchanged for 10 minutes: during a redeploy, a
+server still on the old code may append to them. If their columns differ, they are left as they are.
 
 `scene-feedback-csv-head` stores the number of the part currently being written.
 This is an internal bookkeeping key: **do not delete or modify it**.
