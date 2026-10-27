@@ -55,6 +55,11 @@ let sceneVersion = ''
 
 let heartbeatEntity: Entity
 
+// tells this server's log lines from another instance's, if two run at once
+const instance = Math.floor(Math.random() * 36 ** 4).toString(36).padStart(4, '0')
+// what this server last stored: a later read shorter than that would overwrite rows
+let lastStored = { part: 0, bytes: 0, at: 0 }
+
 let intro: IntroSpec | null = null
 
 export async function startServer(introSpec: IntroSpec | null): Promise<void> {
@@ -73,7 +78,7 @@ export async function startServer(introSpec: IntroSpec | null): Promise<void> {
   // clients count the server alive only once beatAt changes: not before responses are accepted
   engine.addSystem(heartbeatSystem)
   engine.addSystem(flushSystem)
-  console.log(`[SERVER] Feedback server ready at +${sinceLoad()}, writing ${partKey(currentPart)}, ${countPlayers()} player(s)`)
+  console.log(`[SERVER] Feedback server ${instance} ready at +${sinceLoad()}, writing ${partKey(currentPart)}, ${countPlayers()} player(s)`)
 }
 
 // Entity id tail: new on every deploy, so builds never mix. Every CID starts with "bafkrei".
@@ -253,6 +258,12 @@ async function flush(): Promise<void> {
     currentPart = Math.max(currentPart, storedPart)
 
     let csv = (await Storage.get<string>(partKey(currentPart), { fresh: true })) ?? CSV_HEADER
+    if (lastStored.part === currentPart && utf8Length(csv) < lastStored.bytes) {
+      const ago = Math.round((Date.now() - lastStored.at) / 1000)
+      console.log(
+        `[SERVER] ${instance}: ${partKey(currentPart)} read ${utf8Length(csv)} B, shorter than the ${lastStored.bytes} B stored ${ago} s ago: this flush loses rows`
+      )
+    }
     const stored = rowIds(csv)
     const rows = batch.filter(([id]) => !stored.has(id)).map(([, row]) => row)
     const appended = rows.length > 0 ? `${csv}\n${rows.join('\n')}` : csv
@@ -272,10 +283,11 @@ async function flush(): Promise<void> {
 
     // all already stored (a retry after a lost write result): nothing to rewrite
     if (rows.length > 0 && !(await Storage.set(partKey(currentPart), csv))) throw new Error('Storage.set returned false')
+    if (rows.length > 0) lastStored = { part: currentPart, bytes: utf8Length(csv), at: Date.now() }
     for (const [id] of batch) pending.delete(id)
     // the rest of an oversized batch goes next; rows that arrived during this flush keep a request
     flushRequested = more || (flushRequested && pending.size > 0)
-    console.log(`[SERVER] Flushed ${rows.length} row(s) to ${partKey(currentPart)} (${utf8Length(csv)} B)`)
+    console.log(`[SERVER] ${instance} flushed ${rows.length} row(s) to ${partKey(currentPart)} (${utf8Length(csv)} B)`)
   } catch (e) {
     // rows stay pending: retried after FLUSH_RETRY_MS if requested, else at the next cooldown
     failedAt = Date.now()
