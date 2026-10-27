@@ -64,6 +64,9 @@ export function startClient() {
   spawnNpc('Control', 3, [...HEAD, ...base('red_tshirt', 'safari_pants', 'sneakers')])
   spawnNpc('Same category', 5.5, [...HEAD, ...base('red_tshirt', 'black_jacket', 'safari_pants', 'sneakers')])
   spawnNpc('Missing path', 10.5, [...HEAD, ...base('red_tshirt'), MISSING_PATH])
+  // Denim dungarees hide `lower_body`: the catalog safari pants hide, the scene kilt stays
+  spawnNpc('Catalog hides', 13, [...HEAD, ...base('denimdungareesblue', 'safari_pants', 'sneakers')])
+  spawnNpc('Scene not hidden', 15, [...HEAD, ...base('denimdungareesblue', 'sneakers'), WEARABLES.kilt.male])
 
   engine.addSystem(dressAvatarsSystem)
   ReactEcsRenderer.setUiRenderer(panel, { virtualWidth: 1920, virtualHeight: 1080 })

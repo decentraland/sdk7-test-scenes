@@ -12,7 +12,8 @@ This scene exercises **scene wearables**: wearable GLBs shipped in the scene's o
 - **Panel** (top-left): pick the target (**Me** / **Mannequin**) and the example (**Local only** / **Synced**), then
   toggle each wearable or take everything off.
 - **Mannequin** NPC at (8,0,10): base look plus the scene wearables picked for it.
-- **Edge case NPCs** at z=13: **Control** (x=3), **Same category** (x=5.5), **Missing path** (x=10.5).
+- **Edge case NPCs** at z=13: **Control** (x=3), **Same category** (x=5.5), **Missing path** (x=10.5),
+  **Catalog hides** (x=13), **Scene not hidden** (x=15).
 
 ### TWO EXAMPLES
 
@@ -32,6 +33,8 @@ synced outfit.
 - A field left unset keeps the profile value.
 - `wearables`: a non-empty list **replaces** the whole wearable set, like on an NPC. Unlisted categories fall to
   defaults. Catalog URNs and scene `.glb` paths are both allowed. An empty list keeps the profile wearables.
+- A scene `.glb` is always rendered and hides nothing (a `skin` one still hides the body parts it replaces). Catalog
+  URNs keep their own hiding rules.
 - `bodyShape`, `skinColor`, `hairColor`, `eyeColor`, `showOnlyWearables` apply when set.
 - `name`, `expressionTriggerId`, `expressionTriggerTimestamp`, `emotes` and `talking` are ignored: the nametag stays the
   profile name and no emote plays.
@@ -71,6 +74,8 @@ What scene wearables changed in `AvatarShape` and what they must keep. Compare a
 | **Control** NPC: catalog items only | Red t-shirt, safari pants, sneakers | Same |
 | **Same category** NPC: red t-shirt and black jacket, both `upper_body` | Both items render on top of each other | Only the black jacket, the later item |
 | **Missing path** NPC: red t-shirt plus a `.glb` path the scene does not ship | Not checked yet | Red t-shirt; the path is skipped with a `Scene wearable ... skipped` warning |
+| **Catalog hides** NPC: denim dungarees (hide `lower_body`) and safari pants, both catalog | Dungarees, no pants | Same |
+| **Scene not hidden** NPC: denim dungarees and the scene kilt (`lower_body`) | Dungarees, no kilt | Dungarees and the kilt |
 
 The **On me** / **On others** buttons cycle what this client writes on the player entities (its own / every other
 player's). Before scene wearables, any of them spawns a second avatar next to the real one, which stays unchanged.
