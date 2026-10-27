@@ -16,13 +16,11 @@ import { room } from '../shared/messages'
 import { scaleLabels, scaleName } from '../shared/scales'
 import { ServerHeartbeat } from '../shared/schemas'
 import { sinceLoad } from '../shared/clock'
-import { CSV_HEADER, CsvRow, formatRow, rowIds, sanitizeId, utf8Length } from './csv'
+import { CsvRow, formatRow, sanitizeId, utf8Length } from './csv'
+import { CURRENT_PART_KEY, PartStore, partKey, writeBatch } from './parts'
 
 // Responses buffer in memory, then flush into numbered CSV parts in scene Storage.
 // Flush after FLUSH_COOLDOWN_MS, or at once when the last player leaves: no shutdown hook.
-// Keys named like files: owners find them in the storage UI.
-const CURRENT_PART_KEY = 'scene-feedback-csv-head' // the number of the part being written
-const PART_MAX_BYTES = 400 * 1024 // Storage caps one value at 512 KB
 // one flush writes at most this much, the rest goes in the next: a bigger batch could never fit a part
 const BATCH_MAX_BYTES = 200 * 1024
 const FLUSH_COOLDOWN_MS = 60_000
@@ -54,6 +52,12 @@ let playerCount = 0
 let sceneVersion = ''
 
 let heartbeatEntity: Entity
+
+// flushes always read what Storage holds now, not the SDK's cache
+const store: PartStore = {
+  get: <T>(key: string) => Storage.get<T>(key, { fresh: true }),
+  set: (key, value) => Storage.set(key, value)
+}
 
 // tells this server's log lines from another instance's, if two run at once
 const instance = Math.floor(Math.random() * 36 ** 4).toString(36).padStart(4, '0')
@@ -254,40 +258,21 @@ async function flush(): Promise<void> {
   }
   const more = batch.length < pending.size
   try {
-    const storedPart = (await Storage.get<number>(CURRENT_PART_KEY, { fresh: true })) ?? 1
-    currentPart = Math.max(currentPart, storedPart)
-
-    let csv = (await Storage.get<string>(partKey(currentPart), { fresh: true })) ?? CSV_HEADER
-    if (lastStored.part === currentPart && utf8Length(csv) < lastStored.bytes) {
+    const result = await writeBatch(store, batch, currentPart)
+    const { csv, written, readBytes } = result
+    if (lastStored.part === result.part && readBytes < lastStored.bytes) {
       const ago = Math.round((Date.now() - lastStored.at) / 1000)
       console.log(
-        `[SERVER] ${instance}: ${partKey(currentPart)} read ${utf8Length(csv)} B, shorter than the ${lastStored.bytes} B stored ${ago} s ago: this flush loses rows`
+        `[SERVER] ${instance}: ${partKey(result.part)} read ${readBytes} B, shorter than the ${lastStored.bytes} B stored ${ago} s ago: this flush loses rows`
       )
     }
-    const stored = rowIds(csv)
-    const rows = batch.filter(([id]) => !stored.has(id)).map(([, row]) => row)
-    const appended = rows.length > 0 ? `${csv}\n${rows.join('\n')}` : csv
-
-    // never append to a part with other columns (older code)
-    const otherColumns = csv.split('\n', 1)[0] !== CSV_HEADER
-    const full = utf8Length(appended) > PART_MAX_BYTES && csv !== CSV_HEADER
-    if (rows.length > 0 && (otherColumns || full)) {
-      const nextPart = currentPart + 1
-      if (!(await Storage.set(CURRENT_PART_KEY, nextPart))) throw new Error('could not advance the part index')
-      currentPart = nextPart
-      csv = `${CSV_HEADER}\n${rows.join('\n')}`
-      console.log(`[SERVER] ${otherColumns ? 'Columns changed' : 'Part full'}, rolled over to ${partKey(currentPart)}`)
-    } else {
-      csv = appended
-    }
-
-    // all already stored (a retry after a lost write result): nothing to rewrite
-    if (rows.length > 0 && !(await Storage.set(partKey(currentPart), csv))) throw new Error('Storage.set returned false')
-    if (rows.length > 0) lastStored = { part: currentPart, bytes: utf8Length(csv), at: Date.now() }
+    currentPart = result.part
+    if (result.rolledOver) console.log(`[SERVER] ${result.rolledOver}, rolled over to ${partKey(currentPart)}`)
+    if (written > 0) lastStored = { part: currentPart, bytes: utf8Length(csv), at: Date.now() }
     for (const [id] of batch) pending.delete(id)
     // the rest of an oversized batch goes next; rows that arrived during this flush keep a request
     flushRequested = more || (flushRequested && pending.size > 0)
-    console.log(`[SERVER] ${instance} flushed ${rows.length} row(s) to ${partKey(currentPart)} (${utf8Length(csv)} B)`)
+    console.log(`[SERVER] ${instance} flushed ${written} row(s) to ${partKey(currentPart)} (${utf8Length(csv)} B)`)
   } catch (e) {
     // rows stay pending: retried after FLUSH_RETRY_MS if requested, else at the next cooldown
     failedAt = Date.now()
@@ -321,10 +306,6 @@ function countPlayers(): number {
   let count = 0
   for (const _ of engine.getEntitiesWith(PlayerIdentityData)) count++
   return count
-}
-
-function partKey(index: number): string {
-  return `scene-feedback-${index}.csv`
 }
 
 function findIsGuest(address: string): boolean | null {

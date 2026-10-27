@@ -6,7 +6,8 @@
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
     "build": "sdk-commands build",
-    "server-logs": "sdk-commands sdk-server-logs"
+    "server-logs": "sdk-commands sdk-server-logs",
+    "test": "vitest run"
   },
   "engines": {
     "node": ">=16.0.0",
@@ -19,6 +20,7 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/sdk": "auth-server"
+    "@dcl/sdk": "auth-server",
+    "vitest": "^3.2.7"
   }
 }
