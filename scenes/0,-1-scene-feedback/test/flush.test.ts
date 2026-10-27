@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CSV_HEADER } from '../src/scene-feedback/lib/server/csv'
-import { CURRENT_PART_KEY, LegacySeen, PartStore, legacyPartKey, writeBatch } from '../src/scene-feedback/lib/server/parts'
+import { CURRENT_PART_KEY, PartStore, legacyPartKey, writeBatch } from '../src/scene-feedback/lib/server/parts'
 
 // Scene Storage in memory. Every call yields first, like a network round trip, so two flushes
 // started together interleave their reads and writes.
@@ -14,10 +14,13 @@ class FakeStorage implements PartStore {
   readonly missOnce = new Set<string>()
   // runs before the next write lands, e.g. another server writing in between
   beforeSet?: (key: string) => Promise<void>
+  // H2, stuck: reads of these keys return this old value, as a live World's Storage did for 1.5 hours
+  readonly stuck = new Map<string, unknown>()
 
   async get<T>(key: string): Promise<T | null> {
     await Promise.resolve()
     if (this.missOnce.delete(key)) return null
+    if (this.stuck.has(key)) return this.stuck.get(key) as T
     return (this.seen().get(key) as T) ?? null
   }
 
@@ -40,7 +43,7 @@ class FakeStorage implements PartStore {
     await Promise.resolve()
     return [...this.seen()]
       .filter(([key]) => key.startsWith(prefix) && !this.missOnce.delete(key))
-      .map(([key, value]) => ({ key, value }))
+      .map(([key, value]) => ({ key, value: this.stuck.has(key) ? this.stuck.get(key) : value }))
   }
 
   csvKeys(): string[] {
@@ -66,8 +69,7 @@ const MINUTE = 60_000
 
 // one server: each call flushes its pending rows, as flush() does
 function server(store: FakeStorage) {
-  const legacySeen: LegacySeen = new Map()
-  return (ids: string[], now = Date.now()) => writeBatch(store, ids.map((id) => row(id)), 1, legacySeen, now)
+  return (ids: string[], now = Date.now()) => writeBatch(store, ids.map((id) => row(id)), 1, now)
 }
 
 async function flush(store: FakeStorage, ...ids: string[]): Promise<void> {
@@ -116,13 +118,8 @@ describe('flush keeps every row it has stored', () => {
       await store.set(legacyPartKey(1), `${legacy}\n${row('o1')[1]}`)
     }
     await flushAt(['n1'], t0)
-    expect(lost(store, ['l1', 'o1', 'n1'])).toEqual([])
-    // it changed since this server last saw it: kept another 10 minutes
     await flushAt(['n2'], t0 + 11 * MINUTE)
-    expect(store.values.has(legacyPartKey(1))).toBe(true)
-    await flushAt(['n3'], t0 + 22 * MINUTE)
-    expect(store.values.has(legacyPartKey(1))).toBe(false)
-    expect(lost(store, ['l1', 'o1', 'n1', 'n2', 'n3'])).toEqual([])
+    expect(lost(store, ['l1', 'o1', 'n1', 'n2'])).toEqual([])
   })
 
   it('H2: reads come back one write behind', async () => {
@@ -134,6 +131,35 @@ describe('flush keeps every row it has stored', () => {
     expect(lost(store, ['a1', 'a2', 'a3', 'b1'])).toEqual([])
     store.lag = 0
     await flush(store, 'c1')
+    expect(store.csvKeys()).toHaveLength(1)
+  })
+
+  it('H2 stuck: reads of the old-format part return an old value for an hour', async () => {
+    const store = new FakeStorage()
+    const flushAt = server(store)
+    const t0 = Date.now()
+    const stale = [CSV_HEADER, row('l1')[1]].join('\n')
+    // an instance still on the old code appended o1; Storage keeps serving the value before it
+    await store.set(legacyPartKey(1), `${stale}\n${row('o1')[1]}`)
+    store.stuck.set(legacyPartKey(1), stale)
+    for (let minute = 0; minute <= 60; minute += 10) await flushAt([`n${minute}`], t0 + minute * MINUTE)
+    store.stuck.clear()
+    expect(lost(store, ['l1', 'o1'])).toEqual([])
+  })
+
+  it('H2 stuck: listing stays several writes behind for many flushes', async () => {
+    const store = new FakeStorage()
+    const ids: string[] = []
+    await flush(store, 'a1')
+    store.lag = 2
+    for (let i = 0; i < 6; i++) {
+      ids.push(`b${i}`)
+      await flush(store, `b${i}`)
+    }
+    expect(lost(store, ['a1', ...ids])).toEqual([])
+    store.lag = 0
+    await flush(store, 'c1')
+    expect(lost(store, ['a1', ...ids, 'c1'])).toEqual([])
     expect(store.csvKeys()).toHaveLength(1)
   })
 
@@ -149,19 +175,18 @@ describe('flush keeps every row it has stored', () => {
 })
 
 describe('parts', () => {
-  it('merges a part written by the old code in place, and deletes it once unchanged for 10 minutes', async () => {
+  it('merges a part written by the old code in place, and keeps it', async () => {
     const store = new FakeStorage()
     const flushAt = server(store)
     const t0 = Date.now()
     await store.set(CURRENT_PART_KEY, 1)
     await store.set(legacyPartKey(1), [CSV_HEADER, row('old1')[1], row('old2')[1]].join('\n'))
     await flushAt(['b1'], t0)
-    expect(lost(store, ['old1', 'old2', 'b1'])).toEqual([])
-    expect(store.values.has(legacyPartKey(1))).toBe(true)
     await flushAt(['b2'], t0 + 11 * MINUTE)
     expect(lost(store, ['old1', 'old2', 'b1', 'b2'])).toEqual([])
-    expect(store.values.has(legacyPartKey(1))).toBe(false)
-    expect(store.csvKeys()).toHaveLength(1)
+    // the old file and one version holding all its rows
+    expect(store.values.has(legacyPartKey(1))).toBe(true)
+    expect(store.csvKeys()).toHaveLength(2)
   })
 
   it('leaves a part with other columns as it is and writes the next one', async () => {
@@ -178,8 +203,8 @@ describe('parts', () => {
   it('rolls over to the next part when the open one is full', async () => {
     const store = new FakeStorage()
     const big = 'x'.repeat(250 * 1024)
-    await writeBatch(store, [row('a1', big)], 1, new Map())
-    const result = await writeBatch(store, [row('b1', big)], 1, new Map())
+    await writeBatch(store, [row('a1', big)], 1)
+    const result = await writeBatch(store, [row('b1', big)], 1)
     expect(result.part).toBe(2)
     expect(result.rolledOver).toBe(true)
     expect(lost(store, ['a1', 'b1'])).toEqual([])
@@ -189,7 +214,7 @@ describe('parts', () => {
     const store = new FakeStorage()
     await Promise.all([flush(store, 'a1'), flush(store, 'a2')])
     expect(store.csvKeys()).toHaveLength(2)
-    const result = await writeBatch(store, [row('b1', 'x'.repeat(450 * 1024))], 1, new Map())
+    const result = await writeBatch(store, [row('b1', 'x'.repeat(450 * 1024))], 1)
     expect(result.part).toBe(2)
     expect(store.csvKeys().filter((key) => key.startsWith('scene-feedback-1-'))).toHaveLength(1)
     expect(lost(store, ['a1', 'a2', 'b1'])).toEqual([])
