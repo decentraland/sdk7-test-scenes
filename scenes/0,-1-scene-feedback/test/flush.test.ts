@@ -53,9 +53,7 @@ class FakeStorage implements PartStore {
   // ids in every CSV key now in the store
   storedIds(): Set<string> {
     const ids = new Set<string>()
-    for (const key of this.csvKeys()) {
-      for (const line of (this.values.get(key) as string).split('\n').slice(1)) ids.add(line.slice(0, line.indexOf(',')))
-    }
+    for (const key of this.csvKeys()) for (const id of idsOf(this.values.get(key) as string)) ids.add(id)
     return ids
   }
 
@@ -81,13 +79,21 @@ function lost(store: FakeStorage, ids: string[]): string[] {
   return ids.filter((id) => !stored.has(id))
 }
 
+// row ids of a CSV, as mergeRows reads them: everything before the first comma, blank ids skipped
+function idsOf(csv: string): string[] {
+  return csv
+    .split('\n')
+    .slice(1)
+    .map((line) => line.slice(0, line.indexOf(',')))
+    .filter((id) => id)
+}
+
 // ids that appear more than once within one CSV key
 function repeated(store: FakeStorage): string[] {
   const ids: string[] = []
   for (const key of store.csvKeys()) {
     const seen = new Set<string>()
-    for (const line of (store.values.get(key) as string).split('\n').slice(1)) {
-      const id = line.slice(0, line.indexOf(','))
+    for (const id of idsOf(store.values.get(key) as string)) {
       if (seen.has(id)) ids.push(id)
       seen.add(id)
     }
@@ -231,8 +237,10 @@ describe('parts', () => {
     const store = new FakeStorage()
     const flushAt = server(store)
     await store.set(legacyPartKey(1), [CSV_HEADER, row('l1')[1], row('l2')[1]].join('\n'))
-    await flushAt(['a1'])
-    // a lost write result: the batch comes again with a new row, and one the old file holds
+    // no version yet: l2 is only in the old file
+    await flushAt(['l2', 'a1'])
+    expect(repeated(store)).toEqual([])
+    // a lost write result: the batch comes again with a new row, its other rows now in the version
     await flushAt(['a1', 'l2', 'a2'])
     expect(repeated(store)).toEqual([])
     await flushAt(['a3'])
