@@ -233,13 +233,14 @@ describe('parts', () => {
     expect(store.csvKeys()).toEqual(keys)
   })
 
-  it('writes each id once when a retry mixes stored rows and new ones on a part with an old-format file', async () => {
+  it('writes each id once when a batch resends rows the old-format file or a version holds', async () => {
     const store = new FakeStorage()
     const flushAt = server(store)
     await store.set(legacyPartKey(1), [CSV_HEADER, row('l1')[1], row('l2')[1]].join('\n'))
-    // no version yet: l2 is only in the old file
+    // l2 must be in the first batch: no version exists yet, so the old file is its only copy
     await flushAt(['l2', 'a1'])
     expect(repeated(store)).toEqual([])
+    expect(lost(store, ['l1', 'l2', 'a1'])).toEqual([])
     // a lost write result: the batch comes again with a new row, its other rows now in the version
     await flushAt(['a1', 'l2', 'a2'])
     expect(repeated(store)).toEqual([])
