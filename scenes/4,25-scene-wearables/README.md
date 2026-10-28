@@ -10,10 +10,11 @@ This scene exercises **scene wearables**: wearable GLBs shipped in the scene's o
 ### SCENE LAYOUT
 
 - **Panel** (top-left): pick the target (**Me** / **Mannequin**) and the example (**Local only** / **Synced**), then
-  toggle each wearable or take everything off.
+  toggle each wearable or take everything off. At the bottom, **Profile wearables** lists each item of the local
+  player's profile outfit (`AvatarEquippedData.wearables`) by its short name, as visible, hidden or unknown (flag unset).
 - **Mannequin** NPC at (8,0,10): base look plus the scene wearables picked for it.
 - **Edge case NPCs** at z=13: **Control** (x=3), **Same category** (x=5.5), **Missing path** (x=10.5),
-  **Catalog hides** (x=13), **Scene not hidden** (x=15).
+  **Catalog hides** (x=13), **Scene not hidden** (x=15). **Unknown entry** at (3,0,15).
 
 ### TWO EXAMPLES
 
@@ -47,6 +48,7 @@ for `AvatarEquippedData` and `AvatarBase` to exist, and deletes `AvatarShape` wh
 | Concern | Where |
 | --- | --- |
 | Wearable list and paths | `src/shared/wearables.ts` |
+| Reading `AvatarEquippedData.wearables` before the SDK ships it | `src/client/equippedWearables.ts` |
 | Messages, synced component, server-only writes | `src/shared/messages.ts`, `src/shared/schemas.ts` |
 | Server | `src/server/server.ts` |
 | Dressing avatars and the panel | `src/client/client.tsx` |
@@ -61,7 +63,11 @@ for `AvatarEquippedData` and `AvatarBase` to exist, and deletes `AvatarShape` wh
    A profile item disappears from the look unless it comes back through `AvatarEquippedData`, so change a profile item
    in the backpack and take everything off again. Expected: the new item shows, the old one is gone.
 5. **Mannequin**: toggle wearables in both examples. Expected: they replace its base items.
-6. Two clients, A and B. A wears an item in **Local only**. Expected: B does not see it. A wears an item in **Synced**.
+6. Profile wearables: in the backpack, equip an item that another one hides (a helmet hiding a hat). Expected: the
+   hidden one shows as hidden, the rest as visible. Items show as unknown only until the avatar has loaded. With a scene
+   override active (any **On me** case, or scene wearables picked) the flags must stay the profile's: a scene wearable
+   never appears in the list and does not change the flags.
+7. Two clients, A and B. A wears an item in **Local only**. Expected: B does not see it. A wears an item in **Synced**.
    Expected: B sees it on A, and on the mannequin too. A late joiner sees the synced outfits right away.
 
 ### EDGE CASES
@@ -76,6 +82,7 @@ What scene wearables changed in `AvatarShape` and what they must keep. Compare a
 | **Missing path** NPC: red t-shirt plus a `.glb` path the scene does not ship | Not checked yet | Red t-shirt; the path is skipped with a `Scene wearable ... skipped` warning |
 | **Catalog hides** NPC: denim dungarees (hide `lower_body`) and safari pants, both catalog | Dungarees, no pants | Same |
 | **Scene not hidden** NPC: denim dungarees and the scene kilt (`lower_body`) | Dungarees, no kilt | Dungarees and the kilt |
+| **Unknown entry** NPC: red t-shirt, `wearables/kilt/kilt.json` and `not-a-urn` | Not checked yet | Red t-shirt; the two entries are skipped, each with a warning |
 
 The **On me** / **On others** buttons cycle what this client writes on the player entities (its own / every other
 player's). Before scene wearables, any of them spawns a second avatar next to the real one, which stays unchanged.

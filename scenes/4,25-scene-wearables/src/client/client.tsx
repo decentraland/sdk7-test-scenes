@@ -5,6 +5,7 @@ import ReactEcs, { Button, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/re
 import { room } from '../shared/messages'
 import { Outfits } from '../shared/schemas'
 import { NPC_KEY, WEARABLE_NAMES, WEARABLES } from '../shared/wearables'
+import { getEquippedWearables } from './equippedWearables'
 
 const BASE = 'urn:decentraland:off-chain:base-avatars:'
 const BASE_FEMALE = (BASE + 'BaseFemale').toLowerCase()
@@ -14,6 +15,7 @@ const NPC_BASE_LOOK = ['eyes_00', 'eyebrows_00', 'mouth_00', 'casual_hair_01', '
 const base = (...names: string[]) => names.map((w) => BASE + w)
 const HEAD = base('eyes_00', 'eyebrows_00', 'mouth_00', 'casual_hair_01')
 const MISSING_PATH = 'wearables/missing/missing_upper_body.glb'
+const NOT_A_WEARABLE = 'wearables/kilt/kilt.json'
 const GREEN_SKIN = Color3.create(0.3, 0.8, 0.3)
 const RED_HAIR = Color3.create(0.9, 0.1, 0.1)
 
@@ -67,14 +69,16 @@ export function startClient() {
   // Denim dungarees hide `lower_body`: the catalog safari pants hide, the scene kilt stays
   spawnNpc('Catalog hides', 13, [...HEAD, ...base('denimdungareesblue', 'safari_pants', 'sneakers')])
   spawnNpc('Scene not hidden', 15, [...HEAD, ...base('denimdungareesblue', 'sneakers'), WEARABLES.kilt.male])
+  // Neither a URN nor a .glb path: skipped with a warning, the rest still applies
+  spawnNpc('Unknown entry', 3, [...HEAD, ...base('red_tshirt'), NOT_A_WEARABLE, 'not-a-urn'], 15)
 
   engine.addSystem(dressAvatarsSystem)
   ReactEcsRenderer.setUiRenderer(panel, { virtualWidth: 1920, virtualHeight: 1080 })
 }
 
-function spawnNpc(name: string, x: number, wearables: string[]) {
+function spawnNpc(name: string, x: number, wearables: string[], z = 13) {
   const entity = engine.addEntity()
-  Transform.create(entity, { position: Vector3.create(x, 0, 13), rotation: Quaternion.fromEulerDegrees(0, 180, 0) })
+  Transform.create(entity, { position: Vector3.create(x, 0, z), rotation: Quaternion.fromEulerDegrees(0, 180, 0) })
   AvatarShape.create(entity, { id: `edge-${name}`, name, bodyShape: BASE + 'BaseMale', wearables, emotes: [] })
 }
 
@@ -202,6 +206,21 @@ function choice<T extends string>(options: [T, string][], current: T, pick: (val
   )
 }
 
+const VISIBILITY: [string, Color4][] = [
+  ['hidden', Color4.Red()],
+  ['visible', Color4.Green()],
+  ['unknown', Color4.Gray()]
+]
+
+// The flags describe the profile outfit, so they ignore any AvatarShape this scene writes
+function profileWearables() {
+  return (getEquippedWearables(engine.PlayerEntity) ?? []).map(({ urn, visible }) => {
+    const [label, color] = VISIBILITY[visible === undefined ? 2 : visible ? 1 : 0]
+    const value = `${urn.split(':').pop()}: ${label}`
+    return <Label key={urn} value={value} fontSize={12} color={color} uiTransform={{ height: 14 }} />
+  })
+}
+
 const panel = () => {
   const disabled = mode === 'synced' && synced === undefined
   const names = worn()
@@ -255,6 +274,8 @@ const panel = () => {
         uiTransform={{ width: '100%', height: 36, margin: { top: 4 } }}
         onMouseDown={() => (caseOthers = nextCase(caseOthers))}
       />
+      <Label value="Profile wearables" fontSize={14} uiTransform={{ margin: { top: 12, bottom: 2 } }} />
+      {profileWearables()}
     </UiEntity>
   )
 }
