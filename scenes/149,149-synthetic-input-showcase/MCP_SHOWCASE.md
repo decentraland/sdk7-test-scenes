@@ -949,9 +949,11 @@ through the virtual mouse.
    the start element, moves along the path, release on the end element) — expect `path: "sdk"`
    in the result. Expected log: `[S8-UI] drag surface: LEFT down (armed)` followed by
    `[S8-UI] drag surface: RIGHT up while armed -- drag #1 completed`, and an `info` line naming
-   the two elements involved. Screenshot: the right half visibly reacts.
+   the two elements involved. **A screenshot proves nothing here:** the right half is a constant
+   green and the left half is yellow only *while* armed, so after a completed drag both look exactly
+   as they did before it. The two log lines are the evidence.
    The release leg is the fragile one -- a leave event can overwrite the single pointer-event slot
-   before the scene drains the release -- so the tool waits for each event to be consumed and
+   before the scene reads the release -- so the tool waits until the scene has read each event and
    **fails** with "the scene did not consume the release" rather than reporting a success it cannot
    verify. Both log lines arriving is what proves the release landed.
    **Do not cross-reference the `info` line's ids against `ui_list`.** Measured: the `info` named
@@ -1492,15 +1494,18 @@ S9's left one. As in S8/S9, a cover naming another station's panel means the lay
    own enter before the scene read it. The client drains the element's pending event before a
    semantic SDK click or drag for exactly this reason. A red `DEFECT` tile is the same family.
 
-   **A third shape is a different fault, not this regression:**
+   **A third shape is a different regression -- in the client's scene-tick drain:**
    `enter > enter > leave > down > up > leave` with C back to `idle` and `enters 2 / leaves 2 /
    downs 1 / ups 1`. Nothing is lost and nothing arrived late: the hover's leave and the click's
    enter reached the scene **in the same tick**, and the SDK runs one tick's handlers in the order
    the element registered them -- C registers `onMouseEnter`, `onMouseLeave`, `onMouseDown`,
    `onMouseUp`, so a leave and an enter sharing a tick run as enter, then leave. Any two of C's
    events sharing a tick reorder the same way (an `up` and `leave` pair would read `leave > up`).
-   See **Known open issues** row 4; re-run the step (`CLEAR S11 COUNTS`, hover, click) and record
-   every result.
+   The client prevents it by waiting, before each scene-UI pointer event, until the scene has
+   *read* the previous one (two scene ticks) rather than only until the client wrote it. So this
+   shape means that wait has regressed: report it with every repetition's sequence. It can be
+   intermittent, so run the step several times (`CLEAR S11 COUNTS`, then hover and click in one
+   batch) before calling it absent.
 
    > **This is not what a human produces, and that is documented, not a finding.** A person
    > hovering then clicking gives `enter > down > up` and keeps hovering; the tool ends the hover
@@ -1605,7 +1610,7 @@ S9's left one. As in S8/S9, a cover naming another station's panel means the lay
 | `device:true` on scene UI | `ui_hover stack:sdk crdtId:<aId> device:true` | fails with "device:true applies only to client UI ..."; a parked hover stays parked |
 | `leave:true` with an address | `ui_hover leave:true stack:sdk crdtId:<aId>` | fails with "... takes no address; drop 'stack'."; a parked hover stays parked |
 | Nothing to leave | `ui_hover leave:true` with no hover parked | `ok:true`, `left: null`, `info: "no hover was parked, so nothing was left"`, no log |
-| Hover then click is not one hover | `ui_hover` then `ui_click` on S11's C | C's sequence `enter > leave > enter > down > up > leave`, C `idle` after. `enter > enter > down > up > leave` with C stuck `HOVERED` is the lost-leave regression (S11 step 6); an occasional `enter > enter > leave > down > up > leave` ending `idle` is Known open issues row 4 |
+| Hover then click is not one hover | `ui_hover` then `ui_click` on S11's C | C's sequence `enter > leave > enter > down > up > leave`, C `idle` after. `enter > enter > down > up > leave` with C stuck `HOVERED` is the lost-leave regression (S11 step 6); `enter > enter > leave > down > up > leave` ending `idle` is a regression in the client's scene-tick drain (also S11 step 6) |
 | Scroll into a clamp | `ui_scroll stack:sdk crdtId:<scrollId> dy:-400` at the top of the list | `ok` + an `info` line saying the offset did not move |
 | Disabled `<Input />` refuses a write | `ui_set_text stack:sdk crdtId:<disabledId> text:"nope"` | no `[S9-TEXT]` log; panel line 4 stays white at `0` |
 | A write without `submit` does not submit | `ui_set_text stack:sdk crdtId:<submitOnlyId> text:"x"` | no log, `submits 0` |
@@ -1734,8 +1739,8 @@ Confirmed present on the current scene + client. Everything else in this script 
 each pass's evidence to `MCP_SHOWCASE_RESULTS.md`** (create it if it is not there) rather than
 into this file.
 
-**All four rows are client-owned.** Rows 1-3 reproduce on every pass; row 4 is intermittent, so
-its absence on a pass is not a fix. The scene itself has no open issues.
+**All three rows are client-owned** and reproduce on every pass. The scene itself has no open
+issues.
 
 **Do not add a per-pass confirmation paragraph here, and do not date these rows.** If a row still
 reproduces, that is the documented state and needs no edit; record the pass in
@@ -1760,4 +1765,3 @@ Issue the plain click and read the result.
 | S9 steps 5, 8, 9 | **A controlled `<Input />` does not follow a programmatic reset.** A field the scene passes a `value` to displays a write correctly, but when the scene later clears it the box keeps the old string: after CLEAR FIELDS the FORM boxes still show `delta-9` / `77123` while the scene reads `""` -- proved by `FORM submit #N -- REJECTED callsign="" code=""` firing from those same populated-looking boxes, and the SEEDED box still shows `overwritten` while its own label reads the grey `still the seed value`. The scene's state is always right; only the rendering lags | client |
 | S10 step 3 | `ui_drag path:"device"` returns no `screenRect`/`center` -- reasonable, since no element is involved. It does carry `screen`, `path` and `pointerOver`. **The `info` line naming `sweep_pointer` comes only when both ends are `"world"`** (the S10 case); the same call over scene UI (S8 step 8) returns `pointerOver` naming both elements and **no `info` at all**, since there is nothing to explain | minor, client |
 | S8 step 8, S8 step 9 | **Scene-UI elements are reported under two id spaces.** `ui_list` and `pointerOver` name an element by its current id; `ui_click`'s `blockedBy` and `ui_drag path:sdk`'s `info` name it by the id of the mount generation it was created in. Nothing misbehaves -- but the two cannot be cross-referenced after a panel re-open | minor, client |
-| S11 step 6 | **Two of an element's events can reach the scene in one tick, and then run in handler-registration order.** `ui_hover` then `ui_click` on C intermittently yields `enter > enter > leave > down > up > leave` instead of `enter > leave > enter > down > up > leave`, ending `idle` with balanced counts and `hoverEnded` reported. The client sent the leave first; but its drain waited only until the client had *written* each result, and the scene reads everything written since its last tick as one batch, where the SDK's `PointerEventSystem` fires each registered type once in registration order. The client's drain now also waits until the scene has read each result (`WaitForSceneToReadAsync`, two scene ticks); on a client with it this should not reproduce -- remove the row once a pass of six or more hover-then-click runs shows none | client |
