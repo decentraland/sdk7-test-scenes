@@ -81,6 +81,20 @@ function lost(store: FakeStorage, ids: string[]): string[] {
   return ids.filter((id) => !stored.has(id))
 }
 
+// ids that appear more than once within one CSV key
+function repeated(store: FakeStorage): string[] {
+  const ids: string[] = []
+  for (const key of store.csvKeys()) {
+    const seen = new Set<string>()
+    for (const line of (store.values.get(key) as string).split('\n').slice(1)) {
+      const id = line.slice(0, line.indexOf(','))
+      if (seen.has(id)) ids.push(id)
+      seen.add(id)
+    }
+  }
+  return ids
+}
+
 describe('flush keeps every row it has stored', () => {
   it('control: one server, Storage reads back what it wrote', async () => {
     const store = new FakeStorage()
@@ -88,6 +102,7 @@ describe('flush keeps every row it has stored', () => {
     await flush(store, 'a2', 'a3')
     await flush(store, 'b1')
     expect(lost(store, ['a1', 'a2', 'a3', 'b1'])).toEqual([])
+    expect(repeated(store)).toEqual([])
     expect(store.csvKeys()).toHaveLength(1)
   })
 
@@ -97,11 +112,13 @@ describe('flush keeps every row it has stored', () => {
     // each instance holds its own pending rows; both read the part before either writes
     await Promise.all([flush(store, 'old1'), flush(store, 'new1')])
     expect(lost(store, ['a1', 'a2', 'a3', 'old1', 'new1'])).toEqual([])
+    expect(repeated(store)).toEqual([])
     // they did race: each wrote its own version
     expect(store.csvKeys()).toHaveLength(2)
     // the next flush merges the two versions back into one
     await flush(store, 'c1')
     expect(lost(store, ['a1', 'a2', 'a3', 'old1', 'new1', 'c1'])).toEqual([])
+    expect(repeated(store)).toEqual([])
     expect(store.csvKeys()).toHaveLength(1)
   })
 
@@ -120,6 +137,7 @@ describe('flush keeps every row it has stored', () => {
     await flushAt(['n1'], t0)
     await flushAt(['n2'], t0 + 11 * MINUTE)
     expect(lost(store, ['l1', 'o1', 'n1', 'n2'])).toEqual([])
+    expect(repeated(store)).toEqual([])
     expect(store.values.has(legacyPartKey(1))).toBe(true)
   })
 
@@ -130,6 +148,7 @@ describe('flush keeps every row it has stored', () => {
     store.lag = 1
     await flush(store, 'b1')
     expect(lost(store, ['a1', 'a2', 'a3', 'b1'])).toEqual([])
+    expect(repeated(store)).toEqual([])
     store.lag = 0
     await flush(store, 'c1')
     expect(store.csvKeys()).toHaveLength(1)
@@ -149,6 +168,7 @@ describe('flush keeps every row it has stored', () => {
       await flushAt([`n${minute}`], t0 + minute * MINUTE)
     }
     expect(lost(store, ['l1', 'o1', ...ids])).toEqual([])
+    expect(repeated(store)).toEqual([])
   })
 
   it('H2 stuck: listing stays several writes behind for many flushes', async () => {
@@ -161,9 +181,11 @@ describe('flush keeps every row it has stored', () => {
       await flush(store, `b${i}`)
     }
     expect(lost(store, ['a1', ...ids])).toEqual([])
+    expect(repeated(store)).toEqual([])
     store.lag = 0
     await flush(store, 'c1')
     expect(lost(store, ['a1', ...ids, 'c1'])).toEqual([])
+    expect(repeated(store)).toEqual([])
     expect(store.csvKeys()).toHaveLength(1)
   })
 
@@ -173,6 +195,7 @@ describe('flush keeps every row it has stored', () => {
     for (const key of store.csvKeys()) store.missOnce.add(key)
     await flush(store, 'b1')
     expect(lost(store, ['a1', 'a2', 'a3', 'b1'])).toEqual([])
+    expect(repeated(store)).toEqual([])
     await flush(store, 'c1')
     expect(store.csvKeys()).toHaveLength(1)
   })
@@ -188,6 +211,7 @@ describe('parts', () => {
     await flushAt(['b1'], t0)
     await flushAt(['b2'], t0 + 11 * MINUTE)
     expect(lost(store, ['old1', 'old2', 'b1', 'b2'])).toEqual([])
+    expect(repeated(store)).toEqual([])
     // the old file and one version holding all its rows
     expect(store.values.has(legacyPartKey(1))).toBe(true)
     expect(store.csvKeys()).toHaveLength(2)
@@ -203,6 +227,19 @@ describe('parts', () => {
     expect(store.csvKeys()).toEqual(keys)
   })
 
+  it('writes each id once when a retry mixes stored rows and new ones on a part with an old-format file', async () => {
+    const store = new FakeStorage()
+    const flushAt = server(store)
+    await store.set(legacyPartKey(1), [CSV_HEADER, row('l1')[1], row('l2')[1]].join('\n'))
+    await flushAt(['a1'])
+    // a lost write result: the batch comes again with a new row, and one the old file holds
+    await flushAt(['a1', 'l2', 'a2'])
+    expect(repeated(store)).toEqual([])
+    await flushAt(['a3'])
+    expect(lost(store, ['l1', 'l2', 'a1', 'a2', 'a3'])).toEqual([])
+    expect(repeated(store)).toEqual([])
+  })
+
   it('rolls a part with an old-format file over without copying it again', async () => {
     const store = new FakeStorage()
     const big = 'x'.repeat(250 * 1024)
@@ -216,6 +253,7 @@ describe('parts', () => {
     expect(result.part).toBe(2)
     expect(written.filter((key) => key.startsWith('scene-feedback-1-'))).toEqual([])
     expect(lost(store, ['l1', 'a1', 'b1'])).toEqual([])
+    expect(repeated(store)).toEqual([])
   })
 
   it('leaves a part with other columns as it is and writes the next one', async () => {
@@ -227,6 +265,7 @@ describe('parts', () => {
     expect(store.values.get(CURRENT_PART_KEY)).toBe(2)
     expect(store.csvKeys().filter((key) => key.startsWith('scene-feedback-2-'))).toHaveLength(1)
     expect(lost(store, ['b1'])).toEqual([])
+    expect(repeated(store)).toEqual([])
   })
 
   it('rolls over to the next part when the open one is full', async () => {
@@ -237,6 +276,7 @@ describe('parts', () => {
     expect(result.part).toBe(2)
     expect(result.rolledOver).toBe(true)
     expect(lost(store, ['a1', 'b1'])).toEqual([])
+    expect(repeated(store)).toEqual([])
   })
 
   it('merges versions left by a race before the part rolls over', async () => {
@@ -247,5 +287,6 @@ describe('parts', () => {
     expect(result.part).toBe(2)
     expect(store.csvKeys().filter((key) => key.startsWith('scene-feedback-1-'))).toHaveLength(1)
     expect(lost(store, ['a1', 'a2', 'b1'])).toEqual([])
+    expect(repeated(store)).toEqual([])
   })
 })
