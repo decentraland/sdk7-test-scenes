@@ -110,16 +110,17 @@ test('builtin forget_noise matches its float32 fact timestamp in a long-running 
     return row ? [prim('!forget_noise', row[2]), prim('!wait', float(100))] : [prim('!wait', float(100))]
   })
   const agent = new GuardAgent({ id: 'g', planner: plan.factory, lineOfSight: CLEAR_LINE_OF_SIGHT, start: { position: v3(0, 0, 0), yaw: 0 } })
+  const heardNoise = () => agent.blackboard.heardNoise
   const oldTime = 32768.002
   agent.blackboard.hear({ kind: 'bell', position: v3(0, 0, 2), time: oldTime, loudness: 1 })
   const oldFactTime = agent.blackboard.world.rows('heard_noise', 4)[0][2]
   assert.equal(oldFactTime.t, 'float')
   agent.tick(0.1, [])
-  assert.equal(agent.blackboard.heardNoise, null, 'the actual action must forget the same noise read by the planner')
+  assert.equal(heardNoise(), null, 'the actual action must forget the same noise read by the planner')
   assert.deepEqual(agent.blackboard.world.rows('heard_noise', 4), [])
   agent.blackboard.hear({ kind: 'impact', position: v3(0, 0, 3), time: oldTime + 0.1, loudness: 1 })
   assert.equal(agent.blackboard.forgetNoise(oldFactTime.t === 'float' ? oldFactTime.v : NaN), false)
-  assert.equal(agent.blackboard.heardNoise?.kind, 'impact')
+  assert.equal(heardNoise()?.kind, 'impact')
   agent.stop()
 })
 
