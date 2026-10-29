@@ -218,3 +218,29 @@ check before a callback, not preemption; even zero milliseconds does not pause a
 checks, ongoing action execution, construction and asset loading are outside that limit. Choose small batches from target-client
 measurements. Node warm-up does not warm an Explorer process; new paths, deoptimisation, reloads and new runners may
 still incur first-use costs. Measure model, animation and audio preparation separately from planning.
+
+## Runtime components (C3)
+
+```mermaid
+flowchart TB
+    subgraph Runtime["Scene application — zoom into C2"]
+        Game["Game integration<br/>Your configuration, facts and custom actions"]
+        subgraph Library["HTN library"]
+            Host["NPC host<br/>GuardSquad + GuardAgent<br/>Lifecycle, perception and replanning"]
+            Planner["Planning<br/>decompose + PlanRunner<br/>Build plans and resolve their steps"]
+            Facts["NPC state<br/>WorldState + blackboard<br/>Facts and remembered information"]
+            Actions["Built-in action executors<br/>Movement, waiting and memory updates"]
+            Host -->|"Requests plans and next steps"| Planner
+            Planner -->|"Reads current facts"| Facts
+            Host -->|"Updates facts and memory"| Facts
+            Host -->|"Starts, updates and cancels"| Actions
+        end
+        Game -->|"Supplies configuration and game hooks"| Host
+    end
+    SDK["Decentraland SDK<br/>External interface"]
+    Host -->|"Samples the scene and updates NPC entities"| SDK
+```
+
+These are static roles and calls, not the sequence of each update. The
+[project containers](https://github.com/decentraland/sdk7-test-scenes/blob/feat/htn-planner-port/scenes/96,-11-htn-planner/README.md#project-containers-c2)
+show the authoring/build context outside this runtime.

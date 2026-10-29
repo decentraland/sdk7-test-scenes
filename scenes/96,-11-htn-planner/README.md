@@ -92,6 +92,27 @@ Run your normal build and preview. The capsule patrols its route and chases the 
 Approach it, move away and check that the result fits your game. A successful build does not prove the encounter works in Explorer.
 For loading-phase preparation and staged activation, see [Preparation → Ready → Play](src/htn-planner/HOW-TO.md#7-prepare-ai-before-play).
 
+## Project containers (C2)
+
+```mermaid
+flowchart LR
+    Creator(["Creator"])
+    subgraph Project["SDK7 game project"]
+        Sources[("Behavior sources<br/>File store<br/>.domain files + configuration")]
+        Authoring["HTN authoring tool<br/>Node.js application<br/>htn:generate"]
+        Runtime["Scene application<br/>JavaScript / SDK7<br/>Game code + HTN library"]
+        Sources -->|"Read and compile"| Authoring
+        Authoring -->|"Generated TypeScript<br/>included through SDK build"| Runtime
+    end
+    Client["Decentraland client<br/>External system"]
+    Creator -->|"Edits"| Sources
+    Creator -->|"Runs generation"| Authoring
+    Runtime -->|"Uses rendering, input and scene APIs"| Client
+```
+
+The Node.js authoring tool runs during development. Generated TypeScript reaches the scene through the SDK build,
+not a network service. See [runtime components](src/htn-planner/HOW-TO.md#runtime-components-c3) for the scene's internal roles.
+
 ## Make your own behaviour
 
 Start with the [small-domain authoring example](src/htn-planner/HOW-TO.md#6-design-and-check-a-small-domain),
