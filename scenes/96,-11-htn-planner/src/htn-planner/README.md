@@ -139,7 +139,7 @@ with a `url` for the installed module. `pinned: true` identifies an exact checko
 to that URL. A ZIP or unrelated parent repository has `pinned: false` and a moving branch URL: verify its version before use.
 `localChanges: true`
 means the source checkout had uncommitted changes, so the linked commit is only its base. Without a recorded commit or that metadata, use the
-[public module source](https://github.com/decentraland/sdk7-test-scenes/tree/feat/htn-planner-port/scenes/96,-11-htn-planner)
+[public module source](https://github.com/decentraland/sdk7-test-scenes/tree/main/scenes/96,-11-htn-planner)
 and check its version before applying an example. If online material is inaccessible, say what could not be read.
 
 Keep the reference snapshot outside runtime imports. Adapt just the code and assets you choose to use into your own
@@ -154,6 +154,9 @@ module files/metadata and leaves a complete existing guard unchanged, even with 
 Recompile your domains after updating and check them in your game. Compare old/new file lists before removing obsolete
 library files; automated `--update` does not delete them. Review each path against your game imports and ownership; an ambiguous cleanup needs a separate
 change, not automatic deletion. Keep the previous source pin so you can reproduce or roll back the update.
+For a clean reinstall, back up the library/compiler folders and move any custom code into game-owned folders first.
+Replace only `src/htn-planner/` and `tools/htn-authoring/` with complete folders from one revision, then recompile and build.
+Do not remove your guard, config, assets or entrypoint.
 
 To update a reference snapshot, remove its entire folder and reinstall with `--reference`. Its files are optional copies;
 keep any adaptations you need in game-owned files before removing it.
@@ -164,7 +167,7 @@ This source scene declares package version `1.0.0` and pins upstream **2.4.0** a
 [`aec08fa36f2c521c4da00c045bf23b8aed7bfa92`](https://github.com/urosidoki/htn_planner/tree/aec08fa36f2c521c4da00c045bf23b8aed7bfa92).
 Use your recorded source commit (or installed `SOURCE.json.ref`) for the exact port revision; package version alone does not identify its code.
 Authoring/install commands are tested and recommended on **Node 22+** (hosted CI uses Node 24); the source package
-declares an engine floor of Node 20, which is not independently validated here. The scene uses **SDK 7.30.1**
+declares the same minimum, **Node 22**. The scene uses **SDK 7.30.1**
 and ES2020 runtime output.
 Changing SDK or client versions calls for another build and client check. This is a TypeScript port plus an SDK host,
 not an API-identical C++ package: native allocators/ABI are inapplicable, and stored unused facts and host policies differ.

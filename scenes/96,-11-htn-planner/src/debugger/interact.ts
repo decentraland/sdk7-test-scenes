@@ -4,7 +4,7 @@
 //   E  open the debugger on it (again: close it)   F  replan now (reason 'debug')
 //   1  its overlay detail: off → step → full        2  pause / run the simulation
 //   3  step one frame (pauses)                       4  dump its world and plan to the console
-// 1-3 also work with no NPC under the cursor: 1 then cycles everyone's overlay level, 2 and 3 are the same.
+// 1 also works with no NPC under the cursor; 2/3 work anywhere only while the debugger panel is open.
 // Pure: the scene side is pick.ts.
 import { snapshotWorld } from '../htn-planner'
 import type { WorldState } from '../htn-planner'

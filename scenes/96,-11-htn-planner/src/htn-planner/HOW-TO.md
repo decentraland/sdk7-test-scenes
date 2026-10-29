@@ -308,5 +308,5 @@ and metrics`"| Debug
 Gold is game-owned code, blue is library runtime and extension contracts, grey is the SDK, and purple/dashed is optional diagnostics.
 Arrows name in-process operations, inputs or returned status; dashed lines mean optional, not network or asynchronous work.
 This is a static view, not the sequence of each update. The
-[project containers](https://github.com/decentraland/sdk7-test-scenes/blob/feat/htn-planner-port/scenes/96,-11-htn-planner/README.md#project-containers-c2)
+[project containers](https://github.com/decentraland/sdk7-test-scenes/blob/main/scenes/96,-11-htn-planner/README.md#project-containers-c2)
 show authoring and SDK build outside this runtime.

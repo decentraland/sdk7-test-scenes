@@ -78,7 +78,7 @@ async function main() {
   const revision = ownCheckout ? spawnSync('git', ['-C', source, 'rev-parse', 'HEAD'], { encoding: 'utf8', windowsHide: true }) : null
   const ref = revision?.status === 0 && /^[a-f0-9]{40}$/.test(revision.stdout.trim()) ? revision.stdout.trim() : null
   const dirty = ref ? spawnSync('git', ['-C', source, 'status', '--porcelain', '--', '.'], { encoding: 'utf8', windowsHide: true }) : null
-  add('src/htn-planner/SOURCE.json', JSON.stringify({ repository, ref, pinned: ref !== null, url: `${repository}/tree/${ref ?? 'feat/htn-planner-port'}/${scenePath}`, localChanges: dirty?.status === 0 ? dirty.stdout.trim() !== '' : null }, null, 2) + '\n')
+  add('src/htn-planner/SOURCE.json', JSON.stringify({ repository, ref, pinned: ref !== null, url: `${repository}/tree/${ref ?? 'main'}/${scenePath}`, localChanges: dirty?.status === 0 ? dirty.stdout.trim() !== '' : null }, null, 2) + '\n')
   if (args.includes('--starter')) {
     const names = ['guard.domain', 'guard_kit.domain', 'guard.htn.ts']
     const present = await Promise.all(names.map(name => read(path.join(target, 'src/npc/guard', name))))

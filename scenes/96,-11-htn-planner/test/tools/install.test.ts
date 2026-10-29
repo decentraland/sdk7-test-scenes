@@ -68,6 +68,9 @@ test('creator install compiles README/HOW-TO recipes and publishes only runtime 
     assert.ok(!fs.existsSync(path.join(dir, 'tools/htn/compiler.ts')), 'ordinary authoring needs no loose compiler source closure')
     assert.ok(fs.readFileSync(path.join(dir, 'reference/htn/docs/htn-guidance.md'), 'utf8').includes('../src/htn-planner/htn/README.md'))
     const source = JSON.parse(fs.readFileSync(path.join(dir, 'src/htn-planner/SOURCE.json'), 'utf8'))
+    assert.match(source.ref, /^[a-f0-9]{40}$/)
+    assert.equal(source.pinned, true)
+    assert.ok(source.url.includes('/tree/' + source.ref + '/'), 'Git installs keep exact source provenance')
     assert.match(source.url, /^https:\/\/github\.com\/decentraland\/sdk7-test-scenes\/tree\//)
     const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')
     const entry = /```ts\r?\n([\s\S]*?)```/.exec(readme)?.[1]
@@ -196,6 +199,7 @@ test('a scene-only ZIP installs full references and records unpinned provenance 
     assert.equal(provenance.pinned, false)
     assert.equal(provenance.ref, null)
     assert.equal(provenance.localChanges, null)
+    assert.equal(provenance.url, 'https://github.com/decentraland/sdk7-test-scenes/tree/main/scenes/96,-11-htn-planner', 'archive fallback survives PR branch deletion')
   } finally { clean(dir); clean(archive) }
 })
 

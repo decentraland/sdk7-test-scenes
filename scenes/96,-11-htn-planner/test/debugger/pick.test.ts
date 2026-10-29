@@ -60,8 +60,16 @@ test('squad: a click and six keys on every body; hover follows the step; each ke
   assert.equal(state.overlayHosts.size, 0)
   setOverlay('off')
 
-  // 2 pauses and runs, 3 steps one frame.
+  // Closed debugger must not let ordinary scene keys pause or step the simulation.
   const clock = sceneClock()
+  set({ open: false })
+  npcAction('pause', null)
+  assert.equal(clock.paused, false, 'closed debugger ignores pause')
+  npcAction('step', h.id)
+  assert.equal(clock.paused, false, 'closed debugger ignores step even while pointing at an NPC')
+
+  // With the debugger open, 2 pauses and runs, 3 steps one frame.
+  set({ open: true })
   npcAction('pause', null)
   assert.equal(clock.paused, true)
   const t0 = clock.time

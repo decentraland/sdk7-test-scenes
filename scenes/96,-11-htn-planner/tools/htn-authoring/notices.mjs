@@ -27,8 +27,14 @@ async function main() {
     const actual = await readFile(output, 'utf8')
     if (actual.replace(/\r\n/g, '\n') !== expected) throw new Error('Stale htn-notices.txt: run npm run htn:notices')
     const require = createRequire(import.meta.url)
-    const { getPublishableFiles } = require('@dcl/sdk-commands/dist/logic/project-files')
-    const files = await getPublishableFiles({ fs }, fileURLToPath(root))
+    let files
+    try {
+      const { getPublishableFiles } = require('@dcl/sdk-commands/dist/logic/project-files')
+      if (typeof getPublishableFiles !== 'function') throw new Error('SDK publication API is unavailable')
+      files = await getPublishableFiles({ fs }, fileURLToPath(root))
+    } catch (error) {
+      throw new Error('Cannot inspect SDK publishable files. Install the supported SDK version (see the module README); if you upgraded it, update this notice check for its publication API. Re-run npm run htn:notices -- --check. Cause: ' + error.message)
+    }
     if (!files.some((path) => path.replace(/\\/g, '/') === 'htn-notices.txt')) {
       throw new Error('htn-notices.txt is excluded from the SDK publishable file list; update .dclignore')
     }

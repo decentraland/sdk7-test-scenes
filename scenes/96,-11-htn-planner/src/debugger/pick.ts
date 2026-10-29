@@ -1,7 +1,7 @@
 // Picking and poking a planner host in the scene. Its body gets a pointer-only collider (it blocks neither the player
 // nor the NPCs' sight raycasts) and one pointer entry per input: a click selects it in the debugger (the hover line
 // says its name and running step), E / F / 1-4 act on it (interact.ts: the map and why). The Explorer lists every
-// entry's hover line with its key while the cursor is on the body. 1-3 also work with nothing under the cursor.
+// entry's hover line with its key while the cursor is on the body. 1 works with nothing under the cursor; 2/3 require the debugger panel open.
 // One system reads the presses (only in a frame with one) and, 4 times a second, rewrites a hover line whose step
 // changed.
 import { ColliderLayer, engine, Entity, EntityState, InputAction, inputSystem, MeshCollider, PointerEvents, PointerEventType } from '@dcl/sdk/ecs'
@@ -68,10 +68,12 @@ export function npcAction(action: NpcAction, id: string | null): void {
       }
       return
     case 'pause':
+      if (!state.open) return
       sceneClock().toggle()
       touch()
       return
     case 'step':
+      if (!state.open) return
       sceneClock().step()
       touch()
       return

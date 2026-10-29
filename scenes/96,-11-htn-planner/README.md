@@ -33,7 +33,7 @@ Give your coding agent this prompt:
 Add the HTN NPC module to this Decentraland SDK7 scene.
 
 Installation and guides:
-https://github.com/decentraland/sdk7-test-scenes/blob/feat/htn-planner-port/scenes/96,-11-htn-planner/README.md
+https://github.com/decentraland/sdk7-test-scenes/blob/main/scenes/96,-11-htn-planner/README.md
 
 1. Read the linked README and its module guide. Clarify any unspecified NPC
    behaviour and multiplayer needs with me.
@@ -189,6 +189,23 @@ Regenerate committed modules when their `.domain` sources change.
 
 Keep runtime code independent of demonstration levels and Node-only authoring tools.
 Use the relevant tool's `--help` for its available commands and options.
+
+## Measured deployment size
+
+SDK 7.30.1 production builds measured on 2026-10-29 at source `6729cd8` (Node 22.22.2).
+These are uncompressed publishable-file bytes, not memory use or a fixed library package size.
+
+| Build | Published total | JavaScript |
+| --- | ---: | ---: |
+| Full demo, 17 files | 5,903,854 B | 1,462,245 B |
+| README capsule guard, installed with `--starter` | 395,905 B | 393,113 B |
+| Same consumer with an empty `main()` | — | 259,397 B |
+
+The capsule adds 133,716 B of JavaScript over the matched empty scene: tree-shaken HTN, its guard domain and the SDK APIs they reach.
+It publishes no demo examples, debugger or models/audio. The full demo's optional Krampus assets account for 4,417,400 B:
+a 4,119,344 B model and 298,056 B of audio. The development bundle is 11,939,867 B; production is substantially smaller.
+Reproduce with `sdk-commands build --production --skip-install` and the SDK publishable-file inventory;
+repeat after changing SDK versions, behaviour or imports. The source checkout and optional authoring/reference folders are separate from deployment.
 
 ## Measured planning and action work
 

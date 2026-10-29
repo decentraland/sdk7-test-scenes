@@ -28,7 +28,7 @@
     "htn:authoring": "node scripts/htn-authoring.mjs"
   },
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.0.0",
     "npm": ">=6.0.0"
   },
   "prettier": {
