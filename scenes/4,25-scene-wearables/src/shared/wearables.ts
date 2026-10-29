@@ -1,4 +1,3 @@
-// Scene wearables are content paths named `*_<category>.glb`; `_m_` / `_f_` mark per-body-shape models
 const split = (name: string, category: string) => ({
   male: `wearables/${name}/${name}_m_${category}.glb`,
   female: `wearables/${name}/${name}_f_${category}.glb`
@@ -19,5 +18,4 @@ export const WEARABLES: Record<string, { male: string; female: string }> = {
 
 export const WEARABLE_NAMES = Object.keys(WEARABLES)
 
-// Outfit key of the mannequin; players are keyed by their lower-case address
 export const NPC_KEY = 'npc'

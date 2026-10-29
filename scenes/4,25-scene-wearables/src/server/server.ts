@@ -36,7 +36,6 @@ function publish(): void {
   outfit.wearables = [...outfits.values()].map((worn) => worn.join(','))
 }
 
-// A player who leaves the scene loses the outfit
 let elapsed = 0
 function dropLeftPlayersSystem(dt: number): void {
   elapsed += dt

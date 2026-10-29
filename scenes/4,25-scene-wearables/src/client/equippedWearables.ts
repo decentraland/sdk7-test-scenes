@@ -1,11 +1,11 @@
 import { AvatarEquippedData, Entity } from '@dcl/sdk/ecs'
 import _m0 from 'protobufjs/minimal'
 
+// `visible` is unset until the explorer loads the avatar
 export type EquippedWearable = { urn: string; visible?: boolean }
 type WithWearables = { wearables?: EquippedWearable[] }
 
-// Stopgap until the SDK includes `PBAvatarEquippedData.wearables` (field 3): the generated codec drops it, so wrap the
-// component's schema to keep it on decode and write it back on encode
+// Stopgap: delete this module once the SDK codec decodes `PBAvatarEquippedData.wearables` (field 3)
 const schema = AvatarEquippedData.schema
 const decodeBase = schema.deserialize
 const encodeBase = schema.serialize
@@ -47,7 +47,6 @@ schema.serialize = (value, builder) => {
   builder.writeBuffer(writer.finish(), false)
 }
 
-// `visible` is unset until the explorer has loaded the avatar; `undefined` means no data at all
 export function getEquippedWearables(entity: Entity): readonly EquippedWearable[] | undefined {
   return (AvatarEquippedData.getOrNull(entity) as WithWearables | null)?.wearables
 }

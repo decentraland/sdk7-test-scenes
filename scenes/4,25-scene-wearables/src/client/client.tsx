@@ -19,8 +19,6 @@ const NOT_A_WEARABLE = 'wearables/kilt/kilt.json'
 const GREEN_SKIN = Color3.create(0.3, 0.8, 0.3)
 const RED_HAIR = Color3.create(0.9, 0.1, 0.1)
 
-// Edge case: a full AvatarShape on a player entity. It replaces the look of the real avatar (body, colours and
-// wearables); `name` and `expressionTriggerId` are ignored on players
 const PROFILE_OVERRIDE = {
   name: 'OVERRIDDEN',
   bodyShape: BASE + 'BaseMale',
@@ -50,9 +48,7 @@ let mode: Mode = 'local'
 let caseMe: PlayerCase = 'add'
 let caseOthers: PlayerCase = 'add'
 
-// Example 1: picks that only this client applies; other players keep seeing the profile
 const local: Record<Target, string[]> = { me: [], npc: [] }
-// Example 2: the authoritative server's outfits; `undefined` until they have synced
 let synced: Map<string, string[]> | undefined
 const NO_OUTFITS = new Map<string, string[]>()
 
@@ -62,14 +58,11 @@ export function startClient() {
   npc = engine.addEntity()
   Transform.create(npc, { position: Vector3.create(8, 0, 10), rotation: Quaternion.fromEulerDegrees(0, 180, 0) })
 
-  // Edge cases: AvatarShape NPCs that do not use scene wearables
   spawnNpc('Control', 3, [...HEAD, ...base('red_tshirt', 'safari_pants', 'sneakers')])
   spawnNpc('Same category', 5.5, [...HEAD, ...base('red_tshirt', 'black_jacket', 'safari_pants', 'sneakers')])
   spawnNpc('Missing path', 10.5, [...HEAD, ...base('red_tshirt'), MISSING_PATH])
-  // Denim dungarees hide `lower_body`: the catalog safari pants hide, the scene kilt stays
   spawnNpc('Catalog hides', 13, [...HEAD, ...base('denimdungareesblue', 'safari_pants', 'sneakers')])
   spawnNpc('Scene not hidden', 15, [...HEAD, ...base('denimdungareesblue', 'sneakers'), WEARABLES.kilt.male])
-  // Neither a URN nor a .glb path: skipped with a warning, the rest still applies
   spawnNpc('Unknown entry', 3, [...HEAD, ...base('red_tshirt'), NOT_A_WEARABLE, 'not-a-urn'], 15)
 
   engine.addSystem(dressAvatarsSystem)
@@ -91,7 +84,6 @@ function readSynced(): Map<string, string[]> | undefined {
   return undefined
 }
 
-// Local picks go last, so they win over a synced item of the same category
 const merge = (syncedNames: readonly string[], localNames: readonly string[]) => [
   ...syncedNames.filter((n) => !localNames.includes(n)),
   ...localNames
@@ -109,15 +101,13 @@ function dressAvatarsSystem() {
       id: 'scene-wearables-npc',
       name: 'Mannequin',
       bodyShape: BASE + 'BaseMale',
-      // Scene wearables last: they replace the base look's items of the same category
       wearables: [...NPC_BASE_LOOK, ...paths],
       emotes: []
     })
   )
 
-  // Every client dresses every player in the scene: the explorer applies AvatarShape locally and broadcasts nothing
+  // AvatarShape on a player applies on this client only, so every client dresses every player
   for (const [player, identity] of engine.getEntitiesWith(PlayerIdentityData)) {
-    // Body shape picks the male / female model; the equipped items are the profile look that the list replaces
     const avatarBase = AvatarBase.getOrNull(player)
     const equipped = AvatarEquippedData.getOrNull(player)
     if (!avatarBase || !equipped) continue
@@ -128,7 +118,7 @@ function dressAvatarsSystem() {
     const paths = toPaths(names, female)
     const playerCase = player === engine.PlayerEntity ? caseMe : caseOthers
 
-    // Player entity ids are recycled, so the address is part of the key
+    // Player entity ids are reused after a disconnect, so the key includes the address
     dress(player, `${address}|${playerCase}|${equipped.wearableUrns.join(',')}`, paths, () => {
       const shape = playerShape(playerCase, equipped.wearableUrns, paths, female)
       if (shape) AvatarShape.createOrReplace(player, { id: identity.address, emotes: [], ...shape })
@@ -137,11 +127,11 @@ function dressAvatarsSystem() {
   }
 }
 
-// Fields left out keep the profile value; an empty `wearables` keeps the profile wearables
+// Unset fields keep the profile value. A non-empty `wearables` replaces the profile list, and an empty one keeps it.
 function playerShape(playerCase: PlayerCase, equipped: readonly string[], paths: string[], female: boolean) {
   switch (playerCase) {
     case 'add':
-      // The list replaces, so the equipped items go first and the scene wearables last, winning per category
+      // A later item wins its category, so the scene wearables go after the equipped items
       return paths.length === 0 ? undefined : { wearables: [...equipped, ...paths] }
     case 'colours':
       return { skinColor: GREEN_SKIN, hairColor: RED_HAIR, wearables: [] }
@@ -212,7 +202,6 @@ const VISIBILITY: [string, Color4][] = [
   ['unknown', Color4.Gray()]
 ]
 
-// The flags describe the profile outfit, so they ignore any AvatarShape this scene writes
 function profileWearables() {
   return (getEquippedWearables(engine.PlayerEntity) ?? []).map(({ urn, visible }) => {
     const [label, color] = VISIBILITY[visible === undefined ? 2 : visible ? 1 : 0]
