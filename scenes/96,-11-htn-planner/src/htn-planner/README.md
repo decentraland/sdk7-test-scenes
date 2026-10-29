@@ -80,7 +80,8 @@ node scripts/htn-install.mjs /path/to/your-sdk7-scene --starter
 ```
 
 This performs the copy, npm hooks, exclusions, notices and source metadata setup above. It preserves the entrypoint,
-settings, assets and existing instructions. Conflicting npm commands or a partial starter stop before writing;
+settings, assets and existing instructions; it creates no agent instruction files.
+Conflicting npm commands or a partial starter stop before writing;
 different module files require `--update`. A complete existing `src/npc/guard/` stays game-owned and is not replaced.
 
 Optional conveniences: `--reference` copies removable examples/assets into `reference/htn/`; `--testing` adds

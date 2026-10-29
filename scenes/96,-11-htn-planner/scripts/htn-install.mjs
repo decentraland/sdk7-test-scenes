@@ -108,12 +108,6 @@ async function main() {
   const existing = new Set(ignored.split(/\r?\n/).map(s => s.trim().replace(/\/$/, '')))
   const extra = patterns.filter(p => !existing.has(p))
   add('.dclignore', ignored + (ignored && !ignored.endsWith('\n') ? '\n' : '') + extra.map(p => p + '\n').join(''), true)
-  const pointer = '<!-- htn-module:start -->\n## HTN NPC module\nFor HTN integration, custom behaviour or examples, read [the module guide](src/htn-planner/README.md).\n<!-- htn-module:end -->'
-  for (const name of ['AGENTS.md', 'CLAUDE.md']) {
-    const original = (await read(path.join(target, name)))?.toString() ?? ''
-    const block = /<!-- htn-module:start -->[\s\S]*?<!-- htn-module:end -->/
-    add(name, block.test(original) ? original.replace(block, pointer) : original.trimEnd() + (original.trim() ? '\n\n' : '') + pointer + '\n', true)
-  }
   // Preflight every destination before any writes. A symlink must not redirect a write outside the target scene.
   for (const [name, item] of planned) {
     const destination = path.join(target, name)

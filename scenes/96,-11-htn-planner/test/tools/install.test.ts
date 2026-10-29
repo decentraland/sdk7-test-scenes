@@ -7,6 +7,7 @@ import os from 'node:os'
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 
+const INSTRUCTIONS = { 'AGENTS.md': '# My game\nKeep my rules.\n', 'CLAUDE.md': '# My Claude rules\r\nKeep these too.\r\n' }
 const ROOT = process.env.HTN_REPO_ROOT ?? process.cwd()
 const requireFromScene = createRequire(path.join(ROOT, 'package.json'))
 const { build }: typeof import('esbuild') = requireFromScene('esbuild')
@@ -19,7 +20,7 @@ function fixture() {
   fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'htn-consumer', version: '1.0.0', private: true, scripts: { prebuild: 'node -e ""' }, devDependencies: { '@dcl/sdk': '7.30.1', '@dcl/js-runtime': '7.30.1' } }))
   fs.copyFileSync(path.join(ROOT, 'tsconfig.json'), path.join(dir, 'tsconfig.json'))
   fs.writeFileSync(path.join(dir, 'src/index.ts'), 'export const existingGame = true\n')
-  fs.writeFileSync(path.join(dir, 'AGENTS.md'), '# My game\nKeep my rules.\n')
+  for (const [name, content] of Object.entries(INSTRUCTIONS)) fs.writeFileSync(path.join(dir, name), content)
   fs.writeFileSync(path.join(dir, 'third-party-notices.txt'), 'Unrelated game notices\n')
   fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(dir, 'node_modules'), 'junction')
   return dir
@@ -54,7 +55,7 @@ test('creator install compiles README/HOW-TO recipes and publishes only runtime 
   try {
     ok(install(dir, '--starter', '--reference'))
     assert.equal(fs.readFileSync(path.join(dir, 'src/index.ts'), 'utf8'), 'export const existingGame = true\n')
-    assert.ok(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8').startsWith('# My game\nKeep my rules.'))
+    for (const [name, content] of Object.entries(INSTRUCTIONS)) assert.equal(fs.readFileSync(path.join(dir, name), 'utf8'), content)
     assert.equal(fs.readFileSync(path.join(dir, 'third-party-notices.txt'), 'utf8'), 'Unrelated game notices\n')
     assert.ok(fs.existsSync(path.join(dir, 'reference/htn/assets/stalker/stalker.glb')))
     assert.ok(!fs.existsSync(path.join(dir, 'src/examples')))
@@ -95,16 +96,19 @@ test('creator install compiles README/HOW-TO recipes and publishes only runtime 
     assert.ok(fs.readFileSync(gameDomain, 'utf8').endsWith('// My game adaptation\n'))
     const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'))
     assert.equal(pkg.scripts.prebuild, 'npm run htn:notices && node -e ""')
-    const guidance = fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8')
-    assert.equal(guidance.split('<!-- htn-module:start -->').length, 2)
+    for (const [name, content] of Object.entries(INSTRUCTIONS)) assert.equal(fs.readFileSync(path.join(dir, name), 'utf8'), content)
     assert.ok(!fs.existsSync(path.join(dir, 'reference/htn')), 'update does not restore deleted optional references')
   } finally { clean(dir) }
 })
 
-test('minimal install needs no starter/reference and rejects different files before changing the game', { timeout: 30000 }, () => {
+test('minimal install needs no starter/reference or agent instructions and rejects different files before changing the game', { timeout: 30000 }, () => {
   const dir = fixture()
   try {
+    for (const name of Object.keys(INSTRUCTIONS)) fs.unlinkSync(path.join(dir, name))
     ok(install(dir))
+    for (const name of Object.keys(INSTRUCTIONS)) assert.ok(!fs.existsSync(path.join(dir, name)), name + ' must not be created')
+    ok(install(dir, '--update'))
+    for (const name of Object.keys(INSTRUCTIONS)) assert.ok(!fs.existsSync(path.join(dir, name)), name + ' must not be created by update')
     assert.ok(!fs.existsSync(path.join(dir, 'reference')))
     assert.ok(!fs.existsSync(path.join(dir, 'src/npc')))
     const partial = path.join(dir, 'src/npc/guard')

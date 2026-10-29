@@ -1,16 +1,59 @@
 # HTN planner for Decentraland
 
-A TypeScript port of [urosidoki/htn_planner](https://github.com/urosidoki/htn_planner/tree/aec08fa36f2c521c4da00c045bf23b8aed7bfa92)
-with an SDK7 NPC host. Write behaviour in `.domain` files, compile it to TypeScript, and let your scene execute the plan.
-The reusable module is `src/htn-planner/`; the scene at **96,-11** demonstrates it with guards, a stalker, squads and a crowd.
+Give NPCs tasks such as patrol, investigate a noise or chase a player, with different ways to carry them out.
+Write behaviour in `.domain` files, compile it to TypeScript, and let your scene execute the plan.
+This [TypeScript port of urosidoki/htn_planner](https://github.com/urosidoki/htn_planner/tree/aec08fa36f2c521c4da00c045bf23b8aed7bfa92)
+includes an SDK7 NPC host. A first capsule guard needs no models or audio.
+
+The SDK host runs NPCs on the local client. Your game owns multiplayer authority and synchronization.
+The reusable module is `src/htn-planner/`; the full demonstration scene is a separate consumer.
+
+## Install with an AI agent
+
+Give your coding agent this prompt:
+
+```text
+Add the HTN NPC module to this Decentraland SDK7 scene.
+
+Installation and guides:
+https://github.com/decentraland/sdk7-test-scenes/blob/feat/htn-planner-port/scenes/96,-11-htn-planner/README.md
+
+1. Read the linked README and its module guide. Clarify any unspecified NPC
+   behaviour and multiplayer needs with me.
+2. Follow the manual copy setup, including the domain compiler, notices and
+   game-owned guard files. Keep existing code, assets, settings, npm commands
+   and project instructions. The automated installer is an alternative.
+3. Adapt the guard or use a matching HOW-TO recipe. Keep my behaviour, actions
+   and assets outside the library. Compile changed .domain sources; preserve
+   the source commit and licences. Find examples through the module guide.
+4. Run the relevant available checks and build. Report what was connected,
+   checks passed, and how I can try the behaviour in Explorer. Keep client
+   verification separate from headless results.
+```
 
 ## Add it to your scene
 
-Follow the [manual copy setup](src/htn-planner/README.md#install-by-copying): copy the library, domain compiler, notice
-command and game-owned guard files into your SDK7 scene. Edit its `.domain` sources and regenerate TypeScript as you
-develop the behaviour. Keep your scene's entrypoint, assets and settings. The guide also offers `htn-install.mjs` as an
-alternative automated copy with optional reference/testing tools.
-Then merge this setup into your scene's `src/index.ts`:
+### 1. Copy
+
+Follow the [manual copy setup](src/htn-planner/README.md#install-by-copying) in an existing SDK7 scene.
+It lists the library, compiler, notice command and game-owned guard files to copy, plus npm hooks and deployment exclusions.
+Keep your scene's entrypoint, assets and settings. The guide also offers an optional automated installer.
+
+### 2. Configure the behaviour
+
+Edit your `src/npc/guard/guard.domain` and its `guard_kit.domain` include, then regenerate TypeScript:
+
+```sh
+npm run htn:compile -- src/npc/guard/guard.domain src/npc/guard/guard.htn.ts guardDomain
+npm run htn:notices
+npm run htn:notices -- --check
+```
+
+Commit the `.domain` sources and generated output together. Your game owns these files; the library stays in `src/htn-planner/`.
+
+### 3. Connect
+
+Merge this setup into your scene's `src/index.ts`, using your existing `main()` when you have one:
 
 ```ts
 import { createCapsuleBody, GuardSquad, plannerFor, v3 } from './htn-planner'
@@ -22,79 +65,77 @@ export function main() {
 }
 ```
 
-Merge the spawn into your existing `main()` when you already have one. Run your normal preview: the capsule patrols its route
-and chases the local player when detected. Call `guards.despawn()` when your game removes this encounter.
-The squad registers its own update system; no additional `engine.addSystem` call is needed.
+The squad registers its own update system. Call `guards.despawn()` when your game removes this encounter.
 
-Read the [module README](src/htn-planner/README.md) for installation options, updates and optional references, and
-[HOW-TO](src/htn-planner/HOW-TO.md) for your own entity, facts/actions, standalone planning and optional tracing.
+### 4. Try it
 
-## Ask an AI to integrate it
+Run your normal build and preview. The capsule patrols its route and chases the local player when detected.
+Approach it, move away and check that the result fits your game. A successful build does not prove the encounter works in Explorer.
+For loading-phase preparation and staged activation, see [Preparation → Ready → Play](src/htn-planner/HOW-TO.md#7-prepare-ai-before-play).
 
-```text
-Install the HTN module from <module-source-folder> into this SDK7 scene.
-Read its module README and follow the manual copy setup, including compiler, notices and game-owned guard files.
-Preserve existing game code and merge the setup into main(). Use the automated installer only as an alternative.
-Keep my own behaviour, actions and assets outside the library. Read the installed module guide for examples and checks.
-```
+## Make your own behaviour
 
-The alternative installer offers `--reference` for optional examples/assets on disk. The module guide gives the AI a local-first,
-version-specific GitHub fallback when that reference folder is absent.
+Start with the [small-domain authoring example](src/htn-planner/HOW-TO.md#6-design-and-check-a-small-domain),
+then use the [integration recipes](src/htn-planner/HOW-TO.md) for your own entity, facts and actions.
+[Domain design guidance](docs/htn-guidance.md) covers priorities, fact ownership, interrupted tasks and host contracts.
 
-## Explore before integrating
+The planner does not simulate action effects or repair part of a plan. Your executors change the world; each replan builds
+another whole plan. Read the [planning contract](src/htn-planner/README.md#choose-the-right-planning-contract) before adapting a behaviour.
 
-Run `npm install`, then `npm start` here to try the [full demo](DEMO.md). Its **Playgrounds** menu and debugger are example
-consumers of the library. They are not installed in your game by default.
+## Examples and the demo
 
-The alternative installer's `--reference` option keeps a removable source snapshot under `reference/htn/`, including example assets
-and tools. It is excluded from your game's deployment. To use a selected example in the game, adapt just the needed code
-and assets into your own runtime folders and keep its applicable notices.
+Use the [example catalogue](docs/htn-examples-catalog.md) to find a matching domain.
+The [module guide](src/htn-planner/README.md#examples-for-people-and-ai) explains where to find local references and,
+when absent, examples at the matching source revision on GitHub.
+
+To explore the full scene at **96,-11**, run `npm install`, then `npm start` here.
+[Ambush with Krampus starts by default](DEMO.md#the-playground); the **Playgrounds** menu offers the other lessons.
+The demo, debugger UI, examples and their assets are separate consumers, not required parts of your game.
+
+The alternative installer's `--reference` option keeps a removable source snapshot in `reference/htn/`, excluded from deployment.
+Adapt only the code and assets you choose to use into your game's folders, preserving applicable notices.
+
+## Debug and test
+
+For a behaviour that picks the wrong plan or gets stuck, use [domain debugging](docs/htn-guidance.md#testing-and-debugging).
+The [demo guide](DEMO.md) covers the in-scene debugger and repository CLI tools.
+For game-owned cases, use the optional [consumer testing tools](docs/consumer-testing.md).
+
+For source-checkout verification, run `npm run htn:ci`: notices, headless tests, types, root-domain checks, lint and
+strict running-plan checks. Keep headless results separate from checking movement and feedback in a target client.
+Regenerate committed modules when their `.domain` sources change.
+
+## Reference and updates
+
+- [Module installation, updates and source-version tracking](src/htn-planner/README.md)
+- [Planner language, semantics and limitations](src/htn-planner/htn/README.md)
+- [NPC host, executor lifecycle and integration options](src/htn-planner/npc/README.md)
+- [Measure planning in your own domain](docs/consumer-benchmark.md)
+
+Keep runtime code independent of demonstration levels and Node-only authoring tools.
+Use the relevant tool's `--help` for its available commands and options.
 
 ## Measured planning and action work
 
-Recorded on 2026-10-23 at clean source `11d2f5f617a4d127ae0bba8f42431d9c6ce5b740`, Windows 10.0.26300 x64,
-Intel Core Ultra 9 275HX (24 logical CPUs), Node 22.22.2. These are elapsed Node timings around CPU work, **microseconds per operation**:
+Recorded on 2026-10-23 at source `11d2f5f617a4d127ae0bba8f42431d9c6ce5b740`, Windows x64,
+Intel Core Ultra 9 275HX, Node 22.22.2. Warm p50 ranges across two reports, in **microseconds per operation**:
 
-| Workload | Warm p50, two reports | Primary p95 | Primary p99 |
-| --- | ---: | ---: | ---: |
-| Plan: 3 fact rows, 2 steps | 5.0–5.9 | 14.4 | 24.1 |
-| Plan: 624 fact rows, 241 steps | 240.7–308.0 | 375.3 | 441.1 |
-| Built-in wait: factory/start/15 updates/done | 0.68–0.71 | 1.54 | 4.13 |
-| Built-in move: factory/start/109 updates/done | 18.6–19.8 | 30.2 | 42.0 |
-| Tick all 32 patrol guards | 67.2–71.0 | 102.6 | 140.2 |
+| Workload | Warm p50 |
+| --- | ---: |
+| Plan: 3 fact rows, 2 steps | 5.0–5.9 |
+| Plan: 624 fact rows, 241 steps | 240.7–308.0 |
+| Built-in wait: factory/start/15 updates/done | 0.68–0.71 |
+| Built-in move: factory/start/109 updates/done | 18.6–19.8 |
+| Tick all 32 patrol guards | 67.2–71.0 |
 
-Each report uses three fresh workers, 30 warm-up batches and 200 measured batches of eight operations. Percentiles
-are medians across workers of **batch-mean** percentiles, not individual-operation tails. The p50 column spans two
-separate reports; p95/p99 come only from the primary one. Warm medians varied by up to about 22%; these are
-observations, not stable speed limits. Initial calls were slower (primary tiny/heavy planning medians 1.55/7.53 ms,
-and 8.87 ms for the first 32-guard tick). Forcing all 32 guards to replan every tick measured 106.3–114.3 µs warm p50,
-a different workload from executing their existing patrol plans. For loading-phase preparation and staged NPC
-activation, follow [Preparation → Ready → Play](src/htn-planner/HOW-TO.md#7-prepare-ai-before-play).
-
-Wait/move advance simulated time without sleeping; their durations are not CPU seconds. The move is flat-terrain
-kinematic steering. These measurements exclude renderer/ECS writes, models, real raycasts, physics, networking and
-pathfinding; they establish no Explorer FPS, universal per-action cost or NPC capacity.
-[Method, full nine-workload table and reproduction commands](docs/performance-measurements.md) distinguish planning,
-preplanned dispatch/deferred expansion, action lifecycles and whole-host ticks. Run `npm run htn:perf` in the source
-checkout to reproduce; installed consumer planning measurements use the separate optional `htn:measure` command.
-
-## Documentation
-
-- [Module installation and AI handoff](src/htn-planner/README.md)
-- [Integration recipes and a small-domain authoring example](src/htn-planner/HOW-TO.md)
-- [Demonstration, debugger and repository-only CLI tools](DEMO.md)
-- [Domain design and host contracts](docs/htn-guidance.md)
-- [Example catalogue](docs/htn-examples-catalog.md)
-- [Planner semantics and limitations](src/htn-planner/htn/README.md#planner-limitations)
-
-The planner does not simulate action effects or repair part of a plan. Your executors change the world; each replan builds
-another whole plan. Start with a small working behaviour and consult the limitations before adapting it.
-
-For source-checkout verification, run `npm run htn:ci`: notices, headless tests, types, root-domain checks, lint and
-strict running-plan checks. A passing run is separate from trying the intended encounter in a target client.
+These elapsed Node timings describe batch means around CPU work. First calls were slower: about 1.55/7.53 ms for tiny/heavy
+planning and 8.87 ms for the first 32-guard tick. They exclude rendering/ECS writes, real raycasts, physics, networking and
+pathfinding; they establish no Explorer FPS or NPC capacity. Wait/move advance simulated time without sleeping.
+The [full measurements](docs/performance-measurements.md) retain p95/p99, cold/warm results, method and reproduction commands.
+Use `npm run htn:perf` in the source checkout, or optional `htn:measure` in an installed consumer.
 
 ## Licences
 
 The port, host and original tooling are MIT, copyright 2026 Decentraland Foundation. Upstream MIT and other component notices remain
 separate. Preserve both library licence files; see the [redistribution instructions](src/htn-planner/README.md#licences-and-deployment).
-The installer generates `htn-notices.txt` for deployment. The full demo also includes its example-specific credits there.
+The notice command generates `htn-notices.txt` for deployment. The full demo also includes its example-specific credits there.
