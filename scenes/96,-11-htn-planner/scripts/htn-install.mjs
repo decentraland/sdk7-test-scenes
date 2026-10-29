@@ -91,6 +91,12 @@ async function main() {
       add(rel, content, false)
     }
   }
+  const configPath = path.join(target, 'htn.config.json')
+  const existingConfig = await read(configPath)
+  if (args.includes('--starter') && existingConfig === null) {
+    add('htn.config.json', await fs.readFile(path.join(source, 'tools/htn-authoring/htn.config.example.json')), false)
+  }
+  const configuredGeneration = existingConfig !== null || args.includes('--starter')
   if (args.includes('--reference')) {
     for (const name of ['src', 'assets', 'tools', 'scripts', 'test', 'benchmarks', 'docs']) await tree(path.join(source, name), 'reference/htn/' + name)
     add('reference/htn/README.md', await fs.readFile(path.join(source, 'REFERENCE.md')))
@@ -100,17 +106,19 @@ async function main() {
   pkg.scripts ??= {}
   const optionalScripts = { ...(args.includes('--testing') ? { 'htn:check': 'node scripts/htn-check.mjs' } : {}), ...(args.includes('--benchmark') ? { 'htn:measure': 'node scripts/htn-measure.mjs' } : {}) }
   const legacyScripts = { 'htn:compile': 'node scripts/htn-compile.mjs', 'htn:notices': 'node scripts/htn-notices.mjs' }
-  for (const [name, command] of Object.entries({ ...optionalScripts, 'htn:compile': 'node tools/htn-authoring/compiler.cjs', 'htn:notices': 'node tools/htn-authoring/notices.mjs' })) {
+  for (const [name, command] of Object.entries({ ...optionalScripts, 'htn:compile': 'node tools/htn-authoring/compiler.cjs', 'htn:notices': 'node tools/htn-authoring/notices.mjs', 'htn:generate': 'node tools/htn-authoring/generate.mjs', 'htn:watch': 'node tools/htn-authoring/generate.mjs --watch' })) {
     const previous = pkg.scripts[name]
     if (previous && previous !== command && previous !== legacyScripts[name]) throw new Error('Conflicting npm script: ' + name + '. Resolve it before installing.')
     pkg.scripts[name] ??= command // Keep known older entrypoints as well as current manual-copy commands.
   }
-  for (const hook of ['prebuild', 'predeploy']) {
-    if (!pkg.scripts[hook]?.includes('npm run htn:notices')) pkg.scripts[hook] = 'npm run htn:notices' + (pkg.scripts[hook] ? ' && ' + pkg.scripts[hook] : '')
+  for (const hook of ['prestart', 'prebuild', 'predeploy']) {
+    if (hook === 'prestart' && !configuredGeneration) continue
+    if (hook !== 'prestart' && !pkg.scripts[hook]?.includes('npm run htn:notices')) pkg.scripts[hook] = 'npm run htn:notices' + (pkg.scripts[hook] ? ' && ' + pkg.scripts[hook] : '')
+    if (configuredGeneration && !pkg.scripts[hook]?.includes('npm run htn:generate')) pkg.scripts[hook] = 'npm run htn:generate' + (pkg.scripts[hook] ? ' && ' + pkg.scripts[hook] : '')
   }
   add('package.json', JSON.stringify(pkg, null, 2) + '\n', true)
   const ignored = (await read(path.join(target, '.dclignore')))?.toString() ?? ''
-  const patterns = ['src/htn-planner', 'tools/htn', 'tools/htn-authoring', 'scripts/htn-compile.mjs', 'scripts/htn-notices.mjs', 'reference/htn', 'src/npc/guard/*.domain', 'src/htn-testing', 'tools/consumer', 'scripts/htn-check.mjs', 'scripts/htn-measure.mjs', 'scripts/bench', 'htn-tests', 'htn-reports', 'docs/consumer-testing.md', 'docs/consumer-benchmark.md']
+  const patterns = ['htn.config.json', 'src/htn-planner', 'tools/htn', 'tools/htn-authoring', 'scripts/htn-compile.mjs', 'scripts/htn-notices.mjs', 'reference/htn', 'src/npc/guard/*.domain', 'src/htn-testing', 'tools/consumer', 'scripts/htn-check.mjs', 'scripts/htn-measure.mjs', 'scripts/bench', 'htn-tests', 'htn-reports', 'docs/consumer-testing.md', 'docs/consumer-benchmark.md']
   const existing = new Set(ignored.split(/\r?\n/).map(s => s.trim().replace(/\/$/, '')))
   const extra = patterns.filter(p => !existing.has(p))
   add('.dclignore', ignored + (ignored && !ignored.endsWith('\n') ? '\n' : '') + extra.map(p => p + '\n').join(''), true)

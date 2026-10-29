@@ -19,20 +19,27 @@ Copy folders whole; you do not need to select the compiler's internal files or c
 Install your SDK scene dependencies normally. The prepared compiler needs Node, not a runtime package or `esbuild`.
 Keep TypeScript's include scoped to `src/`; if it uses `**/*`, exclude `tools/htn-authoring` and any `reference/htn` folder.
 
+Copy `tools/htn-authoring/htn.config.example.json` to root `htn.config.json` for the guard starter; preserve an existing config.
+This game-owned file lists each source, output and exported name. Add your own domains there.
+
 Merge these entries into `package.json`'s `scripts`, preserving its other commands:
 
 ```json
 "htn:compile": "node tools/htn-authoring/compiler.cjs",
-"htn:notices": "node tools/htn-authoring/notices.mjs"
+"htn:notices": "node tools/htn-authoring/notices.mjs",
+"htn:generate": "node tools/htn-authoring/generate.mjs",
+"htn:watch": "node tools/htn-authoring/generate.mjs --watch"
 ```
 
-Run `npm run htn:notices` before both build and deploy: set `prebuild`/`predeploy` to it when absent, or prepend
-`npm run htn:notices && ` to each existing hook without removing that hook's command. Resolve an existing different
-`htn:compile` or `htn:notices` command before replacing it.
+Run `npm run htn:generate` in `prestart`, and `npm run htn:generate && npm run htn:notices` in both `prebuild` and
+`predeploy`. Create missing hooks or prepend these commands to existing ones without removing game commands.
+Resolve conflicting `htn:*` scripts before replacing them. An error stops the actual npm lifecycle command;
+these hooks do not cover tools that launch the SDK directly, including Creator Hub.
 
 Append these support-file exclusions to your existing `.dclignore` (keep its existing game exclusions):
 
 ```text
+htn.config.json
 src/htn-planner
 tools/htn-authoring
 src/npc/guard/*.domain
@@ -43,13 +50,12 @@ The SDK bundles imported TypeScript into `bin/`; these exclusions keep authoring
 Do **not** exclude the generated root `htn-notices.txt`. Generate and check it after copying:
 
 ```sh
-npm run htn:compile -- --check src/npc/guard/guard.domain
-npm run htn:compile -- src/npc/guard/guard.domain src/npc/guard/guard.htn.ts guardDomain
+npm run htn:generate
 npm run htn:notices
 npm run htn:notices -- --check
 ```
 
-Edit your `guard.domain` and its `guard_kit.domain` include, then regenerate `guard.htn.ts`; do not edit generated code
+Edit your `guard.domain` and its `guard_kit.domain` include. The hooks regenerate `guard.htn.ts`; do not edit generated code
 by hand. Commit these game-owned sources/output together. Record the source repository URL and full commit in your
 game's README or source note, including any local changes; manual copying does not create `SOURCE.json` automatically.
 Keep that pin for examples and future updates.
@@ -70,12 +76,33 @@ node scripts/htn-install.mjs /path/to/your-sdk7-scene --starter
 This performs the copy, npm hooks, exclusions, notices and source metadata setup above. It preserves the entrypoint,
 settings, assets and existing instructions; it creates no agent instruction files.
 Conflicting npm commands or a partial starter stop before writing;
-different module files require `--update`. A complete existing `src/npc/guard/` stays game-owned and is not replaced.
+different module files require `--update`. A complete existing `src/npc/guard/` and existing `htn.config.json` stay game-owned and are not replaced.
+`--starter` adds a missing guard config and generation hooks; a runtime-only install without a config adds no generation hooks.
 
 Optional conveniences: `--reference` copies removable examples/assets into `reference/htn/`; `--testing` adds
 `htn:check` and the [testing guide](../../docs/consumer-testing.md); `--benchmark` adds `htn:measure` and the
 [benchmark guide](../../docs/consumer-benchmark.md). Those local guide links exist only when their option is installed.
 Otherwise read them at your recorded source commit (or the `SOURCE.json.url` from automated installation).
+
+## Domain generation and preview
+
+For live editing, run `npm run htn:watch` in a terminal and wait for **READY**, then start your normal preview.
+Keep the watcher open while editing. It follows the configured sources and exact include paths, including nested,
+missing or external includes. Saving a valid change writes fresh `.htn.ts` files, which the SDK watcher then rebuilds.
+Unchanged outputs are not rewritten. Stop the watcher with Ctrl+C; only one watcher may own a config at a time.
+
+On **FAILED / STALE**, no candidate outputs are published. The watcher reports the error and retries after an input change.
+An open Explorer or SDK server may still show its last successful bundle; do not judge or publish that as the new behaviour.
+Fix the error and wait for READY again. All domains must compile before any output is replaced.
+Removing a config entry does not delete its old output; update game imports and remove unused generated files yourself.
+
+**Creator Hub:** Preview and Publish launch SDK commands directly, bypassing npm hooks. Start `htn:watch` separately before
+Hub Preview and wait for READY. Before Hub Publish, run `npm run htn:generate`, `npm run htn:notices`, and
+`npm run htn:notices -- --check` successfully. The Node/headless workflow is checked; verify the encounter in your target client.
+
+Your original `npm start` keeps its command and gets an initial generation through `prestart`; it does not start a watcher.
+For a one-off compile or extra compiler options, `htn:compile` remains available. See the
+[authoring tool guide](../../tools/htn-authoring/README.md) in the source checkout or at your recorded source revision.
 
 ## Choose the right planning contract
 
@@ -116,7 +143,7 @@ installing the full demo. You can delete `reference/htn/` at any time without ch
 
 ## Update
 
-Copy the library/compiler files from the desired source revision using the same list above; preserve your game-owned
+Stop any generation watcher before updating. Copy the library/compiler files from the desired source revision using the same list above; preserve your game-owned
 `src/npc/guard/`, actions, facts, assets and scene wiring. Alternatively run the installer with `--update`; it refreshes
 module files/metadata and leaves a complete existing guard unchanged, even with `--starter`.
 Recompile your domains after updating and check them in your game. Compare old/new file lists before removing obsolete

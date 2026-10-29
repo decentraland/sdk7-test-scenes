@@ -96,12 +96,18 @@ test('creator install compiles README/HOW-TO recipes and publishes only runtime 
     ok(node(dir, 'scripts/htn-compile.mjs', '--check', 'src/npc/guard/guard.domain'))
     ok(node(dir, 'scripts/htn-notices.mjs', '--check'))
     assert.deepEqual(await published(dir), before)
+    const generationConfig = path.join(dir, 'htn.config.json')
+    const ownConfig = JSON.parse(fs.readFileSync(generationConfig, 'utf8'))
+    ownConfig.creatorNote = 'My own generation settings'
+    const ownConfigText = JSON.stringify(ownConfig, null, 2) + '\n'
+    fs.writeFileSync(generationConfig, ownConfigText)
     const gameDomain = path.join(dir, 'src/npc/guard/guard.domain')
     fs.appendFileSync(gameDomain, '\n// My game adaptation\n')
     ok(install(dir, '--starter', '--update'))
     assert.ok(fs.readFileSync(gameDomain, 'utf8').endsWith('// My game adaptation\n'))
+    assert.equal(fs.readFileSync(generationConfig, 'utf8'), ownConfigText)
     const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'))
-    assert.equal(pkg.scripts.prebuild, 'npm run htn:notices && node -e ""')
+    assert.equal(pkg.scripts.prebuild, 'npm run htn:generate && npm run htn:notices && node -e ""')
     assert.equal(pkg.scripts['htn:compile'], 'node scripts/htn-compile.mjs', 'known legacy compile alias stays usable')
     assert.equal(pkg.scripts['htn:notices'], 'node scripts/htn-notices.mjs', 'known legacy notice alias stays usable')
     for (const [name, content] of Object.entries(INSTRUCTIONS)) assert.equal(fs.readFileSync(path.join(dir, name), 'utf8'), content)
@@ -191,4 +197,35 @@ test('a scene-only ZIP installs full references and records unpinned provenance 
     assert.equal(provenance.ref, null)
     assert.equal(provenance.localChanges, null)
   } finally { clean(dir); clean(archive) }
+})
+
+test('installed npm lifecycle generates domains before start/build/deploy and blocks each on compiler errors', { timeout: 30000 }, () => {
+  const dir = fixture()
+  try {
+    ok(install(dir, '--starter'))
+    const pkgPath = path.join(dir, 'package.json')
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
+    fs.writeFileSync(path.join(dir, 'lifecycle.cjs'), "require('node:fs').writeFileSync('lifecycle-ran', 'yes')")
+    for (const script of ['start', 'build', 'deploy']) pkg.scripts[script] = 'node lifecycle.cjs'
+    fs.writeFileSync(pkgPath, JSON.stringify(pkg))
+    const npm = (script: string) => spawnSync(process.platform === 'win32' ? (process.env.ComSpec ?? 'cmd.exe') : 'npm', process.platform === 'win32' ? ['/d', '/s', '/c', 'npm run ' + script] : ['run', script], { cwd: dir, encoding: 'utf8', windowsHide: true })
+    const source = path.join(dir, 'src/npc/guard/guard.domain')
+    const original = fs.readFileSync(source, 'utf8')
+    const output = path.join(dir, 'src/npc/guard/guard.htn.ts')
+    const first = fs.readFileSync(output, 'utf8')
+    fs.writeFileSync(source, original.replace('(patrol_pause 1.0)', '(patrol_pause 4.0)'))
+    ok(npm('build'))
+    assert.notEqual(fs.readFileSync(output, 'utf8'), first, 'npm build generates before running the existing game command')
+    for (const script of ['start', 'build', 'deploy']) {
+      fs.rmSync(path.join(dir, 'lifecycle-ran'), { force: true })
+      fs.writeFileSync(source, '(:domain invalid')
+      const failed = npm(script)
+      assert.notEqual(failed.status, 0)
+      assert.match(failed.stdout + failed.stderr, /FAILED \/ STALE/)
+      assert.ok(!fs.existsSync(path.join(dir, 'lifecycle-ran')), script + ' must not start on old generated data')
+    }
+    fs.writeFileSync(source, original)
+    ok(npm('start'))
+    assert.equal(fs.readFileSync(path.join(dir, 'lifecycle-ran'), 'utf8'), 'yes')
+  } finally { clean(dir) }
 })

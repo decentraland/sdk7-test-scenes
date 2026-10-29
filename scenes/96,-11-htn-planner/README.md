@@ -41,15 +41,16 @@ Keep your scene's entrypoint, assets and settings. The guide also offers an opti
 
 ### 2. Configure the behaviour
 
-Edit your `src/npc/guard/guard.domain` and its `guard_kit.domain` include, then regenerate TypeScript:
+Edit your `src/npc/guard/guard.domain` and its `guard_kit.domain` include. The game-owned `htn.config.json` lists generation targets.
+The setup adds generation before npm start/build/deploy. For live edits:
 
 ```sh
-npm run htn:compile -- src/npc/guard/guard.domain src/npc/guard/guard.htn.ts guardDomain
-npm run htn:notices
-npm run htn:notices -- --check
+npm run htn:watch
 ```
 
-Commit the `.domain` sources and generated output together. Your game owns these files; the library stays in `src/htn-planner/`.
+Wait for **READY**, keep the watcher open, and start your normal preview. On **FAILED / STALE**, fix the error before testing:
+an open preview may still show the last successful build. Commit your config, sources and generated output together.
+For Creator Hub Publish and direct SDK commands, follow the [generation workflow](src/htn-planner/README.md#domain-generation-and-preview).
 
 ### 3. Connect
 

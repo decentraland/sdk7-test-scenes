@@ -21,14 +21,16 @@ positions or noises. Position the route inside your scene. This is local-client 
 synchronize NPCs across players. Call `guards.despawn()` when the encounter ends. Spawn registers one squad system;
 adding another update system would tick the same NPCs twice.
 
-Change behaviour in your game-owned `src/npc/guard/guard.domain` and its `guard_kit.domain` include, then regenerate:
+Change behaviour in your game-owned `src/npc/guard/guard.domain` and its `guard_kit.domain` include.
+For live editing, start the configured generation watcher before your normal preview:
 
 ```sh
-npm run htn:compile -- src/npc/guard/guard.domain src/npc/guard/guard.htn.ts guardDomain
-npm run htn:compile -- --check src/npc/guard/guard.domain
+npm run htn:watch
 ```
 
-Edit `.domain` sources, not generated `.htn.ts` files. The compile command needs the include beside its source.
+Wait for READY; keep the watcher running. Edit `.domain` sources, not generated `.htn.ts` files.
+A one-off `npm run htn:generate` uses the same game-owned config. See [generation and Creator Hub](README.md#domain-generation-and-preview)
+for error/stale-preview handling and direct Publish checks.
 
 ## 2. Drive an existing entity
 
