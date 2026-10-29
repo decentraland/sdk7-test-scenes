@@ -39,9 +39,12 @@ export const DEFAULT_PERCEPTION: PerceptionConfig = {
  * (SDK raycasts resolve a frame or more later), so callers must tolerate a short lag.
  */
 export interface LineOfSight {
-  check(observerId: string, eye: Vec3, target: Vec3, now: number): boolean
+  // A stable target ID keeps asynchronous caches independent. Omit only for a single-target caller.
+  check(observerId: string, eye: Vec3, target: Vec3, now: number, targetId?: string): boolean
   /** Drop any per-observer resources (raycast entities). */
   release?(observerId: string): void
+  /** Drop one vanished target without disturbing the observer's other pending queries. */
+  releaseTarget?(observerId: string, targetId: string): void
 }
 
 export const CLEAR_LINE_OF_SIGHT: LineOfSight = { check: () => true }
@@ -188,7 +191,7 @@ export class Perception {
       const inSight =
         range > 0 &&
         inViewCone(self.position, self.yaw, target.position, cfg, range) &&
-        los.check(observerId, eyeOf(self.position, cfg), aimOf(target.position, cfg), now)
+        los.check(observerId, eyeOf(self.position, cfg), aimOf(target.position, cfg), now, target.id)
       const smelled = !inSight && cfg.presenceRadius > 0 && distanceXZ(self.position, target.position) <= cfg.presenceRadius
       const sees = inSight || smelled
       track.range = range
@@ -222,6 +225,7 @@ export class Perception {
       if (present.has(id)) return
       if (track.detected && track.lastSeen) lost.push({ id, position: track.lastSeen, time: track.lastSeenAt })
       this.tracks.delete(id)
+      los.releaseTarget?.(observerId, id)
     })
     visible.sort((a, b) => a.distance - b.distance)
     return { visible, lost, suspicion }

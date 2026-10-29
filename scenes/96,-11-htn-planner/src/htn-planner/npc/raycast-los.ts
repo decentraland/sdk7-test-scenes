@@ -1,9 +1,9 @@
 // Scene line of sight through SDK7 raycasts. Results are asynchronous: raycastSystem registers the
 // ray on the next tick and the renderer answers a frame or more later, so check() returns the
-// latest finished answer (false until the first one) and keeps one ray in flight per observer.
+// latest finished answer (false until the first one) and keeps one ray in flight per observer-target pair.
 // Headless (Node tests) no result ever arrives, so this always reports "blocked": use
 // GeometricLineOfSight there.
-import { ColliderLayer, engine, Entity, RaycastQueryType, raycastSystem, Transform } from '@dcl/sdk/ecs'
+import { ColliderLayer, engine, Entity, Raycast, RaycastQueryType, raycastSystem, Transform } from '@dcl/sdk/ecs'
 import type { LineOfSight } from './perception'
 import { distance, Vec3 } from './vec'
 
@@ -26,10 +26,22 @@ interface Ray {
   inFlightSince: number | null
   visible: boolean
   answeredAt: number
+  generation: number
 }
 
 export class RaycastLineOfSight implements LineOfSight {
-  private readonly rays = new Map<string, Ray>()
+  private readonly rays = new Map<string, Map<string | undefined, Ray>>()
+  private readonly queuedDisposals = new Set<Entity>()
+  private readonly flushDisposals = () => {
+    // SDK raycast registration is queued until its next system tick. Clean up after it, even if
+    // release() ran before that registration: removeRaycasterEntity() cannot cancel that queue.
+    for (const entity of this.queuedDisposals) {
+      raycastSystem.removeRaycasterEntity(entity)
+      engine.removeEntity(entity)
+    }
+    this.queuedDisposals.clear()
+    engine.removeSystem(this.flushDisposals)
+  }
   private readonly mask: number
   private readonly clearance: number
   private readonly endSlack: number
@@ -44,32 +56,56 @@ export class RaycastLineOfSight implements LineOfSight {
     this.timeout = opts.timeout ?? 1
   }
 
-  check(observerId: string, eye: Vec3, target: Vec3, now: number): boolean {
-    let ray = this.rays.get(observerId)
-    if (!ray) {
-      ray = { entity: engine.addEntity(), inFlightSince: null, visible: false, answeredAt: -Infinity }
-      this.rays.set(observerId, ray)
+  check(observerId: string, eye: Vec3, target: Vec3, now: number, targetId?: string): boolean {
+    let targets = this.rays.get(observerId)
+    if (!targets) {
+      targets = new Map()
+      this.rays.set(observerId, targets)
     }
-    if (ray.inFlightSince !== null && now - ray.inFlightSince > this.timeout) {
-      raycastSystem.removeRaycasterEntity(ray.entity)
-      ray.inFlightSince = null
+    let ray = targets.get(targetId)
+    if (ray && ray.inFlightSince !== null && now - ray.inFlightSince > this.timeout) {
+      // A late renderer answer must not be delivered to the replacement query on the same entity.
+      this.dispose(ray)
+      targets.delete(targetId)
+      ray = undefined
+    }
+    if (!ray) {
+      ray = { entity: engine.addEntity(), inFlightSince: null, visible: false, answeredAt: -Infinity, generation: 0 }
+      targets.set(targetId, ray)
     }
     if (ray.inFlightSince === null) this.cast(ray, eye, target, now)
     return ray.visible && now - ray.answeredAt <= this.maxAge
   }
 
+  releaseTarget(observerId: string, targetId: string): void {
+    const targets = this.rays.get(observerId)
+    const ray = targets?.get(targetId)
+    if (!targets || !ray) return
+    this.dispose(ray)
+    targets.delete(targetId)
+    if (targets.size === 0) this.rays.delete(observerId)
+  }
+
   release(observerId: string): void {
-    const ray = this.rays.get(observerId)
-    if (!ray) return
-    raycastSystem.removeRaycasterEntity(ray.entity)
-    engine.removeEntity(ray.entity)
+    const targets = this.rays.get(observerId)
+    if (!targets) return
+    for (const ray of targets.values()) this.dispose(ray)
     this.rays.delete(observerId)
   }
 
   releaseAll(): void {
-    const ids: string[] = []
-    this.rays.forEach((_r, id) => ids.push(id))
-    for (const id of ids) this.release(id)
+    for (const id of this.rays.keys()) this.release(id)
+  }
+
+  private dispose(ray: Ray): void {
+    ray.generation++
+    const queued = ray.inFlightSince !== null && !Raycast.has(ray.entity)
+    raycastSystem.removeRaycasterEntity(ray.entity)
+    if (!queued) engine.removeEntity(ray.entity)
+    else {
+      if (this.queuedDisposals.size === 0) engine.addSystem(this.flushDisposals, -1)
+      this.queuedDisposals.add(ray.entity)
+    }
   }
 
   private cast(ray: Ray, eye: Vec3, target: Vec3, now: number): void {
@@ -85,6 +121,7 @@ export class RaycastLineOfSight implements LineOfSight {
     Transform.createOrReplace(ray.entity, { position: origin })
     ray.inFlightSince = now
     const ignore = this.opts.ignore
+    const generation = ++ray.generation
     raycastSystem.registerGlobalTargetRaycast(
       {
         entity: ray.entity,
@@ -92,6 +129,7 @@ export class RaycastLineOfSight implements LineOfSight {
         opts: { target: { x: target.x, y: target.y, z: target.z }, maxDistance: length, queryType: RaycastQueryType.RQT_QUERY_ALL, collisionMask: this.mask }
       },
       result => {
+        if (ray.generation !== generation) return
         const skip = new Set<number>()
         if (ignore) for (const e of ignore()) skip.add(e as number)
         ray.visible = !result.hits.some(h => h.length < length - this.endSlack && !(h.entityId !== undefined && skip.has(h.entityId)))
