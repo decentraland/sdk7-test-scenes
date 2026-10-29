@@ -581,7 +581,7 @@ The scene's **HTN debugger** panel (scene README, "The HTN debugger") shows the 
   a line on the ground to where its step goes. With many NPCs keep everyone at step and press 1 on the one you
   watch for full. Point at an NPC: the hover lists the keys; F replans it now (trigger `debug`: a plan that changes
   on F alone was stale, a missed replan trigger), 4 prints its goal, why, plan and world to the console (copy it
-  into a test), E opens the panel on it, 2 / 3 pause and step everyone.
+  into a test), E opens the panel on it; with the panel open, 2 / 3 pause and step everyone.
 - **What does it sense? The sense gizmos.** At full (and for the NPC selected in the panel at step) each NPC that
   perceives draws its sight cone where its head looks, out to the range its targets' light allows now, its presence
   disc and the last noise it heard with that noise's radius; red seen, purple smelled, orange in sight but not yet

@@ -107,7 +107,7 @@ function syncHovers() {
   }
 }
 
-/** The system: clicks and keys on bodies (and 1-3 anywhere), hover lines. */
+/** The system: clicks, keys on bodies, global overlay, and pause/step while the panel is open. */
 export function setupPicking(): void {
   let since = HOVER_PERIOD
   engine.addSystem(dt => {

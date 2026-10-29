@@ -206,8 +206,8 @@ step and why it last planned.
   | E | `IA_PRIMARY` | open the panel on it (again: close) |
   | F | `IA_SECONDARY` | replan it now (trigger `debug`) |
   | 1 | `IA_ACTION_3` | its own overlay level off → step → full (pointing at nothing: everyone's) |
-  | 2 | `IA_ACTION_4` | pause / run every planner host (also pointing at nothing) |
-  | 3 | `IA_ACTION_5` | step one frame, paused (also pointing at nothing) |
+  | 2 | `IA_ACTION_4` | pause / run every planner host while the debugger panel is open (also pointing at nothing) |
+  | 3 | `IA_ACTION_5` | step one frame, paused, while the debugger panel is open (also pointing at nothing) |
   | 4 | `IA_ACTION_6` | log its goal, why, plan, steps done and world to the console (`[htn-debug]`) |
 
 The line under the panel: the hosts, their plans, steps done and total planning time (upstream's toolbar line), then
