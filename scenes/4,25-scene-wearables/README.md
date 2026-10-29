@@ -32,8 +32,8 @@ synced outfit.
 ### AvatarShape ON A PLAYER ENTITY
 
 - A field left unset keeps the profile value.
-- `wearables`: a non-empty list **replaces** the whole wearable set, like on an NPC. Unlisted categories fall to
-  defaults. Catalog URNs and scene `.glb` paths are both allowed. An empty list keeps the profile wearables.
+- `wearables`: a non-empty list **replaces** the whole wearable set, like on an NPC. Unlisted categories stay
+  empty: the base body shows, with its face. Catalog URNs and scene `.glb` paths are both allowed. An empty list keeps the profile wearables.
 - A scene `.glb` is always rendered and hides nothing (a `skin` one still hides the body parts it replaces). Catalog
   URNs keep their own hiding rules.
 - `bodyShape`, `skinColor`, `hairColor`, `eyeColor`, `showOnlyWearables` apply when set.
@@ -92,7 +92,7 @@ After, there is never a second avatar:
 | --- | --- | --- |
 | **Add on top** | Equipped items, then the scene wearables picked in the panel; deleted when nothing is picked | Profile look plus the picks, each replacing the profile item of its category |
 | **Colours only** | Green skin, red hair, empty `wearables` | Profile body and wearables, green skin, red hair |
-| **Replace list** | Black jacket, then the picks | Profile body and colours. Black jacket and the picks; every other category falls to the body defaults (face, hair, trousers, shoes) |
+| **Replace list** | Black jacket, then the picks | Profile body and colours. Black jacket and the picks; every other category stays empty: no hair, bare legs and feet |
 | **Other body** | The other body shape, empty `wearables` | Profile wearables and colours on the other body. Emotes still play |
 | **Show only wearables** | `showOnlyWearables`, empty `wearables` | Profile wearables only: no skin, hair or face |
 | **Only a missing path** | A `.glb` path the scene does not ship | Exact profile look, with a `Scene wearable ... skipped` warning |

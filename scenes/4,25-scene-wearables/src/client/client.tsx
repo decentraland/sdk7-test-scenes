@@ -206,7 +206,17 @@ function profileWearables() {
   return (getEquippedWearables(engine.PlayerEntity) ?? []).map(({ urn, visible }) => {
     const [label, color] = VISIBILITY[visible === undefined ? 2 : visible ? 1 : 0]
     const value = `${urn.split(':').pop()}: ${label}`
-    return <Label key={urn} value={value} fontSize={12} color={color} uiTransform={{ height: 14 }} />
+    return (
+      <Label
+        key={urn}
+        value={value}
+        fontSize={12}
+        color={color}
+        textAlign="middle-left"
+        textWrap="nowrap"
+        uiTransform={{ width: '100%', height: 14 }}
+      />
+    )
   })
 }
 
