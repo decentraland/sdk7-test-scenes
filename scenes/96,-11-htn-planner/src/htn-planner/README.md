@@ -12,28 +12,18 @@ relative to the source scene; create destination folders as needed:
 | From this source scene | Into your scene |
 | --- | --- |
 | Entire `src/htn-planner/` | Same path, including `LICENSE` and `LICENSE.htn_planner`. |
-| Compiler files below, plus `tools/htn/LICENSE` and `tools/htn/LICENSE.htn_planner` | Same `tools/htn/` paths; authoring only. |
-| `scripts/htn-compile.mjs`, `scripts/htn-notices.mjs` | Same paths; authoring only. |
-| `src/examples/guard/guard.domain`, `guard_kit.domain`, `guard.htn.ts` | All three into `src/npc/guard/`; these belong to your game. |
+| Entire `tools/htn-authoring/` | Same path; prepared Node-only compiler, notices and licences. |
+| Entire `src/examples/guard/` | `src/npc/guard/`; these source/include/generated files belong to your game. |
 
-Copy these **13 compiler files** from `tools/htn/` (the runner, viewer and catalogues are not needed):
-
-```text
-ast.ts             check-methods.ts  cli.ts          compiler.ts
-diagnostics.ts     emit.ts           lexer.ts        linker.ts
-loader.ts          parser.ts         reachability.ts validator.ts
-worldstate.ts
-```
-
-Install your SDK scene dependencies normally. The compiler uses `esbuild` from the existing SDK toolchain; there is
-no new runtime npm package. Keep TypeScript's include scoped to `src/`; if it uses `**/*`, exclude `tools/htn` and any
-`reference/htn` folder.
+Copy folders whole; you do not need to select the compiler's internal files or copy the demo.
+Install your SDK scene dependencies normally. The prepared compiler needs Node, not a runtime package or `esbuild`.
+Keep TypeScript's include scoped to `src/`; if it uses `**/*`, exclude `tools/htn-authoring` and any `reference/htn` folder.
 
 Merge these entries into `package.json`'s `scripts`, preserving its other commands:
 
 ```json
-"htn:compile": "node scripts/htn-compile.mjs",
-"htn:notices": "node scripts/htn-notices.mjs"
+"htn:compile": "node tools/htn-authoring/compiler.cjs",
+"htn:notices": "node tools/htn-authoring/notices.mjs"
 ```
 
 Run `npm run htn:notices` before both build and deploy: set `prebuild`/`predeploy` to it when absent, or prepend
@@ -44,9 +34,7 @@ Append these support-file exclusions to your existing `.dclignore` (keep its exi
 
 ```text
 src/htn-planner
-tools/htn
-scripts/htn-compile.mjs
-scripts/htn-notices.mjs
+tools/htn-authoring
 src/npc/guard/*.domain
 reference/htn
 ```
@@ -156,7 +144,7 @@ For a maintained update or release:
    `localChanges: true` needs the actual source snapshot alongside the commit to be reproducible.
 2. Review runtime/compiler changes together. Recompile your game-owned `.domain` sources; generated method IDs and
    deferred steps belong to one compiled revision. Reload through the host; do not reuse old plan steps.
-3. In the source checkout, regenerate committed examples with `npm run htn:examples` and run `npm run htn:ci`.
+3. In the source checkout, run `npm run htn:authoring` after compiler or notice changes; CI checks the prepared files against their sources. Regenerate committed examples with `npm run htn:examples` and run `npm run htn:ci`.
    Inspect generated and baseline diffs. For a changed conformance expectation, retain its upstream test locator;
    regenerate golden plans from the independently built pinned C++ driver (`npm run htn:golden`, source conformance
    guide), never from the TypeScript result being tested. A matching self-generated plan is only a regression check.
@@ -181,7 +169,7 @@ included in the SDK deployment list. Keep it tracked in Git and deployed. In the
 the canonical example notices; optional reference-only copies in a consumer do not require shipping their unused assets.
 When you promote an example into runtime, carry its applicable notices too; this generator is not a licence scanner.
 
-The compiler, reference sources and their assets belong on disk for authoring, not in your deployed game. Tree shaking
+The prepared compiler, reference sources and their assets belong on disk for authoring, not in your deployed game. Tree shaking
 removes unused code from the bundle; `.dclignore` separately controls raw files uploaded by the SDK. Use the manual
 exclusions above or let the alternative installer add them; keep assets used by your game published.
 

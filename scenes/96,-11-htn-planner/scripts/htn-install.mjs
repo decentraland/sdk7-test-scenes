@@ -41,12 +41,16 @@ async function main() {
     }
   }
   await tree(path.join(source, 'src/htn-planner'), 'src/htn-planner')
-  // Compiler dependency closure; runner/catalogue/viewer are repository-only tools.
-  for (const name of ['ast', 'check-methods', 'cli', 'compiler', 'diagnostics', 'emit', 'lexer', 'linker', 'loader', 'parser', 'reachability', 'validator', 'worldstate']) {
-    const rel = 'tools/htn/' + name + '.ts'
-    add(rel, await fs.readFile(path.join(source, rel)))
+  // Normal authoring uses the prepared folder, not the compiler's internal source-file closure.
+  await tree(path.join(source, 'tools/htn-authoring'), 'tools/htn-authoring')
+  if (args.includes('--testing') || args.includes('--benchmark')) {
+    // Optional source-based checks/measurements import compiler internals; the starter does not.
+    for (const name of ['ast', 'check-methods', 'cli', 'compiler', 'diagnostics', 'emit', 'lexer', 'linker', 'loader', 'parser', 'reachability', 'validator', 'worldstate']) {
+      const rel = 'tools/htn/' + name + '.ts'
+      add(rel, await fs.readFile(path.join(source, rel)))
+    }
+    for (const name of ['LICENSE', 'LICENSE.htn_planner']) add('tools/htn/' + name, await fs.readFile(path.join(source, 'tools/htn', name)))
   }
-  for (const name of ['LICENSE', 'LICENSE.htn_planner']) add('tools/htn/' + name, await fs.readFile(path.join(source, 'tools/htn', name)))
   for (const name of ['htn-compile', 'htn-notices']) add('scripts/' + name + '.mjs', await fs.readFile(path.join(source, 'scripts', name + '.mjs')))
   if (args.includes('--testing') || args.includes('--benchmark')) {
     await tree(path.join(source, 'src/htn-testing'), 'src/htn-testing')
@@ -95,16 +99,18 @@ async function main() {
   }
   pkg.scripts ??= {}
   const optionalScripts = { ...(args.includes('--testing') ? { 'htn:check': 'node scripts/htn-check.mjs' } : {}), ...(args.includes('--benchmark') ? { 'htn:measure': 'node scripts/htn-measure.mjs' } : {}) }
-  for (const [name, command] of Object.entries({ ...optionalScripts, 'htn:compile': 'node scripts/htn-compile.mjs', 'htn:notices': 'node scripts/htn-notices.mjs' })) {
-    if (pkg.scripts[name] && pkg.scripts[name] !== command) throw new Error('Conflicting npm script: ' + name + '. Resolve it before installing.')
-    pkg.scripts[name] = command
+  const legacyScripts = { 'htn:compile': 'node scripts/htn-compile.mjs', 'htn:notices': 'node scripts/htn-notices.mjs' }
+  for (const [name, command] of Object.entries({ ...optionalScripts, 'htn:compile': 'node tools/htn-authoring/compiler.cjs', 'htn:notices': 'node tools/htn-authoring/notices.mjs' })) {
+    const previous = pkg.scripts[name]
+    if (previous && previous !== command && previous !== legacyScripts[name]) throw new Error('Conflicting npm script: ' + name + '. Resolve it before installing.')
+    pkg.scripts[name] ??= command // Keep known older entrypoints as well as current manual-copy commands.
   }
   for (const hook of ['prebuild', 'predeploy']) {
     if (!pkg.scripts[hook]?.includes('npm run htn:notices')) pkg.scripts[hook] = 'npm run htn:notices' + (pkg.scripts[hook] ? ' && ' + pkg.scripts[hook] : '')
   }
   add('package.json', JSON.stringify(pkg, null, 2) + '\n', true)
   const ignored = (await read(path.join(target, '.dclignore')))?.toString() ?? ''
-  const patterns = ['src/htn-planner', 'tools/htn', 'scripts/htn-compile.mjs', 'scripts/htn-notices.mjs', 'reference/htn', 'src/npc/guard/*.domain', 'src/htn-testing', 'tools/consumer', 'scripts/htn-check.mjs', 'scripts/htn-measure.mjs', 'scripts/bench', 'htn-tests', 'htn-reports', 'docs/consumer-testing.md', 'docs/consumer-benchmark.md']
+  const patterns = ['src/htn-planner', 'tools/htn', 'tools/htn-authoring', 'scripts/htn-compile.mjs', 'scripts/htn-notices.mjs', 'reference/htn', 'src/npc/guard/*.domain', 'src/htn-testing', 'tools/consumer', 'scripts/htn-check.mjs', 'scripts/htn-measure.mjs', 'scripts/bench', 'htn-tests', 'htn-reports', 'docs/consumer-testing.md', 'docs/consumer-benchmark.md']
   const existing = new Set(ignored.split(/\r?\n/).map(s => s.trim().replace(/\/$/, '')))
   const extra = patterns.filter(p => !existing.has(p))
   add('.dclignore', ignored + (ignored && !ignored.endsWith('\n') ? '\n' : '') + extra.map(p => p + '\n').join(''), true)

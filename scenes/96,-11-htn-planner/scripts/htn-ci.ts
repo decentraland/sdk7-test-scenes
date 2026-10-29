@@ -71,6 +71,7 @@ export function runCi(root: string, run: RunNode = runNode, out: Output = consol
     let roots: string[] = []
     const steps: [string, () => number][] = [
       ['Redistribution notices and SDK publish inclusion', () => run(['scripts/htn-notices.mjs', '--check'], root)],
+      ['Prepared authoring files match compiler and notice sources', () => run(['scripts/htn-authoring.mjs', '--check'], root)],
       ['Headless tests and generated modules', () => run(['scripts/run-tests.mjs'], root)],
       ['Scene types', () => run([tsc, '--noEmit'], root)],
       ['Tools and test types', () => run([tsc, '-p', 'tsconfig.tools.json'], root)],

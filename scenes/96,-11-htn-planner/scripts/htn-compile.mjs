@@ -1,32 +1,15 @@
-// Compile a .domain file into a DomainIR TS module (Node only; the compiler never ships in the scene).
+// Compatibility entry for the compact Node-only authoring compiler.
 // Usage: npm run htn:compile -- <file.domain> <out.ts> [exportName] [--ir-import <specifier>]
-//        npm run htn:compile -- --check <file.domain|file.worldstate>...   (validate only; exit 4 on errors)
-// Bundles tools/htn/cli.ts with esbuild into a temp file, runs it, and forwards its exit code.
-import { build } from 'esbuild'
+//        npm run htn:compile -- --check <file.domain|file.worldstate>...
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const root = join(import.meta.dirname, '..')
-const bundled = await build({
-  entryPoints: [join(root, 'tools/htn/cli.ts')],
-  bundle: true,
-  platform: 'node',
-  format: 'cjs',
-  target: 'node20',
-  write: false,
-  logLevel: 'warning'
+const root = fileURLToPath(new URL('../', import.meta.url))
+const compiler = fileURLToPath(new URL('../tools/htn-authoring/compiler.cjs', import.meta.url))
+const result = spawnSync(process.execPath, [compiler, ...process.argv.slice(2)], {
+  stdio: 'inherit',
+  windowsHide: true,
+  env: { ...process.env, HTN_REPO_ROOT: root }
 })
-const dir = mkdtempSync(join(tmpdir(), 'htn-compile-'))
-try {
-  const cli = join(dir, 'cli.cjs')
-  writeFileSync(cli, bundled.outputFiles[0].contents)
-  const result = spawnSync(process.execPath, [cli, ...process.argv.slice(2)], {
-    stdio: 'inherit',
-    env: { ...process.env, HTN_REPO_ROOT: root }
-  })
-  process.exitCode = result.status ?? 1
-} finally {
-  rmSync(dir, { recursive: true, force: true })
-}
+if (result.error) console.error(`htn:compile: ${result.error.message}`)
+process.exitCode = result.status ?? 1

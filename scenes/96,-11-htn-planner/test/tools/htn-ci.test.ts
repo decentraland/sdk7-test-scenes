@@ -96,7 +96,7 @@ test('CI sequence preserves every external check and uses scene cwd and the reso
     const code = runCi(root, (args, cwd) => { assert.equal(cwd, root); calls.push(args); return 0 }, text => stages.push(text), assert.fail)
     assert.equal(code, 0)
     assert.deepEqual(calls.map(args => [args[0].endsWith(path.join('typescript', 'bin', 'tsc')) ? 'tsc' : args[0], ...args.slice(1)]), [
-      ['scripts/htn-notices.mjs', '--check'], ['scripts/run-tests.mjs'], ['tsc', '--noEmit'],
+      ['scripts/htn-notices.mjs', '--check'], ['scripts/htn-authoring.mjs', '--check'], ['scripts/run-tests.mjs'], ['tsc', '--noEmit'],
       ['tsc', '-p', 'tsconfig.tools.json'], ['tsc', '-p', 'tsconfig.viewer.json'], ['scripts/htn-lint.mjs', 'src']
     ])
     assert.ok(stages.findIndex(line => line.includes('compiled successfully')) < stages.findIndex(line => line.includes('Domain lint')))
@@ -106,7 +106,7 @@ test('CI sequence preserves every external check and uses scene cwd and the reso
 
 test('CI fail-fast forwards each external failure and never starts later checks', () => {
   fixture({ 'root.domain': good }, root => {
-    for (let failAt = 0; failAt < 6; failAt++) {
+    for (let failAt = 0; failAt < 7; failAt++) {
       const calls: string[][] = [], err: string[] = []
       const code = runCi(root, args => { calls.push(args); return calls.length === failAt + 1 ? 17 : 0 }, () => {}, text => err.push(text))
       assert.equal(code, 17)
@@ -120,7 +120,7 @@ test('CI root errors stop before lint, and strict warnings fail even when every 
   fixture({ 'bad.domain': '(:domain Bad top_level_domain (:method (behave) top_level_method (oops () ((missing)))))' }, root => {
     const calls: string[][] = []
     assert.equal(runCi(root, args => { calls.push(args); return 0 }, () => {}, () => {}), 4)
-    assert.equal(calls.length, 5)
+    assert.equal(calls.length, 6)
   })
   fixture({ 'unsafe.domain': `(:domain Unsafe top_level_domain ${fallback})` }, root => {
     const err: string[] = []

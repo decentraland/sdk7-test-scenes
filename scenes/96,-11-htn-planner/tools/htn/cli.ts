@@ -8,6 +8,7 @@
 // import specifier defaults to the path of src/htn-planner/htn/ir (or world-state) relative to <out.ts>.
 import * as fs from 'node:fs'
 import * as nodePath from 'node:path'
+export { splitDomainFile } from './loader'
 import { WorldState } from '../../src/htn-planner/htn/world-state'
 import { compileDomainFile, emitDomainModule, emitWorldStateModule, formatDiagnostic, parseWorldState } from './compiler'
 
@@ -161,4 +162,4 @@ function main(args: string[]): number {
   return 0
 }
 
-process.exitCode = main(process.argv.slice(2))
+if (require.main === module) process.exitCode = main(process.argv.slice(2))

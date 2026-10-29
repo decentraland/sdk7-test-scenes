@@ -24,7 +24,8 @@
     "htn:notices": "node scripts/htn-notices.mjs",
     "prebuild": "npm run htn:notices",
     "predeploy": "npm run htn:notices",
-    "htn:perf": "node scripts/htn-perf.mjs"
+    "htn:perf": "node scripts/htn-perf.mjs",
+    "htn:authoring": "node scripts/htn-authoring.mjs"
   },
   "engines": {
     "node": ">=20.0.0",
@@ -39,6 +40,7 @@
   "devDependencies": {
     "@dcl/js-runtime": "7.30.1",
     "@dcl/sdk": "7.30.1",
-    "elkjs": "0.10.2"
+    "elkjs": "0.10.2",
+    "esbuild": "0.18.20"
   }
 }

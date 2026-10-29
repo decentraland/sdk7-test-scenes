@@ -53,6 +53,10 @@ async function published(dir: string): Promise<string[]> {
 test('creator install compiles README/HOW-TO recipes and publishes only runtime before and after reference deletion', { timeout: 120000 }, async () => {
   const dir = fixture()
   try {
+    const initial = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'))
+    initial.scripts['htn:compile'] = 'node scripts/htn-compile.mjs'
+    initial.scripts['htn:notices'] = 'node scripts/htn-notices.mjs'
+    fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify(initial))
     ok(install(dir, '--starter', '--reference'))
     assert.equal(fs.readFileSync(path.join(dir, 'src/index.ts'), 'utf8'), 'export const existingGame = true\n')
     for (const [name, content] of Object.entries(INSTRUCTIONS)) assert.equal(fs.readFileSync(path.join(dir, name), 'utf8'), content)
@@ -60,6 +64,8 @@ test('creator install compiles README/HOW-TO recipes and publishes only runtime 
     assert.ok(fs.existsSync(path.join(dir, 'reference/htn/assets/stalker/stalker.glb')))
     assert.ok(!fs.existsSync(path.join(dir, 'src/examples')))
     assert.ok(!fs.existsSync(path.join(dir, 'tools/htn/run.ts')), 'compiler install excludes the demo runner')
+    assert.ok(fs.existsSync(path.join(dir, 'tools/htn-authoring/compiler.cjs')))
+    assert.ok(!fs.existsSync(path.join(dir, 'tools/htn/compiler.ts')), 'ordinary authoring needs no loose compiler source closure')
     assert.ok(fs.readFileSync(path.join(dir, 'reference/htn/docs/htn-guidance.md'), 'utf8').includes('../src/htn-planner/htn/README.md'))
     const source = JSON.parse(fs.readFileSync(path.join(dir, 'src/htn-planner/SOURCE.json'), 'utf8'))
     assert.match(source.url, /^https:\/\/github\.com\/decentraland\/sdk7-test-scenes\/tree\//)
@@ -96,6 +102,8 @@ test('creator install compiles README/HOW-TO recipes and publishes only runtime 
     assert.ok(fs.readFileSync(gameDomain, 'utf8').endsWith('// My game adaptation\n'))
     const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'))
     assert.equal(pkg.scripts.prebuild, 'npm run htn:notices && node -e ""')
+    assert.equal(pkg.scripts['htn:compile'], 'node scripts/htn-compile.mjs', 'known legacy compile alias stays usable')
+    assert.equal(pkg.scripts['htn:notices'], 'node scripts/htn-notices.mjs', 'known legacy notice alias stays usable')
     for (const [name, content] of Object.entries(INSTRUCTIONS)) assert.equal(fs.readFileSync(path.join(dir, name), 'utf8'), content)
     assert.ok(!fs.existsSync(path.join(dir, 'reference/htn')), 'update does not restore deleted optional references')
   } finally { clean(dir) }
