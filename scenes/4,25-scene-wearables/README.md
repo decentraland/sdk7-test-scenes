@@ -41,9 +41,89 @@ synced outfit.
   profile name and no emote plays.
 - The override is local to the client and only active while the scene is current. NPCs are unchanged.
 
-Because the list replaces, this scene writes the player's equipped items (`AvatarEquippedData.wearableUrns`) followed
-by the picked scene paths, which come last and so win per category. It re-dresses when the equipped items change, waits
-for `AvatarEquippedData` and `AvatarBase` to exist, and deletes `AvatarShape` when nothing is picked.
+### RECIPES
+
+Starting points for a scene, each a case of `playerShape` in `src/client/client.tsx`. They share one helper: it writes
+only when the value changes, because every write reloads the avatar, and `undefined` restores the profile look.
+
+```ts
+import {
+  AvatarBase, AvatarEquippedData, AvatarShape, engine, Entity, PBAvatarShape, PlayerIdentityData
+} from '@dcl/sdk/ecs'
+import { Color3 } from '@dcl/sdk/math'
+
+const BASE = 'urn:decentraland:off-chain:base-avatars:'
+const written = new Map<Entity, string>()
+
+function dressPlayer(player: Entity, shape: Partial<PBAvatarShape> | undefined) {
+  const identity = PlayerIdentityData.getOrNull(player)
+  if (!identity) return
+  const key = identity.address + JSON.stringify(shape ?? null)
+  if (written.get(player) === key) return
+  written.set(player, key)
+  if (shape) AvatarShape.createOrReplace(player, { id: identity.address, emotes: [], wearables: [], ...shape })
+  else AvatarShape.deleteFrom(player)
+}
+```
+
+**Add on top: the player's outfit plus a scene item** (case **Add on top**). The scene item comes last, so it replaces
+the profile item of its category. Profile items of other categories stay, since a scene item hides nothing and nothing
+hides it: profile dungarees and a scene kilt overlap. The equipped items are in the key, so a backpack change
+re-dresses. Pick the model by body shape when the item has one per body.
+
+```ts
+const KILT = { male: 'wearables/kilt/kilt_m_lower_body.glb', female: 'wearables/kilt/kilt_f_lower_body.glb' }
+
+engine.addSystem(() => {
+  const equipped = AvatarEquippedData.getOrNull(engine.PlayerEntity)
+  const avatarBase = AvatarBase.getOrNull(engine.PlayerEntity)
+  if (!equipped || !avatarBase) return
+  const female = avatarBase.bodyShapeUrn.toLowerCase().endsWith(':basefemale')
+  dressPlayer(engine.PlayerEntity, { wearables: [...equipped.wearableUrns, female ? KILT.female : KILT.male] })
+})
+```
+
+**Uniform: the scene outfit wins outright** (cases **Replace list**, **Full AvatarShape**). List the whole outfit and
+leave the equipped items out. Every unlisted category stays empty (no hair, bare feet), so list them too. Catalog URNs
+and scene paths mix freely.
+
+```ts
+const UNIFORM = ['short_hair', 'black_jacket', 'brown_pants', 'classic_shoes'].map((w) => BASE + w)
+
+engine.addSystem(() =>
+  dressPlayer(engine.PlayerEntity, { wearables: [...UNIFORM, 'wearables/laurel_wreath/laurel_wreath_tiara.glb'] })
+)
+```
+
+**Same outfit, other look** (cases **Colours only**, **Other body**, **Show only wearables**). An empty `wearables`
+keeps the profile items, and every unset field keeps the profile value. The fields combine with each other and with
+either recipe above.
+
+```ts
+dressPlayer(engine.PlayerEntity, { skinColor: Color3.Green(), hairColor: Color3.Red(), wearables: [] })
+dressPlayer(engine.PlayerEntity, { bodyShape: BASE + 'BaseMale', wearables: [] })
+dressPlayer(engine.PlayerEntity, { showOnlyWearables: true, wearables: [] })
+```
+
+**Back to the profile look**: `dressPlayer(player, undefined)` deletes `AvatarShape`. Leaving the scene restores the
+profile look without any write.
+
+**Everyone sees it** (example **Synced**). The override shows only on the client that writes it, so every client
+dresses every player from state the scene syncs, here the server-written `Outfits`:
+
+```ts
+engine.addSystem(() => {
+  for (const [player, identity] of engine.getEntitiesWith(PlayerIdentityData))
+    dressPlayer(player, shapeFor(identity.address.toLowerCase()))
+})
+```
+
+Not possible yet:
+
+- Keeping some profile categories and dropping others (the player's hair, the scene's clothes):
+  `AvatarEquippedData` has URNs only, with no categories or hiding rules.
+- Hiding a profile item with a scene item of another category.
+- Overriding the name, emotes or expressions.
 
 | Concern | Where |
 | --- | --- |
