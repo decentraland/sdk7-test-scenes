@@ -121,10 +121,12 @@ JavaScript / SDK7
 Game integration and HTN library
 Executes NPC plans`"]
         Sources -->|"`Source text, includes
-and target configuration`"| Authoring
+Target configuration`"| Authoring
         Authoring -->|"`Compiles and writes`"| Generated
-        Generated -->|"`TypeScript build input`"| Build
-        Build -->|"`Produces bin/index.js`"| Runtime
+        Generated -->|"`TypeScript
+build input`"| Build
+        Build -->|"`Produces
+bin/index.js`"| Runtime
     end
     Client["`**Decentraland client**
 External application

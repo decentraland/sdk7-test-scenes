@@ -269,20 +269,31 @@ Decision traces, metrics and snapshots`"]
     end
 
     Game -->|"`plannerFor(domain)
-syncFacts, actions, tuning`"| Bridge
+syncFacts, actions
+tuning`"| Bridge
     Bridge -->|"`Reads scene samples
-Writes NPC transforms`"| SDK
-    Bridge -->|"`tick(dt, targets, noises)`"| Agent
-    Agent -->|"`Targets and noise events`"| Senses
-    Agent -->|"`Refreshes beliefs and game facts`"| State
-    Agent -->|"`plan / resolve / current / complete`"| Runner
-    Runner -->|"`DomainIR and task arguments`"| Engine
-    Engine -->|"`Fact queries and condition matching`"| State
+Writes NPC
+transforms`"| SDK
+    Bridge -->|"`tick(dt, targets,
+noises)`"| Agent
+    Agent -->|"`Targets and
+noise events`"| Senses
+    Agent -->|"`Refreshes beliefs
+and game facts`"| State
+    Agent -->|"`plan / resolve
+current / complete`"| Runner
+    Runner -->|"`DomainIR and
+task arguments`"| Engine
+    Engine -->|"`Fact queries and
+condition matching`"| State
     Agent -->|"`start / update / cancel`"| Actions
     Actions -->|"`running / done / failed`"| Agent
-    Actions -->|"`Memory and route fact updates`"| State
-    Engine -.->|"`Optional decomposition traces`"| Debug
-    Agent -.->|"`History, events and metrics`"| Debug
+    Actions -->|"`Memory and route
+fact updates`"| State
+    Engine -.->|"`Optional decomposition
+traces`"| Debug
+    Agent -.->|"`History, events
+and metrics`"| Debug
 
     classDef game fill:#fff0d5,stroke:#c88719,color:#172033;
     classDef library fill:#dceeff,stroke:#3975aa,color:#172033;
