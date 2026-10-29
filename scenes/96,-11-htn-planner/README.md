@@ -8,6 +8,23 @@ includes an SDK7 NPC host. A first capsule guard needs no models or audio.
 The SDK host runs NPCs on the local client. Your game owns multiplayer authority and synchronization.
 The reusable module is `src/htn-planner/`; the full demonstration scene is a separate consumer.
 
+```mermaid
+flowchart LR
+    Rules["Behavior rules<br/>Tasks and alternative ways to do them"]
+    Facts["Game state<br/>What the NPC knows"]
+    subgraph Module["HTN module"]
+        Planner["Planner<br/>Choose a suitable plan"]
+        Host["NPC host<br/>Execute the plan"]
+        Planner -->|"Action steps"| Host
+    end
+    Rules --> Planner
+    Facts --> Planner
+    Host --> Actions["Your scene<br/>Movement, sound, interactions"]
+    Actions -->|"Update game state"| Facts
+```
+
+When the world changes, the host can replan using fresh facts.
+
 ## Install with an AI agent
 
 Give your coding agent this prompt:
