@@ -96,22 +96,55 @@ For loading-phase preparation and staged activation, see [Preparation → Ready 
 
 ```mermaid
 flowchart LR
-    Creator(["Creator"])
-    subgraph Project["SDK7 game project"]
-        Sources[("Behavior sources<br/>File store<br/>.domain files + configuration")]
-        Authoring["HTN authoring tool<br/>Node.js application<br/>htn:generate"]
-        Runtime["Scene application<br/>JavaScript / SDK7<br/>Game code + HTN library"]
-        Sources -->|"Read and compile"| Authoring
-        Authoring -->|"Generated TypeScript<br/>included through SDK build"| Runtime
+    Creator(["`**Creator**
+Game author
+Edits behavior and runs tools`"])
+    subgraph Project["`**SDK7 game project**
+Development and runtime artifacts`"]
+        Sources["`**Behavior sources**
+Game-owned file artifacts
+.domain files and includes
+Generation targets in configuration`"]
+        Authoring["`**HTN authoring tool**
+Node.js application / htn:generate
+Reads configured sources
+Compiles behavior modules`"]
+        Generated["`**Generated behavior**
+TypeScript file artifacts
+.htn.ts modules exporting DomainIR`"]
+        Build["`**SDK build**
+Node.js application / SDK7 toolchain
+Bundles game, HTN and behavior
+Produces the scene JavaScript`"]
+        Runtime["`**Scene application**
+JavaScript / SDK7
+Game integration and HTN library
+Executes NPC plans`"]
+        Sources -->|"`Source text, includes
+and target configuration`"| Authoring
+        Authoring -->|"`Compiles and writes`"| Generated
+        Generated -->|"`TypeScript build input`"| Build
+        Build -->|"`Produces bin/index.js`"| Runtime
     end
-    Client["Decentraland client<br/>External system"]
-    Creator -->|"Edits"| Sources
-    Creator -->|"Runs generation"| Authoring
-    Runtime -->|"Uses rendering, input and scene APIs"| Client
+    Client["`**Decentraland client**
+External application
+Rendering, input and scene APIs`"]
+    Creator -->|"`Edits`"| Sources
+    Creator -->|"`Runs generation`"| Authoring
+    Runtime -->|"`Uses scene APIs`"| Client
+
+    classDef game fill:#fff0d5,stroke:#c88719,color:#172033;
+    classDef artifact fill:#fff8e8,stroke:#b49861,color:#172033;
+    classDef application fill:#dceeff,stroke:#3975aa,color:#172033;
+    classDef external fill:#eeeeee,stroke:#777777,color:#172033;
+    class Creator game;
+    class Sources,Generated artifact;
+    class Authoring,Build,Runtime application;
+    class Client external;
 ```
 
-The Node.js authoring tool runs during development. Generated TypeScript reaches the scene through the SDK build,
-not a network service. See [runtime components](src/htn-planner/HOW-TO.md#runtime-components-c3) for the scene's internal roles.
+Authoring and build run during development; the client executes the resulting scene JavaScript. Arrows name file inputs,
+build results or interface use, not network services or deployment boundaries. See [runtime components](src/htn-planner/HOW-TO.md#runtime-components-c3).
 
 ## Make your own behaviour
 

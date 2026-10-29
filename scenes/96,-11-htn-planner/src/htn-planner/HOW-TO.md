@@ -223,24 +223,79 @@ still incur first-use costs. Measure model, animation and audio preparation sepa
 
 ```mermaid
 flowchart TB
-    subgraph Runtime["Scene application — zoom into C2"]
-        Game["Game integration<br/>Your configuration, facts and custom actions"]
-        subgraph Library["HTN library"]
-            Host["NPC host<br/>GuardSquad + GuardAgent<br/>Lifecycle, perception and replanning"]
-            Planner["Planning<br/>decompose + PlanRunner<br/>Build plans and resolve their steps"]
-            Facts["NPC state<br/>WorldState + blackboard<br/>Facts and remembered information"]
-            Actions["Built-in action executors<br/>Movement, waiting and memory updates"]
-            Host -->|"Requests plans and next steps"| Planner
-            Planner -->|"Reads current facts"| Facts
-            Host -->|"Updates facts and memory"| Facts
-            Host -->|"Starts, updates and cancels"| Actions
+    SDK["`**Decentraland SDK**
+External interface
+Entities, transforms and raycasts`"]
+
+    subgraph Runtime["`**Scene runtime**
+SDK7 / JavaScript — one client`"]
+        Game["`**Your game integration**
+Game-owned TypeScript
+Compiled behavior and extra facts
+Custom action implementations`"]
+
+        subgraph Library["`**HTN library**
+TypeScript runtime`"]
+            Bridge["`**Scene adapter**
+TypeScript: GuardSquad
+Owns bodies and frame updates
+Copies NPC poses to ECS`"]
+            Agent["`**NPC controller**
+TypeScript: GuardAgent
+Updates beliefs and running actions
+Keeps or replaces plans`"]
+            Senses["`**Perception**
+TypeScript: Perception / Hearing
+Sight, noise and alert evaluation`"]
+            State["`**Belief state**
+GuardBlackboard / WorldState
+Per-NPC facts, memory and route`"]
+            Runner["`**Plan management**
+TypeScript: PlanRunner
+Owns cursor and remaining steps
+Resolves deferred tasks`"]
+            Engine["`**HTN decomposition**
+TypeScript: Engine
+Matches conditions, decomposes tasks
+Produces primitive / deferred steps`"]
+            Actions["`**Action execution**
+ActionFactory / ActionExecutor
+Built-ins plus injected implementations
+Action duration and effects`"]
+            Debug["`**Optional diagnostics**
+Trace / history / DebugSession
+Decision traces, metrics and snapshots`"]
         end
-        Game -->|"Supplies configuration and game hooks"| Host
     end
-    SDK["Decentraland SDK<br/>External interface"]
-    Host -->|"Samples the scene and updates NPC entities"| SDK
+
+    Game -->|"`plannerFor(domain)
+syncFacts, actions, tuning`"| Bridge
+    Bridge -->|"`Reads scene samples
+Writes NPC transforms`"| SDK
+    Bridge -->|"`tick(dt, targets, noises)`"| Agent
+    Agent -->|"`Targets and noise events`"| Senses
+    Agent -->|"`Refreshes beliefs and game facts`"| State
+    Agent -->|"`plan / resolve / current / complete`"| Runner
+    Runner -->|"`DomainIR and task arguments`"| Engine
+    Engine -->|"`Fact queries and condition matching`"| State
+    Agent -->|"`start / update / cancel`"| Actions
+    Actions -->|"`running / done / failed`"| Agent
+    Actions -->|"`Memory and route fact updates`"| State
+    Engine -.->|"`Optional decomposition traces`"| Debug
+    Agent -.->|"`History, events and metrics`"| Debug
+
+    classDef game fill:#fff0d5,stroke:#c88719,color:#172033;
+    classDef library fill:#dceeff,stroke:#3975aa,color:#172033;
+    classDef external fill:#eeeeee,stroke:#777777,color:#172033;
+    classDef optional fill:#f0e7ff,stroke:#9467bd,color:#172033,stroke-dasharray:5 4;
+    class Game game;
+    class Bridge,Agent,Senses,State,Runner,Engine,Actions library;
+    class SDK external;
+    class Debug optional;
 ```
 
-These are static roles and calls, not the sequence of each update. The
+Gold is game-owned code, blue is library runtime and extension contracts, grey is the SDK, and purple/dashed is optional diagnostics.
+Arrows name in-process operations, inputs or returned status; dashed lines mean optional, not network or asynchronous work.
+This is a static view, not the sequence of each update. The
 [project containers](https://github.com/decentraland/sdk7-test-scenes/blob/feat/htn-planner-port/scenes/96,-11-htn-planner/README.md#project-containers-c2)
-show the authoring/build context outside this runtime.
+show authoring and SDK build outside this runtime.
