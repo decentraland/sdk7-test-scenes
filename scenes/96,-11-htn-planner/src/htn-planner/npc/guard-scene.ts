@@ -303,9 +303,14 @@ export class GuardSquad {
   /** The planning budget per frame shared by the guards and the squad planner (option `budget`), or null. */
   readonly budget: PlanBudget | null
   private handles: GuardHandle[] = []
+  private readonly liveHandles = new Set<GuardHandle>()
   private ownLos: RaycastLineOfSight | null = null
   /** The squad's system: this frame of the scene clock, in steps of at most maxDt; nothing while paused. */
-  private readonly system = () => this.clock.each(this.opts.maxDt ?? 0.1, dt => this.update(dt))
+  private readonly system = () => {
+    if (this.clock.dt <= 0) return
+    this.budget?.beginFrame()
+    this.clock.each(this.opts.maxDt ?? 0.1, dt => this.updateStep(dt))
+  }
   private readonly clock = sceneClock()
   private systemAdded = false
   /** Spawned and not despawned since: the noise cursor and the player noise are set up. */
@@ -394,7 +399,9 @@ export class GuardSquad {
       })
       body.write(agent.kinematic)
       body.setMode(agent.mode)
-      this.handles.push({ spec, agent, body })
+      const handle = { spec, agent, body }
+      this.handles.push(handle)
+      this.liveHandles.add(handle)
     }
     if (specs.length > 0) this.requestDecision('roster', true)
     if (!this.started) {
@@ -433,20 +440,24 @@ export class GuardSquad {
   remove(id: string): void {
     const h = this.handles.find(x => x.spec.id === id)
     if (h === undefined) return
+    // Detach before callbacks from stop(): reentrant removal cannot dispose the same body twice.
+    this.handles = this.handles.filter(x => x !== h)
+    this.liveHandles.delete(h)
     h.agent.stop()
     h.body.dispose()
-    this.handles = this.handles.filter(x => x !== h)
     this.orderRows.delete(id)
     this.applied.delete(id)
     this.requestDecision('roster', true)
   }
 
   despawn(): void {
-    for (const h of this.handles) {
+    const handles = this.handles
+    this.handles = []
+    this.liveHandles.clear()
+    for (const h of handles) {
       h.agent.stop()
       h.body.dispose()
     }
-    this.handles = []
     this.orderRows.clear()
     this.applied.clear()
     this.squadRunner?.clear()
@@ -467,17 +478,24 @@ export class GuardSquad {
     this.ownLos = null
   }
 
+  /** One caller-managed frame. The ECS system shares a budget across its clock substeps instead. */
   update(dt: number): void {
+    this.budget?.beginFrame()
+    this.updateStep(dt)
+  }
+
+  private updateStep(dt: number): void {
     const step = Math.min(dt, this.opts.maxDt ?? 0.1)
     this.time += step
-    this.budget?.beginFrame()
     const targets = (this.opts.targets ?? playerTargets)()
     const bus = this.bus()
     const noises = bus ? bus.since(this.noiseCursor) : []
     if (bus) this.noiseCursor = bus.lastSeq
     if (this.opts.squad) this.think(this.opts.squad)
-    for (const h of this.handles) {
+    for (const h of this.handles.slice()) {
+      if (!this.liveHandles.has(h)) continue
       h.agent.tick(step, targets, noises)
+      if (!this.liveHandles.has(h)) continue
       h.body.write(h.agent.kinematic)
       h.body.setMode(h.agent.mode)
     }

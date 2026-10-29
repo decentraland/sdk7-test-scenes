@@ -77,7 +77,9 @@ export class GuardBlackboard {
    */
   forgetNoise(heardAt?: number): boolean {
     if (this.noise === null) return false
-    if (heardAt !== undefined && Math.abs(this.noise.time - heardAt) > 1e-3) return false
+    // Domain timestamps are float32 atoms; compare in that representation, not with a fixed epsilon.
+    // Distinct noises within one float32 time bucket still share the existing timestamp identity.
+    if (heardAt !== undefined && Math.fround(this.noise.time) !== Math.fround(heardAt)) return false
     this.noise = null
     this.world.clear('heard_noise', 4)
     return true

@@ -434,10 +434,13 @@ export class GuardAgent {
   private ticking = false
   private pendingAlso: ReplanTrigger[] = []
   private pendingFrames = 0
+  private deniedBudgetFrame = -1
   /** The world the last replan planned against (kept only while someone listens: history or onEvent). */
   private plannedWorld: WorldSnapshot | null = null
   private urgentReplan = true
   private lastReplanAt = -Infinity
+  /** stop() is terminal: stale host references and in-flight callbacks cannot resume this agent. */
+  private stopped = false
   private perceptionKey = '|'
   private noiseRank = 0
   /** What `readsOf` describes; `reads` recomputes when the active runner's domain is another object. */
@@ -539,12 +542,14 @@ export class GuardAgent {
    * ('request', or 'debug' for a debugger). A request while one is pending joins it (its trigger in `also`).
    */
   requestReplan(reason: string, urgent = false, trigger: ReplanTrigger = 'request'): void {
+    if (this.stopped) return
     if (this.pendingReplan === null) {
       this.pendingReplan = reason
       this.pendingTrigger = trigger
       this.pendingAt = this.ticking ? this.time : NaN
       this.pendingAlso = []
       this.pendingFrames = 0
+      this.deniedBudgetFrame = -1
     } else if (trigger !== this.pendingTrigger && !this.pendingAlso.includes(trigger)) this.pendingAlso.push(trigger)
     this.urgentReplan = this.urgentReplan || urgent
   }
@@ -557,12 +562,13 @@ export class GuardAgent {
 
   /** `noises`: events emitted since the previous tick (e.g. NoiseBus.since(cursor)). */
   tick(dt: number, targets: readonly TargetSample[], noises: readonly NoiseEvent[] = []): void {
+    if (this.stopped) return
     this.time += dt
     if (Number.isNaN(this.pendingAt)) this.pendingAt = this.time
     this.ticking = true
     try {
       this.sense(dt, targets, noises)
-      this.execute(dt)
+      if (!this.stopped) this.execute(dt)
     } finally {
       this.ticking = false
     }
@@ -577,7 +583,9 @@ export class GuardAgent {
    * factory (upstream keeps the active domain and rolls back).
    */
   reload(planner: PlannerFactory): void {
+    if (this.stopped) return
     this.cancelExecutor()
+    if (this.stopped) return
     this.active.clear()
     this.spare?.clear()
     this.planner = planner
@@ -598,8 +606,10 @@ export class GuardAgent {
     this.setPending('reload', 'reload')
   }
 
-  /** Cancel the running step and drop the plan (despawn, possession end). */
+  /** Permanently stop this agent and release its plan/resources (despawn, possession end). Idempotent. */
   stop(): void {
+    if (this.stopped) return
+    this.stopped = true
     this.cancelExecutor()
     this.active.clear()
     this.spare?.clear()
@@ -631,15 +641,19 @@ export class GuardAgent {
     const key = this.knowledgeKey()
     if (key !== this.perceptionKey) {
       this.emit({ type: 'sense', guard: this.id, what: 'perception', from: this.perceptionKey, to: key })
+      if (this.stopped) return
       this.requestReplan(`perception ${this.perceptionKey} -> ${key}`, false, 'perception')
       this.perceptionKey = key
     }
     if (reads.hearing) this.listen(dt, noises)
     else if (this.hearingOn) this.stopHearing()
+    if (this.stopped) return
     if (this.syncFacts) {
       const extra = this.syncFacts(this)
+      if (this.stopped) return
       if (extra !== this.extraKey) {
         this.emit({ type: 'sense', guard: this.id, what: 'facts', from: this.extraKey, to: extra })
+        if (this.stopped) return
         this.requestReplan(`facts ${this.extraKey} -> ${extra}`, false, 'facts')
         this.extraKey = extra
       }
@@ -675,6 +689,7 @@ export class GuardAgent {
     this.lastHearing = result
     for (const h of result.heard) {
       this.emit({ type: 'heard', guard: this.id, kind: h.kind, source: h.source, perceived: h.perceived, muffled: h.muffled, alert: result.alert, level: result.level })
+      if (this.stopped) return
     }
     if (result.loudest) {
       const h = result.loudest
@@ -721,7 +736,7 @@ export class GuardAgent {
     let deferredThisTick = false
     if (this.executor !== null && this.activePlan !== undefined && this.checkStep && !this.checkRunning(this.activePlan)) this.rejectRunning()
     let dtLeft = dt
-    for (let i = 0; i < this.maxStepsPerTick; i++) {
+    for (let i = 0; i < this.maxStepsPerTick && !this.stopped; i++) {
       // At most one replan per tick; a throttled request waits while the current step keeps running.
       if (this.pendingReplan !== null && !replannedThisTick && !deferredThisTick) {
         if (this.urgentReplan || this.time - this.lastReplanAt >= this.replanThrottle - TIME_EPSILON) {
@@ -729,7 +744,7 @@ export class GuardAgent {
           else deferredThisTick = true
         }
       }
-      if (!this.hasPlan) break
+      if (this.stopped || !this.hasPlan) break
 
       let status: ActionStatus
       if (this.executor === null) {
@@ -748,25 +763,32 @@ export class GuardAgent {
         }
         const factory = Object.prototype.hasOwnProperty.call(this.actions, step.name) ? this.actions[step.name] : undefined
         let executor = factory ? factory(step.args, this.ctx) : null
+        if (this.stopped) return
         this.emit({ type: 'step', guard: this.id, name: step.name, args: step.args })
+        if (this.stopped) return
         if (executor === null) {
           this.noExecutor(step.name, factory ? `the ${step.name} executor rejected ${formatTask(step.name, step.args)}` : `no executor for ${step.name}`)
+          if (this.stopped) return
           executor = timed(NO_EXECUTOR_SECONDS)
         }
         this.executor = executor
         this.executorName = step.name
         if (this.publishesRunning) this.publishRunning(step)
+        if (this.stopped) return
         status = executor.start()
       } else {
         status = this.executor.update(dtLeft)
         dtLeft = 0
       }
 
+      if (this.stopped) return
       if (status === 'running') break
-      this.emit({ type: 'step_end', guard: this.id, name: this.executorName, status })
+      const name = this.executorName
       this.executor = null
       this.executorName = ''
       this.unpublishRunning()
+      this.emit({ type: 'step_end', guard: this.id, name, status })
+      if (this.stopped) return
       if (status === 'done') {
         this.metrics.tasksCompleted++
         this.active.complete()
@@ -931,8 +953,11 @@ export class GuardAgent {
       return true
     }
     if (!budget.tryRun(this, this.urgentReplan || !this.hasPlan, () => this.replan(reason))) {
-      this.metrics.budgetDeferred++
-      this.pendingFrames++
+      this.metrics.budgetDeferred++ // Denied attempts, including substeps.
+      if (this.deniedBudgetFrame !== budget.stats.frame) {
+        this.pendingFrames++
+        this.deniedBudgetFrame = budget.stats.frame
+      }
       return false
     }
     this.metrics.budgetMaxWaitFrames = Math.max(this.metrics.budgetMaxWaitFrames, budget.lastWaitFrames)
@@ -944,6 +969,7 @@ export class GuardAgent {
     if (!this.hasPlan) this.dropActivePlan()
     // Beliefs first: what the decision below, the trigger keys and the fact changes read is the world after upkeep.
     const upkeep = this.reasoning === undefined ? null : this.upkeep(this.reasoning)
+    if (this.stopped) return
     const trigger = this.pendingTrigger
     const also = this.pendingAlso
     const waited = this.time - this.pendingAt
@@ -963,6 +989,7 @@ export class GuardAgent {
     if (!running) this.active.clear()
     const target = running ? this.spareRunner() : this.active
     const { status, passes } = this.planInto(target)
+    if (this.stopped) return
     this.lastPlanStatus = status
     let kept = false
     let continued = false
@@ -987,6 +1014,7 @@ export class GuardAgent {
       target.clear()
     } else {
       if (running) this.adopt(target)
+      if (this.stopped) return
       this.hasPlan = true
       if (this.continueTask !== undefined) this.noteContinueSteps()
     }
@@ -1018,7 +1046,7 @@ export class GuardAgent {
     if (runner === null) return null
     const applied: string[] = []
     let settled = false
-    for (let pass = 0; pass < this.reasoningPasses && !settled; pass++) {
+    for (let pass = 0; pass < this.reasoningPasses && !settled && !this.stopped; pass++) {
       const started = this.clock()
       const status = runner.plan(method, [])
       this.metrics.reasoningMade++
@@ -1031,7 +1059,7 @@ export class GuardAgent {
         return null
       }
       settled = status !== 'succeeded' || runner.resolve() !== 'ready'
-      while (!settled && runner.resolve() === 'ready') {
+      while (!settled && !this.stopped && runner.resolve() === 'ready') {
         const step = runner.current()
         if (step === null) break
         applied.push(formatTask(step.name, step.args))
@@ -1040,6 +1068,7 @@ export class GuardAgent {
       }
       runner.clear()
     }
+    if (this.stopped) return applied
     if (!settled && !this.unsettledSaid) {
       this.unsettledSaid = true
       this.diagnostic('reasoning_unsettled', `reasoning '${method}' used its ${this.reasoningPasses}-plan budget before confirming settlement; allow a final empty pass or inspect rules for non-progress`)
@@ -1166,11 +1195,14 @@ export class GuardAgent {
 
   private cancelExecutor(): void {
     if (this.executor === null) return
-    this.executor.cancel()
-    this.emit({ type: 'step_end', guard: this.id, name: this.executorName, status: 'cancelled' })
+    const executor = this.executor
+    const name = this.executorName
+    // Clear before user code: cancel() and the event callback may call stop/remove again.
     this.executor = null
     this.executorName = ''
     this.unpublishRunning()
+    executor.cancel()
+    this.emit({ type: 'step_end', guard: this.id, name, status: 'cancelled' })
   }
 
   private emit(event: GuardEvent): void {
