@@ -4,27 +4,22 @@ Copy this whole folder to `tools/htn-authoring/` beside the [runtime module](../
 It is Node-only authoring code; do not import it from your scene. No compiler source-file selection or runtime npm dependency is needed.
 Keep both licence files with it.
 
-## Generate and watch your domains
+## Generate your domains
 
-Copy `htn.config.example.json` to your scene root as `htn.config.json` for the starter, or edit your existing game-owned config.
-Each `domains` entry names project-relative `source` and `output` paths plus an optional `exportName`.
-Use distinct TypeScript output files and keep the config with your game, not inside this tools folder.
+Copy `htn.config.example.json` to your scene root as `htn.config.json` for the starter, or preserve your existing config.
+Each `domains` entry names project-relative `source` and distinct TypeScript `output` paths plus an optional `exportName`.
+Keep this game-owned config outside the tools folder. After editing a source or include, run from the scene root:
 
 ```sh
 node tools/htn-authoring/generate.mjs
-node tools/htn-authoring/generate.mjs --watch
 ```
 
-Run from the scene root; `--config path/to/htn.config.json` selects another config whose directory is the project root.
-The watcher reads the compiler's exact include list, including relative, absolute and missing paths. It publishes only
-changed outputs after every configured domain compiles. READY means generation succeeded, not that Explorer was tested.
-On FAILED / STALE, no candidates are published; an open preview may still use its previous bundle. Fix the error and
-wait for READY before trying or publishing. Ctrl+C stops watching. A second watcher for the same config is rejected.
+The manual setup provides the shorter `npm run htn:generate` command and npm lifecycle hooks.
+`--config path/to/htn.config.json` selects another config whose directory is the project root.
+See [generation and Creator Hub](../../src/htn-planner/README.md#domain-generation-and-preview) for Preview, errors and Publish checks.
+For frequent edits, `--watch` is available through the [optional watcher](../../src/htn-planner/README.md#optional-watch).
 
-Use generation in npm `prestart`, `prebuild` and `predeploy` as described in the module guide. Creator Hub and direct SDK
-commands bypass npm hooks: keep the watcher open for Preview, and explicitly generate and check notices before Publish.
-The individual compiler commands below remain available for one-off checks and overrides.
-Run from your SDK7 scene root:
+The individual compiler commands below remain available for checks and overrides. Run from your SDK7 scene root:
 
 ```sh
 node tools/htn-authoring/compiler.cjs src/npc/guard/guard.domain src/npc/guard/guard.htn.ts guardDomain

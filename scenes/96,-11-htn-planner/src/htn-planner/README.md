@@ -55,7 +55,7 @@ npm run htn:notices
 npm run htn:notices -- --check
 ```
 
-Edit your `guard.domain` and its `guard_kit.domain` include. The hooks regenerate `guard.htn.ts`; do not edit generated code
+After editing `guard.domain` or its `guard_kit.domain` include, run `npm run htn:generate`; edit sources, not generated code
 by hand. Commit these game-owned sources/output together. Record the source repository URL and full commit in your
 game's README or source note, including any local changes; manual copying does not create `SOURCE.json` automatically.
 Keep that pin for examples and future updates.
@@ -86,23 +86,28 @@ Otherwise read them at your recorded source commit (or the `SOURCE.json.url` fro
 
 ## Domain generation and preview
 
-For live editing, run `npm run htn:watch` in a terminal and wait for **READY**, then start your normal preview.
-Keep the watcher open while editing. It follows the configured sources and exact include paths, including nested,
-missing or external includes. Saving a valid change writes fresh `.htn.ts` files, which the SDK watcher then rebuilds.
-Unchanged outputs are not rewritten. Stop the watcher with Ctrl+C; only one watcher may own a config at a time.
+After changing a configured `.domain` source or include, run:
 
-On **FAILED / STALE**, no candidate outputs are published. The watcher reports the error and retries after an input change.
-An open Explorer or SDK server may still show its last successful bundle; do not judge or publish that as the new behaviour.
-Fix the error and wait for READY again. All domains must compile before any output is replaced.
+```sh
+npm run htn:generate
+```
+
+Wait for **READY**, then try the result in your normal Preview. If Preview is already open, the generated `.htn.ts` changes
+trigger SDK hot reload. All configured domains compile before any output is replaced; unchanged outputs are not rewritten.
+On **FAILED / STALE**, fix the error and run generation again. An open Explorer or SDK server may still show its last
+successful bundle; do not judge or publish that as the new behaviour. READY confirms generation, not client verification.
+
+The setup also runs generation before npm start/build/deploy, preserving the original commands.
+**Creator Hub and direct SDK commands bypass those hooks:** generate explicitly after edits and before Preview.
+Before Hub Publish, successfully run `npm run htn:generate`, `npm run htn:notices`, and `npm run htn:notices -- --check`.
 Removing a config entry does not delete its old output; update game imports and remove unused generated files yourself.
+For one-off compiler options, `htn:compile` remains available; see the [authoring tool guide](../../tools/htn-authoring/README.md).
 
-**Creator Hub:** Preview and Publish launch SDK commands directly, bypassing npm hooks. Start `htn:watch` separately before
-Hub Preview and wait for READY. Before Hub Publish, run `npm run htn:generate`, `npm run htn:notices`, and
-`npm run htn:notices -- --check` successfully. The Node/headless workflow is checked; verify the encounter in your target client.
+### Optional: watch
 
-Your original `npm start` keeps its command and gets an initial generation through `prestart`; it does not start a watcher.
-For a one-off compile or extra compiler options, `htn:compile` remains available. See the
-[authoring tool guide](../../tools/htn-authoring/README.md) in the source checkout or at your recorded source revision.
+For frequent edits, `npm run htn:watch` generates continuously. Keep its terminal open and wait for READY before trying changes.
+It follows exact nested, missing and external include paths. After an error, it retries when an input changes; the same
+FAILED / STALE caveat above applies. Stop it with Ctrl+C. Only one watcher can own a config; stop it before updating the tools.
 
 ## Choose the right planning contract
 
@@ -143,7 +148,7 @@ installing the full demo. You can delete `reference/htn/` at any time without ch
 
 ## Update
 
-Stop any generation watcher before updating. Copy the library/compiler files from the desired source revision using the same list above; preserve your game-owned
+If you use the optional watcher, stop it before updating. Copy the library/compiler files from the desired source revision using the same list above; preserve your game-owned
 `src/npc/guard/`, actions, facts, assets and scene wiring. Alternatively run the installer with `--update`; it refreshes
 module files/metadata and leaves a complete existing guard unchanged, even with `--starter`.
 Recompile your domains after updating and check them in your game. Compare old/new file lists before removing obsolete

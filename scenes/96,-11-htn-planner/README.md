@@ -24,8 +24,9 @@ https://github.com/decentraland/sdk7-test-scenes/blob/feat/htn-planner-port/scen
    game-owned guard files. Keep existing code, assets, settings, npm commands
    and project instructions. The automated installer is an alternative.
 3. Adapt the guard or use a matching HOW-TO recipe. Keep my behaviour, actions
-   and assets outside the library. Compile changed .domain sources; preserve
-   the source commit and licences. Find examples through the module guide.
+   and assets outside the library. After changing .domain sources or includes,
+   run npm run htn:generate before previewing. Preserve the source commit and
+   licences. Find examples through the module guide.
 4. Run the relevant available checks and build. Report what was connected,
    checks passed, and how I can try the behaviour in Explorer. Keep client
    verification separate from headless results.
@@ -41,16 +42,16 @@ Keep your scene's entrypoint, assets and settings. The guide also offers an opti
 
 ### 2. Configure the behaviour
 
-Edit your `src/npc/guard/guard.domain` and its `guard_kit.domain` include. The game-owned `htn.config.json` lists generation targets.
-The setup adds generation before npm start/build/deploy. For live edits:
+Edit your `src/npc/guard/guard.domain` and its `guard_kit.domain` include, then run:
 
 ```sh
-npm run htn:watch
+npm run htn:generate
 ```
 
-Wait for **READY**, keep the watcher open, and start your normal preview. On **FAILED / STALE**, fix the error before testing:
-an open preview may still show the last successful build. Commit your config, sources and generated output together.
-For Creator Hub Publish and direct SDK commands, follow the [generation workflow](src/htn-planner/README.md#domain-generation-and-preview).
+The generated TypeScript triggers SDK hot reload if Preview is open; otherwise start your normal Preview.
+The game-owned `htn.config.json` lists generation targets. Commit the config, sources and generated output together.
+See the [generation workflow](src/htn-planner/README.md#domain-generation-and-preview) for errors and direct Creator Hub Publish,
+or the [optional watcher](src/htn-planner/README.md#optional-watch) for frequent edits.
 
 ### 3. Connect
 
