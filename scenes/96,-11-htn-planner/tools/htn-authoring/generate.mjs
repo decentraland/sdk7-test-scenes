@@ -13,6 +13,7 @@ const require = createRequire(import.meta.url)
 const key = file => process.platform === 'win32' ? file.toLowerCase() : file
 const inside = (root, file) => { const rel = path.relative(root, file); return rel === '' || (!rel.startsWith('..' + path.sep) && rel !== '..' && !path.isAbsolute(rel)) }
 let dependencyFiles = new Set()
+let attemptSnapshot
 
 function checkedPath(root, value, field) {
   if (typeof value !== 'string' || !value.trim() || path.isAbsolute(value)) throw new Error(field + ' must be a nonempty project-relative path')
@@ -61,9 +62,10 @@ function dependencies(entries, configFile) {
     seen.add(key(canonical))
     let text
     try { text = fs.readFileSync(canonical, 'utf8') } catch { return }
-    for (const include of splitDomainFile(text).includes) visit(path.resolve(path.dirname(canonical), include.path))
+    for (const include of splitDomainFile(text).includes) visit(path.resolve(path.dirname(resolved), include.path))
   }
-  for (const entry of entries) visit(entry.source)
+  // The compiler has a fresh canonical visited set for each top-level load.
+  for (const entry of entries) { seen.clear(); visit(entry.source) }
   return files
 }
 
@@ -110,6 +112,7 @@ function generate(configFile) {
   const { root, entries } = configuration(configFile)
   dependencyFiles = dependencies(entries, configFile)
   const before = snapshot(dependencyFiles)
+  attemptSnapshot = before
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'htn-generate-'))
   const candidates = []
   try {
@@ -165,6 +168,7 @@ async function main() {
     else throw new Error(usage)
   }
   const run = () => {
+    attemptSnapshot = undefined
     try { generate(configFile); return true }
     catch (error) {
       console.error('htn:generate: FAILED / STALE — ' + error.message)
@@ -176,10 +180,10 @@ async function main() {
   const success = run()
   if (!watch) { if (!success) process.exitCode = 1; return }
   console.log('htn:generate: watching configured domains and their includes; keep this terminal open')
-  let prior = snapshot(dependencyFiles)
+  let prior = attemptSnapshot ?? snapshot(dependencyFiles)
   const timer = setInterval(() => {
     const next = snapshot(dependencyFiles)
-    if (next !== prior) { run(); prior = next }
+    if (next !== prior) { run(); prior = attemptSnapshot ?? next }
   }, 200)
   const stop = signal => {
     clearInterval(timer)

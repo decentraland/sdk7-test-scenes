@@ -34,9 +34,9 @@ function generate(dir: string, ...args: string[]) {
 }
 function ok(result: ReturnType<typeof generate>) { assert.equal(result.status, 0, result.stdout + result.stderr) }
 function text(dir: string) { return fs.readFileSync(path.join(dir, config.domains[0].output), 'utf8') }
-function plan(dir: string) {
+function plan(dir: string, modulePath = './npc/main.htn', exportName = 'exampleDomain') {
   const entry = path.join(dir, 'src/probe.ts'), output = path.join(dir, 'probe.cjs')
-  fs.writeFileSync(entry, "import { exampleDomain } from './npc/main.htn'; import { decompose } from './htn-planner/htn/planner'; import { WorldState } from './htn-planner/htn/world-state'; console.log(JSON.stringify(decompose(exampleDomain, new WorldState(), 'behave', [])))")
+  fs.writeFileSync(entry, "import { " + exportName + " } from '" + modulePath + "'; import { decompose } from './htn-planner/htn/planner'; import { WorldState } from './htn-planner/htn/world-state'; console.log(JSON.stringify(decompose(" + exportName + ", new WorldState(), 'behave', [])))")
   const result = buildSync({ entryPoints: [entry], outfile: output, bundle: true, platform: 'node', format: 'cjs', metafile: true, logLevel: 'silent' })
   assert.ok(!Object.keys(result.metafile!.inputs).some(p => /tools[\\/]htn-authoring/.test(p)), 'the runtime bundle must not import authoring code')
   const run = spawnSync(process.execPath, [output], { cwd: dir, encoding: 'utf8', windowsHide: true })
@@ -144,4 +144,72 @@ test('watch follows external and missing includes, recovers after errors, reject
     await waitFor(() => running!.output().includes('READY'), running.output)
     assert.equal(plan(dir).plan[0].args[0].v, 12)
   } finally { if (running) await stop(running.child); clean(dir); clean(external) }
+})
+
+test('watch resolves nested junction includes from the same lexical path as the compiler', { timeout: 30000 }, async () => {
+  const dir = fixture(), external = fixture()
+  let running: ReturnType<typeof watch> | undefined
+  try {
+    const linked = path.join(external, 'linked')
+    fs.mkdirSync(linked)
+    fs.writeFileSync(path.join(linked, 'kit.domain'), '(:include "../shared/leaf.domain")\n(:domain Kit (:method (work) (run () ((leaf)))))')
+    fs.mkdirSync(path.join(external, 'shared'))
+    fs.writeFileSync(path.join(external, 'shared/leaf.domain'), '(:domain Leaf (:method (leaf) (run () ((!wait 99)))))')
+    const leaf = path.join(dir, 'src/shared/leaf.domain')
+    fs.writeFileSync(leaf, '(:domain Leaf (:method (leaf) (run () ((!wait 4)))))')
+    fs.symlinkSync(linked, path.join(dir, 'src/alias'), 'junction')
+    fs.writeFileSync(path.join(dir, config.domains[0].source), main.replace('../shared/kit.domain', '../alias/kit.domain'))
+    fs.mkdirSync(path.join(dir, 'extra/npc'), { recursive: true })
+    fs.mkdirSync(path.join(dir, 'extra/shared'))
+    fs.symlinkSync(linked, path.join(dir, 'extra/alias'), 'junction')
+    const secondLeaf = path.join(dir, 'extra/shared/leaf.domain')
+    fs.writeFileSync(secondLeaf, '(:domain Leaf (:method (leaf) (run () ((!wait 10)))))')
+    fs.writeFileSync(path.join(dir, 'extra/npc/other.domain'), main.replace('../shared/kit.domain', '../alias/kit.domain'))
+    fs.writeFileSync(path.join(dir, 'htn.config.json'), JSON.stringify({ domains: [...config.domains, { source: 'extra/npc/other.domain', output: 'extra/npc/other.htn.ts', exportName: 'otherDomain' }] }))
+    running = watch(dir)
+    await waitFor(() => running!.output().includes('READY'), running.output)
+    assert.equal(plan(dir).plan[0].args[0].v, 4, 'the compiler follows the lexical include path through the junction')
+    const before = text(dir)
+    fs.writeFileSync(leaf, '(:domain Leaf (:method (leaf) (run () ((!wait 6)))))')
+    await waitFor(() => text(dir) !== before, running.output)
+    assert.equal(plan(dir).plan[0].args[0].v, 6)
+    assert.equal(plan(dir, '../extra/npc/other.htn', 'otherDomain').plan[0].args[0].v, 10)
+    const secondOutput = path.join(dir, 'extra/npc/other.htn.ts')
+    const secondBefore = fs.readFileSync(secondOutput, 'utf8')
+    fs.writeFileSync(secondLeaf, '(:domain Leaf (:method (leaf) (run () ((!wait 13)))))')
+    await waitFor(() => fs.readFileSync(secondOutput, 'utf8') !== secondBefore, running!.output)
+    assert.equal(plan(dir, '../extra/npc/other.htn', 'otherDomain').plan[0].args[0].v, 13, 'each top-level domain has its own canonical include set')
+  } finally { if (running) await stop(running.child); clean(dir); clean(external) }
+})
+
+test('an edit during initial generation retries without another save, but a stable error does not loop', { timeout: 30000 }, async () => {
+  const dir = fixture()
+  let running: ReturnType<typeof watch> | undefined
+  try {
+    const compiler = path.join(dir, 'tools/htn-authoring/compiler.cjs')
+    fs.renameSync(compiler, path.join(dir, 'tools/htn-authoring/actual.cjs'))
+    fs.writeFileSync(compiler, [
+      "const fs = require('node:fs'), path = require('node:path'), cp = require('node:child_process')",
+      "const actual = path.join(__dirname, 'actual.cjs')",
+      'module.exports = require(actual)',
+      'if (require.main === module) {',
+      "fs.appendFileSync(path.join(__dirname, 'attempts'), 'start\\n')",
+      'Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500)',
+      "const result = cp.spawnSync(process.execPath, [actual, ...process.argv.slice(2)], { stdio: 'inherit' })",
+      'process.exitCode = result.status ?? 1',
+      '}'
+    ].join('\n'))
+    running = watch(dir)
+    const attempts = path.join(dir, 'tools/htn-authoring/attempts')
+    await waitFor(() => fs.existsSync(attempts), running.output)
+    fs.writeFileSync(path.join(dir, 'src/shared/kit.domain'), kit(17))
+    await waitFor(() => running!.output().includes('READY'), running.output)
+    assert.match(running.output(), /inputs changed during generation/)
+    assert.equal(plan(dir).plan[0].args[0].v, 17, 'the single already-saved edit is eventually published')
+    fs.writeFileSync(path.join(dir, 'src/shared/kit.domain'), '(:domain broken')
+    await waitFor(() => running!.output().includes('Compilation failed'), running.output)
+    const failedAttempts = fs.readFileSync(attempts, 'utf8')
+    await new Promise(resolve => setTimeout(resolve, 900))
+    assert.equal(fs.readFileSync(attempts, 'utf8'), failedAttempts, 'a permanent syntax error waits for a real input edit')
+  } finally { if (running) await stop(running.child); clean(dir) }
 })
