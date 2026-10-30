@@ -32,6 +32,7 @@ Button numbering starts at 2; the gap is expected.
 | **3. Fallbacks + recovery** | Each invalid source switches all samples to built-in: OTF, missing file, invalid file, empty source and external URL. Between cases and at the end, Bungee Shade returns. No missing text or broken input/dropdown. Warnings for rejected sources are expected. |
 | **4. Recreate x20** | The samples are recreated 20 times. At the end there is exactly one of each, using Bungee Shade. The input/dropdown work. Resetting their values during this test is expected. |
 | **7. Scene boundary** | Accept the movement prompt if shown. Watch the 3D text near the cyan edge: fully inside it is visible, fully outside it disappears, and after moving back it reappears. The UI remains visible. At the edge, font changes must not leave text stuck hidden or visible. |
+| **9. Icon font (Font Awesome)** | Icon glyphs on all four components, drawn at runtime (private-use code points are not pre-filled). Steps 1, 2, 4 and 5: every icon draws; no box (tofu). Step 3 (Regular) ends with Medal, which Regular does not contain: that one box is expected. A box on Medal or Compass in Solid reproduces the creator report. |
 
 **5 and 6 are local-only cancellation tests** and are unavailable on zone. They require the local server's artificial eight-second delay; a normal zone download cannot reproduce that timing reliably.
 
@@ -66,19 +67,16 @@ Slow fixtures are generated locally, ignored by Git and excluded from deployment
 Visual checks do not establish absence of memory leaks or network requests. Verifying that a rejected URL was never fetched requires native logs/network inspection. Resource cleanup and deferred deletion are checked separately by the Explorer Unity tests.
 
 JavaScript logs report requested component state and executed steps, not native font download or rendering success.
-## Temporary protocol pin
+## SDK version
 
-This scene uses published SDK `7.29.0` and the exact test package from [protocol PR #489](https://github.com/decentraland/protocol/pull/489): `1.0.0-35133806160.commit-1767aed`.
-
-The SDK does not yet serialize `fontSrc`. `npm install` runs `scripts/sync-font-protocol.cjs`, which regenerates only TextShape, UiText, UiInput and UiDropdown inside this scene's installed SDK. It checks the protobuf field numbers and verifies both encoding directions against the pinned protocol. The compiler is installed through `@protobuf-ts/protoc`; no sibling repository or machine-specific path is needed. The first install needs internet access to download the compiler and packages.
-
-Before merging, replace this temporary bridge with a published SDK version that supports `fontSrc`, then remove the generation script/compiler dependency and rebuild. Merge the protocol and Explorer feature first.
+`fontSrc` ships in the `auth-server` SDK build `7.30.2-39796956377.commit-4223559` (pinned in `package.json`). To move to a newer one, run `npm i --save-exact --save-dev @dcl/sdk@auth-server @dcl/js-runtime@auth-server`.
 
 ## Bundled font fixtures
 
 - Azeret Mono Medium: copied from Explorer's existing font asset; SIL Open Font License included.
 - Bungee Shade TTF: [Google Fonts](https://github.com/google/fonts/tree/main/ofl/bungeeshade), SIL Open Font License included. It is bundled with the scene.
 - Bungee Shade OTF: [Bungee v1.2.1](https://github.com/djrrb/Bungee/blob/fc391285f3a5eb0968f0171a61d09112bc83d0c8/fonts/Bungee_Desktop/Bungee/Bungee-Shade.otf), license included. This is a real unsupported OpenType/CFF fixture, not a renamed TTF.
+- Font Awesome Free Solid (6.7.2), Regular and Brands (7.0.1): `duck-font-awesome-*.ttf`, the creator-reported files (desktop OTFs converted to TTF and renamed), SIL Open Font License included. Solid has no space glyph and maps ASCII to icons, so scenario 9 uses icon-only strings.
 - `invalid.ttf` intentionally contains plain text; `missing.ttf` is intentionally absent.
 
 Fonts load from the asset bundle the converter (abgen) builds for this scene's deployment, so the deployed scene shows them only after abgen has processed that deployment. A local preview without a local asset bundle converter (`--local-ab`) shows the built-in font instead. Arbitrary URL fonts remain rejected.
