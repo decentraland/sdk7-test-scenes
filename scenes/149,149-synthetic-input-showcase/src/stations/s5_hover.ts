@@ -1,4 +1,4 @@
-import { engine, InputAction, pointerEventsSystem, Entity } from '@dcl/sdk/ecs'
+import { engine, InputAction, pointerEventsSystem, Entity, PointerLock } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 import * as C from '../constants'
 import { createSign, createReadout, createFloorMark, createBox, setBoxColor, COLORS } from '../lib'
@@ -95,4 +95,37 @@ export function setupS5Hover() {
   })
 
   slog('S5-HOVER', 'station ready -- hover_entity on A/B/C to observe PET_HOVER_ENTER/LEAVE and hoverText')
+}
+
+/**
+ * Pointer-lock toggle, for `get_reticle`: with the cursor free the reticle ray goes through wherever the
+ * OS cursor rests, which no driver controls; locked, it goes through the screen centre that `look_at`
+ * aims. The scene can only REQUEST the lock -- the client may still release it (Esc). Set up after S11
+ * so every earlier entity keeps the `crdtEntityId` that MCP_SHOWCASE.md quotes.
+ */
+export function setupS5PointerLock() {
+  PointerLock.createOrReplace(engine.CameraEntity, { isPointerLocked: false })
+  const lockButton = createBox(C.S5_LOCK_BUTTON, Vector3.create(1.2, 1.2, 1.2), COLORS.info)
+  logEntity('S5 pointer-lock toggle (requests/releases the cursor lock, for get_reticle)', lockButton)
+  createFloorMark(C.S5_LOCK_APPROACH_MARK, 'S5: stand here, look_at the\nlock button (south of you)', COLORS.info)
+  logMark('S5 pointer-lock approach mark', C.S5_LOCK_APPROACH_MARK)
+  const setLockRequested = (v: boolean, why: string) => {
+    counters.s5PointerLockRequested = v
+    PointerLock.getMutable(engine.CameraEntity).isPointerLocked = v
+    setBoxColor(lockButton, v ? COLORS.active : COLORS.info)
+    slog('S5-HOVER', `pointer lock ${v ? 'REQUESTED' : 'released'} (${why})`)
+  }
+  pointerEventsSystem.onPointerDown(
+    { entity: lockButton, opts: { button: InputAction.IA_POINTER, hoverText: 'Toggle cursor lock', maxDistance: 16 } },
+    () => setLockRequested(!counters.s5PointerLockRequested, 'click')
+  )
+  PointerLock.onChange(engine.CameraEntity, (lock) => {
+    slog('S5-HOVER', `client pointer lock is now ${lock?.isPointerLocked ? 'LOCKED' : 'free'}`)
+  })
+
+  onReset(() => {
+    if (counters.s5PointerLockRequested) setLockRequested(false, 'reset')
+  })
+
+  slog('S5-HOVER', 'pointer-lock toggle ready -- lock, look_at a target, get_reticle, then unlock')
 }

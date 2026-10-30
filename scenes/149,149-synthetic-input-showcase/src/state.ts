@@ -67,11 +67,16 @@ export const counters = {
   globalRight: 0,
   globalWalk: 0,
   entityPrimary: 0,
+  // S5 -- pointer lock requested by the scene (for get_reticle)
+  s5PointerLockRequested: false,
   // S7
   s7MarkerLeftHits: 0,
   s7MarkerRightHits: 0,
   s7MarkerUpHits: 0,
   s7MarkerDownHits: 0,
+  s7CmaEnters: 0,
+  s7VcamActive: false,
+  s7VcamActivations: 0,
   // S8
   s8Button1: 0,
   s8Button2: 0,
@@ -105,7 +110,12 @@ export const counters = {
   s10PoolRecycles: 0,
   s10Clears: 0,
   // S11 -- UI hover; the per-tile counts live in the station, which clears them on reset
-  s11PanelOpen: false
+  s11PanelOpen: false,
+  // S12 -- audio
+  s12SpatialOn: false,
+  s12SpatialToggles: 0,
+  s12OneShotPlays: 0,
+  s12OneShotFinishes: 0
 }
 
 type ResetFn = () => void

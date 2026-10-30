@@ -6,7 +6,10 @@ simulation layer (branch `feat/synthetic-input-simulation`, PR #9889): `walk`, `
 `look_at`, `click_entity`, `click_at`, `hover_entity`, `press_input`, and the `ui_*` family
 (`ui_list`, `ui_click`, `ui_set_text`, `ui_scroll`, `ui_drag`, `ui_hover`) -- including writing text
 into a scene's `<Input />` fields, parking a hover on scene UI, and dragging a held pointer across a
-world surface to paint on it.
+world surface to paint on it -- plus the read-only probes a driving session judges the scene with
+(`get_reticle`, `get_visible_entities`, `get_audio_state`, `capture_sequence`) and the contracts the
+field reports found broken (a `CameraModeArea` refusal that names the area, a `VirtualCamera`
+hand-back that no longer leaves `screenshot` a frame behind, `ui_click device:true` on scene UI).
 
 See **`MCP_SHOWCASE.md`** in this folder for the step-by-step driving script (exact tool
 calls, expected results, and expected observables per station) -- that is the document the
@@ -26,13 +29,13 @@ Drive the Explorer's synthetic input simulation layer live over MCP against this
 verify it end-to-end.
 
 Scene: this folder -- base parcel 149,149, world offset (2384, 0, 2384).
-Driving script: MCP_SHOWCASE.md here, stations S1..S11. Yes to the intent gate: I want this
+Driving script: MCP_SHOWCASE.md here, stations S1..S12. Yes to the intent gate: I want this
 run against a live Explorer.
 
 Setup: I have the Explorer running with the MCP enabled and connected to the scene already.
 
 Read MCP_SHOWCASE.md top to bottom first, including its Driving notes and Known open issues.
-Run the pre-flight, then all eleven stations as the regression, including every negative case.
+Run the pre-flight, then all twelve stations as the regression, including every negative case.
 Cross-examine every claim across at least two channels (tool result + get_scene_logs, or a
 screenshot + get_player_state); read the readout boards with get_entity_details ->
 PBTextShape.text rather than from screenshots.
@@ -82,13 +85,14 @@ Variations worth knowing:
 | S2 -- Jump / vertical | `walk(..., jump:true)` reaches an unsteppable platform; contrasts with `press_input JUMP` | platform (4, 0.6, 25) | ground jump mark (4, 0.05, 29) |
 | S3 -- Freeze zone | `InputModifier` locks `walk` exactly like WASD; `ignoreInputModifiers` escapes it | zone A (11, 0.05, 20), zone B (11, 0.05, 27.5) | zone A (4m pad): `disableAll`+`disableJump`; zone B (9m corridor, z 23-32): `disableRun` only |
 | S4 -- Click targets | real reticle raycast: occlusion, `maxDistance`, down/up ordering, offset colliders | (17-30, 1, 3-13) | see `MCP_SHOWCASE.md` for the 8 individual targets |
-| S5 -- Hover | `PET_HOVER_ENTER`/`LEAVE`, `hoverText`, distance-gated hover | (20-28, 1, 19) | hover C gated to 2m |
+| S5 -- Hover | `PET_HOVER_ENTER`/`LEAVE`, `hoverText`, distance-gated hover; `get_reticle` with the cursor locked | (20-28, 1, 19) | hover C gated to 2m; pointer-lock toggle (22, 1, 22.5), approach mark (22, 0, 25) |
 | S6 -- Global input board | `press_input` fan-out: entity-bound vs global broadcast, and the suppression rule | board (24, 3.4, 27) | suppression target (20, 1, 29), bound to `IA_PRIMARY` |
-| S7 -- Camera look | `camera_look` (relative) vs `look_at` (absolute); live yaw/pitch readout | stand (16, 0, 16) | 4 markers at (4,6,16) (28,6,16) (16,20,16) (16,0.3,4) |
-| S8 -- Scene UI | `ui_list`/`ui_click`/`ui_set_text`/`ui_scroll`/`ui_drag` against `ReactEcsRenderer` UI | toggle button (13, 1, 16) | panel opens on world-button click |
+| S7 -- Camera look | `camera_look` (relative) vs `look_at` (absolute) vs `move_to`'s look-at; live yaw/pitch readout; a `CameraModeArea` whose `set_camera_mode` refusal names it; a `VirtualCamera` toggle for the post-hand-back `screenshot` | stand (16, 0, 16) | 4 markers at (4,6,16) (28,6,16) (16,20,16) (16,0.3,4); first-person area 3x3x3 at (16, 1.5, 24), outside mark (18.5, 0, 24); vcam button (22, 1, 13), stand mark (22, 0, 15.5), camera at (22, 5, 20) |
+| S8 -- Scene UI | `ui_list`/`ui_click`/`ui_set_text`/`ui_scroll`/`ui_drag` against `ReactEcsRenderer` UI; `ui_click device:true` paced per scene drain with a `delivered` verdict | toggle button (13, 1, 16) | panel opens on world-button click; a hover-only tile that refuses a click's `ok` |
 | S9 -- UI text entry | `ui_set_text` as *state*: uncontrolled vs controlled `<Input />`, change vs submit, a `disabled` field that refuses the write, a form read by a later `ui_click` | toggle button (10, 1, 16) | left-anchored panel; never overlaps S8's centered one |
 | S10 -- Paint surface | pointer positions become geometry: one dot per click vs a trail from a held, sweeping pointer | canvases (10, 2.1, 9) and (14, 2.2, 9) | stand mark (12, 0, 5.5); decoy strip (14, 0.6, 9); clear button (8, 1, 6) |
 | S11 -- UI hover | `ui_hover` parks a hover on scene UI until ended; a click after a hover delivers the hover's leave first; only the addressed element is entered; a cover refuses | toggle button (16, 1, 20) | right-anchored panel; approach from S7's stand mark (16, 0, 16) |
+| S12 -- Audio | `get_audio_state` lists every emitter nearest-first with state, `playing`, volumes, loop/spatial and distance; the scene's `[S12-AUDIO]` lines corroborate | stand mark (16, 0, 27) | ONE-SHOT (16, 1, 28.5), LOOP (14, 1, 30.5), SPATIAL (18.5, 1, 31) |
 
 A world **RESET ALL STATIONS** button sits at local `(19, 1, 16)` / world `(2403, 1, 2400)`,
 and a matching "RESET ALL (UI)" button lives inside the S8 panel. Both call the same
@@ -100,7 +104,12 @@ station's visuals -- the scene never needs a reload to be re-run from a clean st
 
 - **Movement / player**: `Transform.get(engine.PlayerEntity)` (read-only position polling),
   `InputModifier` (`Mode.Standard` with `disableAll`/`disableJump`/`disableRun`).
-- **Camera**: `Transform.get(engine.CameraEntity)`, `Quaternion.toEulerAngles`, `Vector3.rotate`/`dot`/`normalize`.
+- **Camera**: `Transform.get(engine.CameraEntity)`, `Quaternion.toEulerAngles`, `Vector3.rotate`/`dot`/`normalize`;
+  `CameraModeArea` (S7's first-person area), `VirtualCamera` + `MainCamera.createOrReplace`/`getMutableOrNull`
+  (S7's toggle, hand-back by writing `virtualCameraEntity = undefined`), `PointerLock.createOrReplace`/
+  `getMutable`/`onChange` on `engine.CameraEntity` (S5's lock toggle -- a *request*; the client may refuse).
+- **Audio**: `AudioSource.create`/`playSound`/`stopSound` (`global`, `loop`, `volume`), the `playing` flip
+  on natural finish, and `audioEventsSystem.registerAudioEventsEntity` for `MediaState` logs (S12).
 - **Interactivity**: `pointerEventsSystem.onPointerDown/onPointerUp/onPointerHoverEnter/onPointerHoverLeave`,
   `PointerEventsResult.get(engine.RootEntity)` read with a timestamp watermark (S6's board and S10's held-pointer
   flag — **not** `inputSystem.isTriggered`, which cannot read the scene root in any form; see below),
@@ -115,9 +124,10 @@ station's visuals -- the scene never needs a reload to be re-run from a clean st
   S8's, S9's and S11's panels side by side. Virtual
   screen pinned to `1920x1080` per the `build-ui` skill's default rule.
 
-No GLB models are used (primitives + `TextShape` only, per the scene-size constraint). No
-external permissions are required -- the scene does not call `movePlayerTo`, trigger emotes,
-or make network requests.
+No GLB models are used (primitives + `TextShape` only, per the scene-size constraint); the only
+assets are S12's two clips under `assets/audio/` (copies of the `89,-10-audio-source-retrigger-test`
+scene's `short.mp3` and `long.mp3`). No external permissions are required -- the scene does not call
+`movePlayerTo`, trigger emotes, or make network requests.
 
 S10 paints with sphere primitives, which cost 804 triangles each in the client against a 2x2
 scene's 40,000 budget, so its dot pool is capped at 40 and recycles oldest-first
@@ -176,8 +186,14 @@ makes the station silently stop proving anything.
   Closing the panel moves any open hover into `dropped`, because a removed element gets no leave.
 - **S11's toggle is north of the hub row, at (16, 1, 20).** On the `z 16` row it would sit on the
   line to RESET, the way S8's and S9's toggles already occlude each other from the east.
-- **S11 is set up after S10** so every earlier entity keeps the `crdtEntityId` that `MCP_SHOWCASE.md`
-  quotes (S11's sign and toggle are the last two `[INIT]` entities).
+- **S11 is set up after S10, and S5's lock toggle, S7's camera-mode area + virtual camera and S12 after
+  S11** (`setupS5PointerLock`, `setupS7CameraExtras`, `setupS12Audio` run last in `src/index.ts`), so
+  every earlier entity keeps the `crdtEntityId` that `MCP_SHOWCASE.md` quotes.
+- **S7's virtual camera auto-releases after 8 s** and RESET releases it too, so a session that forgets
+  the second click never leaves the view stuck overhead; the hand-back writes `undefined`, never `0`.
+- **S5's pointer lock is a scene request the client may refuse**, which is why its step logs the
+  client's `PointerLock.onChange` beside the request and RESET releases it: every virtual-mouse gesture
+  refuses while the cursor is locked.
 
 ## The text-entry, paint and hover stations
 

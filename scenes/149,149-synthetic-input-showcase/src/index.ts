@@ -4,13 +4,14 @@ import { setupS1Locomotion } from './stations/s1_locomotion'
 import { setupS2Jump } from './stations/s2_jump'
 import { setupS3Freeze } from './stations/s3_freeze'
 import { setupS4Click } from './stations/s4_click'
-import { setupS5Hover } from './stations/s5_hover'
+import { setupS5Hover, setupS5PointerLock } from './stations/s5_hover'
 import { setupS6GlobalInput } from './stations/s6_global_input'
-import { setupS7Camera } from './stations/s7_camera'
+import { setupS7Camera, setupS7CameraExtras } from './stations/s7_camera'
 import { setupS8Ui } from './stations/s8_ui'
 import { setupS9TextEntry } from './stations/s9_text_entry'
 import { setupS10Paint } from './stations/s10_paint'
 import { setupS11UiHover } from './stations/s11_ui_hover'
+import { setupS12Audio } from './stations/s12_audio'
 import { setupSceneUi } from './stations/ui_root'
 
 export function main() {
@@ -24,7 +25,7 @@ export function main() {
   )
   console.log(
     '[INIT] station order: S1 locomotion -> S2 jump -> S3 freeze -> S4 click -> S5 hover -> S6 global input -> ' +
-      'S7 camera -> S8 UI -> S9 text entry -> S10 paint surface -> S11 UI hover'
+      'S7 camera -> S8 UI -> S9 text entry -> S10 paint surface -> S11 UI hover -> S12 audio'
   )
   console.log('[INIT] every interactable purpose->entityId mapping and floor "stand here" mark follows below')
 
@@ -40,6 +41,10 @@ export function main() {
   setupS10Paint()
   // After S10 so every earlier station keeps the entity ids MCP_SHOWCASE.md quotes.
   setupS11UiHover()
+  // Added after S11 for the same reason: S5's lock toggle, S7's camera-mode area + virtual camera, then S12.
+  setupS5PointerLock()
+  setupS7CameraExtras()
+  setupS12Audio()
   // Last: both UI stations render through one ReactEcsRenderer root, which may only be set once.
   setupSceneUi()
 

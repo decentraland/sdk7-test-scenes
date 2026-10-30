@@ -102,6 +102,11 @@ export const S5_HOVER_C = Vector3.create(28, 1, 19) // maxDistance: 2 (distance-
 export const S5_HOVER_C_NEAR_MARK = Vector3.create(28, 0, 17.5)
 export const S5_HOVER_C_FAR_MARK = Vector3.create(28, 0, 24)
 export const S5_READOUT = Vector3.create(24, 3.6, 21)
+// Toggles the scene's PointerLock request. With the cursor free, the reticle ray goes through wherever the
+// OS cursor rests (a pixel no driver controls); locked, it goes through the screen centre `look_at` aims --
+// which is what makes `get_reticle` deterministic. Off the A/B approach marks (x 20 / 24 at z 23).
+export const S5_LOCK_BUTTON = Vector3.create(22, 1, 22.5)
+export const S5_LOCK_APPROACH_MARK = Vector3.create(22, 0, 25)
 
 // ---------------------------------------------------------------------------------------
 // S6 -- Global input board (NE quadrant, north strip)
@@ -134,6 +139,17 @@ export const S7_MARKER_DOWN = Vector3.create(16, 0.3, 4)
 // mark. First person needs neither: it has no boom, and reads ~1-3 deg.
 export const S7_ANGLE_TOLERANCE_DEG = 18
 export const S7_ANGLE_RELEASE_DEG = 30
+// A `CameraModeArea` forcing first person: 3x3x3 centred north of S11's toggle (z 20) and south of S12
+// (z >= 27), between S3's zone B (x <= 13) and S6's target (x >= 19.4). Approach from its east mark.
+export const S7_CMA_CENTER = Vector3.create(16, 1.5, 24)
+export const S7_CMA_AREA = Vector3.create(3, 3, 3)
+export const S7_CMA_OUTSIDE_MARK = Vector3.create(18.5, 0, 24)
+// A `VirtualCamera` toggle: the button sits on a free patch east of S10's block and south of the S4 far
+// mark; the camera itself hangs above the hub looking back at S7's stand mark.
+export const S7_VCAM_BUTTON = Vector3.create(22, 1, 13)
+export const S7_VCAM_STAND_MARK = Vector3.create(22, 0, 15.5)
+export const S7_VCAM_POSITION = Vector3.create(22, 5, 20)
+export const S7_VCAM_AUTO_OFF_SEC = 8
 
 // ---------------------------------------------------------------------------------------
 // S8 -- Scene UI toggle (hub)
@@ -175,6 +191,23 @@ export const S10_CLEAR_BUTTON = Vector3.create(8, 1, 6)
 // ---------------------------------------------------------------------------------------
 export const S11_TOGGLE_BUTTON = Vector3.create(16, 1, 20)
 export const S11_SIGN = Vector3.create(16, 3.4, 20)
+
+// ---------------------------------------------------------------------------------------
+// S12 -- Audio (`get_audio_state`). North-centre strip: x 14..18.5, z 27..32 -- between S3's zone B
+// (x <= 13) and S6's target (x >= 19.4), north of S7's camera-mode area (z <= 25.5). Three emitters at
+// three different distances from the stand mark, so a nearest-first listing has a fixed order.
+// ---------------------------------------------------------------------------------------
+export const S12_SIGN = Vector3.create(16, 4.2, 30)
+export const S12_READOUT = Vector3.create(16, 3.2, 30)
+export const S12_STAND = Vector3.create(16, 0, 27)
+export const S12_ONESHOT = Vector3.create(16, 1, 28.5) // click: plays short.mp3 once (1.5 m from the mark)
+export const S12_LOOP = Vector3.create(14, 1, 30.5) // global, looping long.mp3 from scene start (~4.0 m)
+export const S12_SPATIAL = Vector3.create(18.5, 1, 31) // click: toggles a spatial long.mp3 (~4.7 m)
+export const S12_CLIP_SHORT = 'assets/audio/short.mp3'
+export const S12_CLIP_LONG = 'assets/audio/long.mp3'
+export const S12_LOOP_VOLUME = 0.5
+export const S12_SPATIAL_VOLUME = 0.8
+export const S12_ONESHOT_VOLUME = 1
 
 /**
  * A DCL sphere primitive is 804 triangles (24x16 UV sphere, `SphereFactory` in the client), and a
