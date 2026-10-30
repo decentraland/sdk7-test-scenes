@@ -1,0 +1,155 @@
+// Commuter: the textbook HTN (travel home -> park), with its expected plans as golden tests and a re-entrant fix
+// for a failure while acting.
+//
+// Teaches:
+//   - an "already done" first method (`already_there`: an empty plan, nothing to do) and alternatives by cost
+//     thresholds in order: walk if close, else a taxi if the person can pay;
+//   - re-entrancy for acting: the source's second example shows a taxi breaking down mid-ride and the replan failing
+//     because its methods only know "at a place". Here `travel`'s second method handles "already in a taxi", so a
+//     replan from any state of the trip picks up where it is: pay if arrived, get out of a broken taxi and travel on
+//     (another taxi), or ride on. A run-time failure makes the host replan, and the world (`taxi_broken`) makes the
+//     replan pick the next way;
+//   - a task list in planners that simulate effects becomes `(travel first) (&travel second)` here: the second trip
+//     is decomposed after the first ran.
+//
+// Source: GTPyhop examples by Dana Nau, `Examples/simple_htn.py` and `Examples/simple_htn_acting_error.py`
+//   (Pyhop's travel example lineage), commit 1ca7773963443476d0e83d03f10efab325327565:
+//   https://github.com/dananau/GTPyhop/blob/1ca7773963443476d0e83d03f10efab325327565/Examples/simple_htn.py
+//   https://github.com/dananau/GTPyhop/blob/1ca7773963443476d0e83d03f10efab325327565/Examples/simple_htn_acting_error.py
+// Licence: The Clear BSD License, Copyright (c) 2021 University of Maryland. Adapted (translated to our language,
+//   methods added); the licence text is in ../THIRD_PARTY_NOTICES.md.
+// Deviations from the source:
+//   - methods `travel_by_foot` / `travel_by_taxi` / `do_nothing` keep their conditions (distance <= 2; cash >= fare,
+//     fare = 1.5 + 0.5 * distance) and order (do_nothing first), as `already_there`, `by_foot`, `by_taxi`;
+//   - new: `continue_taxi_trip` (the re-entrant fix the acting-error example calls for; it cites Bansod, Nau, Patra
+//     and Roberts, "Integrating Planning and Acting by Using a Re-Entrant HTN Planner", ICAPS HPlan 2021) and the
+//     primitive !leave_taxi; `by_taxi` also needs a working taxi (`taxi_ready`, a host sensor);
+//   - the source's types (`is_a`) are left out: facts only name people, places and taxis;
+//   - which taxi comes is the host's choice (the first working one), not a plan argument, so the plan steps keep
+//     the source's arguments: call_taxi(person, from), ride_taxi(person, to), pay_driver(person, to);
+//   - `find_plan(state, [(travel a p), (travel b p)])` is the top-level method `two_trips`.
+// Not ported: GTPyhop's planner modes and verbosity, `run_lazy_lookahead` (our story runner in
+//   commuter.ts plays its role: run, and on a failure plan again), the random taxi choice and arrival (a story
+//   picks the outcome), `simple_hgn.py` (goal networks), the blocks-world and logistics examples.
+//
+// Facts: (at ?person ?place) where a person stands (none while in a taxi); (in_taxi ?person ?taxi);
+//   (taxi_at ?taxi ?place); (road ?a ?b ?distance) one row per pair, either direction (rigid);
+//   (cash ?person ?amount) (owe ?person ?amount) numbers; (taxi_ready ?taxi) host sensor: a taxi known to work;
+//   (taxi_broken ?taxi) written when a ride fails.
+// Primitives (logged): (!walk ?person ?from ?to) (!call_taxi ?person ?from) (!ride_taxi ?person ?to)
+//   (!pay_driver ?person ?to) (!leave_taxi ?person ?place)
+// Scenarios: worlds/commuter/; stories: stories.ts; the source's expected plans: test/examples/canon/commuter.test.ts;
+//   npm run htn:run -- --world commuter/1_alice_to_the_park
+
+(:domain Commuter top_level_domain
+
+    (:constants Commuter
+        (walk_limit 2)
+        (base_fare 1.5)
+        (fare_per_unit 0.5)
+    )
+
+    // Get ?inp_person to ?inp_to. Re-entrant: works from home, from a taxi, or from the goal itself.
+    // No fallback branch, on purpose (htn:lint reports the info `no-fallback`): `travel` is a goal, not a behaviour
+    // loop; a trip that cannot be made (too far to walk, too little cash, no working taxi) has no plan, as in the
+    // source (find_plan returns False). The host decides what a stuck commuter does.
+    (:method (travel ?inp_person ?inp_to) top_level_method
+
+        (already_there
+            (and
+                (at ?inp_person ?inp_to)
+            )
+            ()
+        )
+
+        // Half done: the person is in a taxi (called, riding, broken down or arrived unpaid).
+        (in_a_taxi
+            (and
+                (in_taxi ?inp_person ?taxi)
+            )
+            (
+                (continue_taxi_trip ?inp_person ?taxi ?inp_to)
+            )
+        )
+
+        (by_foot
+            (and
+                (at ?inp_person ?from)
+                (#distance ?from ?inp_to ?dist)
+                (<= ?dist @walk_limit)
+            )
+            (
+                (!walk ?inp_person ?from ?inp_to)
+            )
+        )
+
+        (by_taxi
+            (and
+                (at ?inp_person ?from)
+                (#distance ?from ?inp_to ?dist)
+                (= ?fare (+ @base_fare (* @fare_per_unit ?dist)))
+                (cash ?inp_person ?cash)
+                (>= ?cash ?fare)
+                (taxi_ready ?any_taxi)
+            )
+            (
+                (!call_taxi ?inp_person ?from)
+                (!ride_taxi ?inp_person ?inp_to)
+                (!pay_driver ?inp_person ?inp_to)
+            )
+        )
+    )
+
+    // The rest of a taxi trip, from wherever it stopped. Pre: ?inp_person is in ?inp_taxi.
+    (:method (continue_taxi_trip ?inp_person ?inp_taxi ?inp_to)
+
+        (pay_on_arrival
+            (and
+                (taxi_at ?inp_taxi ?inp_to)
+            )
+            (
+                (!pay_driver ?inp_person ?inp_to)
+            )
+        )
+
+        // The taxi broke down: get out where it stands, then travel again from there.
+        (get_out
+            (and
+                (taxi_broken ?inp_taxi)
+                (taxi_at ?inp_taxi ?place)
+            )
+            (
+                (!leave_taxi ?inp_person ?place)
+                (&travel ?inp_person ?inp_to)
+            )
+        )
+
+        (ride_on
+            ()
+            (
+                (!ride_taxi ?inp_person ?inp_to)
+                (!pay_driver ?inp_person ?inp_to)
+            )
+        )
+    )
+
+    // GTPyhop's find_plan with two tasks. The second trip is deferred: decomposed after the first one ran.
+    (:method (two_trips ?inp_first ?inp_first_to ?inp_second ?inp_second_to) top_level_method
+
+        (in_turn
+            ()
+            (
+                (travel ?inp_first ?inp_first_to)
+                (&travel ?inp_second ?inp_second_to)
+            )
+        )
+    )
+
+    // Roads are listed once, in either direction.
+    (:axiom (distance ?inp_from ?inp_to ?out_dist)
+        (or
+            (road ?inp_from ?inp_to ?out_dist)
+            (road ?inp_to ?inp_from ?out_dist)
+        )
+    )
+)

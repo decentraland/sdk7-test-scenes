@@ -1,0 +1,10 @@
+// mouse: hungry, no food seen, thirsty: drinks.
+// method: behave
+// expect: succeeded
+//   1. !consume puddle
+
+now 0.0
+satiation hunger 30
+satiation thirst 10
+drink puddle
+distance_to puddle 0.5

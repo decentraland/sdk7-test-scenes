@@ -1,0 +1,559 @@
+// Stalker: walk a short route or stand; once watching, a target in sight is noticed: a beat, the head
+// turns, the body follows, then it runs at the target. A target that comes close is noticed even before
+// it watches. Caught: stand over it. Lost: go to where it was last seen (stand longer at a shelter door),
+// look around, give up and walk away, then despawn. A route walked to its end despawns too.
+// Hearing: an impact heard while it is not hunting a target it sees makes it start, turn toward the
+// sound, listen, then walk there and look around; then it resumes what it did (route, search, standing).
+// While investigating it is focused: its sight narrows to a cone ahead (host), so a target behind it can
+// slip past and one in front of it is noticed. Seen while it hunts it, a noise is dropped: the chase goes
+// on. A noise heard before it last saw its target is stale news and dropped too.
+// It also hears the player (steps, running, landings, voice; the host scales how far): the same
+// investigation turns it toward whoever made the noise, so sight takes over. A loud noise close by makes
+// it spin round at once. Hunting someone it lost, their footsteps make it hurry after them without the
+// start. While it investigates, a newer footstep re-targets it without another start. On a scripted route
+// before it watches (a reveal), the player's own noises are ignored.
+//
+// Shape (docs/htn-guidance.md, Domain design; the before / after: test/fixtures/reference/stalker_flat.domain and
+// docs/htn-level-metrics.md, Domain variants):
+//   - `reasoning`: belief upkeep, planned by the host before every decision (GuardAgentOptions.reasoning: its steps
+//     run at once, until no rule holds). Every bookkeeping rule lives here, so the decision list never spends a plan
+//     on one and no decision branch depends on a filter above it;
+//   - `behave`: six tiers in priority order, each a call into a named behaviour (finish, hunt, react_to_noise,
+//     search, follow_route) or one long action (idle);
+//   - repeated tails are compound tasks with parameters (check_noise_spot, give_up_search); the lost-target test is
+//     an axiom (lost_target).
+// The behaviour branch names (walk_route, chase_noticed_target, investigate_noise, search_at_shelter, ...) are what
+// the levels' checks read: AgentSetup.chosenDepth 2, the branch chosen one level below the root. A tier whose guard
+// holds but none of whose branches does (a target in sight it neither hunts nor may notice yet) declines: the
+// planner backtracks to the next tier (PlannerOptions mode.branches, on by default). A host runs it with
+// GuardAgentOptions.reasoning 'reasoning'.
+//
+// Facts, synced by the host every tick (htn-planner/npc/blackboard.ts, stalker-actions.ts):
+//   (now ?time)                          agent clock, float seconds
+//   (self_position ?position)            (x y z) floats, feet
+//   (target_visible ?target ?position)   one row per detected target
+//   (last_seen ?target ?position ?time)  memory of a lost target until forgotten
+//   (waypoint ?index ?position)          route, int index; may be empty (standing)
+//   (waypoint_count ?count)
+//   (current_waypoint ?index)            next waypoint; == count once the route is walked
+//   (watch_point ?index)                 waypoint after which it starts watching (on the path)
+//   (route_loop yes)                     static: the route is a patrol loop (never walked off)
+//   (waypoint_look ?index ?seconds)      static: on a patrol, stop and look around at this waypoint
+//   (waypoint_face ?index ?position)     static: on a patrol, peer toward this point there with the head, the
+//                                        body staying (the lane: where the player comes from)
+//   (watching yes)                       a visible target can be noticed (set by !watch or at spawn)
+//   (noticed ?target)                    it has noticed it (set by !notice)
+//   (target_close ?target)               visible and close: noticed even when not watching
+//   (target_in_front ?target)            visible and roughly ahead: no head / body turn needed
+//   (target_sheltered ?target)           the target hides in a shelter (host shelter check)
+//   (caught ?target)                     set by !catch
+//   (gave_up ?target)                    set by !give_up, with (exit_point ?position)
+//   (heard_noise ?kind ?position ?time ?loudness)  the latest heard noise; ?loudness = perceived 0..1
+//   (player_noise ?kind)                 static, set at spawn: kinds the player makes (steps, run, land, voice)
+//   (focus ?time)                        investigating the noise heard at ?time (set by !hear / !refocus)
+//
+// Primitives, executed by the host (htn-planner/npc/actions.ts, stalker-actions.ts):
+//   (!move_to ?position ?gait)     gait: walk | hurry | run
+//   (!chase ?target)               run at the live target until within catch radius
+//   (!catch ?target)               catch: the host fails the player
+//   (!look_around ?seconds)
+//   (!peer ?position ?seconds)     the body stays, the head (and its sight) turns toward the point and peers there
+//   (!forget ?target)
+//   (!set_waypoint ?index)
+//   (!watch)                       start watching
+//   (!notice ?target)              noticed (host cue)
+//   (!stand ?seconds)              stand still (idle clip)
+//   (!head_turn ?target)           HeadTurnLeft, body still
+//   (!body_turn ?target)           BodyTurnLeft, the body yaw follows the clip (or a quick turn)
+//   (!give_up ?target ?position)   stop hunting; pick an exit away from the target
+//   (!despawn)
+//   (!hear ?position ?time)        heard a noise: start (host cue), focus on it (sets focus)
+//   (!refocus ?time)               focus on a newer noise without the start (no cue)
+//   (!face ?position)              turn in place toward a point (PatrolTurn, slower than a chase turn)
+//   (!face ?position quick)        the same at the chase turn rate (startled)
+//   (!forget_noise ?time)          drop the heard noise if it is still the one heard at ?time
+//   (!unfocus)                     investigation over: all-around sight again (clears focus)
+
+
+(:domain Stalker top_level_domain
+
+    (:constants StalkerSettings
+        (catch_pause 2.0)
+        (look_around_time 3.0)
+        (door_wait 4.0)
+        (notice_pause 0.4)
+        (glare_time 1.0)
+        (idle_wait 1.0)
+        (startle_time 0.5)
+        (noise_listen_time 1.2)
+        (noise_look_time 4.0)
+        (noise_memory_span 30.0)
+        (loud_noise 0.6)
+    )
+
+    // ---- belief upkeep: one rule per branch, each step makes its own condition false --------------------------
+
+    (:method (reasoning) top_level_method
+
+        // Seen in passing before it watched: not its business yet.
+        (forget_unnoticed
+            (and
+                (last_seen ?target ?any_position ?any_seen_at)
+                (not (noticed ?target))
+            )
+            (
+                (!forget ?target)
+            )
+        )
+
+        // It sees the one it hunts: a noise now does not distract it.
+        (drop_noise_while_hunting
+            (and
+                (noticed ?target)
+                (target_visible ?target ?any_position)
+                (heard_noise ?any_kind ?any_noise_position ?heard_at ?any_loudness)
+            )
+            (
+                (!forget_noise ?heard_at)
+            )
+        )
+
+        (forget_stale_noise
+            (and
+                (now ?time)
+                (heard_noise ?any_kind ?any_position ?heard_at ?any_loudness)
+                (> (- ?time ?heard_at) @noise_memory_span)
+            )
+            (
+                (!forget_noise ?heard_at)
+            )
+        )
+
+        // Heard while it still saw the one it hunts (e.g. thrown during the chase): stale news.
+        (forget_noise_before_sighting
+            (and
+                (noticed ?target)
+                (last_seen ?target ?any_position ?seen_at)
+                (heard_noise ?any_kind ?any_noise_position ?heard_at ?any_loudness)
+                (< ?heard_at ?seen_at)
+            )
+            (
+                (!forget_noise ?heard_at)
+            )
+        )
+
+        // On a scripted route before it watches (a reveal): the reveal is not cut short by the player's own
+        // noise; any other noise still draws it off.
+        (ignore_player_noise_on_route
+            (and
+                (watch_point ?any_index)
+                (not (watching ?any_flag))
+                (heard_noise ?kind ?any_position ?heard_at ?any_loudness)
+                (player_noise ?kind)
+            )
+            (
+                (!forget_noise ?heard_at)
+            )
+        )
+
+        // No noise left to investigate: all-around sight again.
+        (drop_focus
+            (and
+                (focus ?any_time)
+                (not (heard_noise ?any_kind ?any_position ?any_heard_at ?any_loudness))
+            )
+            (
+                (!unfocus)
+            )
+        )
+
+        // Beliefs up to date: a successful empty plan (the host stops planning the upkeep).
+        (nothing_to_update
+            ()
+            ()
+        )
+    )
+
+    // The one it noticed, lost from sight, and where.
+    (:axiom (lost_target ?out_target ?out_position)
+        (and
+            (noticed ?out_target)
+            (last_seen ?out_target ?out_position ?any_seen_at)
+        )
+    )
+
+    // ---- the decision: tiers in priority order ----------------------------------------------------------------
+
+    (:method (behave) top_level_method
+
+        // Caught or given up: final.
+        (finish
+            (or
+                (caught ?any_target)
+                (gave_up ?any_given_up)
+            )
+            (
+                (finish)
+            )
+        )
+
+        (hunt
+            (and
+                (target_visible ?any_target ?any_position)
+            )
+            (
+                (hunt)
+            )
+        )
+
+        (hear
+            (and
+                (heard_noise ?kind ?position ?heard_at ?loudness)
+            )
+            (
+                (react_to_noise ?kind ?position ?heard_at ?loudness)
+            )
+        )
+
+        (search
+            (and
+                (#lost_target ?target ?position)
+            )
+            (
+                (search)
+            )
+        )
+
+        (route
+            (and
+                (current_waypoint ?index)
+                (waypoint_count ?count)
+                (> ?count 0)
+            )
+            (
+                (follow_route ?index ?count)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!stand @idle_wait)
+            )
+        )
+    )
+
+    // ---- the behaviours -----------------------------------------------------------------------------------------
+
+    // Contract: caught or gave_up holds. Stands over the caught one, or walks off and despawns.
+    (:method (finish)
+
+        (stand_over_caught
+            (and
+                (caught ?any_target)
+            )
+            (
+                (!stand @idle_wait)
+            )
+        )
+
+        // Giving up is final: it walks off even if the target shows up again.
+        (leave
+            (and
+                (gave_up ?any_target)
+                (exit_point ?position)
+            )
+            (
+                (!move_to ?position walk)
+                (!despawn)
+            )
+        )
+    )
+
+    // Contract: a target is in sight. Chases the one it noticed, or notices one; declines when it may not notice
+    // anyone yet (not watching, nobody close).
+    (:method (hunt)
+
+        (chase_noticed_target
+            (and
+                (noticed ?target)
+                (target_visible ?target ?any_position)
+            )
+            (
+                (!chase ?target)
+                (!catch ?target)
+                (!stand @catch_pause)
+            )
+        )
+
+        (notice_seen_target
+            (and
+                (watching ?any_flag)
+                (target_visible ?target ?any_position)
+                (not (noticed ?target))
+            )
+            (
+                (notice_target ?target)
+            )
+        )
+
+        (notice_close_target
+            (and
+                (target_close ?target)
+                (not (noticed ?target))
+            )
+            (
+                (notice_target ?target)
+            )
+        )
+    )
+
+    // Contract: the noise heard. Goes to look and drops it (focus cleared), or starts an investigation that a
+    // later plan continues. Always succeeds.
+    (:method (react_to_noise ?inp_kind ?inp_position ?inp_heard_at ?inp_loudness)
+
+        // Hunting the one it lost and hearing them: no start, a quick turn, hurry to the sound. Facing
+        // it, its sight takes over (the hunt tier).
+        (track_heard_target
+            (and
+                (noticed ?any_target)
+                (player_noise ?inp_kind)
+            )
+            (
+                (!refocus ?inp_heard_at)
+                (check_noise_spot ?inp_position ?inp_heard_at hurry)
+            )
+        )
+
+        // Re-entry: already turned toward this noise (a replan mid-investigation): go on without the start again.
+        (continue_investigation
+            (and
+                (focus ?inp_heard_at)
+            )
+            (
+                (!watch)
+                (check_noise_spot ?inp_position ?inp_heard_at walk)
+            )
+        )
+
+        // Investigating, and the player makes another noise (the next footstep): re-target it without
+        // another start; it turns to it and watches, so the one who made it ends up in its sight.
+        (retarget_investigation
+            (and
+                (focus ?any_focus)
+                (player_noise ?inp_kind)
+            )
+            (
+                (!refocus ?inp_heard_at)
+                (!watch)
+                (check_noise_spot ?inp_position ?inp_heard_at walk)
+            )
+        )
+
+        // A loud noise close by (a landing behind it, an impact at its feet): it spins round at once and
+        // watches; the next plan notices whoever is there.
+        (startled_by_loud_noise
+            (and
+                (>= ?inp_loudness @loud_noise)
+            )
+            (
+                (!hear ?inp_position ?inp_heard_at)
+                (!face ?inp_position quick)
+                (!watch)
+            )
+        )
+
+        // A new noise: start, a beat, turn to it, listen; then it watches. The plan ends there, so the
+        // next plan notices a target now in its (narrowed) sight before it walks off to the sound.
+        (investigate_noise
+            ()
+            (
+                (!hear ?inp_position ?inp_heard_at)
+                (!stand @startle_time)
+                (!face ?inp_position)
+                (!stand @noise_listen_time)
+                (!watch)
+            )
+        )
+    )
+
+    // Contract: focused on the noise heard at ?inp_heard_at. Turns, goes there at ?inp_gait, looks around, drops
+    // that noise and the focus.
+    (:method (check_noise_spot ?inp_position ?inp_heard_at ?inp_gait)
+
+        (go_look
+            ()
+            (
+                (turn_toward ?inp_position ?inp_gait)
+                (!move_to ?inp_position ?inp_gait)
+                (!look_around @noise_look_time)
+                (!forget_noise ?inp_heard_at)
+                (!unfocus)
+            )
+        )
+    )
+
+    // In a hurry the turn is the quick (chase-rate) one.
+    (:method (turn_toward ?inp_position ?inp_gait)
+
+        (quick
+            (and
+                (== ?inp_gait hurry)
+            )
+            (
+                (!face ?inp_position quick)
+            )
+        )
+
+        (calm
+            ()
+            (
+                (!face ?inp_position)
+            )
+        )
+    )
+
+    // Contract: a noticed target is lost (lost_target). Hurries where it was last seen, waits at a shelter's door
+    // longer, then gives up.
+    (:method (search)
+
+        (search_at_shelter
+            (and
+                (#lost_target ?target ?position)
+                (target_sheltered ?target)
+            )
+            (
+                (!move_to ?position hurry)
+                (!stand @door_wait)
+                (give_up_search ?target ?position)
+            )
+        )
+
+        (search_last_seen
+            (and
+                (#lost_target ?target ?position)
+            )
+            (
+                (!move_to ?position hurry)
+                (give_up_search ?target ?position)
+            )
+        )
+    )
+
+    // Contract: standing where ?inp_target was last seen. Looks around, forgets it, gives up (gave_up: final).
+    (:method (give_up_search ?inp_target ?inp_position)
+
+        (look_and_give_up
+            ()
+            (
+                (!look_around @look_around_time)
+                (!forget ?inp_target)
+                (!give_up ?inp_target ?inp_position)
+            )
+        )
+    )
+
+    // Contract: a route of ?inp_count > 0 waypoints, the next one ?inp_index. Walks to it, or despawns at the end.
+    (:method (follow_route ?inp_index ?inp_count)
+
+        (walked_off
+            (and
+                (>= ?inp_index ?inp_count)
+            )
+            (
+                (!despawn)
+            )
+        )
+
+        (walk_route
+            (and
+                (waypoint ?inp_index ?position)
+            )
+            (
+                (!move_to ?position walk)
+                (&after_waypoint ?inp_index)
+            )
+        )
+    )
+
+    // Deferred: on reaching a waypoint. At the watch point it starts watching; the plan then ends, so
+    // the next plan already sees a target in sight and notices it right there on the path.
+    (:method (after_waypoint ?inp_index)
+
+        (at_watch_point
+            (and
+                (watch_point ?inp_index)
+            )
+            (
+                (!set_waypoint (++ ?inp_index))
+                (!watch)
+            )
+        )
+
+        // A patrol: the route loops; at a waypoint with a look it stops and looks around (its sight a cone
+        // there: the sweep is what can find the player). At a waypoint with a face point it peers the way the
+        // player comes: only the head turns, the body stays in profile.
+        (face_and_look_on_patrol
+            (and
+                (route_loop ?any_flag)
+                (waypoint_look ?inp_index ?seconds)
+                (waypoint_face ?inp_index ?position)
+                (waypoint_count ?count)
+            )
+            (
+                (!peer ?position ?seconds)
+                (!set_waypoint (% (++ ?inp_index) ?count))
+            )
+        )
+        (look_on_patrol
+            (and
+                (route_loop ?any_flag)
+                (waypoint_look ?inp_index ?seconds)
+                (waypoint_count ?count)
+            )
+            (
+                (!look_around ?seconds)
+                (!set_waypoint (% (++ ?inp_index) ?count))
+            )
+        )
+        (next_on_patrol
+            (and
+                (route_loop ?any_flag)
+                (waypoint_count ?count)
+            )
+            (
+                (!set_waypoint (% (++ ?inp_index) ?count))
+            )
+        )
+        (next_waypoint
+            ()
+            (
+                (!set_waypoint (++ ?inp_index))
+            )
+        )
+    )
+
+    (:method (notice_target ?inp_target)
+
+        // Already facing it (e.g. standing in a doorway): a short glare, then the run.
+        (already_facing
+            (and
+                (target_in_front ?inp_target)
+            )
+            (
+                (!notice ?inp_target)
+                (!stand @glare_time)
+            )
+        )
+
+        (turn_to_target
+            ()
+            (
+                (!notice ?inp_target)
+                (!stand @notice_pause)
+                (!head_turn ?inp_target)
+                (!body_turn ?inp_target)
+            )
+        )
+    )
+)

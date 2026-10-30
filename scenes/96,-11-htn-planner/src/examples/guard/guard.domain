@@ -1,0 +1,193 @@
+// Guard: patrol a route; chase a detected target; when it is lost, investigate where
+// it was last seen, look around, forget it and resume the patrol. Hearing: a faint noise makes it
+// stop, turn toward it and listen; a loud one (or faint ones repeated until the alert meter says
+// alarmed) makes it turn, flinch, hurry (or run, if very loud) there, look around and forget it.
+//
+// Shape (docs/htn-guidance.md, Domain design; the before / after: test/fixtures/reference/guard_flat.domain and
+// docs/htn-level-metrics.md, Domain variants):
+//   - `reasoning`: belief upkeep, planned by the host before every decision (GuardAgentOptions.reasoning: its steps
+//     run at once, until no rule holds). The staleness filters live here, so the decision branches that read
+//     last_seen and heard_noise do not depend on a filter above them;
+//   - `behave`: chase, the investigate tier (noise or memory: three branches), patrol, idle.
+//   - what it shares with squad/yard_guard.domain (the chase, the check of a last-seen spot, the patrol walk and
+//     advance_patrol) is in guard_kit.domain, included by both.
+// The behaviour branch names (chase_visible_target, check_alarming_noise, investigate_last_seen, listen_to_noise,
+// patrol, idle) are what the levels' checks read: AgentSetup.chosenDepth 2, the branch chosen one level below the
+// root, else the root's own. A host runs it with GuardAgentOptions.reasoning 'reasoning'.
+//
+// Facts, synced by the host every tick (htn-planner/npc/blackboard.ts):
+//   (now ?time)                          guard clock, float seconds
+//   (self_position ?position)            (x y z) floats, feet
+//   (target_visible ?target ?position)   one row per detected target, closest first
+//   (last_seen ?target ?position ?time)  memory of a lost target until forgotten
+//   (waypoint ?index ?position)          patrol route, int index
+//   (waypoint_count ?count)
+//   (current_waypoint ?index)            next waypoint to walk to
+//   (heard_noise ?kind ?position ?time ?loudness)  noise of interest until forgotten; ?loudness is
+//                                        the perceived level 0..1 at the guard, ?time the guard clock
+//   (alert ?level)                       calm | wary | alarmed (hearing meter; loud or repeated noises)
+//
+// Primitives, executed by the host (htn-planner/npc/actions.ts):
+//   (!chase ?target)               run at the live target position until within catch radius
+//   (!catch ?target)               host reaction to a catch, instant
+//   (!move_to ?position ?gait)     gait: walk | hurry | run
+//   (!look_around ?seconds)
+//   (!forget ?target)              drop the last_seen memory
+//   (!wait ?seconds)
+//   (!set_waypoint ?index)
+//   (!turn_to ?position)           turn in place to face a point
+//   (!listen ?seconds)             stand still, listening
+//   (!forget_noise ?time)          drop the heard noise if it is still the one heard at ?time
+
+
+(:include "guard_kit.domain")
+
+(:domain Guard top_level_domain
+
+    (:constants GuardSettings
+        (catch_pause 1.5)
+        (look_around_time 3.0)
+        (memory_span 20.0)
+        (patrol_pause 1.0)
+        (idle_wait 1.0)
+        (noise_memory_span 12.0)
+        (listen_time 2.0)
+        (startle_time 0.6)
+        (very_loud 0.75)
+    )
+
+    // ---- belief upkeep: one rule per branch, each step makes its own condition false --------------------------
+
+    (:method (reasoning) top_level_method
+
+        // A memory too old to be worth checking.
+        (forget_stale_memory
+            (and
+                (last_seen ?target ?any_position ?seen_at)
+                (now ?time)
+                (> (- ?time ?seen_at) @memory_span)
+            )
+            (
+                (!forget ?target)
+            )
+        )
+
+        (forget_stale_noise
+            (and
+                (heard_noise ?any_kind ?any_position ?heard_at ?any_loudness)
+                (now ?time)
+                (> (- ?time ?heard_at) @noise_memory_span)
+            )
+            (
+                (!forget_noise ?heard_at)
+            )
+        )
+
+        // Beliefs up to date: a successful empty plan (the host stops planning the upkeep).
+        (nothing_to_update
+            ()
+            ()
+        )
+    )
+
+    // ---- the decision -------------------------------------------------------------------------------------------
+
+    (:method (behave) top_level_method
+
+        (chase
+            (and
+                (target_visible ?target ?any_position)
+            )
+            (
+                (catch_target ?target @catch_pause)
+            )
+        )
+
+        (investigate
+            (or
+                (heard_noise ?any_kind ?any_position ?any_heard_at ?any_loudness)
+                (last_seen ?any_target ?any_seen_position ?any_seen_at)
+            )
+            (
+                (investigate)
+            )
+        )
+
+        (patrol
+            (and
+                (current_waypoint ?index)
+                (waypoint ?index ?position)
+            )
+            (
+                (walk_patrol ?position @patrol_pause)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!wait @idle_wait)
+            )
+        )
+    )
+
+    // Contract: a noise heard or a target remembered. Checks it and forgets it (the noise only if no newer one came).
+    (:method (investigate)
+
+        // Loud, or repeated until alarming. Fresher than a last-seen memory, so it comes first.
+        // A newer noise heard on the way survives !forget_noise and is checked next.
+        (check_alarming_noise
+            (and
+                (alert alarmed)
+                (heard_noise ?any_kind ?position ?heard_at ?loudness)
+            )
+            (
+                (!turn_to ?position)
+                (!listen @startle_time)
+                (go_to_noise ?position ?loudness)
+                (!look_around @look_around_time)
+                (!forget_noise ?heard_at)
+            )
+        )
+
+        (investigate_last_seen
+            (and
+                (last_seen ?target ?position ?any_seen_at)
+            )
+            (
+                (check_last_seen ?target ?position @look_around_time)
+            )
+        )
+
+        // Faint: stop, face it, listen. Hearing more raises the alert until check_alarming_noise.
+        (listen_to_noise
+            (and
+                (heard_noise ?any_kind ?position ?heard_at ?any_loudness)
+            )
+            (
+                (!turn_to ?position)
+                (!listen @listen_time)
+                (!forget_noise ?heard_at)
+            )
+        )
+    )
+
+    (:method (go_to_noise ?inp_position ?inp_loudness)
+
+        (very_loud
+            (and
+                (>= ?inp_loudness @very_loud)
+            )
+            (
+                (!move_to ?inp_position run)
+            )
+        )
+
+        (loud
+            ()
+            (
+                (!move_to ?inp_position hurry)
+            )
+        )
+    )
+)

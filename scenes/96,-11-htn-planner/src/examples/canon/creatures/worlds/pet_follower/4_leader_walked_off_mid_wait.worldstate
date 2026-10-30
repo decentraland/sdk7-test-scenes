@@ -1,0 +1,10 @@
+// pet_follower: leader walked off mid-wait.
+// The timer does not hold the pet back: the leader walked off mid-wait.
+// method: behave
+// expect: succeeded
+//   1. !move_near owner 3.0
+
+now 3.0
+leader owner
+distance_to owner 9.0
+idle_until 6.0

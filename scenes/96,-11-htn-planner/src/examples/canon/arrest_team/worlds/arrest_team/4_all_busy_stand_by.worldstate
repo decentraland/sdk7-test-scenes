@@ -1,0 +1,24 @@
+// arrest_team: both restrains are running and everyone is reserved. Nothing new to start: a successful empty plan
+// (the running plans go on; the planner never restarts them).
+// method: squad_tick
+// expect: succeeded
+
+squadmember a
+squadmember b
+squadmember c
+roster (a b c)
+enemy s1
+enemy s2
+near s1 a 2.0
+near s1 b 3.0
+near s1 c 9.0
+near s2 b 2.0
+near s2 c 3.0
+near s2 a 5.0
+surrendered s1
+surrendered s2
+reserved a
+reserved b
+reserved c
+reserved s1
+reserved s2

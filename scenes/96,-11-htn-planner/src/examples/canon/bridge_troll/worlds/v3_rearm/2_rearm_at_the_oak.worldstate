@@ -1,0 +1,11 @@
+// v3_rearm: rearm at the oak.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to old_oak
+//   2. !uproot_trunk old_oak
+//   3. &attack_enemy knight
+
+enemy_visible knight
+trunk_health 0
+trunk_nearby old_oak
+trunk_nearby birch

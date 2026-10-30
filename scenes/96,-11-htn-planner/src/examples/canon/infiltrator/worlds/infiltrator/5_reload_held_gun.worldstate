@@ -1,0 +1,12 @@
+// infiltrator: an empty gun and its ammunition in hand: reload. One step; the next plan attacks.
+// method: behave
+// expect: succeeded
+//   1. !reload g2 a2
+
+npc_in lobby
+player_in p1 hall
+holding g2
+holding a2
+item g2 gun
+item a2 ammo
+ammo_for a2 g2

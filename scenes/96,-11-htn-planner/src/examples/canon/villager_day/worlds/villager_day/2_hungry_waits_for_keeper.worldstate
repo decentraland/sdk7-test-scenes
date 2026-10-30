@@ -1,0 +1,15 @@
+// villager_day: 6 o'clock, hungry, no food, money for bread, but the baker is not at the counter yet. The farmer
+// goes to the bakery and waits there for an hour (patience is a host counter, so waiting is one hour per plan).
+// method: spend_hour
+// expect: succeeded
+//   1. !walk_to bakery
+//   2. !wait_for baker
+
+hour 6
+hunger 6
+sleepiness 0
+money 7
+at farmhouse
+home farmhouse
+shop bakery food baker
+pastime fishing pond

@@ -1,0 +1,294 @@
+// swarm_drone: one member of a small flying swarm that collects resources for a processing machine. Its role comes
+// from the group planner (swarm_coordinator.domain) as a fact; the drone decides how to carry it out.
+//
+// Teaches:
+//   - A short root that delegates: two branches, combat before idle, each calling one compound behaviour.
+//   - Roles as facts: `(role collector r1)` written by the host from the coordinator's order; axioms
+//     (`#assigned_to_collect_resource`, `#assigned_to_follow_swarm_leader`) keep each branch one line.
+//   - A continue branch next to each behaviour it guards: while `(active_plan <behaviour> ...)` holds and the role
+//     still says so, the replan answers `(!continue)` and the running plan goes on. A role change ends it.
+//   - `!begin_plan` / `!end_plan` around a behaviour: the host writes `(active_plan <name> <args>...)` from them.
+//   - A plan in parts that are compound tasks themselves (hover to the resource, grab it), the first re-entrant.
+//   - No effects: the plan stops where the world changes (after the grab), the next plan delivers.
+//
+// Source (re-expressed from the published description; our own text and names): Tim Verweij, "HTN planning in
+// DECIMA", AI and Games Conference 2024, https://www.guerrilla-games.com/read/htn-planning-in-decima , slides on a
+// swarm machine of Horizon Forbidden West: Burning Shores (`behave` with a combat and an idle branch; an idle method
+// that grabs a resource when the group role says so, else follows the swarm leader; `move_to_grab_resource` as
+// `!begin_plan`, hover to the resource, grab it, `!end_plan`; continue branches interleaved with their behaviours;
+// axioms `#assigned_to_collect_resource`, `#assigned_to_follow_swarm_leader`, "all swarm followers nearby"). Also
+// the 2026 summer-school version of the talk ("From Byrd Box to Debug Boxes").
+// Licence: re-expressed (nothing copied); credits in src/examples/canon/THIRD_PARTY_NOTICES.md.
+//
+// Emulations (see docs/htn-guidance.md "Replanning"): `(!continue)` is a host primitive meaning "keep the running
+// plan" (paper.ts supports it; GuardAgent requires opt-in continueTask: "!continue"); `(active_plan ...)` is
+// written by the host at `!begin_plan`, removed at `!end_plan` and when the host drops the plan. A distance the
+// source computes with a callterm (`get_distance_to_entity`) is a host fact here (`distance_to_leader`).
+// Deviations: the idle branch has no condition (Decima writes `(not (enemy ?enemy))`; leaving it out makes it the
+// root's fallback); the idle method ends with a `hover` fallback, so a drone with no role still has a plan;
+// delivering and leading are our additions after the talk's description (the drones bring the resources to a
+// machine; the leader waits for its followers); combat is a placeholder after the intercept / attack / evade loop of
+// the Horizon Forbidden West flying machines (Speck, 2024), not shown in the talk.
+// Not ported: the swarm leader's interaction with nearby followers (`#nearby_follower`), group hierarchy queries
+// (`in_group`, `other_member`), utility-based attack selection, the real combat behaviour.
+//
+// Facts (this drone's own world):
+//   (role leader|collector|follower ?context)   from the coordinator's order, written by the host
+//   (enemy ?e)                                  an enemy this drone reacts to
+//   (holding ?resource), (above ?resource)      body state
+//   (processor ?machine)                        where resources go
+//   (roam_point ?spot)                          the leader's next spot, host's choice
+//   (follower ?member), (distance_to_leader ?member ?metres)   the leader's view of its followers
+//   (active_plan <name> <args>...)              written by the host from !begin_plan, see above
+// Primitives: (!begin_plan ...) (!end_plan) (!continue) (!fly_over ?r) (!descend ?r) (!grab ?r) (!climb)
+//             (!fly_to ?spot) (!release ?r ?machine) (!follow ?leader) (!signal_followers) (!hover ?seconds)
+//             (!intercept ?e) (!sting ?e) (!evade ?e)
+// Scenarios: worlds/swarm_drone/ (npm run htn:run -- --world swarm_drone/<scenario>; --list names them); story: stories.ts.
+
+(:include "swarm_shared.domain")
+
+(:domain SwarmDrone top_level_domain
+
+    (:constants SwarmDrone
+        (hover_seconds 1.0)
+    )
+
+    (:method (behave) top_level_method
+
+        (combat
+            (and
+                (enemy ?enemy)
+            )
+            (
+                (do_combat_behavior ?enemy)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (do_idle_behavior)
+            )
+        )
+    )
+
+    // Placeholder combat: one attack run, kept while it runs.
+    (:method (do_combat_behavior ?inp_enemy)
+
+        (continue_attack_run
+            (and
+                (active_plan attack_run ?inp_enemy)
+            )
+            (
+                (!continue)
+            )
+        )
+
+        (attack_run
+            ()
+            (
+                (!begin_plan attack_run ?inp_enemy)
+                (!intercept ?inp_enemy)
+                (!sting ?inp_enemy)
+                (!evade ?inp_enemy)
+                (!end_plan)
+            )
+        )
+    )
+
+    // Each behaviour has its continue branch just above it. The behaviour branch below a continue branch also holds
+    // whenever the continue branch does: that order is the point of a continue branch.
+    (:method (do_idle_behavior)
+
+        (continue_deliver_resource
+            (and
+                (active_plan deliver_resource ?resource)
+                (holding ?resource)
+            )
+            (
+                (!continue)
+            )
+        )
+
+        (deliver_resource
+            (and
+                (holding ?resource)
+                (processor ?machine)
+            )
+            (
+                (deliver_resource ?resource ?machine)
+            )
+        )
+
+        (continue_move_to_grab_resource
+            (and
+                (active_plan move_to_grab_resource ?resource)
+                (#assigned_to_collect_resource ?resource)
+            )
+            (
+                (!continue)
+            )
+        )
+
+        (move_to_grab_resource
+            (and
+                (#assigned_to_collect_resource ?resource)
+            )
+            (
+                (move_to_grab_resource ?resource)
+            )
+        )
+
+        (lead_swarm
+            (and
+                (role leader ?any_swarm)
+            )
+            (
+                (lead_swarm)
+            )
+        )
+
+        (continue_follow_swarm_leader
+            (and
+                (active_plan follow_swarm_leader ?leader)
+                (#assigned_to_follow_swarm_leader ?leader)
+            )
+            (
+                (!continue)
+            )
+        )
+
+        (follow_swarm_leader
+            (and
+                (#assigned_to_follow_swarm_leader ?leader)
+            )
+            (
+                (follow_swarm_leader ?leader)
+            )
+        )
+
+        // No role yet: stay put until the coordinator decides.
+        (hover
+            ()
+            (
+                (!hover @hover_seconds)
+            )
+        )
+    )
+
+    // Contract: assigned to ?inp_resource, not holding it. Effect: holding it; the plan ends there.
+    (:method (move_to_grab_resource ?inp_resource)
+
+        (move_to_grab_resource
+            (and
+                (not (holding ?inp_resource))
+            )
+            (
+                (!begin_plan move_to_grab_resource ?inp_resource)
+                (hover_to_resource ?inp_resource)
+                (grab_resource ?inp_resource)
+                (!end_plan)
+            )
+        )
+    )
+
+    // Re-entrant: nothing to do when already above it.
+    (:method (hover_to_resource ?inp_resource)
+
+        (already_above
+            (and
+                (above ?inp_resource)
+            )
+            ()
+        )
+
+        (fly_over
+            ()
+            (
+                (!fly_over ?inp_resource)
+            )
+        )
+    )
+
+    (:method (grab_resource ?inp_resource)
+
+        (grab
+            ()
+            (
+                (!descend ?inp_resource)
+                (!grab ?inp_resource)
+                (!climb)
+            )
+        )
+    )
+
+    // Contract: holding ?inp_resource. Effect: it is at the machine.
+    (:method (deliver_resource ?inp_resource ?inp_machine)
+
+        (deliver
+            ()
+            (
+                (!begin_plan deliver_resource ?inp_resource)
+                (!fly_to ?inp_machine)
+                (!release ?inp_resource ?inp_machine)
+                (!end_plan)
+            )
+        )
+    )
+
+    // Contract: this drone leads. Effect: the swarm moves on together.
+    (:method (lead_swarm)
+
+        (wait_for_followers
+            (and
+                (not (#all_followers_nearby @gather_radius))
+            )
+            (
+                (!signal_followers)
+                (!hover @hover_seconds)
+            )
+        )
+
+        (roam
+            (and
+                (roam_point ?spot)
+            )
+            (
+                (!fly_to ?spot)
+            )
+        )
+
+        (hold_position
+            ()
+            (
+                (!hover @hover_seconds)
+            )
+        )
+    )
+
+    // Contract: assigned to follow ?inp_leader. Effect: following it until the plan is dropped.
+    (:method (follow_swarm_leader ?inp_leader)
+
+        (follow
+            ()
+            (
+                (!begin_plan follow_swarm_leader ?inp_leader)
+                (!follow ?inp_leader)
+                (!end_plan)
+            )
+        )
+    )
+
+    (:axiom (assigned_to_collect_resource ?io_resource)
+        (and
+            (role collector ?io_resource)
+            (not (holding ?io_resource))
+        )
+    )
+
+    (:axiom (assigned_to_follow_swarm_leader ?io_leader)
+        (and
+            (role follower ?io_leader)
+        )
+    )
+)

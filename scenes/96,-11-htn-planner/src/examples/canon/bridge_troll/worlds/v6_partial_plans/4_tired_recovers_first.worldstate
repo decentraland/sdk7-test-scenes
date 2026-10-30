@@ -1,0 +1,10 @@
+// v6_partial_plans: tired recovers first.
+// method: be_troll
+// expect: succeeded
+//   1. !recover
+
+enemy_visible knight
+enemy_in_reach knight
+trunk_health 3
+power_up 3
+tired

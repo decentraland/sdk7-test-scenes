@@ -1,0 +1,19 @@
+// infiltrator: one change from scenario 6: the keycard is in hand. The way is no longer blocked; moving to the hall
+// unlocks the door first.
+// method: behave
+// expect: succeeded
+//   1. !unlock door1 c1
+//   2. !go_to_area hall
+//   3. !make_contact p1
+//   4. !shoot p1 g2
+
+npc_in lobby
+player_in p1 hall
+holding g2
+holding c1
+item g2 gun
+loaded g2
+locked_on_route hall door1
+opens c1 door1
+item c1 keycard
+lights hall on

@@ -1,0 +1,10 @@
+// ore_to_gold: ore in hand, outside.
+// method: earn_gold
+// expect: succeeded
+//   1. !go_to smelter
+//   2. &ore_to_metal
+//   3. &earn_gold
+
+gold 0
+has_ore
+location outside

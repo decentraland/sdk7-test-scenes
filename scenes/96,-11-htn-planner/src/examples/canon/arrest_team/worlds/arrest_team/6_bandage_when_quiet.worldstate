@@ -1,0 +1,21 @@
+// arrest_team: nobody to fight or restrain; b is wounded and free, so b bandages itself, reserved meanwhile.
+// method: squad_tick
+// expect: succeeded
+//   1. !reserve b
+//   2. !bandage_self b
+//   3. !wait_until_done b
+//   4. !free b
+
+squadmember a
+squadmember b
+squadmember c
+roster (a b c)
+enemy s1
+enemy s2
+near s1 a 2.0
+near s1 b 3.0
+near s1 c 9.0
+near s2 b 2.0
+near s2 c 3.0
+near s2 a 5.0
+wounded b

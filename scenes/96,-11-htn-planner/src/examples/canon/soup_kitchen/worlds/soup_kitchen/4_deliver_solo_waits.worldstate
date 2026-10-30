@@ -1,0 +1,49 @@
+// soup_kitchen: the pot is cooking (stage 2) in an open kitchen. chef1 takes a bowl; the wait is deferred: it is
+// planned when chef1 gets there, against the pot as it is then.
+// method: make_soup soup delivery
+// expect: succeeded
+//   1. !interact chef1 bowl_pile
+//   2. &wait_cooking chef1 pot1 soup
+//   3. !interact chef1 pot1
+//   4. !interact chef1 delivery
+
+// An open kitchen: both cooks reach everything.
+holding chef1 empty
+holding chef2 empty
+holding pot1 cooking_soup_2
+cooking pot1 soup
+holding counter empty
+holding delivery empty
+agent chef1
+agent chef2
+pile onion_pile
+pile bowl_pile
+pot pot1
+table counter
+recipe soup onion onion_1
+start_label soup cooking_soup
+cooking_progress cooking_soup cooking_soup_2
+cooking_progress cooking_soup_2 cooking_soup_3
+cooking_progress cooking_soup_3 soup
+holding onion_pile onion
+holding bowl_pile bowl
+exchange chef1 onion_pile empty onion onion onion
+exchange chef1 bowl_pile empty bowl bowl bowl
+exchange chef1 pot1 onion empty empty onion_1
+exchange chef1 pot1 empty onion_1 empty cooking_soup
+exchange chef1 pot1 bowl soup soup empty
+exchange chef1 delivery soup empty empty soup
+exchange chef1 counter onion empty empty onion
+exchange chef1 counter empty onion onion empty
+exchange chef1 counter bowl empty empty bowl
+exchange chef1 counter empty bowl bowl empty
+exchange chef2 onion_pile empty onion onion onion
+exchange chef2 bowl_pile empty bowl bowl bowl
+exchange chef2 pot1 onion empty empty onion_1
+exchange chef2 pot1 empty onion_1 empty cooking_soup
+exchange chef2 pot1 bowl soup soup empty
+exchange chef2 delivery soup empty empty soup
+exchange chef2 counter onion empty empty onion
+exchange chef2 counter empty onion onion empty
+exchange chef2 counter bowl empty empty bowl
+exchange chef2 counter empty bowl bowl empty

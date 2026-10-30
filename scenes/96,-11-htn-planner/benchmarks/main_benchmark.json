@@ -1,0 +1,906 @@
+{
+  "kind": "htn-bench",
+  "version": 1,
+  "machine": {
+    "node": "v22.22.2",
+    "cpu": "Intel(R) Core(TM) Ultra 9 275HX",
+    "platform": "win32"
+  },
+  "date": "2026-10-16",
+  "options": {
+    "iterations": 20000,
+    "samples": 5000,
+    "repeats": 5,
+    "crowdSeconds": 120,
+    "exposeGc": true
+  },
+  "scenarios": [
+    {
+      "name": "Idle",
+      "plansPerSecond": 408220.749,
+      "usPerPlan": 2.45,
+      "p50": 1.1,
+      "p95": 1.4,
+      "p99": 1.8,
+      "max": 89.6,
+      "bytesPerPlan": 39.79,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          392368.434,
+          664721.249
+        ],
+        "p50": [
+          0.7,
+          1.4
+        ],
+        "p95": [
+          0.9,
+          1.7
+        ],
+        "bytesPerPlan": [
+          39.79,
+          39.79
+        ]
+      }
+    },
+    {
+      "name": "Combat",
+      "plansPerSecond": 576222.745,
+      "usPerPlan": 1.735,
+      "p50": 1.5,
+      "p95": 1.9,
+      "p99": 2.3,
+      "max": 69.5,
+      "bytesPerPlan": 40.414,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          488094.163,
+          627301.412
+        ],
+        "p50": [
+          1.5,
+          1.8
+        ],
+        "p95": [
+          1.6,
+          2.4
+        ],
+        "bytesPerPlan": [
+          40.395,
+          40.52
+        ]
+      }
+    },
+    {
+      "name": "Emergency",
+      "plansPerSecond": 590979.874,
+      "usPerPlan": 1.692,
+      "p50": 1.6,
+      "p95": 1.8,
+      "p99": 1.9,
+      "max": 46.1,
+      "bytesPerPlan": 36.291,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          467112.915,
+          648765.076
+        ],
+        "p50": [
+          1.4,
+          2
+        ],
+        "p95": [
+          1.6,
+          3.4
+        ],
+        "bytesPerPlan": [
+          36.291,
+          36.501
+        ]
+      }
+    },
+    {
+      "name": "Mobility",
+      "plansPerSecond": 883162.073,
+      "usPerPlan": 1.132,
+      "p50": 1.2,
+      "p95": 1.3,
+      "p99": 1.5,
+      "max": 10.8,
+      "bytesPerPlan": 36.806,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          710663.867,
+          926496.408
+        ],
+        "p50": [
+          1.1,
+          1.5
+        ],
+        "p95": [
+          1.1,
+          1.6
+        ],
+        "bytesPerPlan": [
+          36.806,
+          37.526
+        ]
+      }
+    },
+    {
+      "name": "Recovery",
+      "plansPerSecond": 691847.614,
+      "usPerPlan": 1.445,
+      "p50": 1.4,
+      "p95": 1.5,
+      "p99": 1.7,
+      "max": 36.8,
+      "bytesPerPlan": 36.294,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          586718.454,
+          810083.925
+        ],
+        "p50": [
+          1.3,
+          1.8
+        ],
+        "p95": [
+          1.4,
+          2.3
+        ],
+        "bytesPerPlan": [
+          36.294,
+          36.602
+        ]
+      }
+    },
+    {
+      "name": "FactHeavy100",
+      "plansPerSecond": 2983.014,
+      "usPerPlan": 335.231,
+      "p50": 353.5,
+      "p95": 398.4,
+      "p99": 485.8,
+      "max": 634,
+      "bytesPerPlan": 40,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          2679.601,
+          3241.984
+        ],
+        "p50": [
+          309.4,
+          558.3
+        ],
+        "p95": [
+          382.1,
+          1003.9
+        ],
+        "bytesPerPlan": [
+          40,
+          40
+        ]
+      }
+    },
+    {
+      "name": "AAA high_order",
+      "plansPerSecond": 485003.686,
+      "usPerPlan": 2.062,
+      "p50": 1.9,
+      "p95": 2,
+      "p99": 2.1,
+      "max": 108.3,
+      "bytesPerPlan": 0.915,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          467127.098,
+          549666.49
+        ],
+        "p50": [
+          1,
+          1.9
+        ],
+        "p95": [
+          1.1,
+          2.2
+        ],
+        "bytesPerPlan": [
+          0.872,
+          0.915
+        ]
+      }
+    },
+    {
+      "name": "AAA melee",
+      "plansPerSecond": 174342.836,
+      "usPerPlan": 5.736,
+      "p50": 6.8,
+      "p95": 7,
+      "p99": 7.2,
+      "max": 31.9,
+      "bytesPerPlan": 0.32,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          159537.851,
+          187999.256
+        ],
+        "p50": [
+          3.8,
+          6.9
+        ],
+        "p95": [
+          4.1,
+          7.1
+        ],
+        "bytesPerPlan": [
+          0.32,
+          0.32
+        ]
+      }
+    },
+    {
+      "name": "AAA search",
+      "plansPerSecond": 350299.506,
+      "usPerPlan": 2.855,
+      "p50": 2,
+      "p95": 2.4,
+      "p99": 3.3,
+      "max": 24,
+      "bytesPerPlan": 0,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          341890.277,
+          425179.107
+        ],
+        "p50": [
+          1.8,
+          3.4
+        ],
+        "p95": [
+          2,
+          3.5
+        ],
+        "bytesPerPlan": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "name": "AAA idle",
+      "plansPerSecond": 316564.891,
+      "usPerPlan": 3.159,
+      "p50": 4.4,
+      "p95": 4.6,
+      "p99": 5,
+      "max": 66.6,
+      "bytesPerPlan": 0.872,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          249701.918,
+          434234.152
+        ],
+        "p50": [
+          2.3,
+          4.5
+        ],
+        "p95": [
+          2.5,
+          4.9
+        ],
+        "bytesPerPlan": [
+          0.872,
+          0.872
+        ]
+      }
+    },
+    {
+      "name": "Sample patrol",
+      "plansPerSecond": 77668.395,
+      "usPerPlan": 12.875,
+      "p50": 7.1,
+      "p95": 8,
+      "p99": 12.9,
+      "max": 232.6,
+      "bytesPerPlan": 993.003,
+      "gcCount": 1,
+      "gcMs": 0.362,
+      "range": {
+        "plansPerSecond": [
+          69428.775,
+          103426.093
+        ],
+        "p50": [
+          6.6,
+          12.9
+        ],
+        "p95": [
+          7.3,
+          13.4
+        ],
+        "bytesPerPlan": [
+          992.816,
+          993.005
+        ]
+      }
+    },
+    {
+      "name": "Sample chase",
+      "plansPerSecond": 127361.44,
+      "usPerPlan": 7.852,
+      "p50": 8.3,
+      "p95": 8.6,
+      "p99": 9.9,
+      "max": 305,
+      "bytesPerPlan": 2480.52,
+      "gcCount": 1,
+      "gcMs": 0.344,
+      "range": {
+        "plansPerSecond": [
+          115415.267,
+          148703.971
+        ],
+        "p50": [
+          4.4,
+          8.5
+        ],
+        "p95": [
+          5,
+          8.8
+        ],
+        "bytesPerPlan": [
+          2480.509,
+          2480.557
+        ]
+      }
+    },
+    {
+      "name": "Guard patrol",
+      "plansPerSecond": 417185.541,
+      "usPerPlan": 2.397,
+      "p50": 2.4,
+      "p95": 2.5,
+      "p99": 2.6,
+      "max": 15.4,
+      "bytesPerPlan": 5.738,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          358595.168,
+          487634.801
+        ],
+        "p50": [
+          1.3,
+          2.4
+        ],
+        "p95": [
+          1.4,
+          2.5
+        ],
+        "bytesPerPlan": [
+          4.499,
+          9.402
+        ]
+      }
+    },
+    {
+      "name": "Guard chase",
+      "plansPerSecond": 577824.261,
+      "usPerPlan": 1.731,
+      "p50": 1,
+      "p95": 1.1,
+      "p99": 1.3,
+      "max": 258.1,
+      "bytesPerPlan": 4.107,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          470428.843,
+          735900.153
+        ],
+        "p50": [
+          0.6,
+          1.1
+        ],
+        "p95": [
+          0.7,
+          1.2
+        ],
+        "bytesPerPlan": [
+          2.683,
+          6.877
+        ]
+      }
+    },
+    {
+      "name": "Stalker patrol",
+      "plansPerSecond": 188786.284,
+      "usPerPlan": 5.297,
+      "p50": 2.9,
+      "p95": 3.4,
+      "p99": 4.6,
+      "max": 23.5,
+      "bytesPerPlan": 0.32,
+      "gcCount": 0,
+      "gcMs": 0,
+      "range": {
+        "plansPerSecond": [
+          168367.459,
+          238066.897
+        ],
+        "p50": [
+          2.6,
+          5.5
+        ],
+        "p95": [
+          2.8,
+          5.6
+        ],
+        "bytesPerPlan": [
+          0.058,
+          2.926
+        ]
+      }
+    }
+  ],
+  "crowd": [
+    {
+      "name": "10 npcs 30fps",
+      "size": 10,
+      "fps": 30,
+      "record": false,
+      "budget": "none",
+      "tickMeanMs": 0.055,
+      "tickP50": 0.023,
+      "tickP95": 0.189,
+      "tickP99": 0.548,
+      "planP50": 0,
+      "planP95": 0.012,
+      "planP99": 0.045,
+      "npcsPerMs": 181.025,
+      "npcsPerMsP95": 52.854,
+      "bytesPerFrame": 25949.123,
+      "gcCount": 11,
+      "gcMs": 10.814,
+      "range": {
+        "npcsPerMs": [
+          179.021,
+          212.542
+        ],
+        "planP99": [
+          0.038,
+          0.045
+        ]
+      }
+    },
+    {
+      "name": "10 npcs 30fps recorder",
+      "size": 10,
+      "fps": 30,
+      "record": true,
+      "budget": "none",
+      "tickMeanMs": 0.045,
+      "tickP50": 0.015,
+      "tickP95": 0.197,
+      "tickP99": 0.462,
+      "planP50": 0,
+      "planP95": 0.046,
+      "planP99": 0.142,
+      "npcsPerMs": 223.556,
+      "npcsPerMsP95": 50.865,
+      "bytesPerFrame": 22789.739,
+      "gcCount": 8,
+      "gcMs": 14.732,
+      "range": {
+        "npcsPerMs": [
+          212.39,
+          255.896
+        ],
+        "planP99": [
+          0.112,
+          0.154
+        ]
+      }
+    },
+    {
+      "name": "25 npcs 30fps",
+      "size": 25,
+      "fps": 30,
+      "record": false,
+      "budget": "none",
+      "tickMeanMs": 0.067,
+      "tickP50": 0.032,
+      "tickP95": 0.189,
+      "tickP99": 0.75,
+      "planP50": 0,
+      "planP95": 0.018,
+      "planP99": 0.077,
+      "npcsPerMs": 373.033,
+      "npcsPerMsP95": 132.135,
+      "bytesPerFrame": 50087.321,
+      "gcCount": 11,
+      "gcMs": 12.118,
+      "range": {
+        "npcsPerMs": [
+          320.013,
+          403.614
+        ],
+        "planP99": [
+          0.066,
+          0.092
+        ]
+      }
+    },
+    {
+      "name": "25 npcs 30fps recorder",
+      "size": 25,
+      "fps": 30,
+      "record": true,
+      "budget": "none",
+      "tickMeanMs": 0.071,
+      "tickP50": 0.032,
+      "tickP95": 0.198,
+      "tickP99": 0.81,
+      "planP50": 0,
+      "planP95": 0.035,
+      "planP99": 0.138,
+      "npcsPerMs": 349.819,
+      "npcsPerMsP95": 126.454,
+      "bytesPerFrame": 53889.163,
+      "gcCount": 12,
+      "gcMs": 20.353,
+      "range": {
+        "npcsPerMs": [
+          320.982,
+          387.95
+        ],
+        "planP99": [
+          0.109,
+          0.16
+        ]
+      }
+    },
+    {
+      "name": "50 npcs 30fps",
+      "size": 50,
+      "fps": 30,
+      "record": false,
+      "budget": "none",
+      "tickMeanMs": 0.115,
+      "tickP50": 0.064,
+      "tickP95": 0.301,
+      "tickP99": 1.188,
+      "planP50": 0,
+      "planP95": 0.018,
+      "planP99": 0.084,
+      "npcsPerMs": 433.132,
+      "npcsPerMsP95": 166.279,
+      "bytesPerFrame": 97642.978,
+      "gcCount": 21,
+      "gcMs": 20.618,
+      "range": {
+        "npcsPerMs": [
+          387.687,
+          460.795
+        ],
+        "planP99": [
+          0.074,
+          0.087
+        ]
+      }
+    },
+    {
+      "name": "50 npcs 30fps recorder",
+      "size": 50,
+      "fps": 30,
+      "record": true,
+      "budget": "none",
+      "tickMeanMs": 0.14,
+      "tickP50": 0.066,
+      "tickP95": 0.375,
+      "tickP99": 1.705,
+      "planP50": 0,
+      "planP95": 0.053,
+      "planP99": 0.226,
+      "npcsPerMs": 357.027,
+      "npcsPerMsP95": 133.44,
+      "bytesPerFrame": 105399.166,
+      "gcCount": 25,
+      "gcMs": 42.813,
+      "range": {
+        "npcsPerMs": [
+          321.183,
+          395.892
+        ],
+        "planP99": [
+          0.207,
+          0.255
+        ]
+      }
+    },
+    {
+      "name": "10 npcs 30fps 3/f",
+      "size": 10,
+      "fps": 30,
+      "record": false,
+      "budget": "3/f",
+      "tickMeanMs": 0.031,
+      "tickP50": 0.015,
+      "tickP95": 0.129,
+      "tickP99": 0.328,
+      "planP50": 0,
+      "planP95": 0.007,
+      "planP99": 0.024,
+      "npcsPerMs": 325.742,
+      "npcsPerMsP95": 77.7,
+      "bytesPerFrame": 21338.465,
+      "gcCount": 4,
+      "gcMs": 4.749,
+      "range": {
+        "npcsPerMs": [
+          317.482,
+          355.021
+        ],
+        "planP99": [
+          0.023,
+          0.027
+        ]
+      }
+    },
+    {
+      "name": "25 npcs 30fps 3/f",
+      "size": 25,
+      "fps": 30,
+      "record": false,
+      "budget": "3/f",
+      "tickMeanMs": 0.067,
+      "tickP50": 0.034,
+      "tickP95": 0.273,
+      "tickP99": 0.444,
+      "planP50": 0,
+      "planP95": 0.018,
+      "planP99": 0.039,
+      "npcsPerMs": 375.335,
+      "npcsPerMsP95": 91.676,
+      "bytesPerFrame": 50002.597,
+      "gcCount": 10,
+      "gcMs": 9.216,
+      "range": {
+        "npcsPerMs": [
+          349.295,
+          419.672
+        ],
+        "planP99": [
+          0.037,
+          0.043
+        ]
+      }
+    },
+    {
+      "name": "50 npcs 30fps 3/f",
+      "size": 50,
+      "fps": 30,
+      "record": false,
+      "budget": "3/f",
+      "tickMeanMs": 0.12,
+      "tickP50": 0.071,
+      "tickP95": 0.384,
+      "tickP99": 0.507,
+      "planP50": 0,
+      "planP95": 0.027,
+      "planP99": 0.045,
+      "npcsPerMs": 415.183,
+      "npcsPerMsP95": 130.141,
+      "bytesPerFrame": 96977.141,
+      "gcCount": 21,
+      "gcMs": 19.336,
+      "range": {
+        "npcsPerMs": [
+          366.534,
+          453.503
+        ],
+        "planP99": [
+          0.04,
+          0.048
+        ]
+      }
+    },
+    {
+      "name": "10 npcs 30fps 0.25ms",
+      "size": 10,
+      "fps": 30,
+      "record": false,
+      "budget": "0.25ms",
+      "tickMeanMs": 0.028,
+      "tickP50": 0.015,
+      "tickP95": 0.116,
+      "tickP99": 0.319,
+      "planP50": 0,
+      "planP95": 0.007,
+      "planP99": 0.025,
+      "npcsPerMs": 358.337,
+      "npcsPerMsP95": 86.207,
+      "bytesPerFrame": 21373.286,
+      "gcCount": 4,
+      "gcMs": 3.91,
+      "range": {
+        "npcsPerMs": [
+          347.113,
+          419.955
+        ],
+        "planP99": [
+          0.022,
+          0.028
+        ]
+      }
+    },
+    {
+      "name": "25 npcs 30fps 0.25ms",
+      "size": 25,
+      "fps": 30,
+      "record": false,
+      "budget": "0.25ms",
+      "tickMeanMs": 0.065,
+      "tickP50": 0.034,
+      "tickP95": 0.255,
+      "tickP99": 0.414,
+      "planP50": 0,
+      "planP95": 0.017,
+      "planP99": 0.041,
+      "npcsPerMs": 387.565,
+      "npcsPerMsP95": 98.232,
+      "bytesPerFrame": 49871.377,
+      "gcCount": 10,
+      "gcMs": 9.936,
+      "range": {
+        "npcsPerMs": [
+          362.692,
+          463.073
+        ],
+        "planP99": [
+          0.039,
+          0.042
+        ]
+      }
+    },
+    {
+      "name": "50 npcs 30fps 0.25ms",
+      "size": 50,
+      "fps": 30,
+      "record": false,
+      "budget": "0.25ms",
+      "tickMeanMs": 0.117,
+      "tickP50": 0.069,
+      "tickP95": 0.389,
+      "tickP99": 0.503,
+      "planP50": 0,
+      "planP95": 0.031,
+      "planP99": 0.044,
+      "npcsPerMs": 426.063,
+      "npcsPerMsP95": 128.502,
+      "bytesPerFrame": 96971.001,
+      "gcCount": 21,
+      "gcMs": 18.612,
+      "range": {
+        "npcsPerMs": [
+          385.336,
+          497.835
+        ],
+        "planP99": [
+          0.044,
+          0.048
+        ]
+      }
+    },
+    {
+      "name": "10 npcs 60fps",
+      "size": 10,
+      "fps": 60,
+      "record": false,
+      "budget": "none",
+      "tickMeanMs": 0.02,
+      "tickP50": 0.013,
+      "tickP95": 0.028,
+      "tickP99": 0.158,
+      "planP50": 0,
+      "planP95": 0,
+      "planP99": 0.011,
+      "npcsPerMs": 504.541,
+      "npcsPerMsP95": 355.872,
+      "bytesPerFrame": 19313.594,
+      "gcCount": 8,
+      "gcMs": 6.573,
+      "range": {
+        "npcsPerMs": [
+          465.133,
+          556.139
+        ],
+        "planP99": [
+          0.01,
+          0.017
+        ]
+      }
+    },
+    {
+      "name": "25 npcs 60fps",
+      "size": 25,
+      "fps": 60,
+      "record": false,
+      "budget": "none",
+      "tickMeanMs": 0.045,
+      "tickP50": 0.031,
+      "tickP95": 0.112,
+      "tickP99": 0.346,
+      "planP50": 0,
+      "planP95": 0.006,
+      "planP99": 0.022,
+      "npcsPerMs": 554.792,
+      "npcsPerMsP95": 223.614,
+      "bytesPerFrame": 45967.376,
+      "gcCount": 20,
+      "gcMs": 17.202,
+      "range": {
+        "npcsPerMs": [
+          499.888,
+          583.321
+        ],
+        "planP99": [
+          0.02,
+          0.029
+        ]
+      }
+    },
+    {
+      "name": "50 npcs 60fps",
+      "size": 50,
+      "fps": 60,
+      "record": false,
+      "budget": "none",
+      "tickMeanMs": 0.09,
+      "tickP50": 0.063,
+      "tickP95": 0.198,
+      "tickP99": 0.747,
+      "planP50": 0,
+      "planP95": 0.009,
+      "planP99": 0.037,
+      "npcsPerMs": 555.222,
+      "npcsPerMsP95": 252.781,
+      "bytesPerFrame": 91301.833,
+      "gcCount": 40,
+      "gcMs": 30.632,
+      "range": {
+        "npcsPerMs": [
+          537.036,
+          583.33
+        ],
+        "planP99": [
+          0.034,
+          0.04
+        ]
+      }
+    }
+  ]
+}

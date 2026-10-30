@@ -1,0 +1,11 @@
+// v6_partial_plans: far and no trunk: rearm, no walk to the enemy.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to old_oak
+//   2. !uproot_trunk old_oak
+//   3. &attack_enemy knight
+
+enemy_visible knight
+trunk_health 0
+power_up 0
+trunk_nearby old_oak

@@ -1,0 +1,10 @@
+// medic_bot: closing line on cooldown.
+// method: behave
+// expect: succeeded
+//   1. !inject alice
+//   2. !mark_treated alice
+
+now 3.0
+patient alice
+distance_to alice 1.0
+spoke finish_inject 0.0

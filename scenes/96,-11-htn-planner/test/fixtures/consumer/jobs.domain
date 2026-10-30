@@ -1,0 +1,13 @@
+// Expected strategy: flee before work; completed tasks are empty; resume your own claim; wait on other owners.
+(:domain ConsumerJobs top_level_domain
+  (:method (approve) top_level_method
+    (ready (and (ready)) ((!approve)))
+  )
+  (:method (job ?inp_who) top_level_method
+    (danger (and (alarm)) ((!flee ?inp_who)))
+    (done (and (done ?inp_who)) ())
+    (resume (and (owner ?inp_who)) ((!finish ?inp_who)))
+    (acquire (and (not (owner ?any)) (call allowed ?inp_who)) ((!claim ?inp_who) (!finish ?inp_who)))
+    (wait () ((!wait ?inp_who)))
+  )
+)

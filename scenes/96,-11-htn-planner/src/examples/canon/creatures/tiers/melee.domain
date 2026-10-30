@@ -1,0 +1,76 @@
+(:include "reach.domain")
+
+// Shared tier: melee a target. First free yourself (one fix per plan), then close in, juke and hit.
+//
+// Teaches: a "fix-up ladder" (first match: the first thing in the way is fixed, the plan ends with it, the next
+// replan takes the next rung), the target picked by a host sensor and handed down as a parameter.
+// Source: Space Station 14 (MIT), `MeleeCombatCompound`, `BeforeMeleeAttackTargetCompound`,
+// `MeleeAttackTargetCompound` and `EscapeCompound` in Resources/Prototypes/NPCs/Combat/melee.yml, and the
+// `NearbyMeleeTargets` utility query, at commit 614f030530578e248a2393dd71ee9813d68d800d:
+// https://github.com/space-wizards/space-station-14/blob/614f030530578e248a2393dd71ee9813d68d800d/Resources/Prototypes/NPCs/Combat/melee.yml
+// Licence: MIT, Copyright (c) 2017-2026 Space Wizards Federation; see src/examples/canon/THIRD_PARTY_NOTICES.md.
+// Adapted (YAML prototypes re-written in our domain language).
+// Emulations: SS14 `UtilityOperator proto: NearbyMeleeTargets` (alive, visible, distance, health, accessible, in
+// line of sight) picks the target while planning; here the host sensor publishes `(hostile ?target)` best-first
+// and `melee_target` takes the first. The SS14 `UtilityService` that re-picks the target every tick while the hit
+// runs is the host's job too: it rewrites `(hostile ...)` and the agent replans on the change.
+// Deviations: the escape rung is one primitive (SS14: `ContainerOperator` then `EscapeOperator`).
+// Not ported: the weapon rungs of the ladder (pick up a melee weapon, wield it, switch it on: the creatures here
+// fight with their own body; they belong to a `melee_brawler` example), `MeleeAttackOrderedTargetCompound` (orders
+// from a leader), `shutdownState: PlanFinished` on the move (SS14 keeps steering towards the target until the plan
+// ends; it is the executor's cleanup timing, not a plan end).
+//
+// Facts:      (hostile ?target) host sensor, best first; (buckled), (pulled), (in_container) body state;
+//             (distance_to ?entity ?metres).
+// Primitives: (!unbuckle) (!unpull) (!escape_container) (!move_near ?entity ?range) (!juke_away ?target)
+//             (!melee_attack ?target)
+
+(:domain melee
+
+    // The target to fight now: the host's best hostile.
+    (:axiom (melee_target ?out_target)
+        (and
+            (hostile ?out_target)
+        )
+    )
+
+    // Contract: one step towards hitting ?inp_target, or the hit; never fails.
+    (:method (melee ?inp_target)
+
+        (unbuckle
+            (and
+                (buckled)
+            )
+            (
+                (!unbuckle)
+            )
+        )
+
+        (break_free
+            (and
+                (pulled)
+            )
+            (
+                (!unpull)
+            )
+        )
+
+        (escape
+            (and
+                (in_container)
+            )
+            (
+                (!escape_container)
+            )
+        )
+
+        (attack
+            ()
+            (
+                (get_in_range ?inp_target @melee_range)
+                (!juke_away ?inp_target)
+                (!melee_attack ?inp_target)
+            )
+        )
+    )
+)

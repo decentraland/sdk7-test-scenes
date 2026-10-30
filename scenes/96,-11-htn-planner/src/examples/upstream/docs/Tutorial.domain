@@ -1,0 +1,20 @@
+(:domain Tutorial top_level_domain
+    (:method (behave) top_level_method
+        (approach_visible_enemy
+            (and
+                (visible_enemy ?enemy ?position)
+                (not (disabled ?enemy))
+            )
+            (
+                (!move_to ?position)
+                (!look_at ?enemy)
+            )
+        )
+        (idle
+            ()
+            (
+                (!wait 1.0)
+            )
+        )
+    )
+)

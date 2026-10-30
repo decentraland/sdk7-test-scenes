@@ -1,0 +1,10 @@
+// ore_to_gold: metal in hand.
+// method: earn_gold
+// expect: succeeded
+//   1. !go_to merchant
+//   2. &metal_to_gold
+//   3. &earn_gold
+
+gold 1
+has_metal
+location outside

@@ -1,0 +1,13 @@
+// swarm_drone: a collector sets out for its resource. The plan is bracketed (the host writes active_plan) and stops
+// where the world changes: after the grab.
+// method: behave
+// expect: succeeded
+//   1. !begin_plan move_to_grab_resource r1
+//   2. !fly_over r1
+//   3. !descend r1
+//   4. !grab r1
+//   5. !climb
+//   6. !end_plan
+
+role collector r1
+processor m1

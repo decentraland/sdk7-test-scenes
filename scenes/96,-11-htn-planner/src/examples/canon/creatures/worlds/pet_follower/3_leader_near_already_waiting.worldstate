@@ -1,0 +1,10 @@
+// pet_follower: leader near, already waiting.
+// method: behave
+// expect: succeeded
+//   1. !wait_until 6.0
+
+now 3.0
+leader owner
+distance_to owner 4.0
+idle_until 6.0
+follow_spot owner spot_near

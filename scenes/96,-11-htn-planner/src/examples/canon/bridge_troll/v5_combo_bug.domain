@@ -1,0 +1,141 @@
+// Bridge troll, step 5a of 6: BEFORE, a known bug kept on purpose. The fix is v5_tired.domain.
+//
+// Teaches (by its bug): a plan step that exists only because of branch order is lost when the host replans. The
+// designers add a recovery after every attack, so the player gets a moment to react, and a whirlwind attack once
+// three slams have charged the troll's power. Every slam raises `power_up`. After the third slam, while !recover
+// runs, any outside change makes the host plan the root again: the world now says "power 3", so the whirlwind
+// method wins and the new plan replaces the running one. The troll combos slam -> whirlwind with no recovery.
+// Nothing in the world says why the recovery is needed; only the order of the steps in the running plan did.
+// (With our host, which keeps a running plan only if the new plan is the same as its rest, a replan during
+// !recover drops it after every slam, not only the third: the chapter's planner compares plan priorities (MTR,
+// below) and keeps an equal-priority plan.) The story "combo skips the recovery" in stories.ts
+// replays it.
+//
+// Changed from v4: `attack_enemy` gets the `whirlwind` method first and a !recover after each attack; new facts
+//   `power_up`, constant `whirlwind_charge`; new primitives !whirlwind, !recover.
+// Source: Troy Humphreys, "Exploring HTN Planners through Example", Game AI Pro (CRC Press, 2013), chapter 12,
+//   section 12.8:
+//   https://www.gameaipro.com/GameAIPro/GameAIPro_Chapter12_Exploring_HTN_Planners_through_Example.pdf
+// Licence: the chapter is (c) CRC Press (free to read); re-expressed from its published description, nothing copied.
+// Deviations from the source: the troll walks to the enemy before either attack (the chapter's whirlwind method has
+//   no move); patrol, chase and the trunk loop as in v4.
+// Not ported: the method traversal record (MTR: compare a new plan's method indexes with the running plan's and
+//   keep the running one unless the new one is of higher priority). Our planner has no MTR; the host keeps a plan
+//   that the planner would choose again, and the domain makes that happen by stating its reasons as facts
+//   (v5_tired). The chapter's other 12.8 changes (AttackedRecently, CanNavigateToEnemy) are not ported either.
+//
+// Facts (host sensors): as v4, plus (power_up ?charge) int, +1 per !trunk_slam, 0 after !whirlwind.
+// Primitives (logged): as v4, plus (!whirlwind ?enemy) (!recover)
+// Scenarios: worlds/v5_combo_bug/; the bug story: stories.ts; npm run htn:run -- --story v5_combo_bug/combo-skips-the-recovery
+
+(:domain BridgeTrollV5ComboBug top_level_domain
+
+    (:constants BridgeTrollV5ComboBug
+        (whirlwind_charge 3)
+    )
+
+    (:method (be_troll) top_level_method
+
+        (fight
+            (and
+                (enemy_visible ?enemy)
+            )
+            (
+                (attack_enemy ?enemy)
+            )
+        )
+
+        (chase
+            (and
+                (enemy_last_seen ?enemy ?place)
+            )
+            (
+                (!navigate_to ?place)
+                (&regain_sight ?enemy)
+            )
+        )
+
+        (patrol
+            (and
+                (next_bridge ?bridge)
+            )
+            (
+                (!navigate_to ?bridge)
+                (!check_bridge ?bridge)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!idle 2.0)
+            )
+        )
+    )
+
+    // Hurt the enemy. Pre: ?inp_enemy is in sight. Effect: one attack made and recovered from, or a new trunk.
+    (:method (attack_enemy ?inp_enemy)
+
+        (whirlwind
+            (and
+                (power_up ?charge)
+                (>= ?charge @whirlwind_charge)
+            )
+            (
+                (!navigate_to ?inp_enemy)
+                (!whirlwind ?inp_enemy)
+                (!recover)
+            )
+        )
+
+        (trunk_slam
+            (and
+                (trunk_health ?hits)
+                (> ?hits 0)
+            )
+            (
+                (!navigate_to ?inp_enemy)
+                (!trunk_slam ?inp_enemy)
+                (!recover)
+            )
+        )
+
+        (rearm
+            (and
+                (trunk_nearby ?tree)
+            )
+            (
+                (!navigate_to ?tree)
+                (!uproot_trunk ?tree)
+                (&attack_enemy ?inp_enemy)
+            )
+        )
+
+        (throw_boulder
+            ()
+            (
+                (!lift_boulder)
+                (!throw_boulder ?inp_enemy)
+            )
+        )
+    )
+
+    (:method (regain_sight ?inp_enemy)
+
+        (roar
+            (and
+                (enemy_visible ?inp_enemy)
+            )
+            (
+                (!roar ?inp_enemy)
+            )
+        )
+
+        (catch_breath
+            ()
+            (
+                (!catch_breath)
+            )
+        )
+    )
+)

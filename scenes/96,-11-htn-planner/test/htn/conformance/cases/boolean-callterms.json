@@ -1,0 +1,740 @@
+[
+  {
+    "name": "boolean callterms: standalone vector3 list result is reported",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:132",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "(1.0 2.0 3.0)"},
+    "method": "condition",
+    "expect": {
+      "status": "no_plan",
+      "plan": [],
+      "calls": {"Calls": 1},
+      "diagnostics": {"non_boolean_condition_result": 1},
+      "diagnosticAt": [
+        {
+          "code": "non_boolean_condition_result",
+          "find": "(call ppr_finalize_best)",
+          "after": "(:method (condition)"
+        }
+      ]
+    }
+  },
+  {
+    "name": "boolean callterms: standalone int result is reported",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:132",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "42"},
+    "method": "condition",
+    "expect": {
+      "status": "no_plan",
+      "plan": [],
+      "calls": {"Calls": 1},
+      "diagnostics": {"non_boolean_condition_result": 1},
+      "diagnosticAt": [
+        {
+          "code": "non_boolean_condition_result",
+          "find": "(call ppr_finalize_best)",
+          "after": "(:method (condition)"
+        }
+      ]
+    }
+  },
+  {
+    "name": "boolean callterms: standalone float result is reported",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:132",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "0.25"},
+    "method": "condition",
+    "expect": {
+      "status": "no_plan",
+      "plan": [],
+      "calls": {"Calls": 1},
+      "diagnostics": {"non_boolean_condition_result": 1},
+      "diagnosticAt": [
+        {
+          "code": "non_boolean_condition_result",
+          "find": "(call ppr_finalize_best)",
+          "after": "(:method (condition)"
+        }
+      ]
+    }
+  },
+  {
+    "name": "boolean callterms: standalone symbol result is reported",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:132",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "position"},
+    "method": "condition",
+    "expect": {
+      "status": "no_plan",
+      "plan": [],
+      "calls": {"Calls": 1},
+      "diagnostics": {"non_boolean_condition_result": 1},
+      "diagnosticAt": [
+        {
+          "code": "non_boolean_condition_result",
+          "find": "(call ppr_finalize_best)",
+          "after": "(:method (condition)"
+        }
+      ]
+    }
+  },
+  {
+    "name": "boolean callterms: standalone string result is reported",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:132",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "\"A returned string long enough to require owned heap storage\""},
+    "method": "condition",
+    "expect": {
+      "status": "no_plan",
+      "plan": [],
+      "calls": {"Calls": 1},
+      "diagnostics": {"non_boolean_condition_result": 1},
+      "diagnosticAt": [
+        {
+          "code": "non_boolean_condition_result",
+          "find": "(call ppr_finalize_best)",
+          "after": "(:method (condition)"
+        }
+      ]
+    }
+  },
+  {
+    "name": "boolean callterms: standalone list with owned string result is reported",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:132",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "(\"An owned string inside a returned list\" 7)"},
+    "method": "condition",
+    "expect": {
+      "status": "no_plan",
+      "plan": [],
+      "calls": {"Calls": 1},
+      "diagnostics": {"non_boolean_condition_result": 1},
+      "diagnosticAt": [
+        {
+          "code": "non_boolean_condition_result",
+          "find": "(call ppr_finalize_best)",
+          "after": "(:method (condition)"
+        }
+      ]
+    }
+  },
+  {
+    "name": "boolean callterms: vector3 list result stays valid in assignments, comparisons and nested arguments",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:142",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "(1.0 2.0 3.0)"},
+    "script": [
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0},
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "list"},
+              "args": {"0": "(1.0 2.0 3.0)"}
+            }
+          ]
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "axiom_assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0},
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "list"},
+              "args": {"0": "(1.0 2.0 3.0)"}
+            }
+          ]
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "comparison",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "nested_condition",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      }
+    ]
+  },
+  {
+    "name": "boolean callterms: int result stays valid in assignments, comparisons and nested arguments",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:142",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "42"},
+    "script": [
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0},
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "int"},
+              "args": {"0": "42"}
+            }
+          ]
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "axiom_assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0},
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "int"},
+              "args": {"0": "42"}
+            }
+          ]
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "comparison",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "nested_condition",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      }
+    ]
+  },
+  {
+    "name": "boolean callterms: float result stays valid in assignments, comparisons and nested arguments",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:142",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "0.25"},
+    "script": [
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0},
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "float"},
+              "nums": {"0": 0.25}
+            }
+          ]
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "axiom_assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0},
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "float"},
+              "nums": {"0": 0.25}
+            }
+          ]
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "comparison",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "nested_condition",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      }
+    ]
+  },
+  {
+    "name": "boolean callterms: symbol result stays valid in assignments, comparisons and nested arguments",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:142",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "position"},
+    "script": [
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0},
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "sym"},
+              "args": {"0": "position"}
+            }
+          ]
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "axiom_assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0},
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "sym"},
+              "args": {"0": "position"}
+            }
+          ]
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "comparison",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "nested_condition",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      }
+    ]
+  },
+  {
+    "name": "boolean callterms: string result stays valid in assignments, comparisons and nested arguments",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:142",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "\"A returned string long enough to require owned heap storage\""},
+    "script": [
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0},
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "str"},
+              "args": {"0": "\"A returned string long enough to require owned heap storage\""}
+            }
+          ]
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "axiom_assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0},
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "str"},
+              "args": {"0": "\"A returned string long enough to require owned heap storage\""}
+            }
+          ]
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "comparison",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "nested_condition",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      }
+    ]
+  },
+  {
+    "name": "boolean callterms: list with owned string result stays valid in assignments, comparisons and nested arguments",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:142",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "(\"An owned string inside a returned list\" 7)"},
+    "script": [
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0},
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "list"},
+              "args": {"0": "(\"An owned string inside a returned list\" 7)"}
+            }
+          ]
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "axiom_assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0},
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "list"},
+              "args": {"0": "(\"An owned string inside a returned list\" 7)"}
+            }
+          ]
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "comparison",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      },
+      {"op": "resetCounters"},
+      {
+        "op": "decompose",
+        "method": "nested_condition",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"Calls": 1},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      }
+    ]
+  },
+  {
+    "name": "boolean callterms: true and false remain normal condition results",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:162",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "script": [
+      {"op": "setVar", "name": "value", "value": "#true"},
+      {
+        "op": "decompose",
+        "method": "condition",
+        "expect": {"status": "succeeded"}
+      },
+      {"op": "setVar", "name": "value", "value": "#false"},
+      {
+        "op": "decompose",
+        "method": "condition",
+        "expect": {
+          "status": "no_plan",
+          "calls": {"Calls": 2},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      }
+    ]
+  },
+  {
+    "name": "boolean callterms: binary integers and true/false symbols still need an explicit comparison",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:184",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "script": [
+      {"op": "setVar", "name": "value", "value": "0"},
+      {
+        "op": "decompose",
+        "method": "condition",
+        "expect": {
+          "status": "no_plan",
+          "diagnostics": {"non_boolean_condition_result": 1},
+          "diagnosticAt": [
+            {
+              "code": "non_boolean_condition_result",
+              "find": "(call ppr_finalize_best)",
+              "after": "(:method (condition)"
+            }
+          ]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "comparison",
+        "expect": {
+          "status": "succeeded",
+          "diagnostics": {"non_boolean_condition_result": 1}
+        }
+      },
+      {"op": "setVar", "name": "value", "value": "1"},
+      {
+        "op": "decompose",
+        "method": "condition",
+        "expect": {
+          "status": "no_plan",
+          "diagnostics": {"non_boolean_condition_result": 2},
+          "diagnosticAt": [
+            {
+              "code": "non_boolean_condition_result",
+              "find": "(call ppr_finalize_best)",
+              "after": "(:method (condition)"
+            }
+          ]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "comparison",
+        "expect": {
+          "status": "succeeded",
+          "diagnostics": {"non_boolean_condition_result": 2}
+        }
+      },
+      {"op": "setVar", "name": "value", "value": "true"},
+      {
+        "op": "decompose",
+        "method": "condition",
+        "expect": {
+          "status": "no_plan",
+          "diagnostics": {"non_boolean_condition_result": 3},
+          "diagnosticAt": [
+            {
+              "code": "non_boolean_condition_result",
+              "find": "(call ppr_finalize_best)",
+              "after": "(:method (condition)"
+            }
+          ]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "comparison",
+        "expect": {
+          "status": "succeeded",
+          "diagnostics": {"non_boolean_condition_result": 3}
+        }
+      },
+      {"op": "setVar", "name": "value", "value": "false"},
+      {
+        "op": "decompose",
+        "method": "condition",
+        "expect": {
+          "status": "no_plan",
+          "diagnostics": {"non_boolean_condition_result": 4},
+          "diagnosticAt": [
+            {
+              "code": "non_boolean_condition_result",
+              "find": "(call ppr_finalize_best)",
+              "after": "(:method (condition)"
+            }
+          ]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "comparison",
+        "expect": {
+          "status": "succeeded",
+          "diagnostics": {"non_boolean_condition_result": 4}
+        }
+      }
+    ]
+  },
+  {
+    "name": "boolean callterms: deferred calls report at execution with their own source",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:199",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "(1.0 2.0 3.0)"},
+    "script": [
+      {
+        "op": "plan",
+        "method": "deferred",
+        "expect": {
+          "status": "succeeded",
+          "calls": {"Calls": 0},
+          "diagnostics": {"non_boolean_condition_result": 0}
+        }
+      },
+      {
+        "op": "resolve",
+        "expect": "failed",
+        "remaining": [],
+        "calls": {"Calls": 1},
+        "diagnostics": {"non_boolean_condition_result": 1},
+        "diagnosticAt": [
+          {
+            "code": "non_boolean_condition_result",
+            "find": "(call ppr_finalize_best)",
+            "after": "(:method (later)"
+          }
+        ]
+      },
+      {"op": "setVar", "name": "value", "value": "#true"},
+      {
+        "op": "plan",
+        "method": "deferred",
+        "expect": {"status": "succeeded"}
+      },
+      {
+        "op": "resolve",
+        "expect": "ready",
+        "diagnostics": {"non_boolean_condition_result": 1}
+      }
+    ]
+  },
+  {
+    "name": "boolean callterms: backtracking reports each attempt and allows fallback",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:216",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": "(\"An owned string inside a returned list\" 7)"},
+    "facts": [["candidate", "1"], ["candidate", "2"]],
+    "method": "alternatives",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {"at": 0, "head": "!fallback"}
+      ],
+      "calls": {"Calls": 2},
+      "diagnostics": {"non_boolean_condition_result": 2},
+      "diagnosticAt": [
+        {
+          "code": "non_boolean_condition_result",
+          "find": "(call ppr_finalize_best ?value)",
+          "after": "(:method (alternatives)"
+        }
+      ]
+    }
+  },
+  {
+    "name": "boolean callterms: unbound result fails without a non-boolean report",
+    "upstream": "HTNTest/src/HTNBooleanCallTermTest.cpp:229",
+    "note": "Rest of the upstream test covers C++ binding errors (ArgumentCountMismatch, ReturnConversionFailed); not ported.",
+    "domain": "upstream/Domains/Test/boolean_callterms.domain",
+    "callterms": "boolean-callterms",
+    "vars": {"value": null},
+    "method": "condition",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"Calls": 1},
+      "diagnostics": {"non_boolean_condition_result": 0}
+    }
+  }
+]

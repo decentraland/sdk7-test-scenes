@@ -1,0 +1,6 @@
+node_modules
+bin/
+main.crdt
+.test-build/
+.debugger-shots/
+.spike-shots/

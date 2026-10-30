@@ -1,0 +1,9 @@
+// v4_last_seen: enemy in sight fights.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to knight
+//   2. !trunk_slam knight
+
+enemy_visible knight
+trunk_health 3
+next_bridge north_bridge

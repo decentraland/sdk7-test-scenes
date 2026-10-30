@@ -1,0 +1,13 @@
+// hug_bot: someone wants a hug.
+// method: behave
+// expect: succeeded
+//   1. !say hug_start
+//   2. !move_near bob 1.0
+//   3. !hug bob
+//   4. !wait 1.0
+//   5. !mark_hugged bob
+//   6. !say hug_finish_nice
+
+now 0.0
+wants_hug bob
+distance_to bob 4.0

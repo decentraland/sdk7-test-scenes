@@ -1,0 +1,4 @@
+controlled_entity 1
+event_visible 1 explosion
+event_dangerous explosion
+route_blocked "route_A"

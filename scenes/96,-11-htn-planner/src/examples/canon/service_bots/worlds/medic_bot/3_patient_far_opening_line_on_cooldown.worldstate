@@ -1,0 +1,13 @@
+// medic_bot: patient far, opening line on cooldown.
+// method: behave
+// expect: succeeded
+//   1. !move_near alice 1.5
+//   2. !inject alice
+//   3. !mark_treated alice
+//   4. !say finish_inject
+
+now 10.0
+patient alice
+distance_to alice 6.0
+spoke start_inject 7.0
+spoke finish_inject 2.0
