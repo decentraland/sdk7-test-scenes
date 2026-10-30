@@ -1,0 +1,391 @@
+// soup_kitchen: a team plan for two cooks making one soup: fetch the ingredient into the pot, start the pot, wait
+// for it, serve it into a bowl, deliver it. When the kitchen is split so that no cook reaches everything, the cooks
+// hand things over across a counter.
+//
+// Teaches:
+//   - A team plan over several agents: the agents are variables of the methods, the plan's steps name who acts.
+//   - One generic interaction primitive and a rule table: `(exchange ?agent ?target ?a_before ?t_before ?a_after
+//     ?t_after)` says what interacting with something does (a pile gives an onion, a pot takes it, a counter holds
+//     whatever is put on it). The domain reads the table to plan; the host applies the same table to act. New
+//     kitchen objects are new rows, not new methods (a smart-object table).
+//   - Alternatives in order (done, solo, through the counter): every phase first checks whether it is done or half
+//     done, then tries the simplest way, then the collaborative one.
+//   - Passing future state through parameters: a phase plans several interactions in a row although the planner
+//     simulates nothing, because each step's before / after holdings are known from the table.
+//   - A wait loop as a deferred task (`&wait_cooking`): it is planned when reached, against the pot as it is then,
+//     and puts another wait and itself back until the soup is done.
+//   - One phase per planning run: the top-level task looks at the kitchen and picks the next phase (served, deliver,
+//     cook, add the ingredient), so a replan anywhere resumes the soup.
+//
+// Source (copied / adapted, MIT): HDDLGym, the Overcooked-AI environment in HDDL,
+// src/HDDL_files/Custom_environments/Overcooked/overcooked_short_domain_with_collab.hddl and
+// overcooked_short_prob2.hddl, https://github.com/HDDLGym/HDDLGym (commit f19db8ff0c60c54e2a832e0ea2a8b5241fb3b5b7),
+// MIT licence (Copyright (c) 2025); paper: Ngoc La, Ruaridh Mon-Williams, Julie Shah, "HDDLGym: A Tool for Studying
+// Multi-Agent Hierarchical Problems Defined in HDDL with OpenAI Gym", https://arxiv.org/abs/2505.22597 . Adapted from
+// its tasks make-soup, add-ingredient (solo and collab), cook, deliver (solo and collab), t-wait-cooking (still
+// waiting / done) and its interaction-exchange-rule table.
+// Licence: MIT (adapted); the licence text is in src/examples/canon/THIRD_PARTY_NOTICES.md.
+//
+// Emulations (HDDL plans the whole soup at once with effects; we simulate none):
+//   - effects → one phase per planning run: the top-level method picks the phase from the live kitchen; within a
+//     phase the holdings each step leaves are passed on as parameters from the rule table;
+//   - the `wait` action that advances the pot's cooking stage, and the recursive t-wait-cooking → a deferred
+//     `&wait_cooking` that the host expands while it cooks the pot (`!wait` is one stage);
+//   - the pot's `cooking` predicate → `(cooking ?pot ?dish)`, written by the host when the pot holds the dish's start
+//     label, removed when it holds the dish;
+//   - HDDL's unordered method choice → branch order (done, solo, through the counter); HDDL types → unary facts.
+// Deviations: the generic t-interact task is folded into the phases (each phase checks its rows, then emits
+// `!interact`); each phase gets "half done" branches (an agent already holding the onion, the bowl or the soup) that
+// the source does not have; the top-level method has no always-true branch on purpose: a kitchen where no cook can
+// make the soup has no plan (the source fails the same way), it must not succeed quietly.
+// Not ported: recipes with several ingredients (the domain counts one), the specialization variant
+// (Overcooked_specialization), the problem generator, HDDLGym's learning setup.
+//
+// Facts (the kitchen, from the host):
+//   (agent ?a) (pile ?p) (pot ?p) (table ?t)                 kinds of things
+//   (holding ?thing ?what)                                   what each agent, pile, pot, table, delivery holds;
+//                                                            `empty` for nothing
+//   (exchange ?agent ?target ?a_before ?t_before ?a_after ?t_after)   the interaction table
+//   (recipe ?dish ?ingredient ?count) (start_label ?dish ?label) (cooking_progress ?stage ?next)
+//   (cooking ?pot ?dish)                                     host, see above
+// Primitives: (!interact ?agent ?target) (!wait ?agent ?pot)
+// Scenarios: worlds/soup_kitchen/ (top-level: make_soup soup delivery; npm run htn:run -- --world soup_kitchen/<scenario>);
+// story: stories.ts.
+
+(:domain SoupKitchen top_level_domain
+
+    // The next phase of ?inp_dish for ?inp_delivery. No fallback branch (see the header): no plan means this kitchen
+    // cannot make the dish.
+    (:method (make_soup ?inp_dish ?inp_delivery) top_level_method
+
+        (served
+            (and
+                (holding ?inp_delivery ?inp_dish)
+            )
+            ()
+        )
+
+        (deliver
+            (and
+                (#soup_on_its_way ?inp_dish)
+            )
+            (
+                (deliver ?inp_dish ?inp_delivery)
+            )
+        )
+
+        (cook
+            (and
+                (recipe ?inp_dish ?any_ingredient ?count)
+                (pot ?pot)
+                (holding ?pot ?count)
+                (start_label ?inp_dish ?label)
+            )
+            (
+                (cook ?pot ?count ?label)
+            )
+        )
+
+        (add_ingredient
+            (and
+                (recipe ?inp_dish ?ingredient ?count)
+                (pot ?pot)
+                (holding ?pot empty)
+            )
+            (
+                (add_ingredient ?pot ?ingredient ?count)
+            )
+        )
+    )
+
+    // Contract: the pot is empty. Effect: it holds ?inp_count of ?inp_ingredient.
+    (:method (add_ingredient ?inp_pot ?inp_ingredient ?inp_count)
+
+        (already_holding
+            (and
+                (agent ?agent)
+                (holding ?agent ?inp_ingredient)
+                (exchange ?agent ?inp_pot ?inp_ingredient empty empty ?inp_count)
+            )
+            (
+                (!interact ?agent ?inp_pot)
+            )
+        )
+
+
+        // Resume a transfer before taking another ingredient from its pile.
+        (on_counter
+            (and
+                (table ?table)
+                (holding ?table ?inp_ingredient)
+                (agent ?cook)
+                (holding ?cook empty)
+                (exchange ?cook ?table empty ?inp_ingredient ?inp_ingredient empty)
+                (exchange ?cook ?inp_pot ?inp_ingredient empty empty ?inp_count)
+            )
+            (
+                (!interact ?cook ?table)
+                (!interact ?cook ?inp_pot)
+            )
+        )
+
+        (fetcher_holding
+            (and
+                (agent ?fetcher)
+                (holding ?fetcher ?inp_ingredient)
+                (table ?table)
+                (holding ?table empty)
+                (exchange ?fetcher ?table ?inp_ingredient empty empty ?inp_ingredient)
+                (agent ?cook)
+                (!= ?cook ?fetcher)
+                (holding ?cook empty)
+                (exchange ?cook ?table empty ?inp_ingredient ?inp_ingredient empty)
+                (exchange ?cook ?inp_pot ?inp_ingredient empty empty ?inp_count)
+            )
+            (
+                (handoff_ingredient ?fetcher ?cook ?table ?inp_pot)
+            )
+        )
+
+        (solo
+            (and
+                (pile ?pile)
+                (holding ?pile ?inp_ingredient)
+                (agent ?agent)
+                (holding ?agent empty)
+                (exchange ?agent ?pile empty ?inp_ingredient ?inp_ingredient ?inp_ingredient)
+                (exchange ?agent ?inp_pot ?inp_ingredient empty empty ?inp_count)
+            )
+            (
+                (!interact ?agent ?pile)
+                (!interact ?agent ?inp_pot)
+            )
+        )
+
+        // One cook takes it from the pile and puts it on the counter, the other takes it to the pot.
+        (through_counter
+            (and
+                (pile ?pile)
+                (holding ?pile ?inp_ingredient)
+                (table ?table)
+                (holding ?table empty)
+                (agent ?fetcher)
+                (holding ?fetcher empty)
+                (exchange ?fetcher ?pile empty ?inp_ingredient ?inp_ingredient ?inp_ingredient)
+                (exchange ?fetcher ?table ?inp_ingredient empty empty ?inp_ingredient)
+                (agent ?cook)
+                (!= ?cook ?fetcher)
+                (holding ?cook empty)
+                (exchange ?cook ?table empty ?inp_ingredient ?inp_ingredient empty)
+                (exchange ?cook ?inp_pot ?inp_ingredient empty empty ?inp_count)
+            )
+            (
+                (!interact ?fetcher ?pile)
+                (handoff_ingredient ?fetcher ?cook ?table ?inp_pot)
+            )
+        )
+    )
+
+    // Contract: caller checked the exchange rows; fetcher will hold the ingredient, table and cook are empty.
+    (:method (handoff_ingredient ?inp_fetcher ?inp_cook ?inp_table ?inp_pot)
+        (transfer ()
+            (
+                (!interact ?inp_fetcher ?inp_table)
+                (!interact ?inp_cook ?inp_table)
+                (!interact ?inp_cook ?inp_pot)
+            )
+        )
+    )
+
+    // Contract: the pot holds the recipe's count. Effect: it cooks (it holds the dish's start label).
+    (:method (cook ?inp_pot ?inp_count ?inp_label)
+
+        (start_pot
+            (and
+                (agent ?agent)
+                (holding ?agent ?hands)
+                (exchange ?agent ?inp_pot ?hands ?inp_count ?hands ?inp_label)
+            )
+            (
+                (!interact ?agent ?inp_pot)
+            )
+        )
+    )
+
+    // Contract: the dish is cooking, cooked or in a cook's hands. Effect: it is at ?inp_delivery.
+    // Every branch tests `agent` and `holding` (lint: shared-condition): they are the kitchen's vocabulary, who acts
+    // and what each thing holds, each time with other arguments, not one hidden test to factor out.
+    (:method (deliver ?inp_dish ?inp_delivery)
+
+        (hand_in
+            (and
+                (agent ?agent)
+                (holding ?agent ?inp_dish)
+                (exchange ?agent ?inp_delivery ?inp_dish empty empty ?inp_dish)
+            )
+            (
+                (!interact ?agent ?inp_delivery)
+            )
+        )
+
+        (bowl_in_hand
+            (and
+                (#soup_in ?pot ?inp_dish)
+                (agent ?agent)
+                (holding ?agent bowl)
+                (#can_serve ?agent ?pot ?inp_dish ?inp_delivery)
+            )
+            (
+                (serve_from_pot ?agent ?pot ?inp_dish ?inp_delivery)
+            )
+        )
+
+
+        // Resume the existing bowl transfer before fetching a new bowl.
+        (bowl_on_counter
+            (and
+                (#soup_in ?pot ?inp_dish)
+                (table ?table)
+                (holding ?table bowl)
+                (agent ?server)
+                (holding ?server empty)
+                (exchange ?server ?table empty bowl bowl empty)
+                (#can_serve ?server ?pot ?inp_dish ?inp_delivery)
+            )
+            (
+                (!interact ?server ?table)
+                (serve_from_pot ?server ?pot ?inp_dish ?inp_delivery)
+            )
+        )
+
+        (fetcher_holding_bowl
+            (and
+                (#soup_in ?pot ?inp_dish)
+                (agent ?fetcher)
+                (holding ?fetcher bowl)
+                (table ?table)
+                (holding ?table empty)
+                (exchange ?fetcher ?table bowl empty empty bowl)
+                (agent ?server)
+                (!= ?server ?fetcher)
+                (holding ?server empty)
+                (exchange ?server ?table empty bowl bowl empty)
+                (#can_serve ?server ?pot ?inp_dish ?inp_delivery)
+            )
+            (
+                (handoff_bowl ?fetcher ?server ?table ?pot ?inp_dish ?inp_delivery)
+            )
+        )
+
+        (solo
+            (and
+                (#soup_in ?pot ?inp_dish)
+                (pile ?bowls)
+                (holding ?bowls bowl)
+                (agent ?agent)
+                (holding ?agent empty)
+                (exchange ?agent ?bowls empty bowl bowl bowl)
+                (#can_serve ?agent ?pot ?inp_dish ?inp_delivery)
+            )
+            (
+                (!interact ?agent ?bowls)
+                (serve_from_pot ?agent ?pot ?inp_dish ?inp_delivery)
+            )
+        )
+
+        // One cook brings a bowl to the counter, the other serves from there.
+        (through_counter
+            (and
+                (#soup_in ?pot ?inp_dish)
+                (pile ?bowls)
+                (holding ?bowls bowl)
+                (table ?table)
+                (holding ?table empty)
+                (agent ?fetcher)
+                (holding ?fetcher empty)
+                (exchange ?fetcher ?bowls empty bowl bowl bowl)
+                (exchange ?fetcher ?table bowl empty empty bowl)
+                (agent ?server)
+                (!= ?server ?fetcher)
+                (holding ?server empty)
+                (exchange ?server ?table empty bowl bowl empty)
+                (#can_serve ?server ?pot ?inp_dish ?inp_delivery)
+            )
+            (
+                (!interact ?fetcher ?bowls)
+                (handoff_bowl ?fetcher ?server ?table ?pot ?inp_dish ?inp_delivery)
+            )
+        )
+    )
+
+    // Contract: caller checked the exchanges and serving route; fetcher will hold a bowl at this horizon.
+    (:method (handoff_bowl ?inp_fetcher ?inp_server ?inp_table ?inp_pot ?inp_dish ?inp_delivery)
+        (transfer ()
+            (
+                (!interact ?inp_fetcher ?inp_table)
+                (!interact ?inp_server ?inp_table)
+                (serve_from_pot ?inp_server ?inp_pot ?inp_dish ?inp_delivery)
+            )
+        )
+    )
+
+    // With a bowl in hand: wait for the soup, fill the bowl, deliver.
+    (:method (serve_from_pot ?inp_agent ?inp_pot ?inp_dish ?inp_delivery)
+
+        (serve
+            ()
+            (
+                (&wait_cooking ?inp_agent ?inp_pot ?inp_dish)
+                (!interact ?inp_agent ?inp_pot)
+                (!interact ?inp_agent ?inp_delivery)
+            )
+        )
+    )
+
+    // Deferred: planned when reached, against the pot as it is then. One wait per expansion until the dish is done.
+    (:method (wait_cooking ?inp_agent ?inp_pot ?inp_dish)
+
+        (done
+            (and
+                (holding ?inp_pot ?inp_dish)
+            )
+            ()
+        )
+
+        (still_cooking
+            (and
+                (cooking ?inp_pot ?inp_dish)
+            )
+            (
+                (!wait ?inp_agent ?inp_pot)
+                (&wait_cooking ?inp_agent ?inp_pot ?inp_dish)
+            )
+        )
+    )
+
+    // The pot cooks the dish or holds it, ready.
+    (:axiom (soup_in ?out_pot ?inp_dish)
+        (or
+            (holding ?out_pot ?inp_dish)
+            (cooking ?out_pot ?inp_dish)
+        )
+    )
+
+    (:axiom (soup_on_its_way ?inp_dish)
+        (or
+            (#soup_in ?pot ?inp_dish)
+            (and
+                (agent ?agent)
+                (holding ?agent ?inp_dish)
+            )
+        )
+    )
+
+    // ?inp_agent can fill a bowl at the pot and hand the dish in.
+    (:axiom (can_serve ?inp_agent ?inp_pot ?inp_dish ?inp_delivery)
+        (and
+            (exchange ?inp_agent ?inp_pot bowl ?inp_dish ?inp_dish empty)
+            (exchange ?inp_agent ?inp_delivery ?inp_dish empty empty ?inp_dish)
+        )
+    )
+)

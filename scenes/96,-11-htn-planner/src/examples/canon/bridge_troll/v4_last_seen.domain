@@ -1,0 +1,132 @@
+// Bridge troll, step 4 of 6: a world change the plan does not make: decide after it, with a deferred task.
+//
+// Teaches: how to plan past a change that sensors make, not the troll's own actions. When the enemy slips out of
+// sight, the troll walks to where it was last seen and roars if it sees the enemy again. The source plans the roar
+// in advance: the roar needs "can see the enemy", and an expected effect on the walk (applied during planning only)
+// pretends it will be true on arrival. Our planner checks no step preconditions and simulates no effects, so the
+// emulation is a deferred task: the plan is "walk there, then `&regain_sight`", and `regain_sight` is decomposed on
+// arrival against what the troll really sees: roar if the enemy is back in sight, else catch its breath. This reads
+// the real outcome instead of a guess, and needs no planner feature.
+//
+// Changed from v3: new root branch `chase` (between fight and patrol) and new method `regain_sight`; new fact
+//   `enemy_last_seen`; new primitives !roar, !catch_breath.
+// Source: Troy Humphreys, "Exploring HTN Planners through Example", Game AI Pro (CRC Press, 2013), chapter 12,
+//   section 12.7:
+//   https://www.gameaipro.com/GameAIPro/GameAIPro_Chapter12_Exploring_HTN_Planners_through_Example.pdf
+//   and bevy_htn `troll.htn`, whose root has the same three methods (enemy in sight / seen recently: navigate to the
+//   last location, regain-sight roar, catch breath / check a bridge):
+//   https://github.com/RJ/bevy_htn/blob/422c8614ec1cc4d7f0382d93a835bcc6eab36d80/bevy_htn/assets/troll.htn
+//   (c) Richard Jones; adapted.
+// Licence: the chapter is (c) CRC Press, re-expressed (nothing copied); bevy_htn is MIT OR Apache-2.0, adapted here
+//   under MIT; its notice is in ../THIRD_PARTY_NOTICES.md.
+// Deviations from the sources:
+//   - expected effects -> a deferred `&regain_sight` (see above);
+//   - bevy_htn catches its breath after the roar in the same plan; here catching breath is what the troll does when
+//     the enemy is not there, and after a roar the plan ends, so the next plan (the enemy is in sight) is a fight;
+//   - "seen recently" is the host's memory: `enemy_last_seen` is written when sight is lost and dropped by the host
+//     after a while (a fact with a lifetime, not a forget step in the plan).
+// Not ported: nothing else of section 12.7.
+// Next: v5_combo_bug.domain adds a power-up combo and the bug it brings; v5_tired.domain fixes it.
+//
+// Facts (host sensors): (enemy_visible ?enemy) (next_bridge ?bridge) (trunk_health ?hits) (trunk_nearby ?tree) as
+//   in v3; (enemy_last_seen ?enemy ?place) an enemy out of sight, seen recently at ?place.
+// Primitives (logged): (!navigate_to ?target) (!trunk_slam ?enemy) (!uproot_trunk ?tree) (!lift_boulder)
+//   (!throw_boulder ?enemy) (!roar ?enemy) (!catch_breath) (!check_bridge ?bridge) (!idle ?seconds)
+// Scenarios: worlds/v4_last_seen/; stories: stories.ts; npm run htn:run -- --world v4_last_seen/1_enemy_slipped_away
+
+(:domain BridgeTrollV4 top_level_domain
+
+    (:method (be_troll) top_level_method
+
+        (fight
+            (and
+                (enemy_visible ?enemy)
+            )
+            (
+                (attack_enemy ?enemy)
+            )
+        )
+
+        // Out of sight but seen recently: go and look; decide on arrival.
+        (chase
+            (and
+                (enemy_last_seen ?enemy ?place)
+            )
+            (
+                (!navigate_to ?place)
+                (&regain_sight ?enemy)
+            )
+        )
+
+        (patrol
+            (and
+                (next_bridge ?bridge)
+            )
+            (
+                (!navigate_to ?bridge)
+                (!check_bridge ?bridge)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!idle 2.0)
+            )
+        )
+    )
+
+    // Hurt the enemy. Pre: ?inp_enemy is in sight. Effect: one attack made, or a new trunk and then an attack.
+    (:method (attack_enemy ?inp_enemy)
+
+        (trunk_slam
+            (and
+                (trunk_health ?hits)
+                (> ?hits 0)
+            )
+            (
+                (!navigate_to ?inp_enemy)
+                (!trunk_slam ?inp_enemy)
+            )
+        )
+
+        (rearm
+            (and
+                (trunk_nearby ?tree)
+            )
+            (
+                (!navigate_to ?tree)
+                (!uproot_trunk ?tree)
+                (&attack_enemy ?inp_enemy)
+            )
+        )
+
+        (throw_boulder
+            ()
+            (
+                (!lift_boulder)
+                (!throw_boulder ?inp_enemy)
+            )
+        )
+    )
+
+    // At the last-seen place, deferred: planned against what the troll sees on arrival.
+    (:method (regain_sight ?inp_enemy)
+
+        (roar
+            (and
+                (enemy_visible ?inp_enemy)
+            )
+            (
+                (!roar ?inp_enemy)
+            )
+        )
+
+        (catch_breath
+            ()
+            (
+                (!catch_breath)
+            )
+        )
+    )
+)

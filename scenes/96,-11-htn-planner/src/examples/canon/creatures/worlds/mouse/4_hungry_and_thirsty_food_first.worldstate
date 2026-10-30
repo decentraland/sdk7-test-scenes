@@ -1,0 +1,13 @@
+// mouse: hungry and thirsty: food first.
+// method: behave
+// expect: succeeded
+//   1. !move_near cheese 1.0
+//   2. !consume cheese
+
+now 0.0
+satiation hunger 30
+satiation thirst 10
+food cheese
+drink puddle
+distance_to cheese 3.0
+distance_to puddle 0.5

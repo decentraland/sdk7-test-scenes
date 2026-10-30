@@ -1,0 +1,10 @@
+// v5_combo_bug: fresh trunk slams and recovers.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to knight
+//   2. !trunk_slam knight
+//   3. !recover
+
+enemy_visible knight
+trunk_health 3
+power_up 0

@@ -1,0 +1,99 @@
+// Hunter: a predator loop. Strike the prey when next to it, else take one step toward it, then hunt on; done when
+// no prey is left.
+//
+// Teaches:
+//   - a loop as "one step, then `&hunt`": the source recurses into `hunt` after a whole approach and strike, and its
+//     planner simulates the moves; ours plans one step, and the deferred `&hunt` is decomposed after the step ran,
+//     against the snake's new position. The executed plan is the source's kind of plan (moves, strike, moves...);
+//   - search moved to the host: the source's `move` methods try every free neighbour (unguided search with
+//     backtracking). Here a host sensor publishes `path_step`, the first cell of a shortest free path to a cell next
+//     to the prey, nearest prey first (porting rule: path queries and "nearest" in the host). The domain keeps the
+//     decisions: strike or approach, and how the body moves (`slither`: a one-cell snake moves head and tail
+//     together, a longer one drags its tail, as the source's move-short / move-long).
+//
+// Source: IPC 2020 HTN track, total-order domain Snake by Mau Magnaguagno, `domain.hddl` and the problems
+//   pb01-pb05.snake.hddl (the scenarios' worlds), commit 9e313248244a0a13302ae262f42ef446f43e4182:
+//   https://github.com/panda-planner-dev/ipc2020-domains/tree/9e313248244a0a13302ae262f42ef446f43e4182/total-order/Snake
+// Licence: MIT, Copyright (c) 2020 Mau Magnaguagno (`total-order/Snake/MIT-LICENSE`). Adapted; the licence text is
+//   in ../THIRD_PARTY_NOTICES.md.
+// Deviations from the source:
+//   - `hunt_all` (move next to the prey, strike, hunt) became `strike` and `approach`, each ending in `&hunt`;
+//   - the `move` methods (move-base, move-long-snake, move-short-snake: a search over free neighbours) became the
+//     host sensor `path_step` plus `slither`, which keeps the short / long body choice; the actions keep their names
+//     and arguments (!move_short, !move_long, !strike);
+//   - `hunt_done` ("no mouse anywhere", a `forall`) is `all_caught` with `(not (prey_at ?any_prey))`;
+//   - `mouse-at` is `prey_at`, `snake` names are kept (viper).
+// Not ported: the problem generator (`pbgenerator.rb`), problems pb06 and up (larger grids, same shapes), the
+//   PDDL and SHOP2 variants in `other/`. The source ships no expected plans; ours are this planner's output, checked
+//   by the stories' host (stories.ts) against the source's action preconditions (every step legal, no prey left).
+//
+// Facts: (head ?snake ?cell) (tail ?snake ?cell) (connected ?snake ?toward_head ?toward_tail) the body, as the
+//   source; (occupied ?cell) walls, prey and body; (adjacent ?a ?b) the grid (rigid); (prey_at ?cell);
+//   (path_step ?snake ?prey ?next) host sensor, nearest prey first.
+// Primitives (logged): (!move_short ?snake ?next ?head) (!move_long ?snake ?next ?head ?body ?tail)
+//   (!strike ?snake ?head ?prey)
+// Scenarios: worlds/hunter/; stories: stories.ts; npm run htn:run -- --world hunter/1_pb01_start
+
+(:domain Hunter top_level_domain
+
+    // No fallback branch, on purpose (htn:lint reports the info `no-fallback`): as in the source, a prey the snake
+    // cannot reach leaves no plan; `all_caught` is the loop's end, not an idle.
+    (:method (hunt) top_level_method
+
+        (strike
+            (and
+                (prey_at ?prey)
+                (head ?snake ?head)
+                (adjacent ?prey ?head)
+            )
+            (
+                (!strike ?snake ?head ?prey)
+                (&hunt)
+            )
+        )
+
+        // One step along the host's path, then decide again where the snake is then.
+        (approach
+            (and
+                (head ?snake ?head)
+                (path_step ?snake ?any_prey ?next)
+            )
+            (
+                (slither ?snake ?head ?next)
+                (&hunt)
+            )
+        )
+
+        (all_caught
+            (and
+                (not (prey_at ?any_prey))
+            )
+            ()
+        )
+    )
+
+    // Move the head to ?inp_next. Pre: ?inp_next is free and next to ?inp_head.
+    (:method (slither ?inp_snake ?inp_head ?inp_next)
+
+        // A one-cell snake: head and tail move together.
+        (short_snake
+            (and
+                (tail ?inp_snake ?inp_head)
+            )
+            (
+                (!move_short ?inp_snake ?inp_next ?inp_head)
+            )
+        )
+
+        // A longer snake drags its tail one cell along the body.
+        (long_snake
+            (and
+                (tail ?inp_snake ?tail)
+                (connected ?inp_snake ?body ?tail)
+            )
+            (
+                (!move_long ?inp_snake ?inp_next ?inp_head ?body ?tail)
+            )
+        )
+    )
+)

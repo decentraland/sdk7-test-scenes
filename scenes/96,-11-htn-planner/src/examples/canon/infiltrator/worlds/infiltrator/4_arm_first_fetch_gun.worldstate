@@ -1,0 +1,21 @@
+// infiltrator: unarmed. The host lists a loaded gun first (then a knife). Fetch it, and stop planning there: the
+// deferred &behave plans the attack once the gun is in hand.
+// method: behave
+// expect: succeeded
+//   1. !go_to_area armory
+//   2. !walk_to box_a
+//   3. !switch_lights armory on
+//   4. !pick_up g3
+//   5. &behave
+
+npc_in lobby
+player_in p1 hall
+lights hall off
+control_box hall box_h
+reachable_item g3 armory
+reachable_item k2 kitchen
+item g3 gun
+item k2 knife
+loaded g3
+lights armory off
+control_box armory box_a

@@ -1,0 +1,5 @@
+// swarm_coordinator: every member is busy or gone (no roster). Nothing to order: a successful empty plan.
+// method: organise_swarm
+// expect: succeeded
+
+swarm s1

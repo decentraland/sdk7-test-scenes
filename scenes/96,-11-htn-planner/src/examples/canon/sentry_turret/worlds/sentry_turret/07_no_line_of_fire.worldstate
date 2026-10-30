@@ -1,0 +1,8 @@
+// sentry_turret: a soldier close by but behind cover. Not attackable, so the root's guard fails and the turret sweeps.
+// method: behave
+// expect: succeeded
+//   1. !sweep 3.0
+
+wielded bullets
+threat h1 humanoid
+distance_to h1 8.0

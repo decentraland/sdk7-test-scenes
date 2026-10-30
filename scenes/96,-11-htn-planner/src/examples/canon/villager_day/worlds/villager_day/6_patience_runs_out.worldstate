@@ -1,0 +1,16 @@
+// villager_day: one change from scenario 5: the baker never came. Two hours of waiting is the farmer's patience, so
+// the wait branch fails; he cannot hunt and a lesson is too dear, so he earns money first (the paper's "make money,
+// which will help one to obtain food in the future").
+// method: spend_hour
+// expect: succeeded
+//   1. !do_chores
+
+hour 8
+hunger 8
+sleepiness 2
+money 7
+at bakery
+waited_at bakery 2
+home farmhouse
+shop bakery food baker
+pastime fishing pond

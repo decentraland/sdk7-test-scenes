@@ -1,0 +1,50 @@
+// Upstream docs/USE_CASES.md section 4, one NPC of the squad: it gets its order as a fact and chooses how to carry
+// it out from its own world state (which flank route is open to it, where its cover is).
+// Test: test/examples/usecase-squad.test.ts.
+//
+// Facts (each NPC's own world): (order suppress|flank|defend) from the squad host; (flank_route ?side ?spot) in
+//        order of preference; (route_blocked ?side); (fire_position ?spot); (cover ?spot). Spots are vec3.
+// Primitives: (!move_to ?spot walk|hurry|run) (!wait ?seconds)
+
+(:domain SquadMember top_level_domain
+
+    (:method (behave) top_level_method
+        (flank
+            (and
+                (order flank)
+                (flank_route ?side ?spot)
+                (not (route_blocked ?side))
+            )
+            (
+                (!move_to ?spot run)
+                (!wait 1.0)
+            )
+        )
+        (suppress
+            (and
+                (order suppress)
+                (fire_position ?spot)
+            )
+            (
+                (!move_to ?spot hurry)
+                (!wait 1.0)
+            )
+        )
+        (defend
+            (and
+                (order defend)
+                (cover ?spot)
+            )
+            (
+                (!move_to ?spot walk)
+                (!wait 1.0)
+            )
+        )
+        (no_order
+            ()
+            (
+                (!wait 0.5)
+            )
+        )
+    )
+)

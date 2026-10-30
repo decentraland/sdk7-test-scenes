@@ -1,0 +1,100 @@
+// Level 11, the squad planner (upstream docs/USE_CASES.md section 4; GuardSquadOptions.squad). One planner for the
+// whole yard squad gives every guard a role from a shared snapshot; each guard's own planner (yard_guard.domain)
+// carries its role out. GuardSquad plans this again when the snapshot key changes (who is available, who spotted
+// the intruder), and every (!order <guard> <role>) step becomes the fact (order <role>) in that guard's world.
+//
+// Calm: the first available guard holds the gate, the others patrol. An intruder: the guard that spotted it chases,
+// the first other available guard holds the gate (the way out), the rest flank. A guard on a break is not
+// available: it gets no order, the next one takes its role.
+//
+// Facts (the squad's own world, rewritten by the host every update):
+//   (roster ?guards)       every guard id, in order: the order roles are handed out in
+//   (available ?guard)     one row per guard that can take an order now
+//   (spotter ?guard)       the guard that sees (or, while chasing, remembers) the intruder; absent when calm
+// Primitives: (!order ?guard chase|hold|flank|patrol)
+
+(:domain YardSquad top_level_domain
+
+    (:method (assign_roles) top_level_method
+
+        (intruder
+            (and
+                (spotter ?chaser)
+                (available ?chaser)
+                (roster ?guards)
+            )
+            (
+                (!order ?chaser chase)
+                (hold_gate ?guards ?chaser flank)
+            )
+        )
+
+        (calm
+            (and
+                (roster ?guards)
+            )
+            (
+                (hold_gate ?guards none patrol)
+            )
+        )
+    )
+
+    // The first available guard but ?inp_busy holds the gate; every available guard after it gets ?inp_role.
+    (:method (hold_gate ?inp_guards ?inp_busy ?inp_role)
+
+        (holder
+            (and
+                (split_list ?inp_guards ?guard ?rest)
+                (available ?guard)
+                (!= ?guard ?inp_busy)
+            )
+            (
+                (!order ?guard hold)
+                (give_role ?rest ?inp_busy ?inp_role)
+            )
+        )
+
+        (next_guard
+            (and
+                (split_list ?inp_guards ?skipped ?rest)
+            )
+            (
+                (hold_gate ?rest ?inp_busy ?inp_role)
+            )
+        )
+
+        (nobody_left
+            ()
+            ()
+        )
+    )
+
+    (:method (give_role ?inp_guards ?inp_busy ?inp_role)
+
+        (to_guard
+            (and
+                (split_list ?inp_guards ?guard ?rest)
+                (available ?guard)
+                (!= ?guard ?inp_busy)
+            )
+            (
+                (!order ?guard ?inp_role)
+                (give_role ?rest ?inp_busy ?inp_role)
+            )
+        )
+
+        (skip_guard
+            (and
+                (split_list ?inp_guards ?skipped ?rest)
+            )
+            (
+                (give_role ?rest ?inp_busy ?inp_role)
+            )
+        )
+
+        (end_of_roster
+            ()
+            ()
+        )
+    )
+)

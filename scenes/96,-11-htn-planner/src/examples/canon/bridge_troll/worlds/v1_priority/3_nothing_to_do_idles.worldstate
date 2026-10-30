@@ -1,0 +1,6 @@
+// v1_priority: nothing to do idles.
+// method: be_troll
+// expect: succeeded
+//   1. !idle 2.0
+
+

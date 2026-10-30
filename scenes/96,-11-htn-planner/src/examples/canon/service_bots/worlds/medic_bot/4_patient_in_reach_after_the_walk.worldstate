@@ -1,0 +1,12 @@
+// medic_bot: patient in reach after the walk.
+// Mid-plan resume: the replan after the walk lands in "already in range": no opening line, no walk.
+// method: behave
+// expect: succeeded
+//   1. !inject alice
+//   2. !mark_treated alice
+//   3. !say finish_inject
+
+now 6.0
+patient alice
+distance_to alice 1.0
+spoke start_inject 0.0

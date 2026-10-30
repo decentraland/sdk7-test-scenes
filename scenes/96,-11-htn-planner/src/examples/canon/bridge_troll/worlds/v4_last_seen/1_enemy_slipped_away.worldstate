@@ -1,0 +1,9 @@
+// v4_last_seen: enemy slipped away.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to ford
+//   2. &regain_sight knight
+
+enemy_last_seen knight ford
+trunk_health 3
+next_bridge north_bridge

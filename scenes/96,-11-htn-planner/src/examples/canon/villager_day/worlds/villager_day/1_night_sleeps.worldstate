@@ -1,0 +1,13 @@
+// villager_day: 5 in the morning, before wake-up time. The farmer sleeps the hour at home.
+// method: spend_hour
+// expect: succeeded
+//   1. !sleep_hour
+
+hour 5
+hunger 5
+sleepiness 4
+money 7
+at farmhouse
+home farmhouse
+shop bakery food baker
+pastime fishing pond

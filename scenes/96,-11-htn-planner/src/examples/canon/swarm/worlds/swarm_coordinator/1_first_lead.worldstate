@@ -1,0 +1,13 @@
+// swarm_coordinator: a new swarm with no leader yet. The host's first pick leads, the first free resource gets a
+// collector, the rest follow the leader.
+// method: organise_swarm
+// expect: succeeded
+//   1. !assign_role d1 leader s1
+//   2. !assign_role d2 collector r1
+//   3. !assign_role d3 follower d1
+//   4. !assign_role d4 follower d1
+
+swarm s1
+roster (d1 d2 d3 d4)
+next_leader d1
+free_resource 1 r1

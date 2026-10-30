@@ -1,0 +1,13 @@
+// swarm_drone: a leader whose follower is 6 m behind waits for it. The drone just became leader while it was
+// following d1: the active_plan of that follow is still there, but the continue branch checks the role, so the
+// follow is not kept.
+// method: behave
+// expect: succeeded
+//   1. !signal_followers
+//   2. !hover 1.0
+
+active_plan follow_swarm_leader d1
+role leader s1
+follower d4
+distance_to_leader d4 6.0
+roam_point p1

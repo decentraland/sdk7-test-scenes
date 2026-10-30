@@ -1,0 +1,8 @@
+// swarm_drone: a replan mid-way (same role, same resource): the continue branch keeps the running plan.
+// method: behave
+// expect: succeeded
+//   1. !continue
+
+active_plan move_to_grab_resource r1
+role collector r1
+processor m1

@@ -1,0 +1,25 @@
+// fetcher: seen everywhere, not found: report.
+// method: behave
+// expect: succeeded
+//   1. !report_not_found o1
+
+distance l1 l1 0
+distance l1 l2 1
+distance l1 l3 2
+distance l1 l4 3
+distance l2 l1 1
+distance l2 l2 0
+distance l2 l3 1
+distance l2 l4 2
+distance l3 l1 2
+distance l3 l2 1
+distance l3 l3 0
+distance l3 l4 1
+distance l4 l1 3
+distance l4 l2 2
+distance l4 l3 1
+distance l4 l4 0
+job fetch o1
+at l4
+battery 1
+charger_at l1

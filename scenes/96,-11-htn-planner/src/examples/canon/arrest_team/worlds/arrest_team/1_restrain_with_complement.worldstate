@@ -1,0 +1,27 @@
+// arrest_team: suspect s1 has surrendered. The closest free member (a) restrains, the next closest in reach (b)
+// covers. Everyone involved is reserved first, freed only after a's restrain is done (the barrier).
+// method: squad_tick
+// expect: succeeded
+//   1. !reserve a
+//   2. !reserve b
+//   3. !reserve s1
+//   4. !restrain a s1
+//   5. !cover_target b s1
+//   6. !wait_until_done a
+//   7. !free a
+//   8. !free b
+//   9. !free s1
+
+squadmember a
+squadmember b
+squadmember c
+roster (a b c)
+enemy s1
+enemy s2
+near s1 a 2.0
+near s1 b 3.0
+near s1 c 9.0
+near s2 b 2.0
+near s2 c 3.0
+near s2 a 5.0
+surrendered s1

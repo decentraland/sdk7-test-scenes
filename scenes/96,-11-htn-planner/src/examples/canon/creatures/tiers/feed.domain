@@ -1,0 +1,75 @@
+(:include "reach.domain")
+
+// Shared tier: eat or drink. Hunger before thirst; the item is the host's best candidate; walk up to it and consume.
+//
+// Teaches: the tier's real precondition as one axiom (`feed_target`) that the root uses as its guard and that also
+// picks the target, so the root branch states why the tier applies; utility selection moved into a host sensor that
+// publishes candidates best-first (first match = best).
+// Source: Space Station 14 (MIT), `FoodCompound` in Resources/Prototypes/NPCs/nutrition.yml and the `NearbyFood` /
+// `NearbyDrink` utility queries in utility_queries.yml, at commit 614f030530578e248a2393dd71ee9813d68d800d:
+// https://github.com/space-wizards/space-station-14/blob/614f030530578e248a2393dd71ee9813d68d800d/Resources/Prototypes/NPCs/nutrition.yml
+// Licence: MIT, Copyright (c) 2017-2026 Space Wizards Federation; see src/examples/canon/THIRD_PARTY_NOTICES.md.
+// Adapted (YAML prototypes re-written in our domain language).
+// Emulations:
+// - SS14 `UtilityOperator proto: NearbyFood` scores candidates while planning (distance, food value, accessible)
+//   and writes the best into `Target`; here the host sensor publishes `(food ?item)` / `(drink ?item)` rows sorted
+//   best-first and the first row that matches wins.
+// - SS14's two branches (hunger, thirst) have the threshold test on their first primitive; ours are the two arms
+//   of the `feed_target` axiom, in the same order, and the shared "go and consume" is one task.
+// Deviations: satiation is a number per need, 0 (starving) to 100 (full), below a threshold = wants it (SS14 uses
+// named thresholds, `Peckish` and `Parched`). The final `WaitOperator IdleTime` of each SS14 branch is not ported:
+// it only waits when an idle wait was already rolled, and the idle tier covers that.
+// Not ported: the `TargetIsAliveCon` / `FoodValueCon` scoring itself (the host's sensor), `AltInteractOperator`'s
+// interaction verbs (one `!consume`).
+//
+// Facts:      (satiation hunger|thirst ?level) 0-100; (food ?item), (drink ?item) host sensors, best first;
+//             (distance_to ?entity ?metres).
+// Primitives: (!move_near ?entity ?range) (!consume ?item)
+
+(:domain feed
+
+    (:constants FeedTier
+        (peckish 50)
+        (parched 50)
+    )
+
+    (:axiom (hungry)
+        (and
+            (satiation hunger ?level)
+            (< ?level @peckish)
+        )
+    )
+
+    (:axiom (thirsty)
+        (and
+            (satiation thirst ?level)
+            (< ?level @parched)
+        )
+    )
+
+    // What to eat or drink now: the best food when hungry, else the best drink when thirsty.
+    (:axiom (feed_target ?out_item)
+        (or
+            (and
+                (#hungry)
+                (food ?out_item)
+            )
+            (and
+                (#thirsty)
+                (drink ?out_item)
+            )
+        )
+    )
+
+    // Contract: ?inp_item is consumed; never fails.
+    (:method (feed ?inp_item)
+
+        (go_and_consume
+            ()
+            (
+                (get_in_range ?inp_item @melee_range)
+                (!consume ?inp_item)
+            )
+        )
+    )
+)

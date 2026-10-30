@@ -1,0 +1,17 @@
+// villager_day: the farmer has waited two hours at the bakery; now the baker is at the counter (the host tells him
+// from her plan). Already there, so no walk: buy and eat.
+// method: spend_hour
+// expect: succeeded
+//   1. !buy food baker
+//   2. !eat
+
+hour 8
+hunger 8
+sleepiness 2
+money 7
+at bakery
+keeper_present bakery
+waited_at bakery 2
+home farmhouse
+shop bakery food baker
+pastime fishing pond

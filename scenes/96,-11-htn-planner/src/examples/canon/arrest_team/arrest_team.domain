@@ -1,0 +1,260 @@
+// arrest_team: one planner for a whole police squad (up to four members). It runs at a fixed interval; each run may
+// start a new joint plan while earlier ones are still running, so plans must not fight over people.
+//
+// Teaches:
+//   - Reservations that survive replans: a joint plan first reserves everyone it involves (members and the
+//     suspect), then acts, then frees them. Every later planning run reads `(reserved ?x)` and leaves those alone, so
+//     two plans never restrain the same suspect or use the same member twice.
+//   - Bookkeeping steps vs actions (SHOP's internal `!!` and external `!` operators): `!reserve`, `!free` and
+//     `!wait_until_done` are host bookkeeping, applied at once and involving nobody; `!restrain`, `!cover_target`,
+//     `!open_combat`, `!bandage_self` are actions a member performs over time.
+//   - A sync barrier: `!wait_until_done ?member` holds the rest of its plan until that member's action ends, so the
+//     suspect is not freed before the restrain is done.
+//   - Pairing a role with its complement: the closest free member restrains, the second closest covers; with no
+//     partner in reach, a lone restrain.
+//   - Lists of parties handled by small recursive tasks (`reserve_all`, `free_all`), not copied step by step.
+//
+// Source (re-expressed from the published description; our own text and names): Peter Gorniak, Ian Davis,
+// "SquadSmart: Hierarchical Planning and Coordinated Plan Execution for Squads of Characters", AIIDE 2007,
+// https://ojs.aaai.org/index.php/AIIDE/article/download/18775/18551 : figure 1 (SHOP code of the autonomous
+// restrain: closest member, a helper with "restrain with complement" and "lonely restrain", `!!reserve`,
+// `!restrain`, `!restrain_complement`, `!!global_block`, `!!free`), figure 2 (the squad domain's graph) and the
+// execution semantics (busy members, parallel actions, internal operators run at once, sensed effects).
+// Licence: re-expressed (nothing copied); credits in src/examples/canon/THIRD_PARTY_NOTICES.md.
+//
+// Emulations (our planner has no effects, no `!!` operators and no `:sort-by`):
+//   - `!!reserve` / `!!free` → host steps `!reserve` / `!free` that write and remove `(reserved ?x)` at once, before
+//     the next planning run; the planner itself never changes the world. The paper's `!!reserve` also checks that
+//     the argument is not already reserved; here the conditions check `(reserved ?x)` and the host runs a plan's
+//     leading bookkeeping steps atomically, so no other plan can slip in between.
+//   - `!!global_block ?member` → `!wait_until_done ?member`, a host step that holds its plan until that member's
+//     action has ended (the squad host in stories.ts runs several plans at once this way).
+//   - `:sort-by ?d` with `(call MDActorDistance ...)` → the host publishes `(near ?target ?member ?metres)` rows
+//     sorted by distance per target, so the first matching row is the closest member.
+//   - "restrained" is sensed, not an effect: the host adds `(restrained ?t)` when a restrain action succeeds.
+// Deviations: the root's guards say why each tier applies (the paper's root lists sub-tasks by priority and relies
+// on SHOP semantics); combat leaves reserved members on their job instead of cancelling their plans.
+// Not ported: orders from the player (clear a room, advance, callouts, voice-overs, start / cancel / give up
+// control), poking the dead, cover use, `!!block_on`, `!!finish_action`, `!!cleanup_*`, time-sliced planning.
+//
+// Facts (the squad's knowledge base, written by the host before each planning run):
+//   (squadmember ?member), (roster ?members)   the squad's members: one row each, and the same as a list for walks
+//   (enemy ?t)                        a suspect; (hostile ?t) one who fights; (surrendered ?t); (dead ?t);
+//                                     (restrained ?t) sensed when a restrain succeeds
+//   (near ?target ?member ?metres)    per target, members sorted by distance (host)
+//   (reserved ?x)                     a member or suspect taken by a running plan (host, from !reserve / !free)
+//   (following_order ?member)         a member busy with the player's order
+//   (fighting ?member ?enemy)         a member in combat with ?enemy (host, from the running action)
+//   (wounded ?member)
+// Primitives: bookkeeping (!reserve ?x) (!free ?x) (!wait_until_done ?member);
+//             actions (!restrain ?member ?t) (!cover_target ?member ?t) (!open_combat ?member ?enemy)
+//             (!bandage_self ?member)
+// Scenarios: worlds/arrest_team/ (npm run htn:run -- --world arrest_team/<scenario>; --list names them); story: stories.ts.
+
+(:domain ArrestTeam top_level_domain
+
+    (:constants ArrestTeam
+        // How close a member must be to restrain on its own initiative, and to cover a restrain.
+        (restrain_reach 4.0)
+        (cover_reach 4.0)
+    )
+
+    // One planning run. Each branch starts at most one new joint plan; the host runs it beside the ones running.
+    (:method (squad_tick) top_level_method
+
+        (fight
+            (and
+                (#threat ?enemy)
+                (squadmember ?member)
+                (#free ?member)
+                (roster ?members)
+            )
+            (
+                (team_combat ?members ?enemy)
+            )
+        )
+
+        (restrain
+            (and
+                (#restrain_job ?member ?target)
+            )
+            (
+                (squad_restrain_helper ?member ?target)
+            )
+        )
+
+        (bandage
+            (and
+                (wounded ?member)
+                (#free ?member)
+            )
+            (
+                (bandage ?member)
+            )
+        )
+
+        // Nothing new to start: a successful empty plan.
+        (stand_by
+            ()
+            ()
+        )
+    )
+
+    // Every free member opens fire on ?inp_enemy; reserved and fighting members stay on their job.
+    (:method (team_combat ?inp_members ?inp_enemy)
+
+        (engage
+            (and
+                (split_list ?inp_members ?member ?rest)
+                (#free ?member)
+            )
+            (
+                (!open_combat ?member ?inp_enemy)
+                (team_combat ?rest ?inp_enemy)
+            )
+        )
+
+        (skip
+            (and
+                (split_list ?inp_members ?member ?rest)
+                (not (#free ?member))
+            )
+            (
+                (team_combat ?rest ?inp_enemy)
+            )
+        )
+
+        (end_of_roster
+            ()
+            ()
+        )
+    )
+
+    // Contract: ?inp_member is the closest free member to the surrendered, free ?inp_target. Effect: the target is
+    // restrained; everyone involved is free again.
+    (:method (squad_restrain_helper ?inp_member ?inp_target)
+
+        (with_complement
+            (and
+                (#complement_for ?inp_member ?inp_target ?partner)
+            )
+            (
+                (reserve_all (?inp_member ?partner ?inp_target))
+                (!restrain ?inp_member ?inp_target)
+                (!cover_target ?partner ?inp_target)
+                (release_when_done ?inp_member (?inp_member ?partner ?inp_target))
+            )
+        )
+
+        // No partner in reach: everything the first branch needs beyond this is checked by the caller.
+        (lonely_restrain
+            ()
+            (
+                (reserve_all (?inp_member ?inp_target))
+                (!restrain ?inp_member ?inp_target)
+                (release_when_done ?inp_member (?inp_member ?inp_target))
+            )
+        )
+    )
+
+    // Contract: ?inp_member is free and wounded. Effect: bandaged, free again.
+    (:method (bandage ?inp_member)
+
+        (bandage_self
+            ()
+            (
+                (reserve_all (?inp_member))
+                (!bandage_self ?inp_member)
+                (release_when_done ?inp_member (?inp_member))
+            )
+        )
+    )
+
+    (:method (reserve_all ?inp_parties)
+
+        (reserve_next
+            (and
+                (split_list ?inp_parties ?party ?rest)
+            )
+            (
+                (!reserve ?party)
+                (reserve_all ?rest)
+            )
+        )
+
+        (all_reserved
+            ()
+            ()
+        )
+    )
+
+    // The barrier, then free everyone: nothing is freed before ?inp_actor's action has ended.
+    (:method (release_when_done ?inp_actor ?inp_parties)
+
+        (release
+            ()
+            (
+                (!wait_until_done ?inp_actor)
+                (free_all ?inp_parties)
+            )
+        )
+    )
+
+    (:method (free_all ?inp_parties)
+
+        (free_next
+            (and
+                (split_list ?inp_parties ?party ?rest)
+            )
+            (
+                (!free ?party)
+                (free_all ?rest)
+            )
+        )
+
+        (all_free
+            ()
+            ()
+        )
+    )
+
+    (:axiom (threat ?out_enemy)
+        (and
+            (hostile ?out_enemy)
+            (not (dead ?out_enemy))
+        )
+    )
+
+    // Free to take a new job: not in another plan, not fighting, not under the player's orders.
+    (:axiom (free ?inp_member)
+        (and
+            (not (reserved ?inp_member))
+            (not (fighting ?inp_member ?any_enemy))
+            (not (following_order ?inp_member))
+        )
+    )
+
+    // A surrendered suspect nobody handles yet, and the closest free member in reach (rows are sorted by distance).
+    (:axiom (restrain_job ?out_member ?out_target)
+        (and
+            (surrendered ?out_target)
+            (enemy ?out_target)
+            (not (dead ?out_target))
+            (not (restrained ?out_target))
+            (not (reserved ?out_target))
+            (near ?out_target ?out_member ?distance)
+            (#free ?out_member)
+            (< ?distance @restrain_reach)
+        )
+    )
+
+    // The next closest free member in reach of the target, to cover the restrain.
+    (:axiom (complement_for ?inp_member ?inp_target ?out_partner)
+        (and
+            (near ?inp_target ?out_partner ?distance)
+            (!= ?out_partner ?inp_member)
+            (#free ?out_partner)
+            (< ?distance @cover_reach)
+        )
+    )
+)

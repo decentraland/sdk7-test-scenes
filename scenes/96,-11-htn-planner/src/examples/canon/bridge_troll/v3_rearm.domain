@@ -1,0 +1,101 @@
+// Bridge troll, step 3 of 6: a loop that changes what its guard reads, deferred so it reads the change.
+//
+// Teaches: recursion with progress. The designers make the trunk break after three slams, so `attack_enemy` gets a
+// `rearm` method: walk to a tree, uproot it, then attack again. The source plans the self-call at once, because its
+// planner applies UprootTrunk's effect (trunk health = 3) while planning. Ours does not simulate effects: a direct
+// `(attack_enemy ?inp_enemy)` here would still read trunk health 0 and pick `rearm` again at every level until the
+// planner gives up with `depth_exceeded` (test/examples/canon/bridge-troll.test.ts shows it). So the self-call is
+// deferred, `&attack_enemy`: it is decomposed when the runner reaches it, after !uproot_trunk ran and wrote the new
+// trunk. The rule: every recursive step changes what its guard reads, and without effect simulation the step after
+// the change must be a `&` task (or the plan ends and the root replans).
+//
+// Changed from v2: `holding_trunk` became `trunk_health ?hits` (slams left; 0: no trunk); new method `rearm` with
+//   the deferred self-call; new fact `trunk_nearby`; new primitive !uproot_trunk.
+// Source: Troy Humphreys, "Exploring HTN Planners through Example", Game AI Pro (CRC Press, 2013), chapter 12,
+//   section 12.6:
+//   https://www.gameaipro.com/GameAIPro/GameAIPro_Chapter12_Exploring_HTN_Planners_through_Example.pdf
+//   and bevy_htn `troll.htn` (AttackEnemy's "Trunk depleted" method, whose comment already asks whether to "pause
+//   execution of plan here instead of recursing"): https://github.com/RJ/bevy_htn/blob/422c8614ec1cc4d7f0382d93a835bcc6eab36d80/bevy_htn/assets/troll.htn
+//   (c) Richard Jones; adapted (renamed, re-shaped).
+// Licence: the chapter is (c) CRC Press, re-expressed (nothing copied); bevy_htn is MIT OR Apache-2.0, adapted here
+//   under MIT; its notice is in ../THIRD_PARTY_NOTICES.md.
+// Deviations from the sources:
+//   - deferred self-call `&attack_enemy` instead of planning through simulated effects (see above);
+//   - FindTrunk (an operator that picks the tree) became the host sensor `trunk_nearby`, so `rearm` has a condition;
+//   - the boulder method of v2 stays as the last method, for a troll with no trunk and no tree in reach (the
+//     chapter adds it back in section 12.8 for "could not navigate to the enemy").
+// Not ported: nothing else of section 12.6.
+// Next: v4_last_seen.domain chases an enemy that slipped out of sight.
+//
+// Facts (host sensors): (enemy_visible ?enemy) (next_bridge ?bridge) as before; (trunk_health ?hits) int, written by
+//   !trunk_slam (-1) and !uproot_trunk (3); (trunk_nearby ?tree) uprootable trees, nearest first.
+// Primitives (logged): (!navigate_to ?target) (!trunk_slam ?enemy) (!uproot_trunk ?tree) (!lift_boulder)
+//   (!throw_boulder ?enemy) (!check_bridge ?bridge) (!idle ?seconds)
+// Scenarios: worlds/v3_rearm/; the rearm story: stories.ts; npm run htn:run -- --world v3_rearm/2_rearm_at_the_oak
+
+(:domain BridgeTrollV3 top_level_domain
+
+    (:method (be_troll) top_level_method
+
+        (fight
+            (and
+                (enemy_visible ?enemy)
+            )
+            (
+                (attack_enemy ?enemy)
+            )
+        )
+
+        (patrol
+            (and
+                (next_bridge ?bridge)
+            )
+            (
+                (!navigate_to ?bridge)
+                (!check_bridge ?bridge)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!idle 2.0)
+            )
+        )
+    )
+
+    // Hurt the enemy. Pre: ?inp_enemy is in sight. Effect: one attack made, or a new trunk and then an attack.
+    (:method (attack_enemy ?inp_enemy)
+
+        (trunk_slam
+            (and
+                (trunk_health ?hits)
+                (> ?hits 0)
+            )
+            (
+                (!navigate_to ?inp_enemy)
+                (!trunk_slam ?inp_enemy)
+            )
+        )
+
+        // The trunk is spent: fetch a new one, then decide again against the world after the uproot.
+        (rearm
+            (and
+                (trunk_nearby ?tree)
+            )
+            (
+                (!navigate_to ?tree)
+                (!uproot_trunk ?tree)
+                (&attack_enemy ?inp_enemy)
+            )
+        )
+
+        (throw_boulder
+            ()
+            (
+                (!lift_boulder)
+                (!throw_boulder ?inp_enemy)
+            )
+        )
+    )
+)
