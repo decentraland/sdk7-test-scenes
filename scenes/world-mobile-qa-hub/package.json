@@ -1,7 +1,7 @@
 {
   "name": "mobile-qa-hub",
   "version": "1.0.0",
-  "description": "QA hub for mobile (godot-explorer) issues/PRs: one subscene folder per issue, picked from an in-scene list, mounted in isolation and unmounted when you leave",
+  "description": "QA hub for mobile (godot-explorer) issues/PRs deployed to a WORLD: one subscene folder per issue, listed in-world, mounted in isolation and unmounted when you leave",
   "license": "MIT",
   "scripts": {
     "start": "sdk-commands start",
@@ -9,10 +9,11 @@
     "build": "sdk-commands build",
     "prestart": "npm run subscenes:gen",
     "prebuild": "npm run subscenes:gen",
-    "predeploy": "npm run subscenes:gen",
+    "predeploy": "node scripts/gen-subscenes.mjs && node scripts/check-world-name.mjs",
     "subscenes:gen": "node scripts/gen-subscenes.mjs",
     "subscenes:check": "node scripts/gen-subscenes.mjs --check",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy:check": "node scripts/check-world-name.mjs"
   },
   "engines": {
     "node": ">=18.0.0",

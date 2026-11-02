@@ -3,20 +3,22 @@ import { Vector3 } from '@dcl/sdk/math'
 /**
  * Layout of the scene.
  *
- * The scene is a 4x4 parcel square (64x64 meters) sliced into a 4x4 grid of
- * 16x16 meter stages, one per subscene. `slot` from `subscene.json` picks the
- * stage, so two subscenes that share a slot would land on the same coordinates
- * — the generator rejects that inside a page.
+ * The scene is deployed to a WORLD, where the parcel footprint is free (parcels
+ * cost nothing and per-parcel limits scale with the layout), so it uses a
+ * generous 8x8 parcel square (128x128 meters) sliced into an 8x8 grid of 16x16
+ * meter stages, one per subscene. `slot` from `subscene.json` picks the stage, so
+ * two subscenes that share a slot would land on the same coordinates — the
+ * generator rejects that inside a page.
  *
  * Only ONE stage is ever populated: opening a subscene removes the hub props and
  * everything the previous subscene created, so nothing piles up and a test can
  * never bleed into another one. Slots exist so every subscene has a stable,
  * documented position (camera target, spawn, screenshots).
  */
-export const SCENE_SIZE = 64
+export const SCENE_SIZE = 128
 export const STAGE_SIZE = 16
-export const GRID = SCENE_SIZE / STAGE_SIZE // 4 columns x 4 rows
-export const STAGE_COUNT = GRID * GRID // 16 stages, i.e. 16 subscenes per page
+export const GRID = SCENE_SIZE / STAGE_SIZE // 8 columns x 8 rows
+export const STAGE_COUNT = GRID * GRID // 64 stages, i.e. 64 subscenes per page
 
 /** Center of the hub dais: geometric center of the scene. */
 export const HUB_ORIGIN = Vector3.create(SCENE_SIZE / 2, 0, SCENE_SIZE / 2)
@@ -35,7 +37,7 @@ export type SlotRect = {
   center: { x: number; y: number; z: number }
 }
 
-/** Bounds of a stage slot. Slot 0 is the south-west corner, slot 15 the north-east one. */
+/** Bounds of a stage slot. Slot 0 is the south-west corner, slot 63 the north-east one. */
 export function slotRect(slot: number): SlotRect {
   if (!Number.isInteger(slot) || slot < 0 || slot >= STAGE_COUNT) {
     throw new Error(`slot must be an integer in 0..${STAGE_COUNT - 1}, got ${slot}`)

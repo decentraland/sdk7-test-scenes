@@ -18,7 +18,7 @@ automatically on `prestart`, `prebuild` and `predeploy`. Never edit it by hand.
 ## 1. Create the folder
 
 ```bash
-cd scenes/85,-2-mobile-qa-hub
+cd scenes/world-mobile-qa-hub
 cp -r src/subscenes/_example src/subscenes/<your-slug>
 ```
 
@@ -101,12 +101,12 @@ The context you get:
 3. **Stay inside your stage.** Your slot is 16x16 m; keep props inside it, and keep assets small: the
    hub is one scene shared by every issue.
 4. **No cross-scene edits.** Only touch `src/subscenes/<your-slug>/`. Do not edit
-   `src/hub/**`, `src/subscenes/scenes.gen.ts`, other subscenes, or `85,-2-mobile-qa-hub/scene.json`.
+   `src/hub/**`, `src/subscenes/scenes.gen.ts`, other subscenes, or `world-mobile-qa-hub/scene.json`.
 
 ## 4. Regenerate + verify
 
 ```bash
-cd scenes/85,-2-mobile-qa-hub
+cd scenes/world-mobile-qa-hub
 npm install          # once
 npm run subscenes:gen    # validates and rewrites src/subscenes/scenes.gen.ts
 npm run typecheck        # tsc --noEmit
@@ -129,42 +129,54 @@ same slot, the same issue/PR is claimed twice, or `index.ts` does not export `mo
 
 ```bash
 git checkout -b qa-hub/<your-slug>
-git add scenes/85,-2-mobile-qa-hub/src/subscenes/<your-slug> scenes/85,-2-mobile-qa-hub/src/subscenes/scenes.gen.ts
+git add scenes/world-mobile-qa-hub/src/subscenes/<your-slug> scenes/world-mobile-qa-hub/src/subscenes/scenes.gen.ts
 git commit -m "qa-hub: add subscene for #<issue>"
 git push -u origin qa-hub/<your-slug>
 gh pr create --draft --title "qa-hub: subscene for #<issue>" --body "..."
 ```
 
 Commit `scenes.gen.ts` too (CI checks it is not stale with `npm run subscenes:check`), and only your
-own subscene folder. If two PRs regenerate `scenes.gen.ts`, the conflicts are trivial to resolve:
+own subscene folder. Do not touch `scene.json` (it holds the world name and the parcel layout). If two PRs regenerate `scenes.gen.ts`, the conflicts are trivial to resolve:
 regenerate the file (`npm run subscenes:gen`) instead of merging the hunks by hand.
 
 ---
 
 ## Layout
 
-`scenes/85,-2-mobile-qa-hub` owns the parcels `85..88, -2..1` (4x4 = 64x64 m) inside the shared world
-`sdk7testscenes.dcl.eth`. It is sliced into a 4x4 grid of **16x16 m stages**: 16 subscenes per page,
-subscene number 17 starts page 1 and reuses the same 16 slots (only one stage is ever populated at a
-time, so nothing overlaps in practice — the page/slot pair is what identifies a stage).
+The scene is deployed to a **World** (`.dcl.eth`), not to Genesis City, so parcels are free: it uses an
+**8x8 parcel** footprint (64 parcels, 128x128 m, world-relative `0,0`..`7,7`) sliced into an 8x8 grid of
+**16x16 m stages** → 64 subscenes per page; subscene 65 starts page 1 and reuses the same 64 slots (only
+one stage is ever populated at a time, so nothing overlaps in practice — the page/slot pair is what
+identifies a stage).
 
-Slot numbering (row major, slot 0 at the south-west corner):
+Slot numbering (row major, slot 0 at the south-west corner, slot 63 at the north-east one):
 
 ```
-row 3 (north)   slot 12  slot 13  slot 14  slot 15
-row 2           slot  8  slot  9  slot 10  slot 11
-row 1           slot  4  slot  5  slot  6  slot  7
-row 0 (south)   slot  0  slot  1  slot  2  slot  3
-                col 0    col 1    col 2    col 3
+row 7 (north)   slot 56  slot 57  slot 58  slot 59  slot 60  slot 61  slot 62  slot 63
+row 6           slot 48  slot 49  slot 50  slot 51  slot 52  slot 53  slot 54  slot 55
+row 5           slot 40  slot 41  slot 42  slot 43  slot 44  slot 45  slot 46  slot 47
+row 4           slot 32  slot 33  slot 34  slot 35  slot 36  slot 37  slot 38  slot 39
+row 3           slot 24  slot 25  slot 26  slot 27  slot 28  slot 29  slot 30  slot 31
+row 2           slot 16  slot 17  slot 18  slot 19  slot 20  slot 21  slot 22  slot 23
+row 1           slot  8  slot  9  slot 10  slot 11  slot 12  slot 13  slot 14  slot 15
+row 0 (south)   slot  0  slot  1  slot  2  slot  3  slot  4  slot  5  slot  6  slot  7
+                col 0    col 1    col 2    col 3    col 4    col 5    col 6    col 7
 ```
 
-Slot `k` covers x = `(k % 4) * 16` .. `+16`, z = `floor(k / 4) * 16` .. `+16`; its center is what you
+Slot `k` covers x = `(k % 8) * 16` .. `+16`, z = `floor(k / 8) * 16` .. `+16`; its center is what you
 get as `ctx.origin`. The hub dais and the player spawn sit on the geometric center of the scene
-(x = z = 32), which is only dressed while the hub is shown.
+(x = z = 64), which is only dressed while the hub is shown. `slot` is optional in `subscene.json`:
+without it the generator assigns the first free one, which is what most subscenes should do.
 
 ## Previewing with the Explorer
 
-There is nothing to deploy to test it: run `npm run start` in the scene folder and open the local
-scene (`decentraland://?dclenv=zone&realm=...` or the Creator Hub preview). To smoke-test with the
-godot client, launch it with a dev intent pointing at the local preview URL (see
-`docs/dev-intent.md` in `godot-explorer`).
+Locally there is nothing to deploy: run `npm run start` in the scene folder and open the local scene
+(`decentraland://?dclenv=zone&realm=...` or the Creator Hub preview). To smoke-test with the godot
+client, launch it with a dev intent pointing at the local preview URL (see `docs/dev-intent.md` in
+`godot-explorer`).
+
+The hub is deployed to a **World**, and that only happens manually: `scene.json` →
+`worldConfiguration.name` is a placeholder (`your-world-name.dcl.eth`) that must be replaced with the
+real `.dcl.eth` world before `npm run deploy` (= `sdk-commands deploy`, which reads the world name from
+`scene.json`; there is no `--world` flag). `npm run deploy:check` fails while the placeholder is there.
+Adding a subscene does not need a deploy: just open the PR.
