@@ -18,7 +18,7 @@ Parcels 6,24 to 13,25 (128 m x 32 m). Spawn at x:[2,4] z:[14,18], looking along 
 
 Use the panel on the left.
 
-1. Both toggles OFF, regular camera: NPC 10 m and 30 m show names (30 m fading), 60 m, 100 m and "Plate 30 m" hidden.
+1. Both toggles OFF, regular camera: NPC 10 m, 30 m and "Plate 30 m" show tags (30 m ones fading), 60 m and 100 m hidden.
 2. Top-down camera ON, area OFF: no nametag visible.
 3. Area ON (top-down): every tag visible, with no fade, including "Plate 30 m". "Hide wins" shows none.
 4. Toggle the area OFF and ON again: tags disappear and reappear at runtime.
