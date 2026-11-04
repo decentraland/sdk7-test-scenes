@@ -2,8 +2,8 @@
   "ecs7": true,
   "runtimeVersion": "7",
   "display": {
-    "title": "Nametag Max Distance Test Scene",
-    "description": "VirtualCamera.nametagMaxDistance, AvatarNametag.maxDistance and the 100-nearest nametag cap",
+    "title": "Nametag Culling Test Scene",
+    "description": "AvatarModifierType.AMT_DISABLE_NAMETAG_CULLING and the 100-nearest nametag cap",
     "navmapThumbnail": "images/scene-thumbnail.png",
     "favicon": "favicon_asset"
   },

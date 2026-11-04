@@ -1,7 +1,7 @@
 {
-  "name": "nametag-max-distance-test-scene",
+  "name": "nametag-culling-test-scene",
   "version": "1.0.0",
-  "description": "Nametag Max Distance Test Scene",
+  "description": "Nametag Culling Test Scene",
   "scripts": {
     "start": "sdk-commands start",
     "deploy": "sdk-commands deploy",
@@ -20,7 +20,7 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/nametag-max-distance/dcl-sdk-7.31.1-41660747547.commit-9163c4d.tgz",
-    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/nametag-max-distance/@dcl/js-runtime/dcl-js-runtime-7.31.1-41660747547.commit-9163c4d.tgz"
+    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/nametag-max-distance/dcl-sdk-7.32.1-41870635465.commit-ade63c7.tgz",
+    "@dcl/js-runtime": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/nametag-max-distance/@dcl/js-runtime/dcl-js-runtime-7.32.1-41870635465.commit-ade63c7.tgz"
   }
 }
