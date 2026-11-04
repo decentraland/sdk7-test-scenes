@@ -40,6 +40,24 @@ After the guided checks, leave the scene and return. All samples and controls sh
 
 **Finished means the scripted steps ended, not that the test passed.** QA confirms the appearance and interaction. If something fails, report the button/step, expected and actual appearance, and a screenshot. The scene also logs each step with the `[font-test]` prefix.
 
+## Icon atlas repro (pages of 50 icons)
+
+`src/index.ts` currently sets `iconRepro = true`, so the scene opens the icon atlas repro instead of the QA panel above. Set it to `false` to restore the QA scene.
+
+It reproduces a creator report: "Fresh launch with a page of 50 icons: 34 render and 16 are tofu. Every page after that is tofu." The Explorer gives each scene font a single 1024x1024 atlas page per component type (one for TextShape, one for UI). The converter's pre-fill already uses about 45% of it, so only about 34 new Font Awesome icons fit. The fix allows up to four atlas pages per font.
+
+The scene shows 400 distinct Font Awesome Solid icons in 8 pages of 50, all of a page at once. Each icon is its own UI text, captioned in the built-in font with its number (1-400) and code point, so you can count boxes (tofu). The same 50 icons are also drawn by a 3D TextShape in front of the spawn point, to test the TextShape atlas too. Use **Prev page** / **Next page**; the header shows the page and how many distinct icons have been requested so far.
+
+| Page | Current client | Fixed client |
+| --- | --- | --- |
+| **1** | About 34 icons render, about 16 are tofu. | All 50 render. |
+| **2-3** | Tofu, apart from a few small icons that fit in leftover space. | All render. |
+| **4-8** | Tofu. | Icons render until the four atlas pages are full (roughly 270 icons in total, varying with icon sizes), then tofu. That tofu is the expected cap. |
+
+Check both the UI grid and the 3D TextShape; they use separate atlases and should behave the same.
+
+**Only a fresh Explorer launch gives a meaningful page-1 result.** Atlas pages persist while the Explorer keeps the font loaded, so leaving and returning, or reloading the scene, starts with the atlas already used. Visit the pages in order (1, 2, 3, ...); going back to a page you have seen redraws icons already in the atlas. Each page change is logged with the `[icon-repro]` prefix and its code point range.
+
 ## Run locally
 
 From this scene folder:
