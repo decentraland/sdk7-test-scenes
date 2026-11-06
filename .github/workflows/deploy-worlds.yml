@@ -39,6 +39,13 @@ jobs:
           JSON="[]"
           for dir in $CANDIDATES; do
             if [ -f "$dir/scene.json" ]; then
+              # Scenes that still ship the placeholder world name deploy to their OWN world, never to
+              # the shared one: skip them instead of deploying (or failing) on every merge to main.
+              WORLD=$(jq -r '.worldConfiguration.name // ""' "$dir/scene.json")
+              if [ "$WORLD" = "your-world-name.dcl.eth" ]; then
+                echo "Skipping $dir: worldConfiguration.name is the placeholder (own world deploy, manual)"
+                continue
+              fi
               JSON=$(echo "$JSON" | jq -c --arg d "$dir" '. + [$d]')
             fi
           done

@@ -1,0 +1,8 @@
+{
+  "title": "Example subscene (template)",
+  "issue": "#0",
+  "owner": "qa-hub",
+  "status": "done",
+  "note": "Copy this folder to register your own subscene. Docs: ADDING-A-SUBCENE.md",
+  "slot": 63
+}
