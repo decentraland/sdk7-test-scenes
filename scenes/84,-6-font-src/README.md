@@ -32,12 +32,31 @@ Button numbering starts at 2; the gap is expected.
 | **3. Fallbacks + recovery** | Each invalid source switches all samples to built-in: OTF, missing file, invalid file, empty source and external URL. Between cases and at the end, Bungee Shade returns. No missing text or broken input/dropdown. Warnings for rejected sources are expected. |
 | **4. Recreate x20** | The samples are recreated 20 times. At the end there is exactly one of each, using Bungee Shade. The input/dropdown work. Resetting their values during this test is expected. |
 | **7. Scene boundary** | Accept the movement prompt if shown. Watch the 3D text near the cyan edge: fully inside it is visible, fully outside it disappears, and after moving back it reappears. The UI remains visible. At the edge, font changes must not leave text stuck hidden or visible. |
+| **9. Icon font (Font Awesome)** | Icon glyphs on all four components, drawn at runtime (private-use code points are not pre-filled). Steps 1, 2, 4 and 5: every icon draws; no box (tofu). Step 3 (Regular) ends with Medal, which Regular does not contain: that one box is expected. A box on Medal or Compass in Solid reproduces the creator report. |
 
 **5 and 6 are local-only cancellation tests** and are unavailable on zone. They require the local server's artificial eight-second delay; a normal zone download cannot reproduce that timing reliably.
 
 After the guided checks, leave the scene and return. All samples and controls should work again. **Stop / reset** restores the samples and resets the input and dropdown.
 
 **Finished means the scripted steps ended, not that the test passed.** QA confirms the appearance and interaction. If something fails, report the button/step, expected and actual appearance, and a screenshot. The scene also logs each step with the `[font-test]` prefix.
+
+## Icon atlas repro (pages of 50 icons)
+
+`src/index.ts` currently sets `iconRepro = true`, so the scene opens the icon atlas repro instead of the QA panel above. Set it to `false` to restore the QA scene.
+
+It reproduces a creator report: "Fresh launch with a page of 50 icons: 34 render and 16 are tofu. Every page after that is tofu." The Explorer gives each scene font a single 1024x1024 atlas page per component type (one for TextShape, one for UI). The converter's pre-fill already uses about 45% of it, so only about 34 new Font Awesome icons fit. The fix allows up to four atlas pages per font.
+
+The scene shows 400 distinct Font Awesome Solid icons in 8 pages of 50, all of a page at once. Each icon is its own UI text, captioned in the built-in font with its number (1-400) and code point, so you can count boxes (tofu). The same 50 icons are also drawn by a 3D TextShape in front of the spawn point, to test the TextShape atlas too. Use **Prev page** / **Next page**; the header shows the page and how many distinct icons have been requested so far.
+
+| Page | Current client | Fixed client |
+| --- | --- | --- |
+| **1** | About 34 icons render, about 16 are tofu. | All 50 render. |
+| **2-3** | Tofu, apart from a few small icons that fit in leftover space. | All render. |
+| **4-8** | Tofu. | Icons render until the four atlas pages are full (roughly 270 icons in total, varying with icon sizes), then tofu. That tofu is the expected cap. |
+
+Check both the UI grid and the 3D TextShape; they use separate atlases and should behave the same.
+
+**Only a fresh Explorer launch gives a meaningful page-1 result.** Atlas pages persist while the Explorer keeps the font loaded, so leaving and returning, or reloading the scene, starts with the atlas already used. Visit the pages in order (1, 2, 3, ...); going back to a page you have seen redraws icons already in the atlas. Each page change is logged with the `[icon-repro]` prefix and its code point range.
 
 ## Run locally
 
@@ -66,19 +85,16 @@ Slow fixtures are generated locally, ignored by Git and excluded from deployment
 Visual checks do not establish absence of memory leaks or network requests. Verifying that a rejected URL was never fetched requires native logs/network inspection. Resource cleanup and deferred deletion are checked separately by the Explorer Unity tests.
 
 JavaScript logs report requested component state and executed steps, not native font download or rendering success.
-## Temporary protocol pin
+## SDK version
 
-This scene uses published SDK `7.29.0` and the exact test package from [protocol PR #489](https://github.com/decentraland/protocol/pull/489): `1.0.0-35133806160.commit-1767aed`.
-
-The SDK does not yet serialize `fontSrc`. `npm install` runs `scripts/sync-font-protocol.cjs`, which regenerates only TextShape, UiText, UiInput and UiDropdown inside this scene's installed SDK. It checks the protobuf field numbers and verifies both encoding directions against the pinned protocol. The compiler is installed through `@protobuf-ts/protoc`; no sibling repository or machine-specific path is needed. The first install needs internet access to download the compiler and packages.
-
-Before merging, replace this temporary bridge with a published SDK version that supports `fontSrc`, then remove the generation script/compiler dependency and rebuild. Merge the protocol and Explorer feature first.
+`fontSrc` ships in the `auth-server` SDK build `7.30.2-39796956377.commit-4223559` (pinned in `package.json`). To move to a newer one, run `npm i --save-exact --save-dev @dcl/sdk@auth-server @dcl/js-runtime@auth-server`.
 
 ## Bundled font fixtures
 
 - Azeret Mono Medium: copied from Explorer's existing font asset; SIL Open Font License included.
 - Bungee Shade TTF: [Google Fonts](https://github.com/google/fonts/tree/main/ofl/bungeeshade), SIL Open Font License included. It is bundled with the scene.
 - Bungee Shade OTF: [Bungee v1.2.1](https://github.com/djrrb/Bungee/blob/fc391285f3a5eb0968f0171a61d09112bc83d0c8/fonts/Bungee_Desktop/Bungee/Bungee-Shade.otf), license included. This is a real unsupported OpenType/CFF fixture, not a renamed TTF.
+- Font Awesome Free Solid (6.7.2), Regular and Brands (7.0.1): `duck-font-awesome-*.ttf`, the creator-reported files (desktop OTFs converted to TTF and renamed), SIL Open Font License included. Solid has no space glyph and maps ASCII to icons, so scenario 9 uses icon-only strings.
 - `invalid.ttf` intentionally contains plain text; `missing.ttf` is intentionally absent.
 
 Fonts load from the asset bundle the converter (abgen) builds for this scene's deployment, so the deployed scene shows them only after abgen has processed that deployment. A local preview without a local asset bundle converter (`--local-ab`) shows the built-in font instead. Arbitrary URL fonts remain rejected.
