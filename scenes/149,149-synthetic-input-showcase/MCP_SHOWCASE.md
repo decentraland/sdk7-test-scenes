@@ -13,15 +13,15 @@ is self-contained and can be run independently and re-run at any time (see **Res
 > from `toWorld()` at runtime.
 
 **On `entityId`**: `click_entity`/`hover_entity` accept an `entityId`, but that id is the
-Explorer's internal **Arch ECS** entity id (`list_scene_entities` returns `entity.Id`) and is
+Explorer's internal **Arch ECS** entity id (`list_scene_entities` returns it as `id`) and is
 **not** the same id space as this scene's own CRDT entity ids (logged at `[INIT]`). The bridge
 between them: a successful `click_entity`/`hover_entity` result reports **both** `entityId` and
 `crdtEntityId`, so one world-aimed click on a target tells you its Arch id for subsequent
 `entityId`-addressed calls -- see the README's "Substitutions" section. Every step
 below therefore aims with explicit **world `x`/`y`/`z`**, which every tool accepts as an
-alternative to (or in addition to) `entityId`. If you'd rather use `entityId`, call
-`list_scene_entities` first and cross-reference against the `[INIT]` entity-id map in
-`get_scene_logs`.
+alternative to (or in addition to) `entityId`. If you'd rather use `entityId`,
+`list_scene_entities crdtEntity: <id>` takes a CRDT id from the `[INIT]` map in
+`get_scene_logs` and returns that entity's Arch `id` directly (every entry carries both).
 
 ## Setup
 
@@ -36,6 +36,10 @@ alternative to (or in addition to) `entityId`. If you'd rather use `entityId`, c
    - one `[INIT] <purpose> => entityId <id>` line per interactable
    - one `[INIT] MARK <label> => local (...) world (...)` line per floor mark / aim point
    Keep this transcript open -- every step below tells you which later log line to expect.
+   Every line is prefixed `[scene]`: the buffer also holds the Explorer's own errors and the MCP
+   server's lines, which are **not** the scene's and stay hidden unless you pass
+   `includeClient: true` (they then read `[client:<CATEGORY>]`). A scene that logs nothing of its
+   own under an error you did not cause is the first thing to check before blaming it.
 3. Take a baseline screenshot facing north down the S1 lane (this is the default spawn view).
 4. Run the **Pre-flight** below before the stations -- it settles the coordinate space every
    positional step depends on, and its check 1 is the one a session is most likely to
@@ -100,14 +104,57 @@ normalized `center` inside 0..1 beside its `screenRect`.
 2. **`screenshot` states the screen it downscaled from.** Its caption reads
    `1280x720 (screen 2188x1231)`, and that `screen` matches `ui_list`'s exactly. Try a second
    `maxWidth` to confirm only the capture size moves -- **in a separate call, not the same batch**:
-   two `screenshot`s issued together collide, and the second fails with `"Another screenshot
-   capture is already in progress; retry when it completes."` That is the capture guard, not a
-   failed check.
+   two `screenshot`s issued together collide, and the second fails with `"A capture is already in
+   progress (screenshot); retry when it completes."` -- the refusal names the tool holding the
+   capture (`capture_sequence` holds it the same way). That is the capture guard, not a failed check.
+3. **`get_visible_entities` lists what the camera frames, with rects in `screen` space -- and does
+   not evaluate occlusion.** From the spawn view (facing north down the S1 lane):
+   ```
+   get_visible_entities  limit: 10
+   ```
+   Expected: `screen` equals `ui_list`'s; S1's lane markers and end wall are among the entries (its
+   sign is not, and cannot be: signs and readout boards are bare `TextShape`s, and the tool lists
+   only primitive meshes and GLTFs),
+   each with a `screenRect` inside `screen`, a normalized `center` in 0..1 and a `coverage` fraction,
+   largest first; `candidates >= inFrustum >= returned`. Then stand **behind** the wall -- `move_to
+   (2388, 0, 2404)`, `look_at 2388, 1, 2399` (south, at the wall) -- and call it again: the lane
+   markers south of the wall (`z 2401`, `2397`, ...) are **still listed** although the 3 m wall hides
+   them. That is the tool's stated boundary (frustum + renderer bounds only, "occlusion is not
+   evaluated"), not a defect; a screenshot is the channel for what is actually visible.
+4. **`get_scene_logs` keeps the client's lines out unless asked.** The default call (as in Setup step
+   2) returns `[scene]` lines only and a header ending `source=scene`; the same call with
+   `includeClient: true` returns `source=scene+client` and at least one `[client:MCP]` line --
+   `MCP server listening on http://127.0.0.1:8123/unity-explorer-mcp` -- that the default hid. An
+   Explorer error (a chat-service exception, a realm warning) shows up **only** on the second form,
+   which is what tells it apart from the scene's own output.
+5. **`capture_sequence` captures at a true interval and returns files, not images.**
+   ```
+   capture_sequence  count: 5  intervalSec: 0.1  maxWidth: 320
+   ```
+   Expected: `count: 5`, five `frames[].path` entries under the `directory` it names (inside the
+   client's cache folder, never in the scene folder), `meanIntervalSec` close to `0.1` with `late`
+   counting the frames whose capture overran the interval, and **no image content in the response**
+   -- read a frame file only when you need to look at it. A `screenshot` issued while the sequence
+   runs is refused with the gate message naming `capture_sequence` -- but you cannot provoke that
+   from your own tool batch: a `screenshot` batched after `capture_sequence` is serialised behind
+   it and simply succeeds (unlike two `screenshot`s, which collide). Only an out-of-band call -- a
+   detached HTTP `tools/call` fired while the sequence runs -- reaches the gate.
+6. **`reload_scene` returns after the new scene has rendered.** (Run it last: it reloads the scene
+   you are about to drive, which also puts every counter back to zero.)
+   ```
+   reload_scene
+   ```
+   Expected: a JSON result `{ reloaded: true, sceneState: "running", ticksWaited >= 2,
+   renderedFrames: 1, settleMs, settled: true, warning: null, hint }`, and a `screenshot` taken
+   straight after shows the reloaded scene -- the `[INIT]` lines are in `get_scene_logs` again. A
+   `settled: false` with a `warning` means the new scene did not reach `Running` within the timeout.
 
-If either check fails, stop and report it before running the stations -- every later positional
-step inherits the same coordinate space.
+If any check fails, stop and report it before running the stations -- every later positional
+step inherits the same coordinate space, and checks 3-6 are the contracts the field reports found
+broken (stale frames after a reload, client errors read as the scene's, screenshots too slow for a
+flash, no way to know what is in frame).
 
-> **Two checks, and no more -- but do not trim these two.** The rest of the coordinate contract is
+> **Checks 1 and 2 are the coordinate contract, and no more of it is needed -- but do not trim them.** The rest of that contract is
 > already covered inside the stations, so the pre-flight does not repeat it: a `ui_drag` between
 > two `center`s **is** S8 step 8 (which asserts `path: "sdk"` on the first try), and the
 > `screenRect` + `center` + `screen` triple on every `ui_click`/`ui_scroll`/`ui_set_text` result is
@@ -129,8 +176,9 @@ click_entity  x: 2403  y: 1  z: 2400
 Expected result: `hit: true` **and `crdtEntityId 582`**. Expected log: `[RESET] reset #1 requested ...`
 then `[RESET] reset #1 complete -- all counters zeroed, all InputModifiers cleared`. Every counter
 shown in every station's readout board goes back to its initial value, and any active
-`InputModifier` is cleared -- confirm with a screenshot of any readout board
-Every dot painted at S10 is removed too, and both UI panels close.
+`InputModifier` is cleared -- confirm by reading any readout board (`get_entity_details` ->
+`PBTextShape.text`; see **Deriving Arch entity ids cheaply** in the Driving notes). Every dot
+painted at S10 is removed too, and every UI panel (S8, S9, S11) closes.
 
 > **`hit: true` alone is NOT proof you hit what you aimed at -- check `crdtEntityId` on every
 > world-aimed call in this script.** A `click_entity`/`hover_entity` aim point is a *direction*, and
@@ -181,7 +229,10 @@ emit `IA_FORWARD`.
 
    A `move_to` between bursts logs a `teleport detected ... ignored` line instead of a phantom
    superhuman burst (each followed by a spurious 0.08m/0.03s micro-burst line -- harmless, ignore
-   it).
+   it). Sub-metre `teleport detected` lines logged *during* a jog or run burst are something else:
+   real ticks the filter dropped, so that burst's `distance=` and `sustainedSpeed` under-read. That is
+   the scene row in **Known open issues**. Read the `walk` result's own `distance` beside the log
+   line when it happens.
 
    **The assertion, in full** -- three 1.2s bursts from `(2388, 0, 2385)` facing north:
 
@@ -210,7 +261,8 @@ emit `IA_FORWARD`.
    ```
    walk  directionX: 0  directionY: 1  seconds: 6  kind: run
    ```
-   Expected result: `endPosition` stops at/near world z `2402.5` (the wall face) even though
+   Expected result: `endPosition` stops near world z `2401.9` -- a capsule radius short of the
+   wall's south face at z `2402.3` (the wall is centred on z `2402.5`, 0.4 m deep) -- even though
    6 seconds at run speed would cover much more distance in the open -- **collision applied**.
    Screenshot: player pressed up against the wall, past the "16m" marker.
 5. Press forward the "wrong" way to show the `IA_FORWARD` divergence. Step 4 left you pressed
@@ -229,7 +281,7 @@ emit `IA_FORWARD`.
    ```
    press_input  action: forward
    ```
-   Screenshot the S1 (or S6) readout again: `global IA_FORWARD count: 1` -- proves divergence
+   Read the S1 (or S6) readout again, the same way: `global IA_FORWARD count: 1` -- proves divergence
    **(3)**: only `press_input FORWARD` increments the SDK input-action counter; `walk` never
    does, even though both move-shaped inputs exist.
 
@@ -240,8 +292,9 @@ emit `IA_FORWARD`.
 Proves: **(1)**/(2) jump-gated movement via the real pipeline, contrasted with the global
 `IA_JUMP` action.
 
-1. Stand ~2.5m south of the platform (`move_to` world `(2388, 0, 2406.5)`) and jump onto it in one
-   call (platform top is at world y=1.2, the platform sits at world `(2388, 0.6, 2409)`):
+1. Stand ~2.5m south of the platform (`move_to` world `(2388, 0, 2406.5)`, then `look_at 2388, 1, 2415`
+   -- `walk` is camera-relative, and S1 step 6 leaves the camera pitched into the sky) and jump onto
+   it in one call (platform top is at world y=1.2, the platform sits at world `(2388, 0.6, 2409)`):
    ```
    walk  directionX: 0  directionY: 1  seconds: 0.5  kind: jog  jump: true
    ```
@@ -257,7 +310,7 @@ Proves: **(1)**/(2) jump-gated movement via the real pipeline, contrasted with t
 2. Try the same approach **without** `jump: true` from the base of the platform -- the player
    should not mount it (1.2m is taller than the avatar's step-over height), demonstrating the
    platform really requires the jump flag, not just proximity. Use a *longer* burst than step 1 so
-   the result is unambiguous: from the same `(2388, 0, 2406.5)` mark, `seconds: 1.5 kind: jog`
+   the result is unambiguous: from the same `(2388, 0, 2406.5)` mark and `look_at`, `seconds: 1.5 kind: jog`
    measured **0.12 m** (`endPosition.y` unchanged at 0.08, no `platform arrival #2` log) -- the
    avatar capsule is already flush against the platform face at that mark, which is why the same
    start position that mounts it *with* `jump: true` yields near-zero travel without.
@@ -290,7 +343,8 @@ escapes it; the run-only sub-zone shows the degrade-through-fallback case.
    against the ~20 m a free 2 s run covers) -- that truncation is the first half of the proof,
    before step 2 even runs. Either landing spot is inside zone A, which is all the step needs.
    Expected log: `[S3-FREEZE] zone A entered (#1) -- InputModifier disableAll+disableJump applied`.
-   Screenshot: the S3 readout at world `(2395, 3, 2407)` shows `modifier: zone A: disableAll + disableJump`.
+   Readout: the S3 board at world `(2395, 3, 2407)` (read it via `get_entity_details`) shows
+   `modifier: zone A: disableAll + disableJump`.
 2. While standing in zone A, try to walk further:
    ```
    walk  directionX: 0  directionY: 1  seconds: 2  kind: run
@@ -365,6 +419,12 @@ escapes it; the run-only sub-zone shows the degrade-through-fallback case.
    in-zone run   <  free run     (by ~1.5-2 m/s)
    ```
 
+   **While the scene row in Known open issues reproduces, one sample of three bursts can break this
+   shape**: a burst whose log shows mid-burst `teleport detected` lines under-reads its
+   `sustainedSpeed`. Re-take all three at least once and judge the shape on the repeat. The tools'
+   returned `distance` for the three is a cross-check the filter cannot touch, though not a proof on
+   its own (see below).
+
    The run request was degraded to the jog tier. **The jog control is what makes it
    unambiguous** — without it, "the in-zone run was slower" could just be the acceleration ramp.
    Both lines hold on every pass on record; the absolute speeds move ~20% between clients and
@@ -372,7 +432,10 @@ escapes it; the run-only sub-zone shows the degrade-through-fallback case.
    ~5m over 0.8s), and neither is `bucket=`, which reads the same for all three under either
    calibration.
 7. Also confirm `kind: walk` inside the zone is untouched (`bucket=walk`), i.e. the lock degrades
-   the run tier only.
+   the run tier only. Same mark and facing as step 5 (`move_to (2395, 0, 2407.5)`, `look_at 2395, 1, 2420`):
+   ```
+   walk  directionX: 0  directionY: 1  seconds: 0.8  kind: walk
+   ```
 
 ---
 
@@ -542,7 +605,35 @@ All eight targets and marks (world coordinates):
    ```
    click_entity  x: 2412  y: 1  z: 2387  button: secondary
    ```
-   Expected log: `[S4-CLICK] secondary-button target hit #1`.
+   Expected log: `[S4-CLICK] secondary-button target hit #1`. Every `click_entity` result carries
+   `button` -- `"secondary"` here, `"pointer"` on every other step of this station -- naming what was
+   sent.
+
+8. **A hit on an entity that does not listen for the button is reported, not faked.** S6's suppression
+   target at `(2404, 1, 2413)` declares `IA_PRIMARY` only. Stand at S5's far mark `(2412, 0, 2408)`
+   (~9.4 m, clear line), `look_at 2404, 1, 2413`, then click it with the default button:
+   ```
+   click_entity  x: 2404  y: 1  z: 2413
+   ```
+   Expected result: `hit: true`, `button: "pointer"` **and** a `warning` in two parts, one per edge:
+   `"press: the entity declares no PointerEvents entry for pet_down/pointer; it listens for:
+   pet_down/primary; the pipeline still wrote pet_down/pointer to the entity's PointerEventsResult (a
+   handler bound to a declared entry does not fire on it; inputSystem.isTriggered(InputAction.IA_POINTER,
+   PointerEventType.PET_DOWN, entity) does), and the scene root received no broadcast: a result written
+   to any entity suppresses it, as for a real click; release: ... pet_up/pointer ... PET_UP ..."`.
+   Expected logs: **none** from `[S6-GLOBAL]` at all -- the entity's handler is bound to E, not to the
+   pointer, and the root gets **no** `IA_POINTER` line, because the edge was written to the hovered
+   entity (which is what silences the root for that update, exactly as a human's wrong-button click
+   does). S6's `IA_POINTER` count must **not** move; a delta here would mean the entity was not
+   hover-qualified and the edge fell through to the root as S4's misses do.
+   The aim was right and the ray hit; the warning is what tells you that no declared handler ran and
+   that nothing reached the root either. Now send the button it listens for:
+   ```
+   click_entity  x: 2404  y: 1  z: 2413  button: primary
+   ```
+   Expected result: `hit: true`, `button: "primary"`, **no** `warning`. Expected log:
+   `[S6-GLOBAL] entity-bound PRIMARY on suppression target (#1) -- global PRIMARY should NOT increment
+   this frame` (the same line S6 step 2 produces with `press_input action: primary` aimed there).
 
 ---
 
@@ -557,6 +648,8 @@ Proves: **(6)** real `PET_HOVER_ENTER`/`PET_HOVER_LEAVE` + `hoverText`, distance
 | Hover C | `(2412, 1, 2403)` | `maxDistance: 2` |
 | Hover C near mark | `(2412, 0, 2401.5)` | ~1.8m away -- should succeed |
 | Hover C far mark | `(2412, 0, 2408)` | ~5m away -- should miss |
+| Pointer-lock toggle | `(2406, 1, 2406.5)` | requests / releases the client's cursor lock, for `get_reticle` |
+| Pointer-lock approach mark | `(2406, 0, 2409)` | north of the toggle; look south at it |
 
 > **Approach A and B from the NORTH, and read this station's counters as deltas.** Two hazards, both
 > measured:
@@ -620,6 +713,66 @@ Proves: **(6)** real `PET_HOVER_ENTER`/`PET_HOVER_LEAVE` + `hoverText`, distance
    be swallowed for tight-`maxDistance` targets — it was re-qualified against the ray of the
    frame the hover ended on, which points elsewhere and reads as out-of-range. A `1/0` here is
    that bug returning.
+
+6. **`get_reticle` reads what a human finds by aiming -- which, with a free cursor, is the cursor's
+   pixel, not the screen centre.** Call it once from wherever you stand:
+   ```
+   get_reticle
+   ```
+   Expected result: `available: true`, `cursorLocked: false`, `rayFromScreenCenter: false`, a `cursor`
+   (image pixels + normalized `center`, in `screen`) saying where the ray enters, `ray`, and a `kind`
+   (`scene_entity` / `avatar` / `world` / `nothing`) for whatever sits under **that pixel** -- the OS
+   cursor's resting place, which no driver controls, so the kind here is not an assertion. The
+   self-consistency is: a `click_at` at that same `cursor.center` must name the same `crdtEntityId`
+   (or refuse with the same `blockedByUi` when UI covers the pixel). No `[S5-HOVER]` log follows: the
+   read produces no hover and no press.
+
+   **The check does not apply when `cursor` lies outside `screen`** (e.g. `x: -604, y: 1175` on a
+   `2044x1150` screen, reported with `cursor.onScreen: false`; the result has no summary or `reason`
+   line saying so, so read `onScreen`) -- the OS cursor is outside the client window, as it is when the Explorer
+   runs in the Unity Editor and you drive it from a terminal. `center` is then clamped to the edge
+   (`(0, 1)`), which is a different pixel from the one the reported ray goes through, so `click_at`
+   there names whatever covers the corner (the client Sidebar). The `kind` still reports what the
+   off-screen ray reaches -- that is the production reticle following the cursor wherever it is, and
+   step 7's locked cursor is how to make the read deterministic.
+7. **Lock the cursor to make the reticle deterministic.** Stand on the approach mark `(2406, 0, 2409)`,
+   `look_at 2406, 1, 2406.5` and click the toggle:
+   ```
+   click_entity  x: 2406  y: 1  z: 2406.5
+   ```
+   Expected logs: `[S5-HOVER] pointer lock REQUESTED (click)` then `[S5-HOVER] client pointer lock is now
+   LOCKED`; `get_player_state` reports the lock. (The scene can only *request* the lock, and its
+   `PointerLock.onChange` fires for its own request as well as for the client's answer -- the `LOCKED`
+   line typically logs twice -- so that line alone does not prove the client accepted. `get_player_state`
+   -> `camera.pointerLocked: true` does; if it stays `false`, the client refused it -- report that and
+   skip to step 8's unlock.) Now aim and read:
+   ```
+   move_to       x: 2404  y: 0  z: 2407
+   look_at       x: 2404  y: 1  z: 2403
+   get_reticle
+   ```
+   Expected result: `kind: "scene_entity"`, `crdtEntityId 562` (Hover A), `cursorLocked: true`,
+   `rayFromScreenCenter: true`, `hasPointerEvents: true`, `withinRange: true`, `hoverText: "Hover A"`,
+   `distanceToPlayer` a few metres and `distanceToCamera` the ray length. Expected log: `[S5-HOVER] A:
+   PET_HOVER_ENTER` -- the real reticle is on A now, exactly as for a human, so the scene's own hover
+   fires (count it as a delta). Then C from its far mark, aimed:
+   ```
+   move_to       x: 2412  y: 0  z: 2408
+   look_at       x: 2412  y: 1  z: 2403
+   get_reticle
+   ```
+   Expected result: `crdtEntityId 564`, `hasPointerEvents: true`, **`withinRange: false`** (C's
+   `maxDistance: 2`, read against `distanceToPlayer`) and **no** `C: PET_HOVER_ENTER` log -- the one-call
+   answer to "can a player find this prompt from here": found, but out of reach. Finally pitch into the
+   sky (`camera_look deltaX: 0 deltaY: 8 seconds: 1.5`, repeat until `cameraRotationEuler.x` is near
+   `306`) and read again: `kind: "nothing"`, every entity field null.
+8. **Unlock.** `look_at 2406, 1, 2406.5` from `(2406, 0, 2409)` and click the toggle again:
+   ```
+   click_entity  x: 2406  y: 1  z: 2406.5
+   ```
+   Expected logs: `pointer lock released (click)` then `client pointer lock is now free`. **Do not skip
+   this**: every virtual-mouse gesture (`ui_click device:true`, `ui_drag path:device`, `ui_hover
+   device:true`) fails up front while the cursor is locked, and RESET releases the lock too.
 
 ---
 
@@ -686,13 +839,15 @@ Board: world `(2408, 3.4, 2411)`. Suppression target: world `(2404, 1, 2413)` (b
 >    routinely misread as "suppression is broken". If a future edit replaces the direct gset
 >    read with any `isTriggered` call, this station silently stops proving anything.
 
-1. Stand away from the suppression target and press with no aim:
+1. Stand away from the suppression target but inside its `maxDistance: 16` for step 2 -- S5's far
+   mark `(2412, 0, 2408)` is ~9.4 m from it and clear -- clear the reticle (note 1), and press with
+   no aim:
    ```
    press_input  action: primary
    ```
    Expected result: `entityBound: false`, plus a `hint` explaining the scene-root delivery.
    Expected log: `[S6-GLOBAL] IA_PRIMARY scene-root broadcast -- count now 1`.
-   Screenshot the board: `scene-root PRIMARY: 1   entity PRIMARY: 0`.
+   Read the board (`get_entity_details` -> `PBTextShape.text`): `scene-root PRIMARY: 1   entity PRIMARY: 0`.
 2. Now press the same action **aimed at** the suppression target:
    ```
    press_input  action: primary  x: 2404  y: 1  z: 2413
@@ -700,8 +855,10 @@ Board: world `(2408, 3.4, 2411)`. Suppression target: world `(2404, 1, 2413)` (b
    Expected result: `entityBound: true`, `entityId`/`crdtEntityId` of the target, `hitPoint`,
    `distance`, and `hoverText: "press_input PRIMARY aimed here (entity-bound)"`.
    Expected log: `[S6-GLOBAL] entity-bound PRIMARY on suppression target (#1) -- global PRIMARY should NOT increment this frame`.
-   Screenshot the board again: `scene-root PRIMARY` is **still 1** (unchanged), `entity PRIMARY: 1`
-   — the entity-bound edge suppressed the scene-root broadcast. The target's box flashes green.
+   Read the board again: `scene-root PRIMARY` is **still 1** (unchanged), `entity PRIMARY: 1`
+   — the entity-bound edge suppressed the scene-root broadcast. The target's box flashes green
+   (its `PBMaterial` albedo reads green straight after the press). `look_at` the target before
+   this press -- the pitch-to-sky from step 1 is still on the camera.
    (Get within the target's `maxDistance: 16` first; the result reports the distance it used.)
 3. Repeat step 2 addressing the target by id instead of by point, to exercise the other form:
    ```
@@ -743,20 +900,34 @@ Stand mark: world `(2400, 0, 2400)`. Markers (world):
 > session that runs S7 after the other stations will find `L`, `R` and `D` already non-zero. Read
 > the board once before step 2 and assert on the increments.
 
-1. Walk to `(2400, 0, 2400)`.
+1. Move to the stand mark **with the look-at on arrival**, aimed at MARKER-L:
+   ```
+   move_to  x: 2400  y: 0  z: 2400  lookAtX: 2388  lookAtY: 6  lookAtZ: 2400
+   ```
+   Expected result: `cameraRotationEuler` with a leftward yaw and `aimErrorDegrees` ~0 (below 2, no
+   `warning`) -- `move_to` refines its look-at exactly as `look_at` does, so the marker is under the
+   reticle when the call returns. Expected log: `[S7-CAMERA] MARKER-L (left) entered aim (angle X.X deg)`
+   (a delta if L was already entered; see the note above). `move_to` is a **teleport** -- its own
+   description says so -- which S1's `teleport detected` line confirms if you watch the lane.
 2. ```
    look_at  x: 2388  y: 6  z: 2400
    ```
-   Expected result: `cameraRotationEuler` reflects a leftward yaw **and `aimErrorDegrees` ~0**.
+   Expected result: `cameraRotationEuler` reflects a leftward yaw. **Do not expect `aimErrorDegrees` ~0
+   here**: MARKER-L sits above eye level, and after step 1's `move_to` returns, the third-person orbit
+   boom keeps settling on its own (a `get_player_state` with no call in between shows the pitch already
+   moved off the marker). This `look_at` reports that settled pose, so it can come back with a residual
+   and the rig-limit warning. That is the same boom settling the note under step 3 describes, not a
+   failed aim. The assertion for this step is the log line, below.
    Pass the marker's real position — the aim is refined until the point is actually under the
    reticle, so do not fudge the y (`y: 10.5` for this marker, `y: 80` for MARKER-U is an older
-   workaround and is now wrong: it aims above the marker). Expected log:
-   `[S7-CAMERA] MARKER-L (left) entered aim (angle X.X deg)` within a frame or two. Readout
-   board at `(2400, 3.6, 2400.01)` should show `L:1` incrementing.
+   workaround and is now wrong: it aims above the marker). Expected log: **none** -- step 1's
+   `move_to` already put L under the reticle, and the 30 deg release cone (step 3) keeps it entered,
+   so re-aiming at it does not re-enter. The readout board at `(2400, 3.6, 2400.01)` keeps the `L`
+   count step 1 left; a fresh `MARKER-L (left) entered aim` here would mean something swung the camera
+   out of L's release cone between the two steps. That non-event is the hysteresis working.
 3. ```
    camera_look  deltaX: 6  deltaY: 0  seconds: 1.5
    ```
-   Turn right with a relative pan; watch yaw increase in the tool result and in the readout.
    Turn right with a relative pan; the assertion is that **yaw moves, in the tool result and in
    the readout board** -- how far depends on your calibrated rate.
 
@@ -809,6 +980,50 @@ Stand mark: world `(2400, 0, 2400)`. Markers (world):
    the world ones used in the calls above -- add the parcel origin (`149,149` -> x+2384, z+2384)
    to compare them, or read the entity instead: `get_entity_details <engine id>` returns the exact
    `PBTextShape.text`, which a screenshot cannot resolve past a few metres.
+6. **A `CameraModeArea` refusal names the area.** A 3x3x3 first-person area is centred at
+   `(2400, 1.5, 2408)` (translucent violet plate, sign `S7: FIRST-PERSON CameraModeArea`; `[INIT] S7
+   camera-mode area ... => entityId 598` -- the `[INIT]` line is the authority). Stand on its outside
+   mark in third person **facing north** -- `move_to 2402.5, 0, 2408` with `lookAt 2402.5, 1, 2416`
+   (`set_camera_mode third_person` succeeds there; `walk` is camera-relative, so the strafe below
+   goes west only when you face north) -- then strafe west into it **at walking pace**:
+   ```
+   walk  directionX: -1  directionY: 0  seconds: 1.4  kind: walk
+   ```
+   That covers ~2 m and stops inside the area (around `x 2400.5`). **Do not drop `kind: walk`**: the
+   default jog covers ~10 m in 1.4 s, crosses the 3 m area in one burst (`entered` and `left` in the
+   same second) and ends in S3's zone B. (Or `move_to 2400, 0, 2408`.) Expected log: `[S7-CAMERA] player entered the camera-mode area (#1) --
+   first person forced`; `get_player_state` -> `camera.mode first_person`, `camera.modeChangeAllowed
+   false`. Now:
+   ```
+   set_camera_mode  mode: third_person
+   ```
+   Expected: an **error**: `"Camera mode is locked by a CameraModeArea of scene '<sceneId>' (base parcel
+   149,149; entity crdtId 598; forces first_person; area (3.00, 3.00, 3.00)). Leave the area to change
+   modes."` -- `<sceneId>` is the scene entity id `get_scene_state` reports, and the crdtId is the area
+   entity's. The refusal is the check passing; it now says *which* area to leave instead of only that
+   one exists. Walk back out (`walk directionX: 1 directionY: 0 seconds: 1.4 kind: walk`): log `player left the
+   camera-mode area -- camera mode free again`, and the same `set_camera_mode third_person` succeeds.
+7. **A `screenshot` after a `VirtualCamera` hands back shows the player view, not the frame before.**
+   Stand on `(2406, 0, 2399.5)`, `look_at 2406, 1, 2397` and click the toggle at `(2406, 1, 2397)`
+   (`[INIT] S7 virtual-camera toggle button => entityId 604`):
+   ```
+   click_entity  x: 2406  y: 1  z: 2397
+   ```
+   Expected log: `[S7-CAMERA] vcam on (#1, click; auto-off in 8 s)`. `screenshot`: the hub **from
+   above** -- the camera sits at `(2406, 5, 2404)` looking at S7's stand mark, so the readout board and
+   RESET are seen from the north-east and the avatar is in frame. Click the toggle again **within 8 s**
+   (it is still in the line from the virtual camera; aim by world point, not by `look_at`):
+   ```
+   click_entity  x: 2406  y: 1  z: 2397
+   screenshot
+   ```
+   Expected log: `vcam off (click) -- the client blends back to the player camera` (or `(auto-off)` if
+   you were slower). Expected: the screenshot shows the **player view** from `(2406, 0, 2399.5)`, never
+   the overhead frame; when the capture lands inside the client's ~0.5 s blend its caption ends `,
+   waited N ms for the camera blend` -- the tool waited the blend out instead of capturing mid-transition.
+   A caption ending `camera still blending after 1500 ms -- the frame may be mid-transition` means the
+   blend did not finish in time and the frame is suspect. `get_player_state` -> `camera.mode` is a retail
+   mode again.
 
 ---
 
@@ -816,7 +1031,8 @@ Stand mark: world `(2400, 0, 2400)`. Markers (world):
 
 Proves: **(8)** SDK UI addressed only by CRDT id; `ui_click`/`ui_set_text`/`ui_scroll` fire the
 same events a user would; a covered element fails unless `force: true`; `device: true` replays
-through the virtual mouse.
+through the virtual mouse -- paced one event per scene drain -- and every scene-UI click says what
+the scene consumed (`delivered`), refusing to report `ok` for a press the scene never received.
 
 1. Open the panel. **Stand SOUTH of it and look north** -- `move_to (2397, 0, 2396)` then
    `look_at 2397, 1, 2400`, a 3.5 m clear shot (same approach as the pre-flight):
@@ -829,20 +1045,21 @@ through the virtual mouse.
    `z 2396` is north of the canvases and south of the button, so nothing is in the line -- see the
    table in the **Pre-flight**.
    Expected log: `[S8-UI] panel opened`. Screenshot: the panel appears **centered** on the
-   screen (S9's is the left-anchored one; the bottom-left status bar names which are open).
+   screen (S9's is the left-anchored one; the top-centre status bar names which are open).
 2. Discover every element's CRDT id (this scene's React UI does not print its own CRDT ids to
    the log -- they are reconciler-managed, so `ui_list` is the source of truth):
    ```
    ui_list  stack: sdk
    ```
-   Expected result: a JSON array of nine elements: the **two** counter buttons (`Button 1`,
+   Expected result: a JSON array of ten elements: the **two** counter buttons (`Button 1`,
    `Button 2`), the modal-open button (`Open modal (covers btn 2)` -- the third element of that
    row, it is **not** a counter), the text input, the dropdown, the scrollable list, the two
-   drag-surface halves, and the in-panel `RESET ALL (UI)` button. Note each element's `crdtId`
+   drag-surface halves, the in-panel `RESET ALL (UI)` button, and the `HOVER-ONLY tile` beside it
+   (listed as a `pointerTarget` with `pointerEventTypes` `PetHoverEnter`/`PetHoverLeave` only). Note each element's `crdtId`
    for the steps below (referred to as `<btn1Id>`, `<btn2Id>`, `<btn3Id>` for the modal opener,
    `<inputId>`, `<dropdownId>`, `<scrollId>` here).
 
-   **Identify them by `center`, never by id** -- the `crdtId`s renumber on every panel open (see
+   **Identify them by `center`, never by id** -- the `crdtId`s can renumber on any panel open (see
    S9 step 2) while the geometry does not. These centres were identical across two panel opens
    whose id spaces shared nothing (`598-635`, then `66133-66172`), so they are the reliable key.
    **Nor does id *ordering* within a single listing mean anything:** one
@@ -861,6 +1078,7 @@ through the virtual mouse.
    | `<scrollId>` scrollable list | `(0.5000, 0.5504)` |
    | drag surface LEFT / RIGHT | `(0.4036, 0.7051)` / `(0.5964, 0.7051)` |
    | `RESET ALL (UI)` | `(0.3670, 0.7803)` |
+   | `<hoverOnlyId>` HOVER-ONLY tile | right of `RESET ALL (UI)`, same row |
 
    > **Watch the result shape from here on** (this is the pre-flight check that was folded into the
    > stations): every `ui_click`, `ui_scroll` and `ui_set_text` result in S8 and S9 carries
@@ -869,10 +1087,14 @@ through the virtual mouse.
    > triple is a regression worth reporting; you get the observation for free, so no extra call is
    > needed for it.
 
-   > **Nine is the count while the modal is closed; expect TEN whenever it is open.** That includes
+   > **Ten is the count while the modal is closed; expect ELEVEN whenever it is open.** That includes
    > any re-list after step 9 in the same pass, and a re-open that follows step 9 without closing the
    > modal first -- the modal is part of the panel's state and step 10 says that state is idempotent.
-   > The overlay lists at `center (0.4321, 0.1791)`, covering the whole button row. Ten elements is
+   > These counts are S8's alone: S9's and S11's elements join the listing whenever their panels are
+   > open too (S11's all sit right of `center.x 0.7`).
+   > The overlay lists at `center (0.4321, 0.1791)`, covering Buttons 1 and 2 but **not** the modal
+   > opener to their right (`s8_ui.tsx` gives it a fixed width of 500, so the opener stays clickable
+   > and closes it). Eleven elements is
    > not drift -- close the modal, or re-list and ignore the overlay.
 3. **Semantic click:**
    ```
@@ -880,16 +1102,53 @@ through the virtual mouse.
    ```
    Expected log: `[S8-UI] button 1 clicked -- count 1`. Screenshot: button label changes to
    `Button 1 (1)` and its variant/color flips.
-4. **Device-path click (same button, second time) — expected NOT to reach scene UI:**
+4. **Device-path click (same button, second time) -- it reaches the scene, and the result says what
+   the scene consumed:**
    ```
    ui_click  stack: sdk  crdtId: <btn1Id>  device: true
    ```
-   The virtual mouse drives the client's UI stack; UI Toolkit scene panels consume events sent
-   to their elements, so an injected device pointer does not arrive. The tool now says so:
-   expect `ok: true` with an `info` line reporting that the element observed no pointer event
-   within a few frames, and **no** `[S8-UI] button 1 clicked` log. That is the documented
-   boundary between the two paths, not a scene bug — use the semantic path (`device` omitted)
-   for scene UI, and the device path for the client interface (`stack: ugui`).
+   The virtual mouse does reach the scene's panel; what used to lose three clicks in four was the
+   element's single pointer-event slot being overwritten by the next edge before the throttled scene
+   system read it. The device click is now paced -- move, press and release each wait for the scene to
+   drain the previous event -- and the result reports it: expect `ok: true` with
+   `delivered: { enter: ..., down: "consumed", up: "not_declared" }` and an `info` line saying the element
+   declares no `PET_UP` handler so only the press reached the scene (`Button 1` has `onMouseDown`
+   only). Expected log: `[S8-UI] button 1 clicked -- count 2`. The `enter` verdict is not asserted:
+   `not_declared` for this button, and never what decides `ok`. The verdict vocabulary is `consumed` /
+   `not_declared` / `dropped` (another event overwrote the slot first; the real mouse moving over the
+   UI can do that) / `not_drained` (the scene never drained it). A device click also posts the root
+   `IA_POINTER` edge a human's click on UI posts -- S6's `IA_POINTER` counter moves by one; that is
+   production behaviour, not a leak. **With the Explorer in Unity Editor play mode and the Game view
+   unfocused** (the normal state while you drive it from a terminal) this call fails up front with
+   `"the Unity Editor's Game view is not focused, so the Input System routes pointer and keyboard device
+   input to the Editor instead of the game (...)"` and delivers nothing -- the Editor keeps pointer and
+   keyboard device input for itself, so the virtual mouse never reaches player code. When the whole
+   Editor application is in the background instead (you are typing in a terminal, which is how a
+   driving session usually runs), the same call fails up front with the other wording,
+   `"the automation mouse is disabled: the Input System disables devices that cannot run in the
+   background while the client window is unfocused; ..."`. **In the Editor both refusals are the
+   environment, not a defect**: record them as such and move on, or ask the user to click into the
+   Game view to run the device rows for real. Answering a prompt in the terminal moves focus straight
+   back, so a call issued after the user answers is refused again. What works is a detached poller
+   that retries the first device click every couple of seconds until it stops refusing, then fires the
+   remaining device rows at once (a refused attempt delivers nothing). Only a **standalone** client
+   keeps the automation devices running while its window is unfocused; if a standalone client answers
+   `"the automation mouse is disabled"`, the devices lost their background flag -- report it.
+   The **full-consumption** case is the drag surface's LEFT half, which declares both handlers:
+   ```
+   ui_click  stack: sdk  crdtId: <dragLeftId>  device: true
+   ```
+   Expected result: `ok: true`, `delivered.down` and `delivered.up` both `"consumed"`, no `info`.
+   Expected log: `[S8-UI] drag surface: LEFT down (armed)` (the release disarms it silently).
+   And the **nothing-declared** case is the `HOVER-ONLY tile`, on either path:
+   ```
+   ui_click  stack: sdk  crdtId: <hoverOnlyId>  device: true
+   ```
+   Expected result: **`ok: false`**, `reason: "the element declares no PET_DOWN or PET_UP handler (no
+   onMouseDown/onMouseUp), so the click told the scene nothing"`, `delivered.down` and `.up` both
+   `"not_declared"`. Expected logs: `[S8-UI] hover-only tile: enter (#1)` and later `leave (#1)` -- the
+   pointer's arrival and departure are real -- and nothing else. A bare `ok` here would be the lie
+   the verdict exists to prevent; the semantic `ui_click` (no `device`) on the same tile fails the same way.
 5. **Text input (change + submit):**
    ```
    ui_set_text  stack: sdk  crdtId: <inputId>  text: "hello mcp"
@@ -932,16 +1191,18 @@ through the virtual mouse.
    ui_drag  fromX: 0.4036  fromY: 0.7051  toX: 0.5964  toY: 0.7051  durationFrames: 20  path: sdk
    ```
    (Those four numbers are one session's `center`s, shown to fix the *shape* of the call. Re-read
-   them from `ui_list` -- the `crdtId`s renumber on every panel open even when the geometry does not.)
+   them from `ui_list` -- the `crdtId`s can renumber on any panel open even when the geometry does not.)
    (`path: sdk` makes the call *fail* rather than silently dragging the 3D world behind the
    panel if the scene UI does not own the start point.)
    A drag whose start point lands inside the scene UI is delivered to those elements (press on
    the start element, moves along the path, release on the end element) — expect `path: "sdk"`
    in the result. Expected log: `[S8-UI] drag surface: LEFT down (armed)` followed by
    `[S8-UI] drag surface: RIGHT up while armed -- drag #1 completed`, and an `info` line naming
-   the two elements involved. Screenshot: the right half visibly reacts.
+   the two elements involved. **A screenshot proves nothing here:** the right half is a constant
+   green and the left half is yellow only *while* armed, so after a completed drag both look exactly
+   as they did before it. The two log lines are the evidence.
    The release leg is the fragile one -- a leave event can overwrite the single pointer-event slot
-   before the scene drains the release -- so the tool waits for each event to be consumed and
+   before the scene reads the release -- so the tool waits until the scene has read each event and
    **fails** with "the scene did not consume the release" rather than reporting a success it cannot
    verify. Both log lines arriving is what proves the release landed.
    **Do not cross-reference the `info` line's ids against `ui_list`.** Measured: the `info` named
@@ -950,12 +1211,24 @@ through the virtual mouse.
    were delivered (the scene logged them), so this is a reporting mismatch only: the `info` line and
    `ui_click`'s `blockedBy` report ids from the mount generation an element was *created* in, which
    after a panel re-open is not the range `ui_list` hands you. Verify a drag by its two log lines.
-   Re-running the same drag with **`path: "device"`** forces the virtual-mouse path and, as in
-   step 4, is expected **not** to reach the scene UI — worth running once to see the contrast:
-   it returns `path: "device"` with `pointerOver: {start: "the scene's UI (crdtId 66165)", end:
-   "... (crdtId 66167)"}` and **no `[S8-UI]` log at all**. Note the contrast *within* the contrast:
+   Re-running the same drag with **`path: "device"`** forces the virtual-mouse path (the device-focus
+   rule from step 4 applies: in the Unity Editor it is refused up front while the Game view or the
+   Editor is unfocused). It returns `path: "device"` with `pointerOver: {start: "the scene's UI
+   (crdtId <left>)", end: "... (crdtId <right>)"}` and no `info` line. **On the current client it
+   does reach the scene UI**: the scene logs `drag surface: LEFT down (armed)` and `RIGHT up while
+   armed -- drag #N completed` exactly as for the semantic drag, so assert on those two lines here too
+   rather than on their absence. Note the contrast *within* the contrast:
    `pointerOver` names the two halves by their **current** `ui_list` ids while the semantic path's
    `info` names them by their mount-generation ids — the same split the paragraph above describes.
+
+   > **The device drag leaves an `IA_POINTER` DOWN on the scene root with no release.** Its press
+   > posts the root edge a human's press on UI posts (S6's `IA_POINTER` +1, S10 logs `IA_POINTER held
+   > (scene-root broadcast)`), but the matching UP never reaches the root, so S10 stays armed. That
+   > is S4's tripwire firing: S10 eventually logs `IA_POINTER has been down for 6s with no release --
+   > ending the stroke`. Any `move_to`/`look_at` toward the canvases inside that window paints a
+   > **phantom stroke** (measured after a `move_to` to S10's stand mark). The device
+   > *clicks* in step 4 do not do this: each posts a matched DOWN/UP. Run this row after S10, or wait
+   > for the watchdog line before moving, or RESET before S10. See **Known open issues**.
    **`device: true` is not the switch here.** Unlike `ui_click`, `ui_drag` selects its path with
    `path`; a `device: true` argument is **rejected outright** — the call fails
    with `"ui_drag has no argument 'device'; its arguments are: fromX, fromY, toX, toY,
@@ -1012,7 +1285,7 @@ other's element, the layout has drifted -- that is the false positive this layou
    Expected log: `[S9-TEXT] panel opened`. Confirm you hit the **S9** toggle and not S8's: the result
    must report `crdtEntityId 584` (S8's is `581`, 3 m away on the same line -- see the README's
    substitutions note). Screenshot: a panel anchored hard to the **left** of the screen -- dark
-   translucent ground with green field labels, *not* a green panel -- and the bottom-left status bar
+   translucent ground with green field labels, *not* a green panel -- and the top-centre status bar
    flips to `S9 panel: OPEN`.
 2. Discover the element ids (React reconciler-managed, so `ui_list` is the only source):
    ```
@@ -1024,7 +1297,7 @@ other's element, the layout has drifted -- that is the false positive this layou
    **the disabled field is flagged `disabled: true` right in the listing**, which identifies
    `<disabledId>` without relying on that order.
 
-   **Identify all eight by `center`, exactly as in S8 step 2** -- the ids renumber on every panel
+   **Identify all eight by `center`, exactly as in S8 step 2** -- the ids can renumber on any panel
    open (this panel's have come back as `599`, `66133-66164` and `131669-131700` across passes)
    while the geometry does not. **The two buttons matter most: they differ only in x, so nothing
    in `ui_list` tells them apart** -- `SUBMIT FORM` is the LEFT, pink one and `CLEAR FIELDS` the
@@ -1188,13 +1461,14 @@ Layout (world; local = world - `(2384, 0, 2384)`):
 | CLEAR CANVAS button | `(2392, 1, 2390)` | -- | wipes every dot |
 | S10 readout | `(2396, 5, 2393)` | -- | live dot / stroke / off-canvas counts |
 
-1. Get in position and face the canvases:
+1. Get in position on the stand mark and face the canvases:
    ```
-   walk    directionX: 0  directionY: 1  seconds: 1  kind: jog
+   move_to  x: 2396  y: 0  z: 2389.5
    look_at  x: 2396  y: 2.1  z: 2393
    ```
-   (or `move_to` the stand mark directly -- S10 watches no trigger volumes, so a teleport is
-   harmless here). Screenshot: two dark panels ahead, the right one with a red strip under it.
+   S10 watches no trigger volumes, so a teleport is harmless here (a `walk` would need a defined
+   start and facing, which the previous station does not leave you with). Screenshot: two dark
+   panels ahead, the right one with a red strip under it.
 2. **Stamp a diagonal (the deterministic path).** Five clicks stepping across the left canvas:
    ```
    click_entity  x: 2392.8  y: 1.3  z: 2393
@@ -1271,6 +1545,12 @@ Layout (world; local = world - `(2384, 0, 2384)`):
    > reproduce: for a real short-hold diagnosis, `hold ended without painting` is the line to
    > expect, and it is not the same thing as S4's refused-click leak, which reaches it from an
    > unaimed root broadcast rather than from a press on the canvas.
+   >
+   > **A `sweep_pointer` at `seconds: 0.1` can also open a stroke** when its first sample already
+   > lands (a `look_at` on the canvas just before it): `STROKE #N started`, `ended -- 1 dots over
+   > 0.00m`, then the **second** row's message with a small count (`held across 2 ray samples`) --
+   > two samples, so the first row still does not fire. A sub-frame gesture therefore ends either
+   > way -- no stroke, or a one-dot stroke on the second row -- and both mean nothing was swept.
 
    > **Do not use `ui_drag` here.** A device drag over the world reaches no UI and paints nothing:
    > measured twice (20- and 45-frame drags over this canvas, cursor `Free`) it returned `ok:true`
@@ -1306,6 +1586,12 @@ Layout (world; local = world - `(2384, 0, 2384)`):
    >   button, or after S4's misses) and you get
    >   `hold ended without painting -- 27 ray samples were taken and none hit the stroke canvas`.
    >   Measured this way too, in the same session.
+   > - Or the press never reaches the root: it binds to an interactable under the free cursor
+   >   instead and returns `entityBound: true` (S6 note 1) -- **also when the OS cursor is outside the
+   >   window**, in which case the result carries a `warning` starting "the free cursor is outside the
+   >   window at image pixel (...)". Measured: it bound to **CLEAR CANVAS** (`592`) through that
+   >   off-screen ray and wiped every dot (`canvas cleared (world button)`). Read `entityBound` and
+   >   `warning` before reading S10's board, and run this row after step 5 rather than before it.
    >
    > Either way **nothing is swept** -- one dot or none -- which is the point of the row. Pitching the
    > camera into sky clears the *view*, not the cursor, so do not read "I aimed at the sky" as "the
@@ -1384,6 +1670,262 @@ Layout (world; local = world - `(2384, 0, 2384)`):
    with every other counter untouched. (`RESET ALL STATIONS` also wipes the dots, but zeroes the
    counters with them.)
 
+## S11 -- UI hover (`ui_hover`)
+
+Proves: **(11)** `ui_hover` **parks** a hover on scene UI: the enter is delivered and the element
+stays hovered *across calls* -- long enough to screenshot -- until `ui_hover leave: true`, the
+next `ui_hover`, or any other `ui_*` gesture ends it (that gesture reports `hoverEnded`). A click
+after a hover on the same element delivers the hover's leave *before* its own enter; only the
+addressed element is entered; a cover refuses the hover unless `force: true`; a hover on an
+element that has since been removed is ended without a leave, and says so.
+
+Every tile on the panel counts its own enters and leaves and paints itself from its **open count**
+(`enters - leaves - dropped`): `idle` at 0, green `HOVERED` at 1, and red `DEFECT (open N)` for
+anything else -- a hover can never be open twice, or less than zero times. **Read every claim off
+`get_scene_logs`; the screenshot is for the hover *state*, which is the one thing only a
+screenshot shows.**
+
+S11's panel is anchored hard to the **right**, so it overlaps neither S8's centered panel nor
+S9's left one. As in S8/S9, a cover naming another station's panel means the layout drifted.
+
+1. Open the panel. **Stand on S7's stand mark and look north** -- `move_to (2400, 0, 2400)` then
+   `look_at 2400, 1, 2404`, a 4 m clear shot:
+   ```
+   click_entity  x: 2400  y: 1  z: 2404
+   ```
+   Confirm **`crdtEntityId 594`** -- the `[INIT] S11 world toggle button ... => entityId` line is the
+   authority. The toggle sits north of the `z 2400` row on purpose: on that row it would share
+   RESET's line, the way S8's and S9's toggles already share each other's.
+   Expected log: `[S11-HOVER] panel opened`. Screenshot: a panel anchored to the **right**, six
+   blue `idle` tiles, and the status bar's third line reading `S11 panel: OPEN`.
+2. Discover the ids:
+   ```
+   ui_list  stack: sdk
+   ```
+   S11 contributes **eight** elements: tiles A, B, C, D, E, F, the `Cover F` toggle and
+   `CLEAR S11 COUNTS` (the cover itself has no pointer events and is never listed). Every one has
+   `center.x` above `0.7`, which is what separates them from S8's and S9's when those panels are
+   open too. `pointerEventTypes` sorts them: **C** is the only one declaring all four
+   (`PetHoverEnter`, `PetHoverLeave`, `PetDown`, `PetUp`); the two buttons declare only `PetDown`;
+   A, B, D, E and F declare the hover pair only. Tell those five apart by layout -- **identify by
+   `center`, never by id** (ids can renumber on any panel open, see S8 step 2):
+
+   | element | where | `center` (derived from the layout at 16:9, not measured) |
+   |---|---|---|
+   | `<aId>` HOVER A | row 1, left | `~(0.783, 0.159)` |
+   | `<bId>` HOVER B | row 1, right | `~(0.915, 0.159)` |
+   | `<cId>` HOVER + CLICK C | full width, row 2 | `~(0.849, 0.278)` |
+   | `<dId>` CONTAINER D | full width, row 3 | `~(0.849, 0.426)` |
+   | `<eId>` CHILD E | inside D, its right part, same y | `~(0.919, 0.426)` |
+   | `<fId>` HOVER F | row 4, left | `~(0.783, 0.554)` |
+   | `<coverId>` `Cover F` toggle | row 4, right | `~(0.915, 0.554)` |
+   | `<clearS11Id>` CLEAR S11 COUNTS | bottom, left | `~(0.783, 0.636)` |
+
+   D and E share a `y`; D's `center` lies in its own label column, left of E, so a hover on D is
+   not a hover on E.
+3. **A parked hover outlives its call:**
+   ```
+   ui_hover  stack: sdk  crdtId: <aId>
+   ```
+   Expected result: `ok: true`, `hovering` naming the address, and the `screenRect` + `center` +
+   `screen` triple. No `hoverEnded` -- nothing was parked before. Expected log:
+   `[S11-HOVER] A: enter (#1) -- open 1`. Now, **in separate calls**, take a `screenshot` (tile A is
+   green and reads `HOVERED`) and then `get_scene_logs` again: there is still **no** `A: leave`.
+   That is the whole point of the tool -- `ui_click` would have entered and left inside one call,
+   and there would have been nothing to photograph.
+4. **The next hover ends the previous one:**
+   ```
+   ui_hover  stack: sdk  crdtId: <bId>
+   ```
+   Expected result: `hoverEnded` naming A's address. Expected logs, in this order:
+   `A: leave (#1) -- open 0`, then `B: enter (#1) -- open 1`. Screenshot: A blue `idle`, B green.
+5. **`leave: true` ends it, and says when there was nothing to end:**
+   ```
+   ui_hover  leave: true
+   ```
+   Expected result: `ok: true`, `left` naming B's address. Expected log: `B: leave (#1) -- open 0`.
+   Issue the same call again: `ok: true`, `left: null`, and `info: "no hover was parked, so nothing
+   was left"` -- and no S11 log.
+6. **A click after a hover on the same element** -- the case the client drains for. First a
+   baseline click with nothing parked:
+   ```
+   ui_click  stack: sdk  crdtId: <cId>
+   ```
+   Expected: the logs end with `C: leave (#1) -- open 0 -- sequence: enter > down > up > leave`,
+   and the panel's `C sequence:` line reads the same. Clear it with
+   `ui_click stack: sdk crdtId: <clearS11Id>` (log: `counts and C sequence cleared ...`), then:
+   ```
+   ui_hover  stack: sdk  crdtId: <cId>
+   ui_click  stack: sdk  crdtId: <cId>
+   ```
+   Expected: the click's result carries `hoverEnded` naming C, and C's sequence is exactly
+   **`enter > leave > enter > down > up > leave`** -- `enters 2 / leaves 2 / downs 1 / ups 1`, and C
+   back to blue `idle` after the click.
+
+   **The regression signature is `enter > enter > down > up > leave` with C stuck green `HOVERED`
+   after the click** (open 1, nothing parked): the hover's leave was overwritten by the click's
+   own enter before the scene read it. The client drains the element's pending event before a
+   semantic SDK click or drag for exactly this reason. A red `DEFECT` tile is the same family.
+
+   **A third shape is a different regression -- in the client's scene-tick drain:**
+   `enter > enter > leave > down > up > leave` with C back to `idle` and `enters 2 / leaves 2 /
+   downs 1 / ups 1`. Nothing is lost and nothing arrived late: the hover's leave and the click's
+   enter reached the scene **in the same tick**, and the SDK runs one tick's handlers in the order
+   the element registered them -- C registers `onMouseEnter`, `onMouseLeave`, `onMouseDown`,
+   `onMouseUp`, so a leave and an enter sharing a tick run as enter, then leave. Any two of C's
+   events sharing a tick reorder the same way (an `up` and `leave` pair would read `leave > up`).
+   The client prevents it by waiting, before each scene-UI pointer event, until the scene has
+   *read* the previous one (two scene ticks) rather than only until the client wrote it. So this
+   shape means that wait has regressed: report it with every repetition's sequence. It can be
+   intermittent, so run the step several times (`CLEAR S11 COUNTS`, then hover and click in one
+   batch) before calling it absent.
+
+   > **This is not what a human produces, and that is documented, not a finding.** A person
+   > hovering then clicking gives `enter > down > up` and keeps hovering; the tool ends the hover
+   > before the click, so a hover count across a click is off by one. Assert on the click's own
+   > events (`downs 1 / ups 1`) and on the sequence above.
+7. **Any other `ui_*` gesture ends the hover too:**
+   ```
+   ui_hover  stack: sdk  crdtId: <aId>
+   ui_click  stack: sdk  crdtId: <coverId>
+   ```
+   Expected: the click's result carries `hoverEnded` naming A; logs `A: enter (#1) -- open 1`,
+   `A: leave (#1) -- open 0`, then `cover over F ON` (step 6's CLEAR zeroed every tile). Screenshot: A `idle`, and a dark `COVER` over
+   F. Leave the cover **on** for step 9. (`ui_set_text`, `ui_scroll` and `ui_drag` end a parked
+   hover the same way; this step uses a click only because the panel needs one anyway.)
+8. **Only the addressed element is entered:**
+   ```
+   ui_hover  stack: sdk  crdtId: <eId>
+   ```
+   Expected log: `E: enter (#1) -- open 1` and **no `D: enter`**; screenshot: E green inside a blue
+   D. Then:
+   ```
+   ui_hover  stack: sdk  crdtId: <dId>
+   ui_hover  leave: true
+   ```
+   Expected: `hoverEnded` naming E; logs `E: leave (#1)`, `D: enter (#1)`, then `D: leave (#1)`.
+
+   > A real mouse moving onto E enters D as well -- UI Toolkit enters every ancestor under the
+   > pointer -- so a human *would* fire D's `onMouseEnter` here. The semantic hover enters only the
+   > addressed element (the same scope as `ui_click`), so a container's `onMouseEnter` needs the
+   > container's own `crdtId`. **If `D: enter` fires in the first call, the client's scope changed:
+   > report it**, since the `unity-explorer-mcp` skill states this scope.
+9. **A cover refuses the hover -- and the refusal still ends the hover parked before it.** With the
+   cover on from step 7:
+   ```
+   ui_hover  stack: sdk  crdtId: <bId>
+   ui_hover  stack: sdk  crdtId: <fId>
+   ```
+   Expected: the second call fails with `reason: "another element covers the target at its
+   center"` and a `blockedBy` naming the cover, and **no `F: enter` log**. It still carries
+   `hoverEnded` naming B and B logs its leave (`B: enter (#1)`, then `B: leave (#1)`): the parked
+   hover is ended before the new one is checked, so a refused hover leaves nothing parked
+   (`ui_hover leave: true` now reports `left: null`). Then:
+   ```
+   ui_hover  stack: sdk  crdtId: <fId>  force: true
+   ```
+   Expected: `ok: true`, log `F: enter (#1) -- open 1` -- `force` hovered straight through the
+   cover. End it with `ui_hover leave: true` (`F: leave (#1)`), click `<coverId>` once more
+   (`cover over F OFF`), and a plain `ui_hover` on `<fId>` now succeeds with no `force`
+   (`F: enter (#2)`). `ui_hover leave: true` to finish.
+10. **Refusals that change nothing.** Park one first so you can see that each refusal leaves it in
+    place:
+    ```
+    ui_hover  stack: sdk  crdtId: <aId>
+    ui_hover  stack: sdk  crdtId: <aId>  device: true
+    ui_hover  leave: true  stack: sdk  crdtId: <aId>
+    ```
+    Expected: the second call fails with `"device:true applies only to client UI: a device hover on
+    scene UI is not offered, because the real mouse shares its pointer and would end it at any moment.
+    Omit device to hover scene UI (the semantic path parks and drains the enter)."`; the third fails with
+    `"leave:true ends whichever hover is parked and takes no address; drop 'stack'."` (it names the
+    first address argument it finds, so `'stack'` here). Neither delivers anything: A logged one
+    `enter`, **no `leave`**, and is still green. `ui_hover leave: true` alone then ends it as usual.
+11. **The element goes away under a parked hover.** Park on A, then close the panel with a *world*
+    click -- `click_entity` is not a `ui_*` gesture, so it leaves the hover parked:
+    ```
+    ui_hover      stack: sdk  crdtId: <aId>
+    click_entity  x: 2400  y: 1  z: 2404
+    ```
+    Expected logs: `A: enter`, `panel closed`, then `panel closed while A was hovered (open 1) -- a
+    removed element gets no leave; dropped`. Now, **before reopening the panel**:
+    ```
+    ui_hover  leave: true
+    ```
+    Expected: `ok: true`, with `left` naming A's address **followed by `(the element is gone; no
+    leave was sent)`**, and no `A: leave` log. Reopen the panel: A is `idle` with `dropped 1` in its
+    counts. (Leave first, then reopen: the reopened panel builds new elements, and the parked one
+    must not be mistaken for one of them.)
+
+    Close the panel from the world button when done, or leave it open -- its state is idempotent.
+
+---
+
+## S12 -- Audio (`get_audio_state`)
+
+Proves: **(12)** a driving session can judge sound without ears: `get_audio_state` lists every
+emitter of the current scene nearest-first with its state, `playing` flag, authored and live
+volume, loop/spatial flags and distance, and the scene's own `[S12-AUDIO]` lines corroborate it.
+
+| Emitter / mark | World position | `crdtEntityId` | Notes |
+|---|---|---|---|
+| Stand mark | `(2400, 0, 2411)` | -- | north of S7's camera-mode area |
+| ONE-SHOT | `(2400, 1, 2412.5)` | `613` | 1.5 m from the mark; click plays `short.mp3` once |
+| LOOP | `(2398, 1, 2414.5)` | `611` | ~4.0 m; `global`, looping `long.mp3`, playing from scene start, volume 0.5 |
+| SPATIAL | `(2402.5, 1, 2415)` | `612` | ~4.7 m; click toggles a spatial looping `long.mp3`, volume 0.8, off at start |
+| Readout | `(2400, 3.2, 2414)` | `608` | `LOOP ... / SPATIAL ... toggles N / ONE-SHOT plays N finished N` |
+
+(The ids are allocation-ordered predictions; the `[INIT] S12 ... => entityId` lines are the authority.)
+
+1. Stand on the mark `(2400, 0, 2411)` and read the scene's audio without touching it:
+   ```
+   get_audio_state
+   ```
+   Expected result: `sceneIsCurrent: true`, `note: null`, `summary: { total: 3, playing: 1, audioSources:
+   3, streams: 0, videos: 0 }`, and `entries` **nearest-first**: ONE-SHOT (`distance` ~1.5,
+   `state: "ready"` or `"none"`, `playing: false`, `loop: false`, `spatial: true`, `volume.authored 1`),
+   then LOOP (~4.0, `state: "playing"`, `playing: true`, `loop: true`, `spatial: false`,
+   `volume.authored 0.5`, `volume.live` a number, `currentTime` advancing between two calls a few seconds apart (two reads
+   issued back to back can return the same value or even a slightly lower one), `duration`
+   the clip's length), then SPATIAL (~4.7, `playing: false`, `loop: true`, `spatial: true`,
+   `volume.authored 0.8`). `kind` is `audio_source` for all three and `source` ends in
+   `assets/audio/long.mp3` / `short.mp3`. The order is the invariant; the distances are context.
+2. Filter to what is audible:
+   ```
+   get_audio_state  onlyPlaying: true
+   ```
+   Expected: `returned: 1` (LOOP), `summary.total` still 3 -- the summary counts the scene, the filter
+   trims the list.
+3. Toggle the spatial loop on. `look_at 2402.5, 1, 2415` from the mark (a 4.7 m clear line past the
+   ONE-SHOT box), then:
+   ```
+   click_entity  x: 2402.5  y: 1  z: 2415
+   get_audio_state  onlyPlaying: true
+   ```
+   Expected log: `[S12-AUDIO] SPATIAL ON (toggle #1)`, followed within a second by `SPATIAL media state
+   -> <MediaState>` lines as the client loads and plays it. Expected result: `returned: 2` -- LOOP and
+   SPATIAL both `playing: true`, SPATIAL `spatial: true` with `state: "playing"` (poll once more if it
+   still reads `loading`). Readout: `SPATIAL (0.8): ON  toggles: 1`.
+4. Play the one-shot and watch it end. `look_at 2400, 1, 2412.5`, then:
+   ```
+   click_entity  x: 2400  y: 1  z: 2412.5
+   get_audio_state
+   ```
+   Expected logs: `[S12-AUDIO] ONE-SHOT play #1`, then -- the clip is about half a second --
+   `ONE-SHOT finished (#1)` when the engine flips its `playing` back to false. The `get_audio_state` call
+   lands before or after the finish depending on your latency: either ONE-SHOT `playing: true` with a
+   `currentTime` inside the clip, or `playing: false` again; both are correct, and the two log lines are
+   the evidence that it played and ended. Readout: `ONE-SHOT (1.0): plays 1  finished 1`.
+5. Toggle SPATIAL off (`click_entity x: 2402.5 y: 1 z: 2415`): log `SPATIAL off (toggle #2)`;
+   `get_audio_state onlyPlaying: true` is back to `returned: 1`.
+6. *(Optional)* Walk off the parcel -- `move_to 2381, 0, 2411` is just west of the scene's bounds -- and
+   call `get_audio_state`: it errors with `"No scene world found at the current parcel."` (there is no
+   current scene). Standing on another scene whose parcel borders this one instead, the call lists
+   **that** scene; this scene's emitters are muted while it is not current, which the `note` states when
+   you query it from its own parcel in that state. Come back to `(2400, 0, 2411)` afterwards.
+
+A RESET restores the initial state: LOOP playing, SPATIAL off, the one-shot idle, counters zeroed.
+
 ---
 
 ## Negative-case summary (for quick reference)
@@ -1399,19 +1941,32 @@ Layout (world; local = world - `(2384, 0, 2384)`):
 | Any `x/y/z` click that misses | the three rows above | each result carries `rootBroadcast: true` and posts **one `PET_DOWN` to the scene root**: S6's `IA_POINTER` counter +1. It arms and releases S10 in the same frame (`hold ended without painting -- 1 ray samples`), so no stall and no phantom stroke; a `... down for 6s with no release` line means the release is not arriving (see S4's tripwire). Client behaviour, not a scene fault -- see the blockquote at the top of S4 |
 | A refused **hover** also reports `rootBroadcast: true` | `hover_entity x:2412 y:1 z:2403` from the far mark | `hit:false` + `out of range (hit distance <N>m)` **and** `rootBroadcast: true` -- but S6's `IA_POINTER` stays put. A refused hover posts a hover edge to the root, not the `PET_DOWN` a refused click posts, so no counter moves and S10 is not armed. Do not read it as the S4 leak |
 | `IA_FORWARD` stays at 0 after `walk` | S1 readout after any `walk` | `global IA_FORWARD count: 0` until `press_input action:forward` |
-| Unaimed `press_input` reaches the scene root | `press_input action:primary` with no aim, **reticle resting on geometry with no `PointerEvents`** | `entityBound:false` + `hint`; scene-root counter increments, entity counter does not. With the reticle over an interactable it binds to that entity instead -- see S6 note 1 |
+| Unaimed `press_input` reaches the scene root | `press_input action:primary` with no aim, **after pitching the view into open sky** (`camera_look deltaY:8`, read back `cameraRotationEuler.x` near 306) | `entityBound:false` + `hint`; scene-root counter increments, entity counter does not. With the cursor over an interactable it binds to that entity instead, and `look_at`-ing plain geometry does not prevent that -- see S6 note 1 |
 | Scene-root broadcast suppressed | `press_input action:primary x:2404 y:1 z:2413` | `entityBound:true`; entity counter +1, scene-root counter unchanged |
 | Covered `ui_click` | `ui_click stack:sdk crdtId:<btn2Id>` while the modal is open | failure + `blockedBy` naming the modal's own id, no `[S8-UI] button 2 clicked` log |
 | Covered by *client* UI | `ui_click stack:sdk crdtId:<formSubmitId>` (S9, normalized `y 0.5366`) | failure + `blockedBy ".../ChatMessages/Viewport"` -- the chat feed's transparent viewport. Repeat that one call with `force: true`; see S9 step 8 |
-| Device path does not reach scene UI | `ui_click stack:sdk crdtId:<btn1Id> device:true` | `ok:true` with an `info` line saying the element observed nothing, and no click log |
+| Device click on scene UI says what the scene consumed | `ui_click stack:sdk crdtId:<btn1Id> device:true` | `ok:true` + `delivered: {down: "consumed", up: "not_declared"}` + the `button 1 clicked` log (S8 step 4); a `dropped` or `not_drained` press fails the call instead of reporting `ok` |
+| Click on an element with no click handler | `ui_click stack:sdk crdtId:<hoverOnlyId>` (with or without `device:true`) | `ok:false`, reason naming the missing `PET_DOWN`/`PET_UP` handler, `delivered.down`/`.up` `not_declared`; the tile logs enter and leave only |
+| Button the entity does not listen for | `click_entity x:2404 y:1 z:2413` (default `pointer`) on S6's `IA_PRIMARY` target | `hit:true`, `button:"pointer"`, two-part `warning` naming `pet_down/pointer` vs `pet_down/primary` and stating that the edge was written to the entity and that the root received no broadcast; no `[S6-GLOBAL]` log of any kind and S6's `IA_POINTER` unchanged (S4 step 8) |
+| `set_camera_mode` inside a `CameraModeArea` | `set_camera_mode third_person` standing in S7's area at `(2400, *, 2408)` | error `Camera mode is locked by a CameraModeArea of scene '<sceneId>' (base parcel 149,149; entity crdtId <areaId>; forces first_person; area (3.00, 3.00, 3.00)). Leave the area to change modes.` (S7 step 6) |
+| `get_visible_entities` lists an occluded entity | from behind S1's wall, looking south at it | the lane markers behind the wall are listed with rects and coverage -- occlusion is not evaluated, by the tool's own statement (Pre-flight check 3) |
+| `get_reticle` with a free cursor | `get_reticle` with `cursorLocked:false` | `rayFromScreenCenter:false` and a `kind` for whatever sits under the OS cursor's pixel, which `look_at` does not move; lock the cursor (S5 step 7) to read what `look_at` aimed |
+| `get_reticle` out of range | locked cursor, `look_at` Hover C from its far mark | `kind:"scene_entity"`, `crdtEntityId 564`, `withinRange:false`, no `C: PET_HOVER_ENTER` log (S5 step 7) |
+| `get_audio_state` off the scene | `get_audio_state` from off the parcel | error `No scene world found at the current parcel.` (S12 step 6) |
+| Second capture while one runs | `screenshot` while a `capture_sequence` runs (fired out of band -- one batched after it is serialised and succeeds), or two `screenshot`s in one batch | error `A capture is already in progress (<tool>); retry when it completes.` naming the tool holding the gate (Pre-flight checks 2 and 5) |
 | Unreachable camera target | `look_at x:2400 y:20 z:2400` from the S7 stand mark | `aimErrorDegrees` >> 2 + a `warning` about the pitch clamp |
+| Covered `ui_hover` | `ui_hover stack:sdk crdtId:<fId>` while S11's cover is on | failure, `reason: "another element covers the target at its center"` + `blockedBy` naming the cover, no `F: enter` log. A hover parked before it is still ended (`hoverEnded`) |
+| `device:true` on scene UI | `ui_hover stack:sdk crdtId:<aId> device:true` | fails with "device:true applies only to client UI ..."; a parked hover stays parked |
+| `leave:true` with an address | `ui_hover leave:true stack:sdk crdtId:<aId>` | fails with "... takes no address; drop 'stack'."; a parked hover stays parked |
+| Nothing to leave | `ui_hover leave:true` with no hover parked | `ok:true`, `left: null`, `info: "no hover was parked, so nothing was left"`, no log |
+| Hover then click is not one hover | `ui_hover` then `ui_click` on S11's C | C's sequence `enter > leave > enter > down > up > leave`, C `idle` after. `enter > enter > down > up > leave` with C stuck `HOVERED` is the lost-leave regression (S11 step 6); `enter > enter > leave > down > up > leave` ending `idle` is a regression in the client's scene-tick drain (also S11 step 6) |
 | Scroll into a clamp | `ui_scroll stack:sdk crdtId:<scrollId> dy:-400` at the top of the list | `ok` + an `info` line saying the offset did not move |
 | Disabled `<Input />` refuses a write | `ui_set_text stack:sdk crdtId:<disabledId> text:"nope"` | no `[S9-TEXT]` log; panel line 4 stays white at `0` |
 | A write without `submit` does not submit | `ui_set_text stack:sdk crdtId:<submitOnlyId> text:"x"` | no log, `submits 0` |
 | Empty form is rejected | `ui_click` CLEAR FIELDS, then `ui_click` SUBMIT FORM | `FORM submit #N -- REJECTED callsign="" code=""` |
 | Paint sample off the canvas | `sweep_pointer` on the stroke canvas turning down onto the decoy strip | `stroke sample left the canvas ... no dot painted`; no sphere below world y `1.0` |
-| A sweep that never holds the pointer | any gesture whose press and release land in one drain window (a `click_entity` down/up pair on the canvas, an instant aimed `press_input action: pointer`, a `sweep_pointer` at `seconds: 0.1`) | `hold ended without painting -- N ray samples were taken and none hit the stroke canvas`, with **no `STROKE #N started`**: the ray parks on the pressed pixel a frame or two late, so a sub-frame gesture's samples all miss and no stroke opens. `STROKE #N was a single dot -- the pointer was not held across frames` needs a stroke to be open, i.e. exactly one sample that *did* land on the canvas, and no gesture on the tool surface has been found that produces it -- see S10 step 3 |
-| The split gesture cannot sweep | `press_input action:pointer holdSeconds:2` (aimed **or** unaimed) + a `camera_look` in the same batch | one dot or none, never a stroke: `STROKE #N ended -- 1 dots over 0.00m` **followed by the `single dot even though the pointer was held across <N> ray samples` message** when the pointer sits on the canvas, or `hold ended without painting -- N ray samples ... none hit the stroke canvas` when it sits elsewhere. The calls are serialised, so the camera is stationary for the whole hold -- see S10 step 3 |
+| A sweep that never holds the pointer | any gesture whose press and release land in one drain window (a `click_entity` down/up pair on the canvas, an instant aimed `press_input action: pointer`, a `sweep_pointer` at `seconds: 0.1`) | `hold ended without painting -- N ray samples were taken and none hit the stroke canvas`, with **no `STROKE #N started`**: the ray parks on the pressed pixel a frame or two late, so a sub-frame gesture's samples all miss and no stroke opens. A `sweep_pointer` at `0.1` whose first sample lands instead opens a one-dot stroke that ends on the `held across <N> ray samples` message (N ~2) -- also nothing swept. `STROKE #N was a single dot -- the pointer was not held across frames` needs a stroke to be open, i.e. exactly one sample that *did* land on the canvas, and no gesture on the tool surface has been found that produces it -- see S10 step 3 |
+| The split gesture cannot sweep | `press_input action:pointer holdSeconds:2` (aimed **or** unaimed) + a `camera_look` in the same batch | one dot or none, never a stroke: `STROKE #N ended -- 1 dots over 0.00m` **followed by the `single dot even though the pointer was held across <N> ray samples` message** when the pointer sits on the canvas, or `hold ended without painting -- N ray samples ... none hit the stroke canvas` when it sits elsewhere. An unaimed press can also bind to an interactable under the cursor (`entityBound: true` -- it has bound to CLEAR CANVAS and wiped the dots). The calls are serialised, so the camera is stationary for the whole hold -- see S10 step 3 |
 | A world drag reaches no UI | `ui_drag path:device` over the STROKE canvas | no stroke either way. With a free cursor: `ok:true` with `pointerOver: {start:"world", end:"world"}` and an `info` line saying no UI element received it (`ok` verifies no target); camera unmoved. If the drag engages the camera pan instead, it fails with "the drag panned the camera instead of dragging" |
 | A half-readable aim is refused, not degraded | `press_input action:primary x:2404 z:2413` (no `y`) | fails with "x, y and z must all be numbers to aim at a world point; omit all three for a scene-root broadcast." — and **no** `[S6-GLOBAL]` root-broadcast log, i.e. it did not silently fall back |
 | An uppercase action name is refused | `press_input action:PRIMARY` | fails with "action does not accept string \"PRIMARY\"; the values are lowercase, one of: pointer, primary, secondary, jump, forward, backward, right, left, action_3, action_4, action_5, action_6, walk, modifier." — the *server* rejects it, and it **is** reachable from Claude Code (the harness forwards the enum string unvalidated). Use lowercase. **No `[S6-GLOBAL]` log follows**, i.e. it did not silently fall back to a root broadcast |
@@ -1445,12 +2000,12 @@ shape that survives the variation. If your measurement differs from a figure quo
 | Aim-cone entry angles (`entered aim (angle N)`) | orbit-boom settling, run to run | each marker enters **once** and does not flap; the 18 deg cone plus 30 deg release is what buys that (S7) |
 | `aimErrorDegrees` on close, slightly-downward aims, and its rig-limit `warning` | camera pose | let the following `click_entity`/`hover_entity` be the test; meaningful only above ~10 deg |
 | `held <N>ms` on the charge commit | how long you waited | that a commit fired at all (S4 step 2) |
-| Scene-**UI** `crdtId`s (`ui_list`, S8/S9) | every panel open, non-monotonically | match by `center`; never carry an id across a panel open |
+| Scene-**UI** `crdtId`s (`ui_list`, S8/S9/S11) | every panel open, non-monotonically | match by `center`; never carry an id across a panel open |
 | Whether the chat feed's transparent viewport covers `y 0.5366` | screen size and chat state | issue the plain click first and read the result (S9 step 8) |
 | Client `averageFps` | machine | nothing; it is context for the turn rate at most |
 
 **What *is* stable, and therefore worth asserting:** world coordinates and the `[INIT] MARK`
-lines; the scene's own **entity** `crdtEntityId`s (`512`-`592`, allocation-ordered at `[INIT]` and
+lines; the scene's own **entity** `crdtEntityId`s (`512`-`594`, allocation-ordered at `[INIT]` and
 identical across reloads -- unlike scene-UI ids); every log line's text; each element's normalized
 `center` at a given screen size; the exact wording of the client's refusal messages; and every
 structural claim -- which path a tool takes, that an entity-bound edge suppresses the root
@@ -1472,12 +2027,15 @@ broadcast, that a cover refuses a click, that a disabled input refuses a write.
   offending argument and what arrived, so read it as a wrong *type* rather than a missing argument;
   an older client instead opens with `"Provide entityId, or a full x/y/z world aim point, or both."`,
   which points at the wrong cause.
-- **`move_to`'s `lookAtX/Y/Z` is a no-op** on this client -- it leaves camera yaw and player
-  rotation untouched, and the result carries no `cameraRotationEuler` to tell you so. Since `walk`
-  is camera-relative, trusting it sends a burst in whatever direction the camera already faced; a
-  control run intended southward went north and carried the player off the scene's north edge
-  (`scene: null`, after which every click fails with "no running current scene"). **No step here
-  uses it -- set facing with `look_at` only.**
+- **`move_to`'s `lookAtX/Y/Z` lands like `look_at`** (the camera is refined onto the point after the
+  move, and the result carries `cameraRotationEuler` + `aimErrorDegrees`), and `move_to` is a
+  **teleport** that bypasses locomotion -- S1 logs it as `teleport detected`, trigger volumes see
+  `enter(B)` before `exit(A)`. `walk` remains the way to move anything the scene watches.
+- **`get_reticle` reads the real reticle, and with a free cursor the real reticle is the OS cursor's
+  pixel.** `look_at` centres a point on screen; it does not move the cursor, so a free-cursor reading
+  reports whatever the cursor rests on, with `rayFromScreenCenter: false` and the pixel in `cursor`.
+  To read what you aimed, lock the cursor first (S5 step 7's toggle) and unlock it after -- every
+  virtual-mouse gesture refuses while it is locked.
 - **A `deltaX`/`deltaY` unit does NOT turn the camera a fixed number of degrees -- calibrate before
   trusting any pan in this script.** The same `camera_look` call turned **five times further** on
   clients, and `sweep_pointer` shares the unit. Rates between **~3 and ~16 deg/s per unit** have
@@ -1508,8 +2066,9 @@ broadcast, that a cover refuses a click, that a disabled input refuses a write.
   the camera stationary for the whole hold. This is why `sweep_pointer` exists and why the split
   gesture cannot paint a stroke (S10 step 3). It also means you cannot measure the overlap from
   inside your own calls -- only a detached background poller can. (`screenshot` is the exception
-  that shows it is not every tool: two captures in one batch collide and the second is refused --
-  see the Pre-flight's check 2.)
+  that shows it is not every tool: two `screenshot`s in one batch collide and the second is refused --
+  see the Pre-flight's check 2. A `screenshot` batched after a `capture_sequence` does not collide;
+  it queues behind it -- see check 5.)
 - **`look_at`'s rig-limit warning is noisy at small angles.** It emits *"the camera stopped short of
   the point (a rig limit, e.g. the third-person pitch clamp)"* on close, slightly-downward aims that
   are in fact fine -- seen at `aimErrorDegrees` of 3.1, 5.5, 5.6 and 9.9 on the S8 toggle, the offset
@@ -1522,8 +2081,8 @@ broadcast, that a cover refuses a click, that a disabled input refuses a write.
   session measured `Arch = crdtId - 508`, verified on four separate entities). One successful
   world-aimed click therefore gives you the offset, and from then on every readout board is
   readable exactly via `get_entity_details` -> `PBTextShape.text` -- no screenshot, no
-  `list_scene_entities` cross-referencing. **The offset is per-session and does not survive a
-  reload**; re-derive it each run rather than carrying it over.
+  `list_scene_entities` cross-referencing. **The offset is per-session and is not guaranteed to
+  survive a reload**; re-derive it each run rather than carrying it over.
 
 ---
 
@@ -1533,8 +2092,10 @@ Confirmed present on the current scene + client. Everything else in this script 
 each pass's evidence to `MCP_SHOWCASE_RESULTS.md`** (create it if it is not there) rather than
 into this file.
 
-**All three rows are client-owned**, and all three reproduce on every pass. The scene itself has
-no open issues.
+**Every row is client-owned except the last, which is the scene's own**, and the same rule covers
+each -- remove one outright once it genuinely stops reproducing. Row 3 can only show when a panel
+re-open renumbers the ids, so a pass whose ids never renumbered says nothing about it. Row 4 can only
+show where the device path runs at all (see S8 step 4 for the Unity Editor).
 
 **Do not add a per-pass confirmation paragraph here, and do not date these rows.** If a row still
 reproduces, that is the documented state and needs no edit; record the pass in
@@ -1559,3 +2120,5 @@ Issue the plain click and read the result.
 | S9 steps 5, 8, 9 | **A controlled `<Input />` does not follow a programmatic reset.** A field the scene passes a `value` to displays a write correctly, but when the scene later clears it the box keeps the old string: after CLEAR FIELDS the FORM boxes still show `delta-9` / `77123` while the scene reads `""` -- proved by `FORM submit #N -- REJECTED callsign="" code=""` firing from those same populated-looking boxes, and the SEEDED box still shows `overwritten` while its own label reads the grey `still the seed value`. The scene's state is always right; only the rendering lags | client |
 | S10 step 3 | `ui_drag path:"device"` returns no `screenRect`/`center` -- reasonable, since no element is involved. It does carry `screen`, `path` and `pointerOver`. **The `info` line naming `sweep_pointer` comes only when both ends are `"world"`** (the S10 case); the same call over scene UI (S8 step 8) returns `pointerOver` naming both elements and **no `info` at all**, since there is nothing to explain | minor, client |
 | S8 step 8, S8 step 9 | **Scene-UI elements are reported under two id spaces.** `ui_list` and `pointerOver` name an element by its current id; `ui_click`'s `blockedBy` and `ui_drag path:sdk`'s `info` name it by the id of the mount generation it was created in. Nothing misbehaves -- but the two cannot be cross-referenced after a panel re-open | minor, client |
+| S8 step 8 (device row), S10 | **A `ui_drag path:"device"` over scene UI leaves an `IA_POINTER` DOWN on the scene root with no release.** The drag itself is delivered to the elements (both `[S8-UI]` drag lines), and its press posts the root edge, but no matching UP follows. S10 stays armed until its watchdog logs `IA_POINTER has been down for 6s with no release`, and a `move_to`/`look_at` toward the canvases inside that window paints a phantom stroke. `ui_click device:true` posts a matched DOWN/UP and is unaffected | client |
+| S1 steps 2-5, S3 steps 5-6 | **S1's teleport filter drops real locomotion ticks.** `s1_locomotion.ts` treats any tick faster than `TELEPORT_SPEED_MS` as a teleport, judging per-tick `d / dt`. On a client whose player transform updates arrive unevenly, ordinary jog and run ticks cross that line: a burst logs a run of sub-metre `teleport detected (0.Nm in one frame)` lines and the dropped ticks are left out of `distance=` and the `sustainedSpeed` EMA. Both then under-read against the tool's own `distance`, unevenly from burst to burst, which can break S3's in-zone/free-jog/free-run shape on a single sample. `walk`'s returned `distance` is unaffected. The fix belongs in the filter (judge displacement per tick, not speed over a short `dt`), not in the thresholds | scene |

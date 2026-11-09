@@ -12,6 +12,8 @@ let panelOpen = false
 let modalOpen = false
 let inputEcho = ''
 let dragArmed = false
+let hoverOnlyEnters = 0
+let hoverOnlyLeaves = 0
 
 function setPanelOpen(v: boolean) {
   panelOpen = v
@@ -52,6 +54,8 @@ export function setupS8Ui() {
     modalOpen = false
     inputEcho = ''
     dragArmed = false
+    hoverOnlyEnters = 0
+    hoverOnlyLeaves = 0
   })
 
   slog('S8-UI', 'station ready -- click the world button to open the panel; every element is listed via ui_list stack:sdk')
@@ -198,12 +202,30 @@ export function S8Panel() {
           </UiEntity>
         </UiEntity>
 
-        <Button
-          value="RESET ALL (UI)"
-          variant="secondary"
-          uiTransform={{ width: 220, height: 50, margin: { top: 16 } }}
-          onMouseDown={() => resetAllStations()}
-        />
+        {/* Bottom row: the in-panel reset, and a tile that declares hover handlers only. A click on the tile
+            tells the scene nothing (no onMouseDown/onMouseUp), which a click result must say rather than report ok. */}
+        <UiEntity uiTransform={{ flexDirection: 'row', height: 50, margin: { top: 16 } }}>
+          <Button
+            value="RESET ALL (UI)"
+            variant="secondary"
+            uiTransform={{ width: 220, height: 50, margin: { right: 12 } }}
+            onMouseDown={() => resetAllStations()}
+          />
+          <UiEntity
+            uiTransform={{ width: 300, height: 50 }}
+            uiBackground={{ color: hoverOnlyEnters > hoverOnlyLeaves ? Color4.create(0.2, 0.75, 0.35, 1) : Color4.create(0.25, 0.3, 0.5, 1) }}
+            onMouseEnter={() => {
+              hoverOnlyEnters++
+              slog('S8-UI', `hover-only tile: enter (#${hoverOnlyEnters})`)
+            }}
+            onMouseLeave={() => {
+              hoverOnlyLeaves++
+              slog('S8-UI', `hover-only tile: leave (#${hoverOnlyLeaves})`)
+            }}
+          >
+            <Label value="HOVER-ONLY tile (no click handler)" fontSize={14} color={Color4.White()} uiTransform={{ width: '100%', height: '100%' }} />
+          </UiEntity>
+        </UiEntity>
       {modalOpen && (
         <UiEntity
           uiTransform={{
