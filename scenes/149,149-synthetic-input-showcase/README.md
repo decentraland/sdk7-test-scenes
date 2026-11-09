@@ -66,6 +66,73 @@ Variations worth knowing:
   regression against the STROKE path"* -- every station is self-contained and re-runnable.
 - **Re-running in the same session?** Tell it to click **RESET ALL STATIONS** at world
   `(2403, 1, 2400)` first; the scene never needs a reload to go back to a clean state.
+- **Only want to know if something major broke?** Use the triage prompt below instead.
+
+### Triage run -- prompt for the agent
+
+The full regression above produces a long, evidence-heavy `MCP_SHOWCASE_RESULTS.md` and edits the
+script. Before a merge or a release, the question is usually narrower: *is anything major broken?*
+This prompt answers it. It defines MAJOR (tool errors, results that claim a delivery the scene never
+got, undrivable steps, the regression signatures the script names), tells the session to ignore every
+number and wording difference, and requires a retry plus a second channel before anything is
+reported. It also answers the skill's gates up front, so the session never stops to ask. It does not
+edit the script, the scene code or the skill.
+
+```text
+Drive the Explorer's synthetic input simulation layer live over MCP against this scene as a
+TRIAGE run: I only want to know whether anything MAJOR is broken.
+
+Scene: this folder -- base parcel 149,149, world offset (2384, 0, 2384).
+Driving script: MCP_SHOWCASE.md here, pre-flight + stations S1..S12.
+
+Gates, answered up front: yes to the intent gate. The Explorer is already running with the MCP
+enabled and the scene loaded -- use it; do not launch, kill or relaunch anything. Nobody is
+playing in that window: drive, reload and change camera modes freely without asking.
+First call: confirm tools/list includes ui_hover, get_reticle, get_visible_entities,
+get_audio_state and capture_sequence. If any is missing, stop and tell me -- that is the wrong
+Explorer build, not a finding.
+
+Read MCP_SHOWCASE.md top to bottom first, including "Non-deterministic values" and
+"Known open issues". Follow every approach mark it gives -- most false alarms on record were a
+wrong-target hit from a bad viewpoint. Run the pre-flight, then every station including its
+negative cases. Pre-flight checks 1-2 failing stops the run; checks 3-6 failing is reported and
+the run continues. Skip S12 step 6. Read boards with get_entity_details -> PBTextShape.text.
+
+MAJOR means one of:
+  - a tool missing, throwing, timing out ("did not complete within"), or the scene/client
+    crashing, wedging or dropping out;
+  - a result that lies: ok / hit:true / delivered "consumed" while the scene's logs show nothing
+    arrived, a gesture the scene received while the result denies it, or an entityId-addressed
+    gesture landing on another entity;
+  - a station or step that cannot be driven at all;
+  - any regression signature the script names (e.g. S5 C reads 1/0, hoverText missing, S6
+    scene-root counter moving on an entity-bound press, S8 every SDK click needing force /
+    DCLScenePanelSettings named as a cover, S9 DISABLED FIELD ACCEPTED A WRITE, S10 dots on the
+    decoy strip, S11 lost-leave or tick-drain sequences, a stale frame after reload_scene or a
+    VirtualCamera hand-back).
+NOT major, do not report: any number (speeds, angles, distances, dot counts, durations,
+intervals), crdtIds, bucket= labels, message wording that differs but means the same, Known
+open issues rows that still reproduce, the chat-viewport cover, and device-path refusals caused
+by an unfocused Unity Editor (try the script's detached-poller approach once; if it does not get
+through, mark those rows "environment" and move on).
+
+Before calling anything MAJOR: re-position per the script and re-run the step once, and confirm
+it on a second channel (tool result + get_scene_logs, or state read + screenshot).
+
+DELIVERABLES
+  - Final message, first line: "MAJOR: none" or "MAJOR: <n>". Then each major: station/step, the
+    call, expected vs got, evidence from both channels, and whether the retry reproduced it.
+    Then one line per station: PASS / MAJOR / environment-skipped. Nothing else about minor
+    deviations.
+  - Overwrite MCP_SHOWCASE_RESULTS.md in this folder with that same content (any file there is a
+    previous pass; replace it, do not append).
+  - Do NOT edit MCP_SHOWCASE.md, the README, the scene code or the unity-explorer-mcp skill. If the
+    skill told you something wrong or missed something that cost you time, list it in one short
+    final section.
+```
+
+If the Explorer isn't running yet, drop the "The Explorer is already running ... relaunch anything"
+sentence; as with the full run, expect one `/mcp reconnect explorer` round trip.
 
 ## Parcels
 
