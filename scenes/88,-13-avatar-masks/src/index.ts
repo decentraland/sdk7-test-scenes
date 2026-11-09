@@ -1,7 +1,7 @@
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { engine, InputAction, Material, MeshCollider, MeshRenderer, pointerEventsSystem, Transform, PointerEventType, inputSystem, GltfContainer, ColliderLayer, AvatarMask, AvatarAttach, AvatarAnchorPointType } from '@dcl/sdk/ecs'
 import { setupUi } from './ui'
-import { stopEmote, triggerEmote, triggerSceneEmote } from '~system/RestrictedActions'
+import { movePlayerTo, stopEmote, triggerEmote, triggerSceneEmote } from '~system/RestrictedActions'
 import { getPlayer } from '@dcl/sdk/src/players'
 import { parentEntity, removeParent, syncEntity } from '@dcl/sdk/src/network'
 
@@ -143,6 +143,70 @@ export function main() {
             triggerSceneEmote({ src: 'assets/Fishing_Cast_emote.glb', loop: true, mask: AvatarMask.AM_UPPER_BODY})
         }
     )
+
+    // movePlayerTo while a masked emote plays.
+    // An upper-body emote must keep playing while the scene moves the player (e.g. a sword strike
+    // combined with a step forward), for both the instant and the duration variants.
+    function stepForward(duration: number) {
+        const playerTransform = Transform.get(engine.PlayerEntity)
+        const forward = Vector3.rotate(Vector3.Forward(), playerTransform.rotation)
+        const target = Vector3.add(playerTransform.position, Vector3.scale(forward, 2))
+        target.x = Math.min(Math.max(target.x, 0.5), 15.5)
+        target.z = Math.min(Math.max(target.z, 0.5), 15.5)
+        target.y = playerTransform.position.y
+
+        movePlayerTo({ newRelativePosition: target, duration }).then((result) => {
+            console.log(`movePlayerTo(duration: ${duration}) success ? ${result.success}`)
+        })
+    }
+
+    function addMoveButton(x: number, color: Color4, hoverText: string, onClick: () => void) {
+        const entity = engine.addEntity()
+        MeshRenderer.setBox(entity)
+        MeshCollider.setBox(entity)
+        Material.setPbrMaterial(entity, { albedoColor: color })
+        Transform.create(entity, { position: Vector3.create(x, 1, 12), scale: Vector3.create(0.8, 0.8, 0.8) })
+
+        pointerEventsSystem.onPointerDown(
+            {
+                entity,
+                opts: {
+                    button: InputAction.IA_PRIMARY,
+                    hoverText,
+                    showHighlight: true,
+                    showFeedback: true,
+                    maxDistance: 10,
+                    maxPlayerDistance: 10,
+                },
+            },
+            onClick
+        )
+    }
+
+    addMoveButton(4, Color4.Teal(), 'Strike + step forward (duration)', () => {
+        triggerSceneEmote({ src: 'assets/Fishing_Cast_emote.glb', loop: false, mask: AvatarMask.AM_UPPER_BODY })
+        stepForward(0.5)
+    })
+
+    addMoveButton(6, Color4.Magenta(), 'Strike + step forward (instant)', () => {
+        triggerSceneEmote({ src: 'assets/Fishing_Cast_emote.glb', loop: false, mask: AvatarMask.AM_UPPER_BODY })
+        stepForward(0)
+    })
+
+    addMoveButton(8, Color4.Gray(), 'Step forward (duration)', () => stepForward(1))
+
+    addMoveButton(10, Color4.White(), 'Step forward (instant)', () => stepForward(0))
+
+    // Predefined emotes load from asset bundles, so these exercise the Mecanim Upper Body Layer
+    // that scene emotes use in production (raw GLTF scene emotes play as Legacy clips in preview).
+    addMoveButton(12, Color4.Black(), 'Wave (upper body) + step forward (duration)', () => {
+        triggerEmote({ predefinedEmote: 'wave', mask: AvatarMask.AM_UPPER_BODY })
+        stepForward(0.5)
+    })
+
+    addMoveButton(14, Color4.fromHexString('#FF8800'), 'Dance (upper body)', () => {
+        triggerEmote({ predefinedEmote: 'dance', mask: AvatarMask.AM_UPPER_BODY })
+    })
 
     // Pickup crate
     // Anchor entity is invisible, attached to the hand. Crate is a child with an offset.

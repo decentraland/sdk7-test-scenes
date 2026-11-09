@@ -1,0 +1,50 @@
+[
+  {
+    "name": "backtracking_policy: run",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:647",
+    "note": "Also FixedCapacityProducesExpectedPlanWhenCapacityIsSufficient (line 760).",
+    "domain": "upstream/Domains/Test/backtracking_policy.domain",
+    "method": "run",
+    "expect": {"status": "succeeded", "plan": ["!step \"one\"", "!step \"two\"", "!step \"three\""]}
+  },
+  {
+    "name": "backtracking_policy: run_small",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:719",
+    "domain": "upstream/Domains/Test/backtracking_policy.domain",
+    "method": "run_small",
+    "expect": {"status": "succeeded", "plan": ["!step \"small-one\"", "!step \"small-two\""]}
+  },
+  {
+    "name": "backtracking_policy: no plan leaves no partial result and the unit stays reusable",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:741",
+    "note": "Also HTNGeneratedOnlyTest.cpp:20 (16 iterations of run / always_fail on one unit; two here).",
+    "domain": "upstream/Domains/Test/backtracking_policy.domain",
+    "script": [
+      {
+        "op": "plan",
+        "method": "always_fail",
+        "expect": {"status": "no_plan", "plan": [], "remaining": []}
+      },
+      {
+        "op": "plan",
+        "method": "run_small",
+        "expect": {"status": "succeeded", "plan": ["!step \"small-one\"", "!step \"small-two\""]}
+      },
+      {
+        "op": "plan",
+        "method": "run",
+        "expect": {"status": "succeeded", "plan": ["!step \"one\"", "!step \"two\"", "!step \"three\""]}
+      },
+      {
+        "op": "plan",
+        "method": "always_fail",
+        "expect": {"status": "no_plan", "remaining": []}
+      },
+      {
+        "op": "plan",
+        "method": "run",
+        "expect": {"status": "succeeded", "plan": ["!step \"one\"", "!step \"two\"", "!step \"three\""]}
+      }
+    ]
+  }
+]

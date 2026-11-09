@@ -1,0 +1,8 @@
+// v2_attack_task: holding a trunk slams.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to knight
+//   2. !trunk_slam knight
+
+enemy_visible knight
+holding_trunk

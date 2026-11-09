@@ -1,0 +1,14 @@
+// arrest_team: s1 has surrendered but every member is beyond restrain reach: no autonomous restrain (the player can
+// still order one). Nothing to start.
+// method: squad_tick
+// expect: succeeded
+
+squadmember a
+squadmember b
+squadmember c
+roster (a b c)
+enemy s1
+surrendered s1
+near s1 a 6.0
+near s1 b 7.0
+near s1 c 9.0

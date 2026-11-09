@@ -1,0 +1,10 @@
+// cleaner_bot: puddle far.
+// method: behave
+// expect: succeeded
+//   1. !move_near puddle_1 1.0
+//   2. !clean puddle_1
+
+now 0.0
+puddle puddle_1
+puddle puddle_2
+distance_to puddle_1 5.0

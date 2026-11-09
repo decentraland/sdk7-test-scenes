@@ -1,0 +1,27 @@
+// fetcher: found where it carries the charger: put it down, take the object.
+// method: behave
+// expect: succeeded
+//   1. !put charger
+//   2. !take o1
+
+distance l1 l1 0
+distance l1 l2 1
+distance l1 l3 2
+distance l1 l4 3
+distance l2 l1 1
+distance l2 l2 0
+distance l2 l3 1
+distance l2 l4 2
+distance l3 l1 2
+distance l3 l2 1
+distance l3 l3 0
+distance l3 l4 1
+distance l4 l1 3
+distance l4 l2 2
+distance l4 l3 1
+distance l4 l4 0
+job fetch o1
+at l4
+battery 0
+holding charger
+object_at o1 l4

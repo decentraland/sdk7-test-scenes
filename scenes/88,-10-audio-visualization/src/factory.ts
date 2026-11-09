@@ -3,6 +3,7 @@ import {
   engine,
   Transform,
   MeshRenderer,
+  MeshCollider,
   Material,
   VideoPlayer,
   TextShape,
@@ -48,6 +49,8 @@ export function createVisualAmplitude(
   Transform.create(entity, { position: { x, y, z } })
 
   MeshRenderer.setSphere(entity)
+  // Clickable: the sphere doubles as the play/pause button of its source
+  MeshCollider.setSphere(entity)
   Material.setPbrMaterial(entity, { albedoColor: color })
 
   return entity

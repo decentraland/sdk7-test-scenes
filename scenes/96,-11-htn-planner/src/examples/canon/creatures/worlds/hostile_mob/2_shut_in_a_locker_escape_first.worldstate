@@ -1,0 +1,9 @@
+// hostile_mob: shut in a locker: escape first.
+// method: behave
+// expect: succeeded
+//   1. !escape_container
+
+now 0.0
+hostile player
+distance_to player 2.0
+in_container

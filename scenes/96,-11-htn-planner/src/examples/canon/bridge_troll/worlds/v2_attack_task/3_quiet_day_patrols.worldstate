@@ -1,0 +1,8 @@
+// v2_attack_task: quiet day patrols.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to north_bridge
+//   2. !check_bridge north_bridge
+
+next_bridge north_bridge
+holding_trunk

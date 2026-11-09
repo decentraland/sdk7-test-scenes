@@ -1,0 +1,17 @@
+// infiltrator: armed, but the way to the hall passes a locked door. Fetch the keycard that opens it first.
+// method: behave
+// expect: succeeded
+//   1. !go_to_area office
+//   2. !pick_up c1
+//   3. &behave
+
+npc_in lobby
+player_in p1 hall
+holding g2
+item g2 gun
+loaded g2
+locked_on_route hall door1
+opens c1 door1
+item c1 keycard
+reachable_item c1 office
+lights office on

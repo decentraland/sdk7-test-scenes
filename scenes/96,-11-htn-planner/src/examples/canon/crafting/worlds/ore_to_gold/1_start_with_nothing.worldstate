@@ -1,0 +1,9 @@
+// ore_to_gold: start with nothing.
+// method: earn_gold
+// expect: succeeded
+//   1. !go_to ore
+//   2. !mine_ore
+//   3. &earn_gold
+
+gold 0
+location outside

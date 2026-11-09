@@ -1,0 +1,10 @@
+// hostile_mob: target far.
+// method: behave
+// expect: succeeded
+//   1. !move_near player 1.0
+//   2. !juke_away player
+//   3. !melee_attack player
+
+now 0.0
+hostile player
+distance_to player 8.0

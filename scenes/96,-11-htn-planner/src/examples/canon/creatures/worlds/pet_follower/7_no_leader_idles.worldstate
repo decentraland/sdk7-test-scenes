@@ -1,0 +1,8 @@
+// pet_follower: no leader: idles.
+// method: behave
+// expect: succeeded
+//   1. !move_to spot_a
+//   2. !idle_wait 2.0 7.0
+
+now 0.0
+idle_spot spot_a

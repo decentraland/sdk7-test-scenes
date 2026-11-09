@@ -1,0 +1,2 @@
+# build.sh runs in Linux / WSL bash: keep LF on Windows checkouts too.
+*.sh text eol=lf

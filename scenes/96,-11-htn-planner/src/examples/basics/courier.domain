@@ -1,0 +1,63 @@
+// Level 4. Methods call methods; `&` decides later.
+// deliver binds the first shelf row with room (rows are tried in order: full shelves are skipped), then calls
+// the carry_box method with it, which expands into the walking steps. The last step, &behave, is deferred:
+// it is planned only when the courier gets there, against the world as it is then (the tester may have
+// dropped or taken boxes meanwhile).
+//
+// Facts: (pile_boxes ?count) int; (shelf ?name ?count) one row per shelf, int
+// Primitives: (!go_to ?spot) (!say ?text) (!wait ?seconds) (!pick_up) (!put_on ?shelf)
+
+(:domain Courier top_level_domain
+
+    (:constants Courier
+        (shelf_size 2)
+    )
+
+    (:method (behave) top_level_method
+
+        (deliver
+            (and
+                (pile_boxes ?boxes)
+                (> ?boxes 0)
+                (shelf ?shelf ?count)
+                (< ?count @shelf_size)
+            )
+            (
+                (carry_box ?shelf)
+                (&behave)
+            )
+        )
+
+        (shelves_full
+            (and
+                (pile_boxes ?boxes)
+                (> ?boxes 0)
+            )
+            (
+                (!say "no room!")
+                (!wait 2.0)
+            )
+        )
+
+        (wait_for_work
+            ()
+            (
+                (!go_to bench)
+                (!wait 2.0)
+            )
+        )
+    )
+
+    (:method (carry_box ?inp_shelf)
+
+        (carry
+            ()
+            (
+                (!go_to pile)
+                (!pick_up)
+                (!go_to ?inp_shelf)
+                (!put_on ?inp_shelf)
+            )
+        )
+    )
+)

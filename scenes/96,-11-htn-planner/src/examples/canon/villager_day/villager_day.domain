@@ -1,0 +1,345 @@
+// villager_day: a villager's daily routine driven by needs, one game hour per plan. The same domain runs every
+// villager; a shopkeeper is a villager who owns a shop.
+//
+// Teaches:
+//   - Needs as facts, priority as branch order: sleep, then food, then the shop's hours, then money, then a pastime.
+//     The root delegates; each tier is a compound behaviour with its own alternatives.
+//   - "Obtain X" by alternatives (Kelly et al.): eat what you have, hunt, buy, wait for the shopkeeper, learn to
+//     hunt, else earn money first. The first branch is "already done" (re-entrant: a replan after buying eats).
+//   - An always-applicable fallback, so a villager is never idle (Kelly et al. pick a random action; here the host
+//     rolls the pastime and the domain only reads it).
+//   - Two villagers synchronising through facts: the buyer reads `(keeper_present ?shop)`, which the host writes from
+//     the shopkeeper's own plan. Patience is a fact too: after waiting long enough the buyer takes the next method.
+//   - Re-entrant movement: `go_to` does nothing when already there, so "walk, then act" never repeats a walk.
+//
+// Source (re-expressed from the published description; our own text and names): John-Paul Kelly, Adi Botea, Sven
+// Koenig, "Offline Planning with Hierarchical Task Networks in Video Games", AIIDE 2008,
+// https://ojs.aaai.org/index.php/AIIDE/article/download/18673/18450 . The paper shows part of its HTN (four methods
+// for spending one game hour, the last a random action "to avoid NPCs being idle"; four ways to obtain food: hunt,
+// shop if open, learn to hunt, make money), part of a world state (hunger, sleepiness, money, shops with their
+// keepers) and part of a plan (sleep, walk to the shop, wait, buy, eat). The full domain (12 tasks, 40 methods,
+// 19 actions) is not published.
+// Licence: re-expressed (nothing copied); credits in src/examples/canon/THIRD_PARTY_NOTICES.md.
+//
+// Emulations: the paper plans 24 game hours offline with effects (SHOP2 / JSHOP2: `!increment-person` raises
+// hunger and sleepiness every hour). We plan one hour per replan and the host applies what the plan did and the
+// hour's needs before the next one (the story in stories.ts runs a morning that way). Waiting at
+// a closed shop is one `!wait_for` per hour with a host counter `(waited_at ?shop ?hours)` instead of a timed wait
+// inside one long plan. The random action is a host roll published as `(pastime ?activity ?place)`.
+// Deviations: a "work" tier for shopkeepers (the paper's NPCs own shops but its figure does not show how they keep
+// hours); the paper's per-NPC `available-task` lists are left out (every villager may do every task its facts
+// allow); prices and thresholds are ours.
+// Not ported: plans over several days, rent, the script generator that turns plans into game scripts, the exchange
+// of messages between the NPCs' scripts.
+//
+// Facts (each villager's own world, written by the host at the top of each game hour):
+//   (hour ?h) 0-23; (hunger ?n) (sleepiness ?n) (money ?n): numbers that grow by the hour
+//   (at ?place) (home ?place)
+//   (has food|goods)                         carried
+//   (can_hunt), (hunting_ground ?place)      learnt skill; where game is
+//   (trainer ?who ?place)                    someone who teaches hunting
+//   (shop ?shop ?sells ?keeper)              e.g. (shop bakery food baker)
+//   (keeper_present ?shop)                   the keeper is at the counter now (from the keeper's own plan)
+//   (waited_at ?shop ?hours)                 hours this villager has waited there
+//   (owns_shop ?shop), (opening_hours ?shop ?open ?close)   for shopkeepers
+//   (pastime ?activity ?place)               this hour's idle activity, rolled by the host
+// Primitives: (!walk_to ?place) (!sleep_hour) (!eat) (!hunt) (!buy ?what ?keeper) (!wait_for ?keeper)
+//             (!learn_hunting ?who) (!tend_shop ?shop) (!sell ?what ?keeper) (!skin_game) (!do_chores)
+//             (!pass_hour ?activity) (!wander)
+// Scenarios: worlds/villager_day/ (npm run htn:run -- --world villager_day/<scenario>; --list names them); story: stories.ts.
+
+(:domain VillagerDay top_level_domain
+
+    (:constants VillagerDay
+        (wake_hour 6)
+        (bedtime 22)
+        (sleepy_at 10)
+        (hungry_at 6)
+        (food_price 5)
+        (lesson_price 30)
+        // Hours a villager waits at a shop for its keeper before trying something else.
+        (patience 2)
+    )
+
+    // One game hour.
+    (:method (spend_hour) top_level_method
+
+        (sleep
+            (and
+                (#needs_sleep)
+            )
+            (
+                (sleep_hour)
+            )
+        )
+
+        (eat
+            (and
+                (#hungry)
+            )
+            (
+                (obtain_food)
+            )
+        )
+
+        (work
+            (and
+                (#work_due ?shop)
+            )
+            (
+                (tend_shop ?shop)
+            )
+        )
+
+        (earn
+            (and
+                (#short_of_money)
+            )
+            (
+                (earn_money)
+            )
+        )
+
+        // Never idle: the fallback always has something to do.
+        (pass_time
+            ()
+            (
+                (pass_time)
+            )
+        )
+    )
+
+    // Contract: tired, or night. Effect: an hour of sleep at home.
+    (:method (sleep_hour)
+
+        (sleep_at_home
+            (and
+                (home ?home)
+            )
+            (
+                (go_to ?home)
+                (!sleep_hour)
+            )
+        )
+
+        // Homeless: sleep where you are.
+        (sleep_here
+            ()
+            (
+                (!sleep_hour)
+            )
+        )
+    )
+
+    // Contract: hungry. Effect: fed, or one step closer to being able to eat.
+    (:method (obtain_food)
+
+        (eat_what_you_have
+            (and
+                (has food)
+            )
+            (
+                (!eat)
+            )
+        )
+
+        (hunt
+            (and
+                (can_hunt)
+                (hunting_ground ?ground)
+            )
+            (
+                (go_to ?ground)
+                (!hunt)
+            )
+        )
+
+        (buy
+            (and
+                (#can_afford @food_price)
+                (shop ?shop food ?keeper)
+                (keeper_present ?shop)
+            )
+            (
+                (go_to ?shop)
+                (!buy food ?keeper)
+                (!eat)
+            )
+        )
+
+        // The shop is shut: wait at its door for one more hour, as long as patience lasts.
+        (wait_for_keeper
+            (and
+                (#can_afford @food_price)
+                (shop ?shop food ?keeper)
+                (not (keeper_present ?shop))
+                (#still_patient ?shop)
+            )
+            (
+                (go_to ?shop)
+                (!wait_for ?keeper)
+            )
+        )
+
+        (learn_to_hunt
+            (and
+                (not (can_hunt))
+                (#can_afford @lesson_price)
+                (trainer ?who ?place)
+            )
+            (
+                (go_to ?place)
+                (!learn_hunting ?who)
+            )
+        )
+
+        (earn_first
+            ()
+            (
+                (earn_money)
+            )
+        )
+    )
+
+    // Contract: the shop is open now and this villager keeps it. Effect: at the counter for the hour.
+    (:method (tend_shop ?inp_shop)
+
+        (tend
+            ()
+            (
+                (go_to ?inp_shop)
+                (!tend_shop ?inp_shop)
+            )
+        )
+    )
+
+    // Contract: none (always succeeds). Effect: some money, or something to sell.
+    (:method (earn_money)
+
+        (sell_goods
+            (and
+                (has goods)
+                (shop ?shop goods ?keeper)
+                (keeper_present ?shop)
+            )
+            (
+                (go_to ?shop)
+                (!sell goods ?keeper)
+            )
+        )
+
+        (gather_goods
+            (and
+                (can_hunt)
+                (hunting_ground ?ground)
+            )
+            (
+                (go_to ?ground)
+                (!skin_game)
+            )
+        )
+
+        (chores
+            ()
+            (
+                (!do_chores)
+            )
+        )
+    )
+
+    (:method (pass_time)
+
+        (pastime
+            (and
+                (pastime ?activity ?place)
+            )
+            (
+                (go_to ?place)
+                (!pass_hour ?activity)
+            )
+        )
+
+        (wander
+            ()
+            (
+                (!wander)
+            )
+        )
+    )
+
+    // Re-entrant: nothing to do when already there.
+    (:method (go_to ?inp_place)
+
+        (already_there
+            (and
+                (at ?inp_place)
+            )
+            ()
+        )
+
+        (walk
+            ()
+            (
+                (!walk_to ?inp_place)
+            )
+        )
+    )
+
+    (:axiom (needs_sleep)
+        (or
+            (and
+                (sleepiness ?sleepiness)
+                (>= ?sleepiness @sleepy_at)
+            )
+            (and
+                (hour ?hour)
+                (or
+                    (>= ?hour @bedtime)
+                    (< ?hour @wake_hour)
+                )
+            )
+        )
+    )
+
+    (:axiom (hungry)
+        (and
+            (hunger ?hunger)
+            (>= ?hunger @hungry_at)
+        )
+    )
+
+    (:axiom (short_of_money)
+        (and
+            (money ?money)
+            (< ?money @food_price)
+        )
+    )
+
+    (:axiom (can_afford ?inp_price)
+        (and
+            (money ?money)
+            (>= ?money ?inp_price)
+        )
+    )
+
+    (:axiom (work_due ?out_shop)
+        (and
+            (owns_shop ?out_shop)
+            (opening_hours ?out_shop ?open ?close)
+            (hour ?hour)
+            (>= ?hour ?open)
+            (< ?hour ?close)
+        )
+    )
+
+    // Not waited yet, or waited less than @patience hours.
+    (:axiom (still_patient ?inp_shop)
+        (or
+            (not (waited_at ?inp_shop ?any_hours))
+            (and
+                (waited_at ?inp_shop ?hours)
+                (< ?hours @patience)
+            )
+        )
+    )
+)

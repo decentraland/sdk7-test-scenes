@@ -1,0 +1,336 @@
+[
+  {
+    "name": "nested call expression: comparison operand is an invocation",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:96",
+    "domain": "nested.domain",
+    "sources": {
+      "nested.domain": "(:domain Nested top_level_domain (:method (run) top_level_method (branch (and (< (call missing_distance_callterm) 0.2)) ((!result)))))"
+    },
+    "expect": {"compile": "ok", "irCallterms": ["missing_distance_callterm"]}
+  },
+  {
+    "name": "nested call expression: valid_left",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:129",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-calls",
+    "method": "valid_left",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "calls": {"Calls": 1}
+    }
+  },
+  {
+    "name": "nested call expression: valid_right",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:129",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-calls",
+    "method": "valid_right",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "calls": {"Calls": 1}
+    }
+  },
+  {
+    "name": "nested call expression: valid_both",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:129",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-calls",
+    "method": "valid_both",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "calls": {"Calls": 2}
+    }
+  },
+  {
+    "name": "nested call expression: valid_bound",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:129",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-calls",
+    "method": "valid_bound",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "calls": {"Calls": 1}
+    }
+  },
+  {
+    "name": "nested call expression: operators",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:129",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-calls",
+    "method": "operators",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "calls": {"Calls": 15}
+    }
+  },
+  {
+    "name": "nested call expression: behave",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:129",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-calls",
+    "method": "behave",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "calls": {"Calls": 1}
+    }
+  },
+  {
+    "name": "nested call expression: task_arithmetic",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:129",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-calls",
+    "method": "task_arithmetic",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "calls": {"Calls": 2}
+    }
+  },
+  {
+    "name": "nested call expression: missing callterm in behave",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:168",
+    "note": "NotRegistered reason only (MissingBinding/MissingInstance are C++ daemon bindings). Upstream repeats each entry twice on one unit.",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-missing",
+    "method": "behave",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"OuterCalls": 0},
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {
+          "code": "missing_callterm",
+          "find": "(call missing_distance_callterm",
+          "after": "(:method (behave)",
+          "nth": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "nested call expression: missing callterm in missing_right",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:168",
+    "note": "NotRegistered reason only (MissingBinding/MissingInstance are C++ daemon bindings). Upstream repeats each entry twice on one unit.",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-missing",
+    "method": "missing_right",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"OuterCalls": 0},
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {
+          "code": "missing_callterm",
+          "find": "(call missing_distance_callterm",
+          "after": "(:method (missing_right)",
+          "nth": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "nested call expression: missing callterm in missing_arithmetic",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:168",
+    "note": "NotRegistered reason only (MissingBinding/MissingInstance are C++ daemon bindings). Upstream repeats each entry twice on one unit.",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-missing",
+    "method": "missing_arithmetic",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"OuterCalls": 0},
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {
+          "code": "missing_callterm",
+          "find": "(call missing_distance_callterm",
+          "after": "(:method (missing_arithmetic)",
+          "nth": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "nested call expression: missing callterm in missing_deep",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:168",
+    "note": "NotRegistered reason only (MissingBinding/MissingInstance are C++ daemon bindings). Upstream repeats each entry twice on one unit.",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-missing",
+    "method": "missing_deep",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"OuterCalls": 0},
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {
+          "code": "missing_callterm",
+          "find": "(call missing_distance_callterm",
+          "after": "(:method (missing_deep)",
+          "nth": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "nested call expression: missing callterm in bound_first",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:168",
+    "note": "NotRegistered reason only (MissingBinding/MissingInstance are C++ daemon bindings). Upstream repeats each entry twice on one unit.",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-missing",
+    "method": "bound_first",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"OuterCalls": 0},
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {
+          "code": "missing_callterm",
+          "find": "(call missing_distance_callterm",
+          "after": "(:method (bound_first)",
+          "nth": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "nested call expression: missing callterm in two_attempts",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:168",
+    "note": "NotRegistered reason only (MissingBinding/MissingInstance are C++ daemon bindings). Upstream repeats each entry twice on one unit.",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-missing",
+    "method": "two_attempts",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"OuterCalls": 0},
+      "diagnostics": {"missing_callterm": 2},
+      "diagnosticAt": [
+        {
+          "code": "missing_callterm",
+          "find": "(call missing_distance_callterm",
+          "after": "(:method (two_attempts)",
+          "nth": 2
+        }
+      ]
+    }
+  },
+  {
+    "name": "nested call expression: missing callterm in short_circuit",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:168",
+    "note": "NotRegistered reason only (MissingBinding/MissingInstance are C++ daemon bindings). Upstream repeats each entry twice on one unit.",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-missing",
+    "method": "short_circuit",
+    "expect": {
+      "status": "succeeded",
+      "calls": {"OuterCalls": 0},
+      "diagnostics": {"missing_callterm": 0}
+    }
+  },
+  {
+    "name": "nested call expression: missing callterm in missing_task_arithmetic",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:168",
+    "note": "NotRegistered reason only (MissingBinding/MissingInstance are C++ daemon bindings). Upstream repeats each entry twice on one unit.",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-missing",
+    "method": "missing_task_arithmetic",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"OuterCalls": 0},
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {
+          "code": "missing_callterm",
+          "find": "(call missing_distance_callterm",
+          "after": "(:method (missing_task_arithmetic)",
+          "nth": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "nested call expression: continue_move evaluates assignment and comparison once",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:256",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-continue-move",
+    "facts": [["active_plan", "1", "moving_to_seen_entity", "42", "10"]],
+    "script": [
+      {"op": "resetCounters"},
+      {"op": "setVar", "name": "distance", "value": "0.1"},
+      {
+        "op": "decompose",
+        "method": "continue_move",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"PositionCalls": 1, "DistanceCalls": 1}
+        }
+      },
+      {"op": "resetCounters"},
+      {"op": "setVar", "name": "distance", "value": "0.3"},
+      {
+        "op": "decompose",
+        "method": "continue_move",
+        "expect": {
+          "status": "no_plan",
+          "planLength": 0,
+          "calls": {"PositionCalls": 1, "DistanceCalls": 1}
+        }
+      },
+      {"op": "resetCounters"},
+      {"op": "setVar", "name": "distance", "value": "0.1"},
+      {
+        "op": "decompose",
+        "method": "continue_move",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "calls": {"PositionCalls": 1, "DistanceCalls": 1}
+        }
+      }
+    ]
+  },
+  {
+    "name": "nested call expression: debugger_backtracking",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:335",
+    "note": "Upstream test is compiled only with HTN_DEBUG_DECOMPOSITION; status and call counts ported, debugger node checks skipped.",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-debugger",
+    "facts": [["candidate", "3"], ["candidate", "1"]],
+    "method": "debugger_backtracking",
+    "expect": {
+      "status": "succeeded",
+      "calls": {"Calls": 2}
+    }
+  },
+  {
+    "name": "nested call expression: debugger_skipped",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:335",
+    "note": "Upstream test is compiled only with HTN_DEBUG_DECOMPOSITION; status and call counts ported, debugger node checks skipped.",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-debugger",
+    "facts": [["candidate", "3"], ["candidate", "1"]],
+    "method": "debugger_skipped",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"Calls": 0}
+    }
+  },
+  {
+    "name": "nested call expression: debugger_assignment",
+    "upstream": "HTNTest/src/HTNNestedCallExpressionTest.cpp:335",
+    "note": "Upstream test is compiled only with HTN_DEBUG_DECOMPOSITION; status and call counts ported, debugger node checks skipped.",
+    "domain": "upstream/Domains/Test/nested_operator_calls.domain",
+    "callterms": "nested-operator-debugger",
+    "facts": [["candidate", "3"], ["candidate", "1"]],
+    "method": "debugger_assignment",
+    "expect": {
+      "status": "succeeded",
+      "calls": {"Calls": 2}
+    }
+  }
+]

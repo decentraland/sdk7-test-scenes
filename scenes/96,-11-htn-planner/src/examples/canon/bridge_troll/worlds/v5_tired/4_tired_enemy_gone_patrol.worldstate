@@ -1,0 +1,9 @@
+// v5_tired: tired, enemy gone: patrol.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to north_bridge
+//   2. !check_bridge north_bridge
+
+trunk_health 3
+tired
+next_bridge north_bridge

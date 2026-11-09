@@ -41,13 +41,8 @@ export function formatRow(row: CsvRow): string {
   ].join(',')
 }
 
-// Safe because ids are [A-Za-z0-9-] and fields have no newlines: a row's id is everything before its first comma.
-export function rowIds(csv: string): Set<string> {
-  return new Set(csv.split('\n').map((line) => line.slice(0, line.indexOf(','))))
-}
-
 export function sanitizeId(requestId: string): string {
-  // no leading -: field() would prefix it and rowIds() would miss the row
+  // no leading -: field() would prefix it, and the row's id would no longer be everything before its first comma
   return requestId.replace(/[^A-Za-z0-9-]/g, '').replace(/^-+/, '').slice(0, 40)
 }
 

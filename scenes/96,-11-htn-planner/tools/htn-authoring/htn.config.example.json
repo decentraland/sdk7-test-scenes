@@ -1,0 +1,9 @@
+{
+  "domains": [
+    {
+      "source": "src/npc/guard/guard.domain",
+      "output": "src/npc/guard/guard.htn.ts",
+      "exportName": "guardDomain"
+    }
+  ]
+}

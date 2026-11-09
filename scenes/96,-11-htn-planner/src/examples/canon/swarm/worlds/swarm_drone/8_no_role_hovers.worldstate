@@ -1,0 +1,6 @@
+// swarm_drone: no role yet (the coordinator has not decided): hover in place until it does.
+// method: behave
+// expect: succeeded
+//   1. !hover 1.0
+
+processor m1

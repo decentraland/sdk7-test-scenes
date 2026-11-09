@@ -1,0 +1,23 @@
+// Soup kitchen world checks: opt-in assertions, not behaviour or effects.
+// Teaches: a single holder has at most one content value; identical food types may have different holders.
+// Source: original checks for this repository's soup_kitchen host contract (holding is single-valued).
+// Licence: same as this repository; no external source text copied.
+// Deviations: checks only holding cardinality, not recipe feasibility or all host invariants.
+// Not ported: no source validator; missing holdings are allowed for partial/negative test worlds.
+// Facts: (holding ?holder ?content), written by the fixture and host after each completed interaction.
+// Strategy: reject contradictory contents; an empty plan means the check passed, no_plan means invalid.
+// Primitives: none. Helpers: none. No fallback: rejection is intentional.
+(:domain SoupKitchenChecks top_level_domain
+    (:method (one_content_per_holder) top_level_method
+        (valid
+            (and
+                (not (and
+                    (holding ?holder ?a)
+                    (holding ?holder ?b)
+                    (!= ?a ?b)
+                ))
+            )
+            ()
+        )
+    )
+)

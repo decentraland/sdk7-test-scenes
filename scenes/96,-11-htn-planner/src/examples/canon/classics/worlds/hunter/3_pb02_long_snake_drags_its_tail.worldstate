@@ -1,0 +1,38 @@
+// hunter: pb02 long snake drags its tail.
+// method: hunt
+// expect: succeeded
+//   1. !move_long viper px1y2 px2y2 px2y2 px2y1
+//   2. &hunt
+
+head viper px2y2
+connected viper px2y2 px2y1
+tail viper px2y1
+prey_at px0y0
+occupied px0y0
+occupied px2y1
+occupied px2y2
+adjacent px0y0 px1y0
+adjacent px1y0 px0y0
+adjacent px1y0 px2y0
+adjacent px2y0 px1y0
+adjacent px0y1 px1y1
+adjacent px1y1 px0y1
+adjacent px1y1 px2y1
+adjacent px2y1 px1y1
+adjacent px0y2 px1y2
+adjacent px1y2 px0y2
+adjacent px1y2 px2y2
+adjacent px2y2 px1y2
+adjacent px0y0 px0y1
+adjacent px0y1 px0y0
+adjacent px1y0 px1y1
+adjacent px1y1 px1y0
+adjacent px2y0 px2y1
+adjacent px2y1 px2y0
+adjacent px0y1 px0y2
+adjacent px0y2 px0y1
+adjacent px1y1 px1y2
+adjacent px1y2 px1y1
+adjacent px2y1 px2y2
+adjacent px2y2 px2y1
+path_step viper px0y0 px1y2

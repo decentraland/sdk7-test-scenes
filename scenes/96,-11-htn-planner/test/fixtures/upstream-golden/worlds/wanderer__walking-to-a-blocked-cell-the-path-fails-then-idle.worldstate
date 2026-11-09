@@ -1,0 +1,5 @@
+wanderer_state walking
+wanderer_location (0 0)
+wanderer_destination (8 6)
+contextual_animation_at (15 0) look_at_view
+contextual_animation_at (12 12) sit_on_bench

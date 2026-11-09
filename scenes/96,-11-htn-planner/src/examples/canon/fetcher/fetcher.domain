@@ -1,0 +1,382 @@
+// Fetcher: a robot fetches an object whose place may be unknown. It searches place after place (go, look, decide
+// again), keeps enough battery to get back to the charger, recharges by one of three methods (charge and leave the
+// charger, charge and take it along while searching, borrow it from the robot that has it and hand it back), and
+// drops everything for an emergency.
+//
+// Teaches: a search loop by deferred recursion (one look per plan segment: the result of `!perceive` is read by the
+// `&fetch` that follows, never by this plan); a step that changes what a later condition reads ends the segment with
+// `&` (`drop_load` then `&handle_emergency`: the move after it depends on the load); several methods for one task
+// chosen by facts with a reason (`searching`, `round_trip`: why the charger is worth carrying); every compound re-entrant, so a
+// replan in the middle (after an emergency, a perception, a failed step) resumes from the world as it is; an
+// emergency tier above the job.
+// Source: RAE (Refinement Acting Engine), `domains/fetch/domain_fetch.py` (tasks `search`, `fetch`, `recharge`,
+// `moveTo`, `emergency`, `nonEmergencyMove`) at commit 0e5faffb7eb732fdb8e3bbf2c6d2f2cbd520aa30:
+// https://github.com/patras91/rae_release/blob/0e5faffb7eb732fdb8e3bbf2c6d2f2cbd520aa30/domains/fetch/domain_fetch.py
+// Licence: BSD-3-Clause, Copyright (c) 2019, University of Maryland; see src/examples/canon/THIRD_PARTY_NOTICES.md.
+// Adapted (Python refinement methods re-written as HTN methods; commands, the battery model (a move costs its
+// distance, 4 is full, moves are free while carrying the charger) and the three recharge methods follow the source).
+// Emulations (the catalogue's porting rule):
+// - RAE tests the object's place right after `perceive` inside the same method (`if state.pos[o] == toBePerceived`);
+//   a plan cannot see a sensing result, so the segment ends at `!perceive` and the deferred `&fetch` reads it.
+// - RAE's planner (UPOM) chooses between Search/Fetch method 1 (no recharge) and 2 (recharge first), and between the
+//   recharge methods, by simulated outcomes; here the order and facts decide: recharge only when the battery cannot
+//   reach the target and then the charger (`can_reach`), carry the charger along while searching or when a full
+//   battery cannot do the round trip (`searching`, `round_trip`),
+//   borrow it only when another robot has it.
+// - Distances (RAE: Dijkstra in `GETDISTANCE`) are the host's table `(distance ?from ?to ?d)`; the first place to
+//   look (RAE: the first unviewed location in map order) is the first `(unviewed ?place)` row.
+// Deviations: a battery margin (reach the target and still the charger) that RAE does not have (RAE's search can
+// strand the robot; its method 2 recharges before every leg); `!report_not_found` when every place was seen (RAE
+// fails); `!signal_stranded` when no recharge method applies (RAE fails); the emergency move is the normal
+// `travel_to` (RAE has a separate `moveToEmergency` that ignores the emergency lock).
+// Not ported: `nonEmergencyMove` and `wait` (RAE runs the emergency as a concurrent task and blocks other moves
+// while it is handled; here the emergency tier comes first in the root, so nothing else moves meanwhile); the
+// commands' random failures and `SenseObjects` (the host decides what `!perceive` finds); the heuristics.
+//
+// Facts:      (at ?place); (holding ?thing) the one hand, `charger` included; (battery ?units); (distance ?a ?b ?d)
+//             host table, (distance ?p ?p 0) too; (object_at ?thing ?place) known places only; (unviewed ?place) in
+//             search order; (job fetch ?obj); (charger_at ?place); (charger_with ?robot); (borrowed_charger ?owner);
+//             (emergency ?place ?id).
+// Primitives: (!move_to ?place) (!perceive ?place) (!take ?thing) (!put ?thing) (!charge) (!ask_for_charger ?robot)
+//             (!hand_back_charger ?robot) (!address_emergency ?place ?id) (!report_not_found ?obj)
+//             (!signal_stranded) (!wait ?seconds)
+
+(:domain Fetcher top_level_domain
+
+    (:constants FetcherConstants
+        (full_battery 4)
+    )
+
+    (:method (behave) top_level_method
+
+        (emergency
+            (and
+                (emergency ?place ?id)
+            )
+            (
+                (handle_emergency ?place ?id)
+            )
+        )
+
+        (fetch
+            (and
+                (#open_fetch ?obj)
+            )
+            (
+                (fetch ?obj)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!wait 1.0)
+            )
+        )
+    )
+
+    (:axiom (open_fetch ?out_obj)
+        (and
+            (job fetch ?out_obj)
+            (not (holding ?out_obj))
+        )
+    )
+
+    (:axiom (loaded)
+        (and
+            (holding ?any_thing)
+        )
+    )
+
+    (:axiom (full)
+        (and
+            (battery ?b)
+            (>= ?b @full_battery)
+        )
+    )
+
+    // The job's object has no known place yet: the robot will visit several places.
+    (:axiom (searching)
+        (and
+            (job fetch ?obj)
+            (not (holding ?obj))
+            (not (object_at ?obj ?any_place))
+        )
+    )
+
+    // A full battery goes from the charger to ?inp_to and back.
+    (:axiom (round_trip ?inp_to)
+        (and
+            (charger_at ?charger)
+            (distance ?charger ?inp_to ?d)
+            (<= (* 2 ?d) @full_battery)
+        )
+    )
+
+    // The battery takes the robot to ?inp_to and from there back to the charger (free while carrying it; with the
+    // charger lent out, just there).
+    (:axiom (can_reach ?inp_to)
+        (or
+            (holding charger)
+            (and
+                (at ?here)
+                (distance ?here ?inp_to ?d)
+                (battery ?b)
+                (charger_at ?charger)
+                (distance ?inp_to ?charger ?back)
+                (>= ?b (+ ?d ?back))
+            )
+            (and
+                (at ?here)
+                (distance ?here ?inp_to ?d)
+                (battery ?b)
+                (not (charger_at ?any_place))
+                (>= ?b ?d)
+            )
+        )
+    )
+
+    // RAE fetch: take it when here, go when its place is known, else search. Contract: one segment of the job.
+    (:method (fetch ?inp_obj)
+
+        (take_here
+            (and
+                (object_at ?inp_obj ?place)
+                (at ?place)
+            )
+            (
+                (drop_load)
+                (!take ?inp_obj)
+            )
+        )
+
+        (go_to_it
+            (and
+                (object_at ?inp_obj ?place)
+                (not (at ?place))
+            )
+            (
+                (travel_to ?place)
+                (&fetch ?inp_obj)
+            )
+        )
+
+        (search
+            ()
+            (
+                (search ?inp_obj)
+            )
+        )
+    )
+
+    // RAE search: go to the next place not seen yet and look; `&fetch` reads what the look found.
+    (:method (search ?inp_obj)
+
+        (known
+            (and
+                (object_at ?inp_obj ?any_place)
+            )
+            ()
+        )
+
+        (look_next
+            (and
+                (unviewed ?place)
+            )
+            (
+                (travel_to ?place)
+                (!perceive ?place)
+                (&fetch ?inp_obj)
+            )
+        )
+
+        (seen_everywhere
+            ()
+            (
+                (!report_not_found ?inp_obj)
+            )
+        )
+    )
+
+    // RAE moveTo with Search/Fetch method 2's "recharge first". Contract: at ?inp_to, or on the way (`&`).
+    (:method (travel_to ?inp_to)
+
+        (arrived
+            (and
+                (at ?inp_to)
+            )
+            ()
+        )
+
+        (go
+            (and
+                (#can_reach ?inp_to)
+            )
+            (
+                (!move_to ?inp_to)
+            )
+        )
+
+        (recharge_first
+            ()
+            (
+                (recharge ?inp_to)
+                (&travel_to ?inp_to)
+            )
+        )
+    )
+
+    // RAE recharge, re-entrant, for a trip to ?inp_to. Contract: the battery is full (and a borrowed charger given
+    // back) and the requested trip is reachable, or preparation is still in progress (`&`).
+    (:method (recharge ?inp_to)
+
+        (done
+            (and
+                (#full)
+                (#can_reach ?inp_to)
+                (not (borrowed_charger ?any_owner))
+            )
+            ()
+        )
+
+        (hand_back
+            (and
+                (#full)
+                (borrowed_charger ?owner)
+            )
+            (
+                (!hand_back_charger ?owner)
+            )
+        )
+
+        (charge_carried
+            (and
+                (holding charger)
+            )
+            (
+                (!charge)
+            )
+        )
+
+        (at_charger
+            (and
+                (at ?place)
+                (charger_at ?place)
+            )
+            (
+                (charge_at_charger ?inp_to)
+            )
+        )
+
+        (go_to_charger
+            (and
+                (charger_at ?place)
+                (#can_reach ?place)
+            )
+            (
+                (!move_to ?place)
+                (&recharge ?inp_to)
+            )
+        )
+
+        // Method 1, first half: the robot that has the charger puts it down where it is.
+        (borrow
+            (and
+                (charger_with ?owner)
+            )
+            (
+                (!ask_for_charger ?owner)
+                (&recharge ?inp_to)
+            )
+        )
+
+        (stranded
+            ()
+            (
+                (!signal_stranded)
+            )
+        )
+    )
+
+    // RAE recharge methods 1-3, at the charger: which one is the reason in the world.
+    (:method (charge_at_charger ?inp_to)
+
+        // Method 1: the charger another robot put down for us; it takes it back.
+        (borrowed
+            (and
+                (borrowed_charger ?owner)
+            )
+            (
+                (!charge)
+                (!hand_back_charger ?owner)
+            )
+        )
+
+        // Method 3: take the charger along (moves are free while carried) when searching (several places to visit)
+        // or when a full battery cannot go to ?inp_to and back.
+        (take_along
+            (and
+                (not (#loaded))
+                (or
+                    (#searching)
+                    (not (#round_trip ?inp_to))
+                )
+            )
+            (
+                (!charge)
+                (!take charger)
+            )
+        )
+
+        // Method 2: charge and leave the charger where it is.
+        (leave_it
+            ()
+            (
+                (!charge)
+            )
+        )
+    )
+
+    // RAE emergency: drop the load, go there, deal with it. Re-entrant: the move is planned only with empty hands,
+    // because what the move costs depends on the load (the charger makes it free).
+    (:method (handle_emergency ?inp_place ?inp_id)
+
+        (respond
+            (and
+                (not (#loaded))
+            )
+            (
+                (travel_to ?inp_place)
+                (!address_emergency ?inp_place ?inp_id)
+            )
+        )
+
+        (drop_first
+            ()
+            (
+                (drop_load)
+                (&handle_emergency ?inp_place ?inp_id)
+            )
+        )
+    )
+
+    // Re-entrant: empty hands need nothing.
+    (:method (drop_load)
+
+        (empty
+            (and
+                (not (#loaded))
+            )
+            ()
+        )
+
+        (put_down
+            (and
+                (holding ?thing)
+            )
+            (
+                (!put ?thing)
+            )
+        )
+    )
+)

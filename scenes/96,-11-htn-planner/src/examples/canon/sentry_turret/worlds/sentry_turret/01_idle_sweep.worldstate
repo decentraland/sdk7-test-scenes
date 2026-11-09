@@ -1,0 +1,6 @@
+// sentry_turret: nothing to shoot at. The root's last branch: one long sweep, then the next replan looks again.
+// method: behave
+// expect: succeeded
+//   1. !sweep 3.0
+
+wielded bullets

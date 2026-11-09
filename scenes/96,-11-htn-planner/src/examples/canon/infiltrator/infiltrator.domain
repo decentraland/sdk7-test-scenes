@@ -1,0 +1,400 @@
+// infiltrator: a shooter NPC that hunts the player through a building of areas, doors, light switches and items.
+// It picks a way to kill (a stealth kill in the dark, a ranged attack, a knife) and first fetches what that needs:
+// a medikit when hurt, a weapon or ammunition, a keycard for a locked door on the way.
+//
+// Teaches:
+//   - Strategy choice by what the NPC holds: stealth (a loaded night-vision gun), ranged (a loaded gun), melee (a
+//     knife), in that order of preference; each a short sequence of re-usable compound tasks.
+//   - Prerequisites as their own tiers before the attack: heal, arm, open the way. A tier that picks something up
+//     ends its plan with a deferred `&behave`, so what follows is planned against the world after the pickup.
+//   - Passing what the plan did as a parameter instead: healing fetches medikit ?m and then uses ?m in the same plan
+//     (no fact about the medikit in hand is needed at planning time).
+//   - Re-entrant tasks everywhere: `move_to_area` (already there), `set_lights` (already lit / dark),
+//     `make_contact` (already aware), `use_cover` (no cover point: nothing to do).
+//   - "Prepare the environment": light switches in the room before the attack (on to be seen, off to sneak).
+//
+// Source (copied / adapted, MIT): Dennis Soemers, HTN_Plan_Reuse, the SimpleFPS domain written as C++ task classes,
+// https://github.com/DennisSoemers/HTN_Plan_Reuse (commit acdf5e6f808f50b98a4be4da653a7c27b6e713df,
+// HTN_Plugin/Source/HTN_Plugin/Private/JSHOP2_Experiments/SimpleFPS/Tasks/), (c) 2016 Dennis Soemers, MIT licence;
+// paper: Soemers and Winands, "Hierarchical Task Network Plan Reuse for Video Games", IEEE CIG 2016. Adapted from
+// its tasks Behave, RestoreFullHealth, TakeCoverAndWoundPlayer, WoundPlayer, GetLoadedGun(WithNightVision),
+// GetKnife, GetItem, ReloadCompound, MakeAccessible, MoveToArea, TurnOn/OffLightsCompound, MakeContactCompound,
+// TakeCover, SneakKill, AttackRanged, AttackMelee.
+// Licence: MIT (adapted); the licence text is in src/examples/canon/THIRD_PARTY_NOTICES.md.
+//
+// Emulations: SimpleFPS plans with a cost-optimal planner that simulates every task's effects (inventory, the NPC's
+// area, lights) and tries all three strategies, keeping the cheapest. Here:
+//   - cost → order: the strategies are branches in a fixed order of preference, chosen by what is in hand;
+//   - effects → the plan stops at the first pickup, either with a deferred `&behave` (decided against the world
+//     after the pickup) or by passing the picked-up item on as a parameter (healing);
+//   - the C++ sorts (loaded guns before unloaded ones, then by distance; only items in reachable areas) → the host
+//     publishes `(reachable_item ?item ?area)` in that order; a path query publishes `(locked_on_route ?area ?door)`;
+//   - moving through areas door by door → one host primitive `!go_to_area`, after unlocking a locked door on the
+//     route with a keycard in hand.
+// Deviations: the evaluate-weapon-choice step and its preferred-weapon cost are left out (order replaces cost);
+// with no medikit in reach the NPC fights on hurt (SimpleFPS's restore fails, which fails its whole behaviour);
+// with nothing to arm itself with or no keycard in reach, it searches (`!search_area`), which SimpleFPS does not.
+// Not ported: the plan-reuse experiments themselves, the random problem generator, exploring / unexploring marks,
+// uncovering before moving, more than one player.
+//
+// Facts (the NPC's own world, from the host's sensors):
+//   (npc_in ?area) (player_in ?player ?area) (player_aware) (injured)
+//   (holding ?item) (item ?item gun|knife|medikit|ammo|keycard) (loaded ?gun) (night_vision ?gun)
+//   (ammo_for ?ammo ?gun) (opens ?keycard ?door)
+//   (reachable_item ?item ?area)      items lying in reachable areas, best first (host)
+//   (locked_on_route ?area ?door)     the way to ?area passes this locked door (host path query)
+//   (lights ?area on|off) (control_box ?area ?box) (cover_point ?area ?point)
+// Primitives: (!go_to_area ?area) (!unlock ?door ?keycard) (!walk_to ?spot) (!switch_lights ?area on|off)
+//             (!pick_up ?item) (!reload ?gun ?ammo) (!use_medikit ?medikit) (!take_cover) (!make_contact ?player)
+//             (!sneak_kill ?player ?gun) (!shoot ?player ?gun) (!close_in ?player) (!stab ?player ?knife)
+//             (!search_area) (!wait ?seconds)
+// Scenarios: worlds/infiltrator/ (npm run htn:run -- --world infiltrator/<scenario>; --list names them); story: stories.ts.
+
+(:domain Infiltrator top_level_domain
+
+    (:method (behave) top_level_method
+
+        // SimpleFPS restores full health before every attack.
+        (heal
+            (and
+                (injured)
+                (#medikit_at ?medikit ?where)
+            )
+            (
+                (restore_full_health ?medikit ?where)
+            )
+        )
+
+        (arm
+            (and
+                (player_in ?any_player ?any_area)
+                (not (#armed))
+            )
+            (
+                (get_weapon)
+            )
+        )
+
+        (open_way
+            (and
+                (player_in ?any_player ?area)
+                (#route_blocked ?area ?door)
+            )
+            (
+                (get_keycard ?door)
+            )
+        )
+
+        (attack
+            (and
+                (player_in ?player ?area)
+                (#armed)
+                (not (#route_blocked ?area ?blocking_door))
+            )
+            (
+                (wound_player ?player ?area)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!wait 1.0)
+            )
+        )
+    )
+
+    // Contract: injured, medikit ?inp_medikit in hand (?inp_where = in_hand) or lying in area ?inp_where.
+    // Effect: healed. The medikit is passed on as a parameter: no replan between the pickup and its use.
+    (:method (restore_full_health ?inp_medikit ?inp_where)
+
+        (use_held
+            (and
+                (== ?inp_where in_hand)
+            )
+            (
+                (!use_medikit ?inp_medikit)
+            )
+        )
+
+        (fetch_and_use
+            ()
+            (
+                (fetch_item ?inp_medikit ?inp_where)
+                (!use_medikit ?inp_medikit)
+            )
+        )
+    )
+
+    // Contract: not armed. Effect: armed, or a pickup towards it (then the rest is planned after it).
+    (:method (get_weapon)
+
+        (reload_held_gun
+            (and
+                (holding ?gun)
+                (item ?gun gun)
+                (not (loaded ?gun))
+                (ammo_for ?ammo ?gun)
+                (holding ?ammo)
+            )
+            (
+                (!reload ?gun ?ammo)
+            )
+        )
+
+        (fetch_ammo
+            (and
+                (holding ?gun)
+                (item ?gun gun)
+                (not (loaded ?gun))
+                (ammo_for ?ammo ?gun)
+                (reachable_item ?ammo ?area)
+            )
+            (
+                (fetch_item ?ammo ?area)
+                (&behave)
+            )
+        )
+
+        // The host lists loaded guns first, then the rest, each by distance (SimpleFPS's sort).
+        (fetch_weapon
+            (and
+                (reachable_item ?weapon ?area)
+                (#weapon ?weapon)
+            )
+            (
+                (fetch_item ?weapon ?area)
+                (&behave)
+            )
+        )
+
+        (search
+            ()
+            (
+                (!search_area)
+            )
+        )
+    )
+
+    // Contract: the way to the player passes locked ?inp_door. Effect: its keycard in hand.
+    (:method (get_keycard ?inp_door)
+
+        (fetch_keycard
+            (and
+                (opens ?keycard ?inp_door)
+                (reachable_item ?keycard ?area)
+            )
+            (
+                (fetch_item ?keycard ?area)
+                (&behave)
+            )
+        )
+
+        (search
+            ()
+            (
+                (!search_area)
+            )
+        )
+    )
+
+    // Contract: armed, the way to ?inp_area open. Effect: the player is wounded. Most specific weapon first: a
+    // night-vision gun could also shoot in the light, so ranged comes after stealth on purpose.
+    (:method (wound_player ?inp_player ?inp_area)
+
+        (stealth
+            (and
+                (#loaded_gun ?gun)
+                (night_vision ?gun)
+            )
+            (
+                (move_to_area ?inp_area)
+                (set_lights ?inp_area off)
+                (use_cover ?inp_area)
+                (!sneak_kill ?inp_player ?gun)
+            )
+        )
+
+        (ranged
+            (and
+                (#loaded_gun ?gun)
+            )
+            (
+                (move_to_area ?inp_area)
+                (set_lights ?inp_area on)
+                (make_contact ?inp_player)
+                (use_cover ?inp_area)
+                (!shoot ?inp_player ?gun)
+            )
+        )
+
+        (melee
+            (and
+                (holding ?knife)
+                (item ?knife knife)
+            )
+            (
+                (move_to_area ?inp_area)
+                (set_lights ?inp_area on)
+                (make_contact ?inp_player)
+                (!close_in ?inp_player)
+                (!stab ?inp_player ?knife)
+            )
+        )
+    )
+
+    // Go there, put the lights on, take it (SimpleFPS GetItem).
+    (:method (fetch_item ?inp_item ?inp_area)
+
+        (fetch
+            ()
+            (
+                (move_to_area ?inp_area)
+                (set_lights ?inp_area on)
+                (!pick_up ?inp_item)
+            )
+        )
+    )
+
+    // Re-entrant. A locked door on the way needs its keycard in hand (SimpleFPS MakeAccessible).
+    (:method (move_to_area ?inp_area)
+
+        (already_there
+            (and
+                (npc_in ?inp_area)
+            )
+            ()
+        )
+
+        (unlock_and_go
+            (and
+                (locked_on_route ?inp_area ?door)
+                (#holds_key ?door ?keycard)
+            )
+            (
+                (!unlock ?door ?keycard)
+                (!go_to_area ?inp_area)
+            )
+        )
+
+        (go
+            (and
+                (not (locked_on_route ?inp_area ?any_door))
+            )
+            (
+                (!go_to_area ?inp_area)
+            )
+        )
+    )
+
+    // Re-entrant: nothing to do when the lights are already so.
+    (:method (set_lights ?inp_area ?inp_state)
+
+        (already_so
+            (and
+                (lights ?inp_area ?inp_state)
+            )
+            ()
+        )
+
+        (switch
+            (and
+                (control_box ?inp_area ?box)
+            )
+            (
+                (!walk_to ?box)
+                (!switch_lights ?inp_area ?inp_state)
+            )
+        )
+    )
+
+    (:method (make_contact ?inp_player)
+
+        (already_aware
+            (and
+                (player_aware)
+            )
+            ()
+        )
+
+        (contact
+            ()
+            (
+                (!make_contact ?inp_player)
+            )
+        )
+    )
+
+    // Take cover if the area has a cover point (SimpleFPS: the take-cover variant of the attack).
+    (:method (use_cover ?inp_area)
+
+        (take_cover
+            (and
+                (cover_point ?inp_area ?point)
+            )
+            (
+                (!walk_to ?point)
+                (!take_cover)
+            )
+        )
+
+        (no_cover
+            ()
+            ()
+        )
+    )
+
+    (:axiom (loaded_gun ?out_gun)
+        (and
+            (holding ?out_gun)
+            (item ?out_gun gun)
+            (loaded ?out_gun)
+        )
+    )
+
+    (:axiom (armed)
+        (or
+            (#loaded_gun ?gun)
+            (and
+                (holding ?knife)
+                (item ?knife knife)
+            )
+        )
+    )
+
+    (:axiom (weapon ?inp_item)
+        (or
+            (item ?inp_item gun)
+            (item ?inp_item knife)
+        )
+    )
+
+    (:axiom (holds_key ?inp_door ?out_keycard)
+        (and
+            (holding ?out_keycard)
+            (opens ?out_keycard ?inp_door)
+        )
+    )
+
+    (:axiom (route_blocked ?inp_area ?out_door)
+        (and
+            (locked_on_route ?inp_area ?out_door)
+            (not (#holds_key ?out_door ?keycard))
+        )
+    )
+
+    // A medikit in hand, else the first one lying in reach.
+    (:axiom (medikit_at ?out_medikit ?out_where)
+        (or
+            (and
+                (holding ?out_medikit)
+                (item ?out_medikit medikit)
+                (= ?out_where in_hand)
+            )
+            (and
+                (reachable_item ?out_medikit ?out_where)
+                (item ?out_medikit medikit)
+            )
+        )
+    )
+)

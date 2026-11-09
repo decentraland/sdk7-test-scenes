@@ -1,0 +1,843 @@
+[
+  {
+    "name": "axiom assignment: out_position can be initialized: (and (= ?out_position 7))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:26",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (= ?out_position 7)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: out_position can be initialized: (and (= ?out_position (+ 2 5)))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:26",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (= ?out_position (+ 2 5))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: out_position can be initialized: (and (= ?out_position (call get_entity_position ?inp_entity)))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:26",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (= ?out_position (call get_entity_position ?inp_entity))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: io_position can be initialized: (and (= ?io_position 7))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:26",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?io_position)\n    (and (= ?io_position 7)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: io_position can be initialized: (and (= ?io_position (+ 2 5)))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:26",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?io_position)\n    (and (= ?io_position (+ 2 5))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: io_position can be initialized: (and (= ?io_position (call get_entity_position ?inp_entity)))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:26",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?io_position)\n    (and (= ?io_position (call get_entity_position ?inp_entity))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: rejected: (and (= ?inp_entity 7))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:38",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (= ?inp_entity 7)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3}
+    }
+  },
+  {
+    "name": "axiom assignment: rejected: (and (= ?out_position 1) (= ?out_position 2))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:38",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (= ?out_position 1) (= ?out_position 2)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3}
+    }
+  },
+  {
+    "name": "axiom assignment: rejected: (and (position ?out_position) (= ?out_position 2))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:38",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (position ?out_position) (= ?out_position 2)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3}
+    }
+  },
+  {
+    "name": "axiom assignment: rejected: (and (= ?out_position (+ ?out_position 1)))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:38",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (= ?out_position (+ ?out_position 1))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3}
+    }
+  },
+  {
+    "name": "axiom assignment: rejected: (and (= ?local 1) (= ?local 2))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:38",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (= ?local 1) (= ?local 2)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3}
+    }
+  },
+  {
+    "name": "axiom assignment: rejected: (and (not (position ?out_position)) (= ?out_position 2))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:38",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (not (position ?out_position)) (= ?out_position 2)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3}
+    }
+  },
+  {
+    "name": "axiom assignment: alternatives initialize output: (alt (= ?out_position 1) (= ?out_position 2))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:54",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (alt (= ?out_position 1) (= ?out_position 2)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: io rejected: (and (= ?io_position 1) (= ?io_position 2))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:60",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?io_position)\n    (and (= ?io_position 1) (= ?io_position 2)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3},
+      "upstreamMessage": "?io_position"
+    }
+  },
+  {
+    "name": "axiom assignment: io rejected: (and (position ?io_position) (= ?io_position 2))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:60",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?io_position)\n    (and (position ?io_position) (= ?io_position 2)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3},
+      "upstreamMessage": "?io_position"
+    }
+  },
+  {
+    "name": "axiom assignment: io rejected: (and (= ?io_position (+ ?io_position 1)))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:60",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?io_position)\n    (and (= ?io_position (+ ?io_position 1))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3},
+      "upstreamMessage": "?io_position"
+    }
+  },
+  {
+    "name": "axiom assignment: io rejected: (and (not (position ?io_position)) (= ?io_position 2))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:60",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?io_position)\n    (and (not (position ?io_position)) (= ?io_position 2)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3},
+      "upstreamMessage": "?io_position"
+    }
+  },
+  {
+    "name": "axiom assignment: io rejected: (and (alt (= ?io_position 1) (= ?io_position 2)) (= ?io_position 3))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:60",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?io_position)\n    (and (alt (= ?io_position 1) (= ?io_position 2)) (= ?io_position 3)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3},
+      "upstreamMessage": "?io_position"
+    }
+  },
+  {
+    "name": "axiom assignment: alternatives initialize io: (alt (= ?io_position 1) (= ?io_position 2))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:80",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?io_position)\n    (alt (= ?io_position 1) (= ?io_position 2)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: alternatives initialize io: (or (= ?io_position 1) (= ?io_position 2))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:80",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?io_position)\n    (or (= ?io_position 1) (= ?io_position 2)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: unknown call input rejected: (and (= ?out_position (call get_entity_position ?inp_entity_id)))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:90",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (= ?out_position (call get_entity_position ?inp_entity_id))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3},
+      "upstreamMessage": "inp_entity_id"
+    }
+  },
+  {
+    "name": "axiom assignment: unknown call input rejected: (and (call consume ?inp_entity_id))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:90",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (call consume ?inp_entity_id)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3},
+      "upstreamMessage": "inp_entity_id"
+    }
+  },
+  {
+    "name": "axiom assignment: unknown call input rejected: (and (= ?out_position (+ 1 (call get_entity_position ?inp_entity_id))))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:90",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (= ?out_position (+ 1 (call get_entity_position ?inp_entity_id)))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3},
+      "upstreamMessage": "inp_entity_id"
+    }
+  },
+  {
+    "name": "axiom assignment: unknown call input rejected: (and (< (call get_entity_position ?inp_entity_id) 2))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:90",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (< (call get_entity_position ?inp_entity_id) 2)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3},
+      "upstreamMessage": "inp_entity_id"
+    }
+  },
+  {
+    "name": "axiom assignment: unknown call input rejected: (or (call consume ?inp_entity_id) (call consume ?inp_entity))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:90",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (or (call consume ?inp_entity_id) (call consume ?inp_entity)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3},
+      "upstreamMessage": "inp_entity_id"
+    }
+  },
+  {
+    "name": "axiom assignment: unknown call input rejected: (and (not (call consume ?inp_entity_id)))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:90",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (not (call consume ?inp_entity_id))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 3},
+      "upstreamMessage": "inp_entity_id"
+    }
+  },
+  {
+    "name": "axiom assignment: declared inputs and locals accepted: (and (= ?out_position (call get_entity_position ?inp_entity)))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:111",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (= ?out_position (call get_entity_position ?inp_entity))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: declared inputs and locals accepted: (and (entity ?local) (= ?out_position (call get_entity_position ?local)))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:111",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (entity ?local) (= ?out_position (call get_entity_position ?local))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: declared inputs and locals accepted: (and (= ?local 1) (= ?out_position (call get_entity_position ?local)))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:111",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (= ?local 1) (= ?out_position (call get_entity_position ?local))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: declared inputs and locals accepted: (and (or (entity ?local) (other ?local)) (= ?out_position (call get_entity_position ?local)))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:111",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?out_position)\n    (and (or (entity ?local) (other ?local)) (= ?out_position (call get_entity_position ?local))))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "axiom assignment: declared inputs and locals accepted: (and (call consume ?io_position))",
+    "upstream": "HTNTest/src/HTNAxiomAssignmentTest.cpp:111",
+    "domain": "axiom_assignment.domain",
+    "sources": {
+      "axiom_assignment.domain": "(:domain AxiomAssignment top_level_domain\n(:axiom (select_position ?inp_entity ?io_position)\n    (and (call consume ?io_position)))\n(:method (run) top_level_method (ready () ((!ready))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "assignment syntax: call result: (= ?value (call get_entity_position ?inp_entity_id))",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:43",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (= ?value (call get_entity_position ?inp_entity_id))) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "assignment syntax: literal: (= ?value main_threat)",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:50",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (= ?value main_threat)) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "assignment syntax: arithmetic: (= ?value (+ 2 3))",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:56",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (= ?value (+ 2 3))) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "assignment syntax: implicit call binding rejected: (?value (call get_entity_position ?inp_entity_id))",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:62",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (?value (call get_entity_position ?inp_entity_id))) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "assignment syntax: equality comparison: (value ?value) (== ?value 3)",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:69",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (value ?value) (== ?value 3)) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "assignment syntax: destination used by earlier fact rejected: (value ?value) (= ?value 3)",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:75",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (value ?value) (= ?value 3)) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "already been declared or used"}
+  },
+  {
+    "name": "assignment syntax: redeclaration or self reference rejected: (= ?value 1) (= ?value 2)",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:84",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (= ?value 1) (= ?value 2)) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "assignment syntax: redeclaration or self reference rejected: (= ?value (+ ?value 1))",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:84",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (= ?value (+ ?value 1))) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "assignment syntax: redeclaration or self reference rejected: (not (value ?value)) (= ?value 2)",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:84",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (not (value ?value)) (= ?value 2)) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "assignment syntax: redeclaration or self reference rejected: (= ?inp_entity_id 2) (value ?value)",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:84",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (= ?inp_entity_id 2) (value ?value)) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "assignment syntax: alternatives declare the same name: (alt (and (= ?value 1)) (and (= ?value 2)))",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:96",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (alt (and (= ?value 1)) (and (= ?value 2)))) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "assignment syntax: invalid destination or arity rejected: (= 3 4)",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:102",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (= 3 4)) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "assignment syntax: invalid destination or arity rejected: (= ?value)",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:102",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (= ?value)) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "assignment syntax: invalid destination or arity rejected: (= ?value 1 2)",
+    "upstream": "HTNTest/src/HTNAssignmentSyntaxTest.cpp:102",
+    "domain": "AssignmentSyntax.domain",
+    "sources": {
+      "AssignmentSyntax.domain": "(:domain AssignmentSyntax top_level_domain\n  (:method (run ?inp_entity_id) top_level_method\n    (ready (and (= ?value 1 2)) ((!result ?value)))\n  )\n)\n"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "override regression: method override calls Base:: implementation",
+    "upstream": "HTNTest/src/HTNOverrideRegressionTest.cpp:87",
+    "note": "Upstream checks generated C text; here: the domain links.",
+    "domain": "Root.domain",
+    "sources": {
+      "Base.domain": "(:domain Base base\n (:method (act ?inp_x) base (b () ((!base_action ?inp_x))))\n)\n",
+      "Root.domain": "(:include \"Base.domain\")\n(:domain Root top_level_domain\n (:method (act ?inp_x) overrides Base (b () ((Base::act ?inp_x) (!root ?inp_x))))\n (:method (run) top_level_method (b () ((act 1))))\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "override regression: empty base axiom called qualified from override",
+    "upstream": "HTNTest/src/HTNOverrideRegressionTest.cpp:108",
+    "note": "Upstream checks generated C text; here: the domain links.",
+    "domain": "Root.domain",
+    "sources": {
+      "Base.domain": "(:domain Base base\n (:axiom (ready ?inp_x) base ())\n)\n",
+      "Root.domain": "(:include \"Base.domain\")\n(:domain Root top_level_domain\n (:axiom (ready ?inp_x) overrides Base (and (#Base::ready ?inp_x) (root_ready ?inp_x)))\n (:method (run) top_level_method (b (and (#ready enemy)) ((!ok))))\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "override regression: qualified axiom inside and",
+    "upstream": "HTNTest/src/HTNOverrideRegressionTest.cpp:119",
+    "note": "Upstream checks generated C text; here: the domain links.",
+    "domain": "Root.domain",
+    "sources": {
+      "Base.domain": "(:domain Base base\n (:axiom (ready ?inp_x) base (and (required ?inp_x)))\n)\n",
+      "Root.domain": "(:include \"Base.domain\")\n(:domain Root top_level_domain\n (:axiom (test ?inp_x) (and (#Base::ready ?inp_x) (second_guard ?inp_x)))\n (:method (run) top_level_method (b (and (#test enemy)) ((!ok))))\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "override regression: qualified axiom inside not",
+    "upstream": "HTNTest/src/HTNOverrideRegressionTest.cpp:132",
+    "note": "Upstream checks generated C text; here: the domain links.",
+    "domain": "Root.domain",
+    "sources": {
+      "Base.domain": "(:domain Base base\n (:axiom (blocked ?inp_x) base (and (blocked_fact ?inp_x)))\n)\n",
+      "Root.domain": "(:include \"Base.domain\")\n(:domain Root top_level_domain\n (:axiom (ready ?inp_x) (and (not (#Base::blocked ?inp_x))))\n (:method (run) top_level_method (b (and (#ready enemy)) ((!ok))))\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "override regression: qualified axiom parent chain",
+    "upstream": "HTNTest/src/HTNOverrideRegressionTest.cpp:143",
+    "note": "Upstream checks generated C text; here: the domain links.",
+    "domain": "Root.domain",
+    "sources": {
+      "Base.domain": "(:domain Base base\n (:axiom (ready ?inp_x) base ())\n)\n",
+      "Mid.domain": "(:include \"Base.domain\")\n(:domain Mid base\n (:axiom (ready ?inp_x) overrides Base (and (#Base::ready ?inp_x) (mid_ready ?inp_x)))\n)\n",
+      "Root.domain": "(:include \"Mid.domain\")\n(:domain Root top_level_domain\n (:axiom (ready ?inp_x) overrides Mid (or (#Mid::ready ?inp_x) (root_fallback ?inp_x)))\n (:method (run) top_level_method (b (and (#ready enemy)) ((!ok))))\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "override regression: constant override after partial chain",
+    "upstream": "HTNTest/src/HTNOverrideRegressionTest.cpp:167",
+    "note": "Upstream checks generated C text; here: the domain links.",
+    "domain": "Root.domain",
+    "sources": {
+      "Base.domain": "(:domain Base base\n (:constants C base (attack \"normal\") (speed \"slow\"))\n)\n",
+      "Mid.domain": "(:include \"Base.domain\")\n(:domain Mid base\n (:constants C2 overrides Base (attack \"ninja\"))\n)\n",
+      "Root.domain": "(:include \"Mid.domain\")\n(:domain Root top_level_domain\n (:constants C3 overrides Mid (attack \"elite\"))\n (:method (run) top_level_method (b () ((!use @attack @speed))))\n)\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "frontend: negative literals and operators accepted",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:33",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain (:method (run) top_level_method (ready (and (= ?value -2) (== (- ?value 1) -3) (< -0.5 0.0)) ((!act -1 -1.0 -123.456 (- 5 2) (- 1.0) (-- 1.5) (-2 -0.5))))))"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "frontend: malformed negative literal \"-.\"",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:55",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain\n(:method (run) top_level_method (ready () ((!act -.)))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"find": "-."}
+    }
+  },
+  {
+    "name": "frontend: malformed negative literal \"-abc\"",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:55",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain\n(:method (run) top_level_method (ready () ((!act -abc)))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"find": "-abc"}
+    }
+  },
+  {
+    "name": "frontend: malformed negative literal \"--1\"",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:55",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain\n(:method (run) top_level_method (ready () ((!act --1)))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"find": "--1"}
+    }
+  },
+  {
+    "name": "frontend: malformed negative literal \"-2147483649\"",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:55",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain\n(:method (run) top_level_method (ready () ((!act -2147483649)))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"find": "-2147483649"}
+    }
+  },
+  {
+    "name": "frontend: trailing comment 1 ends at EOF",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:69",
+    "domain": "Root.domain",
+    "sources": {"Root.domain": "(:domain Root top_level_domain (:method (run) top_level_method (ready () ((!act)))))//"},
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "frontend: trailing comment 2 ends at EOF",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:69",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain (:method (run) top_level_method (ready () ((!act)))))// comment without newline"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "frontend: trailing comment 3 ends at EOF",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:69",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain (:method (run) top_level_method (ready () ((!act)))))// comment\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "frontend: trailing comment 4 ends at EOF",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:69",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain (:method (run) top_level_method (ready () ((!act)))))// comment\r\n"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "frontend: malformed source 1 fails",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:94",
+    "domain": "Root.domain",
+    "sources": {"Root.domain": ""},
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "frontend: malformed source 2 fails",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:94",
+    "domain": "Root.domain",
+    "sources": {"Root.domain": "// no domain"},
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "frontend: malformed source 3 fails",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:94",
+    "domain": "Root.domain",
+    "sources": {"Root.domain": "(:domain Root top_level_domain"},
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "frontend: malformed source 4 fails",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:94",
+    "domain": "Root.domain",
+    "sources": {"Root.domain": "(:domain Root top_level_domain (:method (run) top_level_method (broken)))"},
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "frontend: malformed source 5 fails",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:94",
+    "domain": "Root.domain",
+    "sources": {"Root.domain": "(:domain Root top_level_domain (:unknown))"},
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "frontend: malformed source 6 fails",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:94",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain (:method (run) top_level_method (ready () ((!act)))))\n(extra)"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "frontend: lexical error with CRLF: not recognized",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:112",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain\r\n  (:method (run) top_level_method (ready () ((!act $))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 2, "col": 52},
+      "upstreamMessage": "not recognized"
+    }
+  },
+  {
+    "name": "frontend: lexical error with CRLF: end of the string",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:112",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain\r\n  (:method (run) top_level_method (ready () ((!act \"unclosed"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 2, "col": 61},
+      "upstreamMessage": "end of the string"
+    }
+  },
+  {
+    "name": "frontend: lexical error with CRLF: Number out of bounds",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:112",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain\r\n  (:method (run) top_level_method (ready () ((!act 999999999999999999999999))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 2, "col": 52},
+      "upstreamMessage": "Number out of bounds"
+    }
+  },
+  {
+    "name": "frontend: lexical error with CRLF: Number out of bounds (float)",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:112",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain\r\n  (:method (run) top_level_method (ready () ((!act 999999999999999999999999999999999999999999999999.0))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"line": 2, "col": 52},
+      "upstreamMessage": "Number out of bounds"
+    }
+  },
+  {
+    "name": "frontend: include syntax ExpectedIncludePath: (:include bad)",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:139",
+    "domain": "Root.domain",
+    "sources": {"Root.domain": "// header\r\n  (:include bad)"},
+    "expect": {
+      "compile": "error",
+      "errorCount": 1,
+      "errorAt": {"find": "bad"}
+    }
+  },
+  {
+    "name": "frontend: include syntax UnterminatedIncludePath: (:include \"unterminated",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:139",
+    "domain": "Root.domain",
+    "sources": {"Root.domain": "// header\r\n  (:include \"unterminated"},
+    "expect": {
+      "compile": "error",
+      "errorCount": 1,
+      "errorAt": {"find": "\""}
+    }
+  },
+  {
+    "name": "frontend: include syntax ExpectedIncludePath: (:include \"\")",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:139",
+    "domain": "Root.domain",
+    "sources": {"Root.domain": "// header\r\n  (:include \"\")"},
+    "expect": {
+      "compile": "error",
+      "errorCount": 1,
+      "errorAt": {"find": "\""}
+    }
+  },
+  {
+    "name": "frontend: include syntax ExpectedIncludeEnd: (:include \"Base.domain\" bad)",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:139",
+    "domain": "Root.domain",
+    "sources": {"Root.domain": "// header\r\n  (:include \"Base.domain\" bad)"},
+    "expect": {
+      "compile": "error",
+      "errorCount": 1,
+      "errorAt": {"find": "bad"}
+    }
+  },
+  {
+    "name": "frontend: includes ignore comment and string contents",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:172",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "// (:include ignored)\r\n(:include // path follows\r\n \"Base.domain\" // closing follows\r\n)\r\n(:domain Root top_level_domain (:method (run) top_level_method (ready () ((!act \"(:include\")))))// (:include also ignored)",
+      "Base.domain": "(:domain Base base)// no final newline"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "frontend: misplaced include after the domain",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:186",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "(:domain Root top_level_domain (:method (run) top_level_method (ready () ((!act)))))\r\n  (:include \"Base.domain\")",
+      "Base.domain": "(:domain Base base)// no final newline"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"find": "(:include"}
+    }
+  },
+  {
+    "name": "frontend: include cycle is reported in the responsible file",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:195",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "// header\r\n  (:include \"Base.domain\")\r\n(:domain Root top_level_domain (:method (run) top_level_method (ready () ((!act)))))",
+      "Base.domain": "// child\r\n (:include \"Root.domain\")\r\n(:domain Base base)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorCount": 1,
+      "errorAt": {"file": "Base.domain", "find": "(:include"}
+    }
+  },
+  {
+    "name": "frontend: missing nested include is reported in the responsible file",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:195",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "// header\r\n  (:include \"Base.domain\")\r\n(:domain Root top_level_domain (:method (run) top_level_method (ready () ((!act)))))",
+      "Base.domain": "// child\r\n (:include \"__htn_missing_diagnostic_fixture__.domain\")\r\n(:domain Base base)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorCount": 1,
+      "errorAt": {"file": "Base.domain", "find": "(:include"}
+    }
+  },
+  {
+    "name": "frontend: malformed included file is reported in the responsible file",
+    "upstream": "HTNTest/src/HTNFrontendDiagnosticsTest.cpp:195",
+    "domain": "Root.domain",
+    "sources": {
+      "Root.domain": "// header\r\n  (:include \"Base.domain\")\r\n(:domain Root top_level_domain (:method (run) top_level_method (ready () ((!act)))))",
+      "Base.domain": "// child\r\n(:domain Base base $)"
+    },
+    "expect": {
+      "compile": "error",
+      "errorCount": 1,
+      "errorAt": {"file": "Base.domain", "find": "$"}
+    }
+  },
+  {
+    "name": "boolean symbol syntax: true/false are symbols, @true/@false constants",
+    "upstream": "HTNTest/src/HTNBooleanSymbolSyntaxTest.cpp:36",
+    "note": "Upstream checks AST/IR literal types and generated storage; here: the domain compiles.",
+    "domain": "boolean_symbols.domain",
+    "sources": {
+      "boolean_symbols.domain": "(:domain Symbols top_level_domain\n    (:constants (true 1) (false 0))\n    (:method (run) top_level_method\n        (branch () ((!values true false @true @false (true false) \"true\" \"false\"))))\n)"
+    },
+    "expect": {"compile": "ok"}
+  }
+]

@@ -1,0 +1,9 @@
+// pet_follower: leader far: catch up.
+// method: behave
+// expect: succeeded
+//   1. !move_near owner 3.0
+
+now 0.0
+leader owner
+distance_to owner 12.0
+follow_spot owner spot_near

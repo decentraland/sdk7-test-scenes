@@ -1,0 +1,373 @@
+[
+  {
+    "name": "equivalence AtomList/ConstantList",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:848",
+    "domain": "upstream/Domains/Test/atom_list_demo.domain",
+    "worldstate": "upstream/WorldStates/Test/atom_list_demo.worldstate",
+    "callterms": "test",
+    "method": "show_atom_list",
+    "expect": {
+      "status": "succeeded",
+      "plan": [
+        "!print_original (patrol 3 1 (10.0 20.0 30.0))",
+        "!print_added (patrol 3 1 (10.0 20.0 30.0) \"return\")",
+        "!print_removed (patrol 1 (10.0 20.0 30.0) \"return\")",
+        "!print_element (10.0 20.0 30.0)",
+        "!print_size 5",
+        "!print_cleared ()"
+      ]
+    }
+  },
+  {
+    "name": "equivalence AtomList/SplitListBasic",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:848",
+    "domain": "upstream/Domains/Test/atom_list_demo.domain",
+    "worldstate": "upstream/WorldStates/Test/atom_list_demo.worldstate",
+    "callterms": "test",
+    "method": "split_list_basic",
+    "expect": {"status": "succeeded", "plan": ["!split_result \"one\" (\"two\" \"three\")"]}
+  },
+  {
+    "name": "equivalence AtomList/SplitListSingle",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:848",
+    "domain": "upstream/Domains/Test/atom_list_demo.domain",
+    "worldstate": "upstream/WorldStates/Test/atom_list_demo.worldstate",
+    "callterms": "test",
+    "method": "split_list_single_element",
+    "expect": {"status": "succeeded", "plan": ["!split_single_result \"only\" ()"]}
+  },
+  {
+    "name": "equivalence AtomList/SplitListEmpty",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:848",
+    "domain": "upstream/Domains/Test/atom_list_demo.domain",
+    "worldstate": "upstream/WorldStates/Test/atom_list_demo.worldstate",
+    "callterms": "test",
+    "method": "split_list_empty_fails",
+    "expect": {"status": "succeeded", "plan": ["!empty_list_rejected"]}
+  },
+  {
+    "name": "equivalence AtomList/SplitListBoundOutputs",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:848",
+    "domain": "upstream/Domains/Test/atom_list_demo.domain",
+    "worldstate": "upstream/WorldStates/Test/atom_list_demo.worldstate",
+    "callterms": "test",
+    "method": "split_list_bound_outputs",
+    "expect": {"status": "succeeded", "plan": ["!bound_outputs_match"]}
+  },
+  {
+    "name": "equivalence AtomList/SplitListRollback",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:848",
+    "domain": "upstream/Domains/Test/atom_list_demo.domain",
+    "worldstate": "upstream/WorldStates/Test/atom_list_demo.worldstate",
+    "callterms": "test",
+    "method": "split_list_rollback",
+    "expect": {"status": "succeeded", "plan": ["!rollback_result \"only\" ()"]}
+  },
+  {
+    "name": "equivalence AtomList/SplitListFrontBasic",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1770",
+    "note": "Upstream only asserts success and a non-empty plan.",
+    "domain": "upstream/Domains/Test/atom_list_demo.domain",
+    "worldstate": "upstream/WorldStates/Test/atom_list_demo.worldstate",
+    "callterms": "test",
+    "method": "split_list_front_basic",
+    "expect": {"status": "succeeded", "nonEmpty": true}
+  },
+  {
+    "name": "equivalence AtomList/SplitListBackBasic",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1770",
+    "note": "Upstream only asserts success and a non-empty plan.",
+    "domain": "upstream/Domains/Test/atom_list_demo.domain",
+    "worldstate": "upstream/WorldStates/Test/atom_list_demo.worldstate",
+    "callterms": "test",
+    "method": "split_list_back_basic",
+    "expect": {"status": "succeeded", "nonEmpty": true}
+  },
+  {
+    "name": "equivalence AtomList/SplitListBackBoundOutputs",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1770",
+    "note": "Upstream only asserts success and a non-empty plan.",
+    "domain": "upstream/Domains/Test/atom_list_demo.domain",
+    "worldstate": "upstream/WorldStates/Test/atom_list_demo.worldstate",
+    "callterms": "test",
+    "method": "split_list_back_bound_outputs",
+    "expect": {"status": "succeeded", "nonEmpty": true}
+  },
+  {
+    "name": "equivalence AAACombatNPC/HighOrder",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:811",
+    "note": "Upstream checks the first step contains the state name (and Melee/Ranged: the last step contains the enemy id). Also docs/AAA_COMBAT_NPC_DEMO.md:35.",
+    "domain": "upstream/Domains/AAACombatNPC.domain",
+    "worldstate": "upstream/WorldStates/AAACombatNPC_high_order.worldstate",
+    "callterms": "test",
+    "method": "run",
+    "expect": {
+      "status": "succeeded",
+      "nonEmpty": true,
+      "steps": [
+        {"at": 0, "contains": "high_order"}
+      ]
+    }
+  },
+  {
+    "name": "equivalence AAACombatNPC/Melee",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:811",
+    "note": "Upstream checks the first step contains the state name (and Melee/Ranged: the last step contains the enemy id). Also docs/AAA_COMBAT_NPC_DEMO.md:35.",
+    "domain": "upstream/Domains/AAACombatNPC.domain",
+    "worldstate": "upstream/WorldStates/AAACombatNPC_melee.worldstate",
+    "callterms": "test",
+    "method": "run",
+    "expect": {
+      "status": "succeeded",
+      "nonEmpty": true,
+      "steps": [
+        {"at": 0, "contains": "combat"},
+        {"at": -1, "contains": "202"}
+      ]
+    }
+  },
+  {
+    "name": "equivalence AAACombatNPC/Ranged",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:811",
+    "note": "Upstream checks the first step contains the state name (and Melee/Ranged: the last step contains the enemy id). Also docs/AAA_COMBAT_NPC_DEMO.md:35.",
+    "domain": "upstream/Domains/AAACombatNPC.domain",
+    "worldstate": "upstream/WorldStates/AAACombatNPC_ranged.worldstate",
+    "callterms": "test",
+    "method": "run",
+    "expect": {
+      "status": "succeeded",
+      "nonEmpty": true,
+      "steps": [
+        {"at": 0, "contains": "combat"},
+        {"at": -1, "contains": "302"}
+      ]
+    }
+  },
+  {
+    "name": "equivalence AAACombatNPC/MediumOrder",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:811",
+    "note": "Upstream checks the first step contains the state name (and Melee/Ranged: the last step contains the enemy id). Also docs/AAA_COMBAT_NPC_DEMO.md:35.",
+    "domain": "upstream/Domains/AAACombatNPC.domain",
+    "worldstate": "upstream/WorldStates/AAACombatNPC_medium_order.worldstate",
+    "callterms": "test",
+    "method": "run",
+    "expect": {
+      "status": "succeeded",
+      "nonEmpty": true,
+      "steps": [
+        {"at": 0, "contains": "medium_order"}
+      ]
+    }
+  },
+  {
+    "name": "equivalence AAACombatNPC/Investigation",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:811",
+    "note": "Upstream checks the first step contains the state name (and Melee/Ranged: the last step contains the enemy id). Also docs/AAA_COMBAT_NPC_DEMO.md:35.",
+    "domain": "upstream/Domains/AAACombatNPC.domain",
+    "worldstate": "upstream/WorldStates/AAACombatNPC_investigation.worldstate",
+    "callterms": "test",
+    "method": "run",
+    "expect": {
+      "status": "succeeded",
+      "nonEmpty": true,
+      "steps": [
+        {"at": 0, "contains": "investigation"}
+      ]
+    }
+  },
+  {
+    "name": "equivalence AAACombatNPC/Search",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:811",
+    "note": "Upstream checks the first step contains the state name (and Melee/Ranged: the last step contains the enemy id). Also docs/AAA_COMBAT_NPC_DEMO.md:35.",
+    "domain": "upstream/Domains/AAACombatNPC.domain",
+    "worldstate": "upstream/WorldStates/AAACombatNPC_search.worldstate",
+    "callterms": "test",
+    "method": "run",
+    "expect": {
+      "status": "succeeded",
+      "nonEmpty": true,
+      "steps": [
+        {"at": 0, "contains": "search"}
+      ]
+    }
+  },
+  {
+    "name": "equivalence AAACombatNPC/LowOrder",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:811",
+    "note": "Upstream checks the first step contains the state name (and Melee/Ranged: the last step contains the enemy id). Also docs/AAA_COMBAT_NPC_DEMO.md:35.",
+    "domain": "upstream/Domains/AAACombatNPC.domain",
+    "worldstate": "upstream/WorldStates/AAACombatNPC_low_order.worldstate",
+    "callterms": "test",
+    "method": "run",
+    "expect": {
+      "status": "succeeded",
+      "nonEmpty": true,
+      "steps": [
+        {"at": 0, "contains": "low_order"}
+      ]
+    }
+  },
+  {
+    "name": "equivalence AAACombatNPC/Idle",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:811",
+    "note": "Upstream checks the first step contains the state name (and Melee/Ranged: the last step contains the enemy id). Also docs/AAA_COMBAT_NPC_DEMO.md:35.",
+    "domain": "upstream/Domains/AAACombatNPC.domain",
+    "worldstate": "upstream/WorldStates/AAACombatNPC_idle.worldstate",
+    "callterms": "test",
+    "method": "run",
+    "expect": {
+      "status": "succeeded",
+      "nonEmpty": true,
+      "steps": [
+        {"at": 0, "contains": "idle"}
+      ]
+    }
+  },
+  {
+    "name": "equivalence ComplexScenario/Combat",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1790",
+    "note": "Upstream only asserts success and a non-empty plan (also HTNBenchmark run_scenario, PlanningUnitUsesGeneratedBackend line 1999).",
+    "domain": "upstream/Domains/Test/complex_scenario.domain",
+    "worldstate": "upstream/WorldStates/Test/complex_scenario_combat.worldstate",
+    "callterms": "test",
+    "method": "run_scenario",
+    "expect": {"status": "succeeded", "nonEmpty": true}
+  },
+  {
+    "name": "equivalence ComplexScenario/Emergency",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1790",
+    "note": "Upstream only asserts success and a non-empty plan (also HTNBenchmark run_scenario, PlanningUnitUsesGeneratedBackend line 1999).",
+    "domain": "upstream/Domains/Test/complex_scenario.domain",
+    "worldstate": "upstream/WorldStates/Test/complex_scenario_emergency.worldstate",
+    "callterms": "test",
+    "method": "run_scenario",
+    "expect": {"status": "succeeded", "nonEmpty": true}
+  },
+  {
+    "name": "equivalence ComplexScenario/Idle",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1790",
+    "note": "Upstream only asserts success and a non-empty plan (also HTNBenchmark run_scenario, PlanningUnitUsesGeneratedBackend line 1999).",
+    "domain": "upstream/Domains/Test/complex_scenario.domain",
+    "worldstate": "upstream/WorldStates/Test/complex_scenario_idle.worldstate",
+    "callterms": "test",
+    "method": "run_scenario",
+    "expect": {"status": "succeeded", "nonEmpty": true}
+  },
+  {
+    "name": "equivalence ComplexScenario/Mobility",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1790",
+    "note": "Upstream only asserts success and a non-empty plan (also HTNBenchmark run_scenario, PlanningUnitUsesGeneratedBackend line 1999).",
+    "domain": "upstream/Domains/Test/complex_scenario.domain",
+    "worldstate": "upstream/WorldStates/Test/complex_scenario_mobility.worldstate",
+    "callterms": "test",
+    "method": "run_scenario",
+    "expect": {"status": "succeeded", "nonEmpty": true}
+  },
+  {
+    "name": "equivalence ComplexScenario/Recovery",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1790",
+    "note": "Upstream only asserts success and a non-empty plan (also HTNBenchmark run_scenario, PlanningUnitUsesGeneratedBackend line 1999).",
+    "domain": "upstream/Domains/Test/complex_scenario.domain",
+    "worldstate": "upstream/WorldStates/Test/complex_scenario_recovery.worldstate",
+    "callterms": "test",
+    "method": "run_scenario",
+    "expect": {"status": "succeeded", "nonEmpty": true}
+  },
+  {
+    "name": "equivalence ComplexScenario/Recursive100Entities",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1790",
+    "note": "Upstream only asserts success and a non-empty plan (also HTNBenchmark run_scenario, PlanningUnitUsesGeneratedBackend line 1999).",
+    "domain": "upstream/Domains/Test/complex_scenario.domain",
+    "worldstate": "upstream/WorldStates/Test/complex_scenario_recursive_100.worldstate",
+    "callterms": "test",
+    "method": "run_scenario",
+    "expect": {"status": "succeeded", "nonEmpty": true}
+  },
+  {
+    "name": "equivalence CallTerms/BasicCallTerms",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1805",
+    "domain": "upstream/Domains/Test/callterms.domain",
+    "worldstate": "upstream/WorldStates/Test/callterms.worldstate",
+    "callterms": "test",
+    "method": "test_callterms",
+    "expect": {"status": "succeeded", "nonEmpty": true}
+  },
+  {
+    "name": "equivalence CallTerms/CallTermCreatesFactVisibleImmediately",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:834",
+    "domain": "upstream/Domains/Test/callterms.domain",
+    "worldstate": "upstream/WorldStates/Test/callterms.worldstate",
+    "callterms": "test",
+    "method": "callterm_creates_fact_visible_immediately",
+    "expect": {"status": "succeeded", "plan": ["!target_available_visible \"enemy0\""]}
+  },
+  {
+    "name": "equivalence CallTerms/CallTermWorldStateMutationSurvivesBacktracking",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:841",
+    "domain": "upstream/Domains/Test/callterms.domain",
+    "worldstate": "upstream/WorldStates/Test/callterms.worldstate",
+    "callterms": "test",
+    "method": "callterm_world_state_mutation_survives_backtracking",
+    "expect": {"status": "succeeded", "plan": ["!persisted_target_available \"enemy0\""]}
+  },
+  {
+    "name": "equivalence NestedCalls/NestedCalls",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1814",
+    "domain": "upstream/Domains/Test/nested_calls.domain",
+    "worldstate": "upstream/WorldStates/Test/callterms.worldstate",
+    "callterms": "test",
+    "method": "test_nested_calls",
+    "expect": {"status": "succeeded", "nonEmpty": true}
+  },
+  {
+    "name": "equivalence NumericExpressions/NestedAndMixedArithmetic",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:889",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "worldstate": "upstream/WorldStates/Test/numeric_expressions.worldstate",
+    "callterms": "test",
+    "method": "run",
+    "expect": {"status": "succeeded", "plan": ["!numeric_result \"success\""]}
+  },
+  {
+    "name": "equivalence NumericExpressions/DivisionByZero",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:889",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "worldstate": "upstream/WorldStates/Test/numeric_expressions.worldstate",
+    "callterms": "test",
+    "method": "division_by_zero",
+    "expect": {"status": "succeeded", "plan": ["!numeric_result \"controlled_failure\""]}
+  },
+  {
+    "name": "equivalence NumericExpressions/InvalidOperandType",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:889",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "worldstate": "upstream/WorldStates/Test/numeric_expressions.worldstate",
+    "callterms": "test",
+    "method": "invalid_operand_type",
+    "expect": {"status": "succeeded", "plan": ["!numeric_result \"controlled_failure\""]}
+  },
+  {
+    "name": "equivalence Human/Main",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1968",
+    "domain": "upstream/Domains/Test/human.domain",
+    "callterms": "test",
+    "method": "behave",
+    "worldstate": "upstream/WorldStates/Test/human.worldstate",
+    "expect": {"status": "succeeded", "nonEmpty": true}
+  },
+  {
+    "name": "equivalence Human/AxiomBacktracking: rejected banana does not leak into the plan",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:2585",
+    "note": "Equivalence case line 1969 plus the plan checks of AxiomChoiceBacktrackingRestoresBindingsAndCompletesLifecycle (debugger node checks skipped).",
+    "domain": "upstream/Domains/Test/human.domain",
+    "callterms": "test",
+    "method": "behave",
+    "worldstate": "upstream/WorldStates/Test/human_axiom_backtracking.worldstate",
+    "expect": {
+      "status": "succeeded",
+      "nonEmpty": true,
+      "includesSteps": ["!take \"orange\""],
+      "excludesSteps": ["!take \"banana\""]
+    }
+  }
+]

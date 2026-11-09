@@ -1,0 +1,151 @@
+[
+  {
+    "name": "assignment execution: assignment_values",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1817",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "facts": [["assignment_candidate", "1"], ["assignment_candidate", "2"]],
+    "callterms": "assignment-probe",
+    "method": "assignment_values",
+    "expect": {
+      "status": "succeeded",
+      "plan": ["!assignment_values main_threat 5 6 0"],
+      "calls": {"Calls": 1}
+    }
+  },
+  {
+    "name": "assignment execution: assignment_backtracking",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1817",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "facts": [["assignment_candidate", "1"], ["assignment_candidate", "2"]],
+    "callterms": "assignment-probe",
+    "method": "assignment_backtracking",
+    "expect": {
+      "status": "succeeded",
+      "plan": ["!assignment_result 3"],
+      "calls": {"Calls": 2}
+    }
+  },
+  {
+    "name": "assignment execution: assignment_nested_calls",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1817",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "facts": [["assignment_candidate", "1"], ["assignment_candidate", "2"]],
+    "callterms": "assignment-probe",
+    "method": "assignment_nested_calls",
+    "expect": {
+      "status": "succeeded",
+      "plan": ["!assignment_result 5"],
+      "calls": {"Calls": 2}
+    }
+  },
+  {
+    "name": "assignment execution: assignment_failure",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1817",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "facts": [["assignment_candidate", "1"], ["assignment_candidate", "2"]],
+    "callterms": "assignment-probe",
+    "method": "assignment_failure",
+    "expect": {
+      "status": "succeeded",
+      "plan": ["!assignment_result 9"],
+      "calls": {"Calls": 0}
+    }
+  },
+  {
+    "name": "assignment execution: assignment_ordered_failure",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1817",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "facts": [["assignment_candidate", "1"], ["assignment_candidate", "2"]],
+    "callterms": "assignment-probe",
+    "method": "assignment_ordered_failure",
+    "expect": {
+      "status": "succeeded",
+      "plan": ["!assignment_result 9"],
+      "calls": {"Calls": 0}
+    }
+  },
+  {
+    "name": "assignment execution: assignment_axiom",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1817",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "facts": [["assignment_candidate", "1"], ["assignment_candidate", "2"]],
+    "callterms": "assignment-probe",
+    "method": "assignment_axiom",
+    "expect": {
+      "status": "succeeded",
+      "plan": ["!assignment_result 2"],
+      "calls": {"Calls": 0}
+    }
+  },
+  {
+    "name": "arithmetic in task and callterm arguments",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1852",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "worldstate": "upstream/WorldStates/Test/numeric_expressions.worldstate",
+    "callterms": "test",
+    "method": "argument_expressions",
+    "expect": {
+      "status": "succeeded",
+      "plan": [
+        "!compound_arithmetic_arguments 3 6 6 6 2 7 7",
+        "!primitive_arithmetic_arguments 3 6 6 6 2 7 7",
+        "!callterm_arithmetic_arguments 9 12 9 8",
+        "!recursive_arithmetic_result 2"
+      ]
+    }
+  },
+  {
+    "name": "arithmetic in axiom arguments",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1886",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "worldstate": "upstream/WorldStates/Test/numeric_expressions.worldstate",
+    "callterms": "test",
+    "method": "axiom_argument_expressions",
+    "expect": {"status": "succeeded", "plan": ["!axiom_arithmetic_arguments \"success\""]}
+  },
+  {
+    "name": "axiom output expression is rejected",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1947",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "worldstate": "upstream/WorldStates/Test/numeric_expressions.worldstate",
+    "callterms": "test",
+    "method": "axiom_output_expression",
+    "expect": {"status": "no_plan"}
+  },
+  {
+    "name": "axiom arithmetic: axiom_output_mismatch",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1949",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "worldstate": "upstream/WorldStates/Test/numeric_expressions.worldstate",
+    "callterms": "test",
+    "method": "axiom_output_mismatch",
+    "expect": {"status": "succeeded", "plan": ["!axiom_output_mismatch \"controlled_failure\""]}
+  },
+  {
+    "name": "axiom arithmetic: axiom_io_mismatch",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1949",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "worldstate": "upstream/WorldStates/Test/numeric_expressions.worldstate",
+    "callterms": "test",
+    "method": "axiom_io_mismatch",
+    "expect": {"status": "succeeded", "plan": ["!axiom_io_mismatch \"controlled_failure\""]}
+  },
+  {
+    "name": "axiom arithmetic: axiom_invalid_input_expression",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1949",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "worldstate": "upstream/WorldStates/Test/numeric_expressions.worldstate",
+    "callterms": "test",
+    "method": "axiom_invalid_input_expression",
+    "expect": {"status": "succeeded", "plan": ["!axiom_invalid_input_expression \"controlled_failure\""]}
+  },
+  {
+    "name": "axiom arithmetic: axiom_invalid_output_expression",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:1949",
+    "domain": "upstream/Domains/Test/numeric_expressions.domain",
+    "worldstate": "upstream/WorldStates/Test/numeric_expressions.worldstate",
+    "callterms": "test",
+    "method": "axiom_invalid_output_expression",
+    "expect": {"status": "succeeded", "plan": ["!axiom_invalid_output_expression \"controlled_failure\""]}
+  }
+]

@@ -1,0 +1,17 @@
+// infiltrator: a loaded gun without night vision: a ranged attack. The hall is dark, so the lights go on first;
+// no cover point there, so use_cover has nothing to do.
+// method: behave
+// expect: succeeded
+//   1. !go_to_area hall
+//   2. !walk_to box_h
+//   3. !switch_lights hall on
+//   4. !make_contact p1
+//   5. !shoot p1 g2
+
+npc_in lobby
+player_in p1 hall
+holding g2
+item g2 gun
+loaded g2
+lights hall off
+control_box hall box_h

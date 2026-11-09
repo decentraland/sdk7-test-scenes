@@ -1,0 +1,10 @@
+wanderer_state walking
+wanderer_location (0 0)
+wanderer_destination (15 0)
+pathfind_state succeeded (0 0) (15 0) 100
+pathfinder 100 3 (0 0) (15 0)
+pathfinding_segment 100 0 (5 0)
+pathfinding_segment 100 1 (10 0)
+pathfinding_segment 100 2 (15 0)
+contextual_animation_at (15 0) look_at_view
+contextual_animation_at (12 12) sit_on_bench

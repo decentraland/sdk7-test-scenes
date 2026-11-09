@@ -1,0 +1,47 @@
+// Upstream docs/USE_CASES.md section 5, an AI director: a world-level domain that paces encounters. High intensity
+// chooses a recovery phase; low intensity with the cooldown over chooses the next encounter, at a spawn point away
+// from the player. Spawning is a primitive the host runs after the plan is chosen, never a callterm.
+// Otherwise the plan is empty: nothing to do now, a success, not a failure.
+// Test: test/examples/usecase-director.test.ts.
+//
+// Facts: (intensity ?level) float 0..1; (now ?seconds); (cooldown_until ?seconds); (reinforcements ?waves) int;
+//        (spawn_point ?name) in order of preference; (player_near ?name).
+// Primitives: (!start_phase recovery|encounter) (!start_cooldown ?seconds) (!spawn_wave ?point)
+
+(:domain Director top_level_domain
+
+    (:method (direct) top_level_method
+        (recover
+            (and
+                (intensity ?level)
+                (>= ?level 0.7)
+            )
+            (
+                (!start_phase recovery)
+                (!start_cooldown 8.0)
+            )
+        )
+        (next_encounter
+            (and
+                (intensity ?level)
+                (< ?level 0.3)
+                (now ?time)
+                (cooldown_until ?ready_at)
+                (>= ?time ?ready_at)
+                (reinforcements ?waves)
+                (> ?waves 0)
+                (spawn_point ?point)
+                (not (player_near ?point))
+            )
+            (
+                (!start_phase encounter)
+                (!spawn_wave ?point)
+                (!start_cooldown 20.0)
+            )
+        )
+        (keep_pace
+            ()
+            ()
+        )
+    )
+)

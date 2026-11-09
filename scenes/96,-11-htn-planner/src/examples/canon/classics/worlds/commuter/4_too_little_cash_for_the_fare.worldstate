@@ -1,0 +1,20 @@
+// commuter: too little cash for the fare.
+// method: travel alice park
+// expect: no_plan
+
+at alice home_a
+at bob home_b
+taxi_at taxi1 park
+taxi_at taxi2 station
+cash bob 15
+cash alice 5
+owe alice 0
+owe bob 0
+road home_a park 8
+road home_b park 2
+road station home_a 1
+road station home_b 7
+road home_a home_b 7
+road station park 9
+taxi_ready taxi1
+taxi_ready taxi2

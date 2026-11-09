@@ -1,0 +1,5 @@
+(:domain ConsumerChecks top_level_domain
+  (:method (one_owner) top_level_method
+    (valid (and (not (and (owner ?x) (owner ?y) (!= ?x ?y)))) ())
+  )
+)

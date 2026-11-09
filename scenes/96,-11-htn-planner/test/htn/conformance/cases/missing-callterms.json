@@ -1,0 +1,156 @@
+[
+  {
+    "name": "missing callterms: condition",
+    "upstream": "HTNTest/src/HTNMissingCallTermTest.cpp:121",
+    "note": "Report policy, NotRegistered reason; MissingBinding / MissingInstance and FailSilently: test/htn/planner/callterms.test.ts.",
+    "domain": "upstream/Domains/Test/missing_callterms.domain",
+    "callterms": "missing-callterms",
+    "method": "condition",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {"at": 0, "head": "!fallback"}
+      ],
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {"code": "missing_callterm", "find": "(call probe)", "after": "(:method (condition)", "reason": "not_registered"}
+      ]
+    }
+  },
+  {
+    "name": "missing callterms: binding",
+    "upstream": "HTNTest/src/HTNMissingCallTermTest.cpp:121",
+    "note": "Report policy, NotRegistered reason; MissingBinding / MissingInstance and FailSilently: test/htn/planner/callterms.test.ts.",
+    "domain": "upstream/Domains/Test/missing_callterms.domain",
+    "callterms": "missing-callterms",
+    "method": "binding",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {"at": 0, "head": "!fallback"}
+      ],
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {"code": "missing_callterm", "find": "(call probe)", "after": "(:method (binding)", "reason": "not_registered"}
+      ]
+    }
+  },
+  {
+    "name": "missing callterms: primitive",
+    "upstream": "HTNTest/src/HTNMissingCallTermTest.cpp:121",
+    "note": "Report policy, NotRegistered reason; MissingBinding / MissingInstance and FailSilently: test/htn/planner/callterms.test.ts.",
+    "domain": "upstream/Domains/Test/missing_callterms.domain",
+    "callterms": "missing-callterms",
+    "method": "primitive",
+    "expect": {
+      "status": "no_plan",
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {"code": "missing_callterm", "find": "(call probe)", "after": "(:method (primitive)", "reason": "not_registered"}
+      ]
+    }
+  },
+  {
+    "name": "missing callterms: compound",
+    "upstream": "HTNTest/src/HTNMissingCallTermTest.cpp:121",
+    "note": "Report policy, NotRegistered reason; MissingBinding / MissingInstance and FailSilently: test/htn/planner/callterms.test.ts.",
+    "domain": "upstream/Domains/Test/missing_callterms.domain",
+    "callterms": "missing-callterms",
+    "method": "compound",
+    "expect": {
+      "status": "no_plan",
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {"code": "missing_callterm", "find": "(call probe)", "after": "(:method (compound)", "reason": "not_registered"}
+      ]
+    }
+  },
+  {
+    "name": "missing callterms: nested",
+    "upstream": "HTNTest/src/HTNMissingCallTermTest.cpp:121",
+    "note": "Report policy, NotRegistered reason; MissingBinding / MissingInstance and FailSilently: test/htn/planner/callterms.test.ts.",
+    "domain": "upstream/Domains/Test/missing_callterms.domain",
+    "callterms": "missing-callterms",
+    "method": "nested",
+    "expect": {
+      "status": "no_plan",
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {"code": "missing_callterm", "find": "(call probe)", "after": "(:method (nested)", "reason": "not_registered"}
+      ]
+    }
+  },
+  {
+    "name": "missing callterms: unused",
+    "upstream": "HTNTest/src/HTNMissingCallTermTest.cpp:121",
+    "note": "Report policy, NotRegistered reason; MissingBinding / MissingInstance and FailSilently: test/htn/planner/callterms.test.ts.",
+    "domain": "upstream/Domains/Test/missing_callterms.domain",
+    "callterms": "missing-callterms",
+    "method": "unused",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {"at": 0, "head": "!safe"}
+      ],
+      "diagnostics": {"missing_callterm": 0}
+    }
+  },
+  {
+    "name": "missing callterms: requirements list every called name",
+    "upstream": "HTNTest/src/HTNMissingCallTermTest.cpp:305",
+    "note": "Upstream: 7 call-site requirements (probe x6, identity x1).",
+    "domain": "upstream/Domains/Test/missing_callterms.domain",
+    "expect": {"compile": "ok", "irCallterms": ["probe", "identity"]}
+  },
+  {
+    "name": "missing callterms: typed probe called with no argument fails in nested",
+    "upstream": "HTNTest/src/HTNMissingCallTermTest.cpp:515",
+    "note": "probe is a typed binding (callterm(['int'])): ArgumentCountMismatch reported once at (call probe), nothing invoked.",
+    "domain": "upstream/Domains/Test/missing_callterms.domain",
+    "callterms": "missing-callterms-typed-probe",
+    "method": "nested",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"Calls": 0, "OuterCalls": 0},
+      "diagnostics": {"callterm_error": 1},
+      "diagnosticAt": [
+        {"code": "callterm_error", "find": "(call probe)", "after": "(:method (nested)", "reason": "argument_count_mismatch"}
+      ]
+    }
+  },
+  {
+    "name": "missing callterms: typed probe called with no argument fails in primitive",
+    "upstream": "HTNTest/src/HTNMissingCallTermTest.cpp:515",
+    "note": "probe is a typed binding (callterm(['int'])): ArgumentCountMismatch reported once at (call probe), nothing invoked.",
+    "domain": "upstream/Domains/Test/missing_callterms.domain",
+    "callterms": "missing-callterms-typed-probe",
+    "method": "primitive",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"Calls": 0, "OuterCalls": 0},
+      "diagnostics": {"callterm_error": 1},
+      "diagnosticAt": [
+        {"code": "callterm_error", "find": "(call probe)", "after": "(:method (primitive)", "reason": "argument_count_mismatch"}
+      ]
+    }
+  },
+  {
+    "name": "missing callterms: typed probe called with no argument fails in compound",
+    "upstream": "HTNTest/src/HTNMissingCallTermTest.cpp:515",
+    "note": "probe is a typed binding (callterm(['int'])): ArgumentCountMismatch reported once at (call probe), nothing invoked.",
+    "domain": "upstream/Domains/Test/missing_callterms.domain",
+    "callterms": "missing-callterms-typed-probe",
+    "method": "compound",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"Calls": 0, "OuterCalls": 0},
+      "diagnostics": {"callterm_error": 1},
+      "diagnosticAt": [
+        {"code": "callterm_error", "find": "(call probe)", "after": "(:method (compound)", "reason": "argument_count_mismatch"}
+      ]
+    }
+  }
+]

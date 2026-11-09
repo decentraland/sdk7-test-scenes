@@ -1,0 +1,13 @@
+// hug_bot: tampered with.
+// method: behave
+// expect: succeeded
+//   1. !say hug_start
+//   2. !melee_attack bob
+//   3. !wait 1.0
+//   4. !mark_hugged bob
+//   5. !say hug_finish_mean
+
+now 0.0
+wants_hug bob
+distance_to bob 0.5
+tampered

@@ -1,0 +1,510 @@
+[
+  {
+    "name": "runtime lists: ppr_start receives the current entity",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:114",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "script": [
+      {
+        "op": "decompose",
+        "method": "run",
+        "args": ["7"],
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "7"}
+            }
+          ],
+          "trace": ["(find_closest_location_to_entity 7)"]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "run",
+        "args": ["9"],
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "9"}
+            }
+          ],
+          "trace": ["(find_closest_location_to_entity 7)", "(find_closest_location_to_entity 9)"],
+          "calls": {"OuterCalls": 2}
+        }
+      }
+    ]
+  },
+  {
+    "name": "runtime lists: static and dynamic lists",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:125",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "script": [
+      {
+        "op": "decompose",
+        "method": "static",
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "sizes": {"0": 2}
+            }
+          ]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "variables",
+        "args": ["7", "(1 2 3)"],
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "(action 7 (1 2 3))"}
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "runtime lists: every arithmetic operator as a list element",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:136",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "script": [
+      {
+        "op": "decompose",
+        "method": "arithmetic",
+        "args": ["6"],
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "(math 8 4 12 3 0 7 5)"}
+            }
+          ]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "arithmetic_call",
+        "args": ["6"],
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "(sum 8)"}
+            }
+          ]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "bad_numeric_operand",
+        "expect": {"status": "no_plan"}
+      },
+      {
+        "op": "decompose",
+        "method": "bad_list_operand",
+        "args": ["6"],
+        "expect": {
+          "status": "no_plan",
+          "calls": {"AfterCalls": 0}
+        }
+      }
+    ]
+  },
+  {
+    "name": "runtime lists: calls owns its callterm result",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:147",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "method": "calls",
+    "args": ["7"],
+    "expect": {
+      "status": "succeeded",
+      "steps": [
+        {
+          "at": 0,
+          "args": {"0": "(target 7 (7 0 3))"}
+        }
+      ],
+      "calls": {"Calls": 1}
+    }
+  },
+  {
+    "name": "runtime lists: assignment owns its callterm result",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:147",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "method": "assignment",
+    "args": ["7"],
+    "expect": {
+      "status": "succeeded",
+      "steps": [
+        {
+          "at": 0,
+          "args": {"0": "(target 7 (7 0 3))"}
+        }
+      ],
+      "calls": {"Calls": 1}
+    }
+  },
+  {
+    "name": "runtime lists: nested_call owns its callterm result",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:147",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "method": "nested_call",
+    "args": ["7"],
+    "expect": {
+      "status": "succeeded",
+      "steps": [
+        {
+          "at": 0,
+          "args": {"0": "(target 7 (7 0 3))"}
+        }
+      ],
+      "calls": {"Calls": 1}
+    }
+  },
+  {
+    "name": "runtime lists: nested lists and constants",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:159",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "method": "nested",
+    "args": ["7"],
+    "expect": {
+      "status": "succeeded",
+      "steps": [
+        {
+          "at": 0,
+          "sizes": {"0": 5},
+          "args": {"0.1": "(target 7)", "0.3": "(metadata current_time 10)", "0.4": "(query 7)"}
+        }
+      ],
+      "calls": {"Calls": 2}
+    }
+  },
+  {
+    "name": "runtime lists: facts, comparisons and split consume evaluated lists",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:169",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "facts": [["list_fact", "(key 7)"]],
+    "script": [
+      {
+        "op": "decompose",
+        "method": "fact",
+        "args": ["7"],
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "key", "1": "(7)"}
+            }
+          ]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "fact",
+        "args": ["8"],
+        "expect": {"status": "no_plan"}
+      }
+    ]
+  },
+  {
+    "name": "runtime lists: axiom, compound and plan-marker arguments",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:178",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "script": [
+      {
+        "op": "decompose",
+        "method": "axiom_list",
+        "args": ["7"],
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "(wrapped (key 7))"}
+            }
+          ]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "compound",
+        "args": ["7"],
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "(key 7)"}
+            }
+          ]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "plan_markers",
+        "args": ["7"],
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "(key 7)"}
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "runtime lists: deferred call captures arguments and evaluates its body later",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:189",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "script": [
+      {
+        "op": "decompose",
+        "method": "deferred",
+        "args": ["7"],
+        "expect": {
+          "status": "succeeded",
+          "calls": {"Calls": 1}
+        }
+      },
+      {"op": "setVar", "name": "time", "value": "20"},
+      {
+        "op": "expandDeferred",
+        "from": 0,
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "(captured (snapshot 7 10) 20)"}
+            }
+          ],
+          "calls": {"Calls": 2}
+        }
+      }
+    ]
+  },
+  {
+    "name": "runtime lists: backtracking rebuilds lists from current bindings",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:202",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "facts": [["entity", "1"], ["entity", "2"], ["selected", "(target 2 (2 0 3))"]],
+    "script": [
+      {
+        "op": "decompose",
+        "method": "backtracking",
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "(target 2 (2 0 3))"}
+            }
+          ],
+          "calls": {"Calls": 2}
+        }
+      },
+      {"op": "addFact", "fact": ["list_fact", "(key 2)"]},
+      {
+        "op": "decompose",
+        "method": "axiom_backtracking",
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "(key 2)"}
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "runtime lists: unbound and failed elements stop without partial lists",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:216",
+    "note": "Upstream also checks execution-info last_error text (domain file, domain name, \"'?io_value' is unbound\"); not ported. Reports == 0 means no callterm error report.",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "script": [
+      {
+        "op": "decompose",
+        "method": "unbound",
+        "expect": {
+          "status": "no_plan",
+          "plan": [],
+          "calls": {"AfterCalls": 0, "OuterCalls": 0}
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "failed",
+        "expect": {
+          "status": "no_plan",
+          "plan": [],
+          "calls": {"AfterCalls": 0, "OuterCalls": 0}
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "failed_task",
+        "expect": {
+          "status": "no_plan",
+          "plan": [],
+          "calls": {"AfterCalls": 0, "OuterCalls": 0}
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "failed_arithmetic",
+        "expect": {
+          "status": "no_plan",
+          "plan": [],
+          "calls": {"AfterCalls": 0, "OuterCalls": 0}
+        }
+      },
+      {
+        "op": "expectCounters",
+        "diagnostics": {"missing_callterm": 0, "non_boolean_condition_result": 0}
+      },
+      {
+        "op": "decompose",
+        "method": "fallback",
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "args": {"0": "fallback"}
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "runtime lists: missing callterm inside a runtime list is reported once at its source",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:238",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "method": "missing",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"AfterCalls": 0, "OuterCalls": 0},
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {"code": "missing_callterm", "find": "(call missing_runtime_list)"}
+      ]
+    }
+  },
+  {
+    "name": "runtime lists: callterm fact mutation is visible to later conditions",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:265",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "method": "mutation",
+    "args": ["7"],
+    "expect": {
+      "status": "succeeded",
+      "steps": [
+        {
+          "at": 0,
+          "args": {"0": "(target 7)"}
+        }
+      ]
+    }
+  },
+  {
+    "name": "runtime lists: bound io assignment rejects before evaluating the list",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:314",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "method": "bound_io",
+    "expect": {
+      "status": "no_plan",
+      "calls": {"AfterCalls": 0}
+    }
+  },
+  {
+    "name": "runtime lists: non-boolean standalone condition is reported",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:351",
+    "domain": "upstream/Domains/Test/runtime_lists.domain",
+    "callterms": "runtime-lists",
+    "vars": {"ppr_result": "7"},
+    "method": "run",
+    "args": ["7"],
+    "expect": {
+      "status": "no_plan",
+      "diagnostics": {"non_boolean_condition_result": 1}
+    }
+  },
+  {
+    "name": "runtime lists compiler: static and runtime list arguments",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:366",
+    "domain": "runtime_list_ir.domain",
+    "sources": {
+      "runtime_list_ir.domain": "(:domain Lists top_level_domain (:method (run ?inp_id) top_level_method (branch () ((!result (query_extent_y (1.0 1.0 1.0)) (target ?inp_id (call position ?inp_id)))))))"
+    },
+    "expect": {"compile": "ok", "irCallterms": ["position"]}
+  },
+  {
+    "name": "runtime lists compiler: invalid nested variable or reassignment 1",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:402",
+    "domain": "runtime_list_invalid.domain",
+    "sources": {
+      "runtime_list_invalid.domain": "(:domain Invalid top_level_domain (:axiom (echo ?inp_value) (and (== ?inp_value 1))) (:method (run ?inp_id) top_level_method (branch (and (= ?list (target ?unknown))) ((!result)))))"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "Unknown variable"}
+  },
+  {
+    "name": "runtime lists compiler: invalid nested variable or reassignment 2",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:402",
+    "domain": "runtime_list_invalid.domain",
+    "sources": {
+      "runtime_list_invalid.domain": "(:domain Invalid top_level_domain (:axiom (echo ?inp_value) (and (== ?inp_value 1))) (:method (run ?inp_id) top_level_method (branch (and (and (= ?list (target ?inp_id)) (= ?inp_id 4))) ((!result)))))"
+    },
+    "expect": {"compile": "error"}
+  },
+  {
+    "name": "runtime lists compiler: invalid nested variable or reassignment 3",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:402",
+    "domain": "runtime_list_invalid.domain",
+    "sources": {
+      "runtime_list_invalid.domain": "(:domain Invalid top_level_domain (:axiom (echo ?inp_value) (and (== ?inp_value 1))) (:method (run ?inp_id) top_level_method (branch (and (query (call identity (target ?unknown)))) ((!result)))))"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "Unknown variable"}
+  },
+  {
+    "name": "runtime lists compiler: invalid nested variable or reassignment 4",
+    "upstream": "HTNTest/src/HTNRuntimeListTest.cpp:402",
+    "domain": "runtime_list_invalid.domain",
+    "sources": {
+      "runtime_list_invalid.domain": "(:domain Invalid top_level_domain (:axiom (echo ?inp_value) (and (== ?inp_value 1))) (:method (run ?inp_id) top_level_method (branch (and (#echo (call identity (target ?unknown)))) ((!result)))))"
+    },
+    "expect": {"compile": "error", "upstreamMessage": "Unknown variable"}
+  }
+]

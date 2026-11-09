@@ -1,0 +1,18 @@
+// swarm_coordinator: one change from a hand-over: d4 is 7.5 m behind. No hand-over while the swarm is spread out;
+// the leader stays, d3 takes the new resource r2 (d2 carries r1 and is out of the roster).
+// method: organise_swarm
+// expect: succeeded
+//   1. !assign_role d1 leader s1
+//   2. !assign_role d3 collector r2
+//   3. !assign_role d4 follower d1
+
+swarm s1
+roster (d1 d3 d4)
+leader d1
+next_leader d4
+lead_time_up
+follower d3
+follower d4
+distance_to_leader d3 2.0
+distance_to_leader d4 7.5
+free_resource 1 r2

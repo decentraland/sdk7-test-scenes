@@ -1,0 +1,10 @@
+// medic_bot: everyone treated recently: idles.
+// method: behave
+// expect: succeeded
+//   1. !move_to spot_a
+//   2. !idle_wait 2.0 7.0
+
+now 20.0
+patient alice
+recently_treated alice
+idle_spot spot_a

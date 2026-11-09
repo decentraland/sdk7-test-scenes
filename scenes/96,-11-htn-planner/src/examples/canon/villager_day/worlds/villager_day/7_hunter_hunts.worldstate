@@ -1,0 +1,16 @@
+// villager_day: a farmer who has learnt to hunt and is broke: hunting comes first among the ways to obtain food.
+// method: spend_hour
+// expect: succeeded
+//   1. !walk_to forest
+//   2. !hunt
+
+hour 12
+hunger 7
+sleepiness 3
+money 2
+at farmhouse
+can_hunt
+hunting_ground forest
+home farmhouse
+shop bakery food baker
+pastime fishing pond

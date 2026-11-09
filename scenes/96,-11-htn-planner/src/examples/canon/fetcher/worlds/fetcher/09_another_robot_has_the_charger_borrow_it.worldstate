@@ -1,0 +1,30 @@
+// fetcher: another robot has the charger: borrow it.
+// method: behave
+// expect: succeeded
+//   1. !ask_for_charger r2
+//   2. &recharge l4
+//   3. &travel_to l4
+//   4. &fetch o1
+
+distance l1 l1 0
+distance l1 l2 1
+distance l1 l3 2
+distance l1 l4 3
+distance l2 l1 1
+distance l2 l2 0
+distance l2 l3 1
+distance l2 l4 2
+distance l3 l1 2
+distance l3 l2 1
+distance l3 l3 0
+distance l3 l4 1
+distance l4 l1 3
+distance l4 l2 2
+distance l4 l3 1
+distance l4 l4 0
+job fetch o1
+at l1
+battery 1
+charger_with r2
+robot_at r2 l2
+object_at o1 l4

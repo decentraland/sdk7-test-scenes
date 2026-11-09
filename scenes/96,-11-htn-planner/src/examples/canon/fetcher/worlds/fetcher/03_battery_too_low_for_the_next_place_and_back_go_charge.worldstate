@@ -1,0 +1,31 @@
+// fetcher: battery too low for the next place and back: go charge.
+// l4 and back to the charger is 1 + 3 > 2: recharge first; the charger at l1 is 2 away, just reachable.
+// method: behave
+// expect: succeeded
+//   1. !move_to l1
+//   2. &recharge l4
+//   3. &travel_to l4
+//   4. !perceive l4
+//   5. &fetch o1
+
+distance l1 l1 0
+distance l1 l2 1
+distance l1 l3 2
+distance l1 l4 3
+distance l2 l1 1
+distance l2 l2 0
+distance l2 l3 1
+distance l2 l4 2
+distance l3 l1 2
+distance l3 l2 1
+distance l3 l3 0
+distance l3 l4 1
+distance l4 l1 3
+distance l4 l2 2
+distance l4 l3 1
+distance l4 l4 0
+job fetch o1
+at l3
+battery 2
+charger_at l1
+unviewed l4

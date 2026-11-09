@@ -1,0 +1,197 @@
+[
+  {
+    "name": "boolean compatibility: facts, comparisons, bindings and plan keep original types",
+    "upstream": "HTNTest/src/HTNBooleanCompatibilityTest.cpp:170",
+    "domain": "upstream/Domains/Test/boolean_compatibility.domain",
+    "callterms": "boolean-compat",
+    "calltermErrorPolicy": "fail_silently",
+    "facts": [
+      ["flags", "#true", "#false"],
+      ["numeric_flags", "1", "0"],
+      ["mixed_flags", "(true #true false #false)"],
+      ["candidate", "1", "#true"],
+      ["candidate", "2", "#true"],
+      ["selected", "2"]
+    ],
+    "method": "run",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {
+          "at": 0,
+          "argCount": 9,
+          "types": {
+            "0": "bool",
+            "1": "bool",
+            "2": "int",
+            "3": "int",
+            "4": "sym",
+            "5": "sym",
+            "6": "int",
+            "7": "int",
+            "8": "int"
+          },
+          "args": {"0": "1", "1": "0", "2": "1", "3": "0", "4": "true", "5": "false", "6": "1", "7": "0", "8": "2"}
+        }
+      ]
+    }
+  },
+  {
+    "name": "boolean compatibility: backtracking finds the second compatible row",
+    "upstream": "HTNTest/src/HTNBooleanCompatibilityTest.cpp:217",
+    "domain": "upstream/Domains/Test/boolean_compatibility.domain",
+    "callterms": "boolean-compat",
+    "calltermErrorPolicy": "fail_silently",
+    "facts": [
+      ["flags", "#true", "#false"],
+      ["numeric_flags", "1", "0"],
+      ["mixed_flags", "(true #true false #false)"],
+      ["candidate", "1", "#true"],
+      ["candidate", "2", "#true"],
+      ["selected", "2"]
+    ],
+    "method": "backtrack",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {
+          "at": 0,
+          "args": {"0": "2", "2": "0"},
+          "types": {"1": "bool", "2": "bool"}
+        }
+      ],
+      "calls": {"Calls": 2}
+    }
+  },
+  {
+    "name": "boolean compatibility: deferred arguments keep boolean compatibility",
+    "upstream": "HTNTest/src/HTNBooleanCompatibilityTest.cpp:229",
+    "domain": "upstream/Domains/Test/boolean_compatibility.domain",
+    "callterms": "boolean-compat",
+    "calltermErrorPolicy": "fail_silently",
+    "facts": [
+      ["flags", "#true", "#false"],
+      ["numeric_flags", "1", "0"],
+      ["mixed_flags", "(true #true false #false)"],
+      ["candidate", "1", "#true"],
+      ["candidate", "2", "#true"],
+      ["selected", "2"]
+    ],
+    "script": [
+      {
+        "op": "plan",
+        "method": "deferred",
+        "expect": {"status": "succeeded"}
+      },
+      {
+        "op": "resolve",
+        "expect": "ready",
+        "currentStep": {
+          "head": "!later",
+          "types": {"0": "int", "1": "bool"},
+          "args": {"1": "0"}
+        },
+        "calls": {"Calls": 1}
+      }
+    ]
+  },
+  {
+    "name": "boolean compatibility: false call result fails a condition but binds in an assignment",
+    "upstream": "HTNTest/src/HTNBooleanCompatibilityTest.cpp:241",
+    "domain": "upstream/Domains/Test/boolean_compatibility.domain",
+    "callterms": "boolean-compat",
+    "calltermErrorPolicy": "fail_silently",
+    "facts": [
+      ["flags", "#true", "#false"],
+      ["numeric_flags", "1", "0"],
+      ["mixed_flags", "(true #true false #false)"],
+      ["candidate", "1", "#true"],
+      ["candidate", "2", "#true"],
+      ["selected", "2"]
+    ],
+    "script": [
+      {
+        "op": "decompose",
+        "method": "condition",
+        "expect": {"status": "no_plan", "plan": []}
+      },
+      {
+        "op": "decompose",
+        "method": "assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "bool"},
+              "args": {"0": "0"}
+            }
+          ],
+          "calls": {"Calls": 2}
+        }
+      },
+      {"op": "setVar", "name": "alive", "value": "#true"},
+      {
+        "op": "decompose",
+        "method": "condition",
+        "expect": {"status": "succeeded"}
+      },
+      {"op": "setVar", "name": "alive", "value": null},
+      {
+        "op": "decompose",
+        "method": "assignment",
+        "expect": {"status": "no_plan", "plan": []}
+      }
+    ]
+  },
+  {
+    "name": "boolean compatibility: bare true/false are symbols, not numeric aliases",
+    "upstream": "HTNTest/src/HTNBooleanCompatibilityTest.cpp:258",
+    "domain": "upstream/Domains/Test/boolean_compatibility.domain",
+    "callterms": "boolean-compat",
+    "calltermErrorPolicy": "fail_silently",
+    "facts": [
+      ["flags", "#true", "#false"],
+      ["numeric_flags", "1", "0"],
+      ["mixed_flags", "(true #true false #false)"],
+      ["candidate", "1", "#true"],
+      ["candidate", "2", "#true"],
+      ["selected", "2"]
+    ],
+    "script": [
+      {
+        "op": "decompose",
+        "method": "symbol_equals_zero",
+        "expect": {"status": "no_plan", "plan": []}
+      },
+      {
+        "op": "decompose",
+        "method": "symbol_equals_one",
+        "expect": {"status": "no_plan", "plan": []}
+      },
+      {
+        "op": "decompose",
+        "method": "invalid_bool_argument",
+        "expect": {"status": "no_plan", "plan": []}
+      },
+      {
+        "op": "decompose",
+        "method": "symbol_assignment",
+        "expect": {
+          "status": "succeeded",
+          "planLength": 1,
+          "steps": [
+            {
+              "at": 0,
+              "types": {"0": "sym"},
+              "args": {"0": "false"}
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

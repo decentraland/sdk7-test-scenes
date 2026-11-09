@@ -1,0 +1,15 @@
+// medic_bot: best patient treated recently: the next one.
+// method: behave
+// expect: succeeded
+//   1. !say start_inject
+//   2. !move_near bob 1.5
+//   3. !inject bob
+//   4. !mark_treated bob
+//   5. !say finish_inject
+
+now 20.0
+patient alice
+patient bob
+recently_treated alice
+distance_to alice 1.0
+distance_to bob 3.0

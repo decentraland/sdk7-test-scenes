@@ -1,0 +1,13 @@
+// swarm_drone: an enemy shows up while the drone follows. Combat is the root's first branch: the follow (and its
+// continue branch, one level down in idle) is not even tried.
+// method: behave
+// expect: succeeded
+//   1. !begin_plan attack_run e1
+//   2. !intercept e1
+//   3. !sting e1
+//   4. !evade e1
+//   5. !end_plan
+
+active_plan follow_swarm_leader d1
+role follower d1
+enemy e1
