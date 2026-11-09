@@ -229,7 +229,10 @@ emit `IA_FORWARD`.
 
    A `move_to` between bursts logs a `teleport detected ... ignored` line instead of a phantom
    superhuman burst (each followed by a spurious 0.08m/0.03s micro-burst line -- harmless, ignore
-   it).
+   it). Sub-metre `teleport detected` lines logged *during* a jog or run burst are something else:
+   real ticks the filter dropped, so that burst's `distance=` and `sustainedSpeed` under-read. That is
+   the scene row in **Known open issues**. Read the `walk` result's own `distance` beside the log
+   line when it happens.
 
    **The assertion, in full** -- three 1.2s bursts from `(2388, 0, 2385)` facing north:
 
@@ -416,6 +419,12 @@ escapes it; the run-only sub-zone shows the degrade-through-fallback case.
    in-zone run   <  free run     (by ~1.5-2 m/s)
    ```
 
+   **While the scene row in Known open issues reproduces, one sample of three bursts can break this
+   shape**: a burst whose log shows mid-burst `teleport detected` lines under-reads its
+   `sustainedSpeed`. Re-take all three at least once and judge the shape on the repeat. The tools'
+   returned `distance` for the three is a cross-check the filter cannot touch, though not a proof on
+   its own (see below).
+
    The run request was degraded to the jog tier. **The jog control is what makes it
    unambiguous** — without it, "the in-zone run was slower" could just be the acceleration ramp.
    Both lines hold on every pass on record; the absolute speeds move ~20% between clients and
@@ -423,7 +432,10 @@ escapes it; the run-only sub-zone shows the degrade-through-fallback case.
    ~5m over 0.8s), and neither is `bucket=`, which reads the same for all three under either
    calibration.
 7. Also confirm `kind: walk` inside the zone is untouched (`bucket=walk`), i.e. the lock degrades
-   the run tier only.
+   the run tier only. Same mark and facing as step 5 (`move_to (2395, 0, 2407.5)`, `look_at 2395, 1, 2420`):
+   ```
+   walk  directionX: 0  directionY: 1  seconds: 0.8  kind: walk
+   ```
 
 ---
 
@@ -716,8 +728,8 @@ Proves: **(6)** real `PET_HOVER_ENTER`/`PET_HOVER_LEAVE` + `hoverText`, distance
    read produces no hover and no press.
 
    **The check does not apply when `cursor` lies outside `screen`** (e.g. `x: -604, y: 1175` on a
-   `2044x1150` screen, reported with `cursor.onScreen: false` and a summary ending in "the free cursor
-   is outside the window") -- the OS cursor is outside the client window, as it is when the Explorer
+   `2044x1150` screen, reported with `cursor.onScreen: false`; the result has no summary or `reason`
+   line saying so, so read `onScreen`) -- the OS cursor is outside the client window, as it is when the Explorer
    runs in the Unity Editor and you drive it from a terminal. `center` is then clamped to the edge
    (`(0, 1)`), which is a different pixel from the one the reported ray goes through, so `click_at`
    there names whatever covers the corner (the client Sidebar). The `kind` still reports what the
@@ -900,7 +912,12 @@ Stand mark: world `(2400, 0, 2400)`. Markers (world):
 2. ```
    look_at  x: 2388  y: 6  z: 2400
    ```
-   Expected result: `cameraRotationEuler` reflects a leftward yaw **and `aimErrorDegrees` ~0**.
+   Expected result: `cameraRotationEuler` reflects a leftward yaw. **Do not expect `aimErrorDegrees` ~0
+   here**: MARKER-L sits above eye level, and after step 1's `move_to` returns, the third-person orbit
+   boom keeps settling on its own (a `get_player_state` with no call in between shows the pitch already
+   moved off the marker). This `look_at` reports that settled pose, so it can come back with a residual
+   and the rig-limit warning. That is the same boom settling the note under step 3 describes, not a
+   failed aim. The assertion for this step is the log line, below.
    Pass the marker's real position — the aim is refined until the point is actually under the
    reticle, so do not fudge the y (`y: 10.5` for this marker, `y: 80` for MARKER-U is an older
    workaround and is now wrong: it aims above the marker). Expected log: **none** -- step 1's
@@ -1105,11 +1122,18 @@ the scene consumed (`delivered`), refusing to report `ok` for a press the scene 
    unfocused** (the normal state while you drive it from a terminal) this call fails up front with
    `"the Unity Editor's Game view is not focused, so the Input System routes pointer and keyboard device
    input to the Editor instead of the game (...)"` and delivers nothing -- the Editor keeps pointer and
-   keyboard device input for itself, so the virtual mouse never reaches player code. That refusal is
-   the expected result in that environment; record it as such and move on (ask the user to click into
-   the Game view to run the device rows for real). A standalone client whose window is unfocused keeps
-   the automation devices running; if it ever answers `"the automation mouse is disabled"`, the devices
-   lost their background flag -- report it.
+   keyboard device input for itself, so the virtual mouse never reaches player code. When the whole
+   Editor application is in the background instead (you are typing in a terminal, which is how a
+   driving session usually runs), the same call fails up front with the other wording,
+   `"the automation mouse is disabled: the Input System disables devices that cannot run in the
+   background while the client window is unfocused; ..."`. **In the Editor both refusals are the
+   environment, not a defect**: record them as such and move on, or ask the user to click into the
+   Game view to run the device rows for real. Answering a prompt in the terminal moves focus straight
+   back, so a call issued after the user answers is refused again. What works is a detached poller
+   that retries the first device click every couple of seconds until it stops refusing, then fires the
+   remaining device rows at once (a refused attempt delivers nothing). Only a **standalone** client
+   keeps the automation devices running while its window is unfocused; if a standalone client answers
+   `"the automation mouse is disabled"`, the devices lost their background flag -- report it.
    The **full-consumption** case is the drag surface's LEFT half, which declares both handlers:
    ```
    ui_click  stack: sdk  crdtId: <dragLeftId>  device: true
@@ -1187,12 +1211,24 @@ the scene consumed (`delivered`), refusing to report `ok` for a press the scene 
    were delivered (the scene logged them), so this is a reporting mismatch only: the `info` line and
    `ui_click`'s `blockedBy` report ids from the mount generation an element was *created* in, which
    after a panel re-open is not the range `ui_list` hands you. Verify a drag by its two log lines.
-   Re-running the same drag with **`path: "device"`** forces the virtual-mouse path and, as in
-   step 4, is expected **not** to reach the scene UI — worth running once to see the contrast:
-   it returns `path: "device"` with `pointerOver: {start: "the scene's UI (crdtId 66165)", end:
-   "... (crdtId 66167)"}` and **no `[S8-UI]` log at all**. Note the contrast *within* the contrast:
+   Re-running the same drag with **`path: "device"`** forces the virtual-mouse path (the device-focus
+   rule from step 4 applies: in the Unity Editor it is refused up front while the Game view or the
+   Editor is unfocused). It returns `path: "device"` with `pointerOver: {start: "the scene's UI
+   (crdtId <left>)", end: "... (crdtId <right>)"}` and no `info` line. **On the current client it
+   does reach the scene UI**: the scene logs `drag surface: LEFT down (armed)` and `RIGHT up while
+   armed -- drag #N completed` exactly as for the semantic drag, so assert on those two lines here too
+   rather than on their absence. Note the contrast *within* the contrast:
    `pointerOver` names the two halves by their **current** `ui_list` ids while the semantic path's
    `info` names them by their mount-generation ids — the same split the paragraph above describes.
+
+   > **The device drag leaves an `IA_POINTER` DOWN on the scene root with no release.** Its press
+   > posts the root edge a human's press on UI posts (S6's `IA_POINTER` +1, S10 logs `IA_POINTER held
+   > (scene-root broadcast)`), but the matching UP never reaches the root, so S10 stays armed. That
+   > is S4's tripwire firing: S10 eventually logs `IA_POINTER has been down for 6s with no release --
+   > ending the stroke`. Any `move_to`/`look_at` toward the canvases inside that window paints a
+   > **phantom stroke** (measured after a `move_to` to S10's stand mark). The device
+   > *clicks* in step 4 do not do this: each posts a matched DOWN/UP. Run this row after S10, or wait
+   > for the watchdog line before moving, or RESET before S10. See **Known open issues**.
    **`device: true` is not the switch here.** Unlike `ui_click`, `ui_drag` selects its path with
    `path`; a `device: true` argument is **rejected outright** — the call fails
    with `"ui_drag has no argument 'device'; its arguments are: fromX, fromY, toX, toY,
@@ -1849,7 +1885,8 @@ volume, loop/spatial flags and distance, and the scene's own `[S12-AUDIO]` lines
    3, streams: 0, videos: 0 }`, and `entries` **nearest-first**: ONE-SHOT (`distance` ~1.5,
    `state: "ready"` or `"none"`, `playing: false`, `loop: false`, `spatial: true`, `volume.authored 1`),
    then LOOP (~4.0, `state: "playing"`, `playing: true`, `loop: true`, `spatial: false`,
-   `volume.authored 0.5`, `volume.live` a number, `currentTime` advancing between two calls, `duration`
+   `volume.authored 0.5`, `volume.live` a number, `currentTime` advancing between two calls a few seconds apart (two reads
+   issued back to back can return the same value or even a slightly lower one), `duration`
    the clip's length), then SPATIAL (~4.7, `playing: false`, `loop: true`, `spatial: true`,
    `volume.authored 0.8`). `kind` is `audio_source` for all three and `source` ends in
    `assets/audio/long.mp3` / `short.mp3`. The order is the invariant; the distances are context.
@@ -1904,7 +1941,7 @@ A RESET restores the initial state: LOOP playing, SPATIAL off, the one-shot idle
 | Any `x/y/z` click that misses | the three rows above | each result carries `rootBroadcast: true` and posts **one `PET_DOWN` to the scene root**: S6's `IA_POINTER` counter +1. It arms and releases S10 in the same frame (`hold ended without painting -- 1 ray samples`), so no stall and no phantom stroke; a `... down for 6s with no release` line means the release is not arriving (see S4's tripwire). Client behaviour, not a scene fault -- see the blockquote at the top of S4 |
 | A refused **hover** also reports `rootBroadcast: true` | `hover_entity x:2412 y:1 z:2403` from the far mark | `hit:false` + `out of range (hit distance <N>m)` **and** `rootBroadcast: true` -- but S6's `IA_POINTER` stays put. A refused hover posts a hover edge to the root, not the `PET_DOWN` a refused click posts, so no counter moves and S10 is not armed. Do not read it as the S4 leak |
 | `IA_FORWARD` stays at 0 after `walk` | S1 readout after any `walk` | `global IA_FORWARD count: 0` until `press_input action:forward` |
-| Unaimed `press_input` reaches the scene root | `press_input action:primary` with no aim, **reticle resting on geometry with no `PointerEvents`** | `entityBound:false` + `hint`; scene-root counter increments, entity counter does not. With the reticle over an interactable it binds to that entity instead -- see S6 note 1 |
+| Unaimed `press_input` reaches the scene root | `press_input action:primary` with no aim, **after pitching the view into open sky** (`camera_look deltaY:8`, read back `cameraRotationEuler.x` near 306) | `entityBound:false` + `hint`; scene-root counter increments, entity counter does not. With the cursor over an interactable it binds to that entity instead, and `look_at`-ing plain geometry does not prevent that -- see S6 note 1 |
 | Scene-root broadcast suppressed | `press_input action:primary x:2404 y:1 z:2413` | `entityBound:true`; entity counter +1, scene-root counter unchanged |
 | Covered `ui_click` | `ui_click stack:sdk crdtId:<btn2Id>` while the modal is open | failure + `blockedBy` naming the modal's own id, no `[S8-UI] button 2 clicked` log |
 | Covered by *client* UI | `ui_click stack:sdk crdtId:<formSubmitId>` (S9, normalized `y 0.5366`) | failure + `blockedBy ".../ChatMessages/Viewport"` -- the chat feed's transparent viewport. Repeat that one call with `force: true`; see S9 step 8 |
@@ -2055,9 +2092,10 @@ Confirmed present on the current scene + client. Everything else in this script 
 each pass's evidence to `MCP_SHOWCASE_RESULTS.md`** (create it if it is not there) rather than
 into this file.
 
-**All rows are client-owned** and the same rule covers each -- remove one outright once it genuinely
-stops reproducing. Row 3 can only show when a panel re-open renumbers the ids, so a pass whose ids
-never renumbered says nothing about it. The scene itself has no open issues.
+**Every row is client-owned except the last, which is the scene's own**, and the same rule covers
+each -- remove one outright once it genuinely stops reproducing. Row 3 can only show when a panel
+re-open renumbers the ids, so a pass whose ids never renumbered says nothing about it. Row 4 can only
+show where the device path runs at all (see S8 step 4 for the Unity Editor).
 
 **Do not add a per-pass confirmation paragraph here, and do not date these rows.** If a row still
 reproduces, that is the documented state and needs no edit; record the pass in
@@ -2082,3 +2120,5 @@ Issue the plain click and read the result.
 | S9 steps 5, 8, 9 | **A controlled `<Input />` does not follow a programmatic reset.** A field the scene passes a `value` to displays a write correctly, but when the scene later clears it the box keeps the old string: after CLEAR FIELDS the FORM boxes still show `delta-9` / `77123` while the scene reads `""` -- proved by `FORM submit #N -- REJECTED callsign="" code=""` firing from those same populated-looking boxes, and the SEEDED box still shows `overwritten` while its own label reads the grey `still the seed value`. The scene's state is always right; only the rendering lags | client |
 | S10 step 3 | `ui_drag path:"device"` returns no `screenRect`/`center` -- reasonable, since no element is involved. It does carry `screen`, `path` and `pointerOver`. **The `info` line naming `sweep_pointer` comes only when both ends are `"world"`** (the S10 case); the same call over scene UI (S8 step 8) returns `pointerOver` naming both elements and **no `info` at all**, since there is nothing to explain | minor, client |
 | S8 step 8, S8 step 9 | **Scene-UI elements are reported under two id spaces.** `ui_list` and `pointerOver` name an element by its current id; `ui_click`'s `blockedBy` and `ui_drag path:sdk`'s `info` name it by the id of the mount generation it was created in. Nothing misbehaves -- but the two cannot be cross-referenced after a panel re-open | minor, client |
+| S8 step 8 (device row), S10 | **A `ui_drag path:"device"` over scene UI leaves an `IA_POINTER` DOWN on the scene root with no release.** The drag itself is delivered to the elements (both `[S8-UI]` drag lines), and its press posts the root edge, but no matching UP follows. S10 stays armed until its watchdog logs `IA_POINTER has been down for 6s with no release`, and a `move_to`/`look_at` toward the canvases inside that window paints a phantom stroke. `ui_click device:true` posts a matched DOWN/UP and is unaffected | client |
+| S1 steps 2-5, S3 steps 5-6 | **S1's teleport filter drops real locomotion ticks.** `s1_locomotion.ts` treats any tick faster than `TELEPORT_SPEED_MS` as a teleport, judging per-tick `d / dt`. On a client whose player transform updates arrive unevenly, ordinary jog and run ticks cross that line: a burst logs a run of sub-metre `teleport detected (0.Nm in one frame)` lines and the dropped ticks are left out of `distance=` and the `sustainedSpeed` EMA. Both then under-read against the tool's own `distance`, unevenly from burst to burst, which can break S3's in-zone/free-jog/free-run shape on a single sample. `walk`'s returned `distance` is unaffected. The fix belongs in the filter (judge displacement per tick, not speed over a short `dt`), not in the thresholds | scene |
