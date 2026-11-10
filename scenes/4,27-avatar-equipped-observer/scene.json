@@ -1,0 +1,54 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Avatar Equipped Observer Test Scene",
+    "description": "Shows the local player's AvatarEquippedData as a 3D text, to observe it from a scene loaded after another scene overrides the player's look",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "SDK",
+    "email": ""
+  },
+  "main": "bin/index.js",
+  "tags": [],
+  "scene": {
+    "parcels": [
+      "4,27"
+    ],
+    "base": "4,27"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          7,
+          9
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          3,
+          5
+        ]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1,
+        "z": 0
+      }
+    }
+  ],
+  "featureToggles": {
+    "voiceChat": "enabled",
+    "portableExperiences": "enabled"
+  },
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}
