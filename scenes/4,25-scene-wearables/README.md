@@ -150,6 +150,26 @@ Not possible yet:
 7. Two clients, A and B. A wears an item in **Local only**. Expected: B does not see it. A wears an item in **Synced**.
    Expected: B sees it on A, and on the mannequin too. A late joiner sees the synced outfits right away.
 
+### LOCAL SCENE DEVELOPMENT
+
+Under `sdk-commands start`, scene wearables follow the same loading decision as scene models. Local asset bundles
+come from the Explorer's embedded abgen sidecar, which is on by default while the `alfa-lsd-forced-ab` feature flag
+is on. Run steps 1 to 3 of **SCENE TESTING** in each mode and check the scene dev console's AB tab.
+
+| Mode | How to run | Expected |
+| --- | --- | --- |
+| **Raw GLTF** | Launch the Explorer with `--lsd-raw-gltf` | Every wearable loads as raw GLTF from the preview content server |
+| **Local asset bundles** | Default launch, wait until the AB tab shows the scene as ready | Every wearable loads from its scene-converted bundle and looks the same as in raw GLTF. No `FAILED` line for a wearable |
+| **Sidecar unavailable** | Hold the sidecar port before launching: `python -m http.server 5147 --bind 127.0.0.1` | The AB tab says `RAW GLTFs — <reason>`, every wearable loads as raw GLTF |
+
+**Per-wearable fallback** (local asset bundles). The shipped wearables convert fine, so take the server away
+mid-session:
+
+1. Launch with local asset bundles and wear nothing yet.
+2. Kill the `abgen` process until it stays down. The sidecar restarts it up to 3 times.
+3. Wear an item in **Me**. Expected: the AB tab shows `FAILED <file> — … loaded as raw GLTF`, and the item shows as
+   raw GLTF with its texture. No missing item, no second avatar.
+
 ### EDGE CASES
 
 What scene wearables changed in `AvatarShape` and what they must keep. Compare a build without scene wearables
