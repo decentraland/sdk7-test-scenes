@@ -3,8 +3,15 @@ import { Color4, Vector3 } from '@dcl/sdk/math'
 import { ColorGradient, EnvironmentFog, engine, Skybox, SkyboxTime, Sun } from '@dcl/sdk/ecs'
 
 // Selected source for each slot. 'none' means the field is left unset on the component.
-type SkySelection = 'none' | 'a' | 'b'
-type EnvironmentSelection = 'default' | 'mars' | 'clearNight' | 'storm' | 'dayRamp' | 'trueDarkness'
+type SkySelection = 'none' | 'a' | 'b' | 'galaxy'
+type EnvironmentSelection =
+  | 'default'
+  | 'mars'
+  | 'clearNight'
+  | 'storm'
+  | 'dayRamp'
+  | 'trueDarkness'
+  | 'starryNight'
 type TimeSelection = 'six' | 'twelve' | 'eighteen' | 'midnight' | 'live'
 type SunIntensitySelection = 'default' | 'off' | 'half' | 'double'
 type SunDirectionSelection = 'timeOfDay' | 'overhead' | 'lowEast' | 'lowWest'
@@ -30,7 +37,15 @@ let fogRemoved = false
 
 const skyTextureSrc: Record<Exclude<SkySelection, 'none'>, string> = {
   a: 'images/sky-a.png',
-  b: 'images/sky-b.png'
+  b: 'images/sky-b.png',
+  galaxy: 'images/galaxy.jpg'
+}
+
+const skyLabels: Record<SkySelection, string> = {
+  none: 'None (procedural)',
+  a: 'Sky A',
+  b: 'Sky B',
+  galaxy: 'Galaxy'
 }
 
 // The `Skybox`/`Sun`/`EnvironmentFog` payload shapes aren't exported as standalone types from
@@ -55,6 +70,9 @@ function constant(color: Color4): ColorGradient {
 function ramp(...keys: [number, Color4][]): ColorGradient {
   return { keys: keys.map(([time, color]) => ({ time, color })) }
 }
+
+const STARRY_NIGHT_SKY = Color4.create(0.3, 0.1, 0.15, 1)
+const STARRY_NIGHT_SUN_NIGHT = Color4.create(0.01, 0.01, 0.01, 0.1)
 
 // Environment presets, split per component so Skybox/Sun/EnvironmentFog can still be removed
 // independently (see skyboxRemoved/sunRemoved/fogRemoved) even while a preset is active.
@@ -142,6 +160,48 @@ const presets: Record<Exclude<EnvironmentSelection, 'default'>, EnvironmentPrese
     },
     sun: { color: constant(Color4.Black()) },
     fog: { color: constant(Color4.Black()) }
+  },
+  // Lens flare repro: a creator's starry-night setup, values copied verbatim from their snippet.
+  // With Sun.intensity = 0 the light goes out but, before the explorer fix, the lens flare kept
+  // drawing. The rest of the setup (Galaxy sky, intensity 0, 00:00) is applied by setEnvironment.
+  starryNight: {
+    skybox: {
+      skyColors: {
+        // the snippet calls this colour BLACK; kept as sent
+        zenith: constant(STARRY_NIGHT_SKY),
+        horizon: constant(STARRY_NIGHT_SKY),
+        nadir: constant(Color4.Red())
+      },
+      clouds: { opacity: 0, color: constant(STARRY_NIGHT_SKY) },
+      stars: { brightness: 25 }
+    },
+    sun: {
+      color: ramp(
+        [0, STARRY_NIGHT_SUN_NIGHT], // midnight
+        [0.22, STARRY_NIGHT_SUN_NIGHT], // before dawn
+        [0.27, Color4.create(1.0, 0.62, 0.4, 1)], // sunrise
+        [0.35, Color4.create(1.0, 0.95, 0.88, 1)], // morning
+        [0.5, Color4.create(1.0, 1.0, 1.0, 1)], // noon
+        [0.68, Color4.create(1.0, 0.96, 0.9, 1)], // afternoon
+        [0.75, Color4.create(1.0, 0.55, 0.35, 1)], // sunset
+        [0.8, STARRY_NIGHT_SUN_NIGHT], // dusk
+        [1, STARRY_NIGHT_SUN_NIGHT] // midnight
+      )
+    },
+    fog: {
+      color: ramp(
+        [0, Color4.create(0.1, 0.13, 0.22, 1)], // midnight
+        [0.22, Color4.create(0.12, 0.15, 0.25, 1)], // before dawn
+        [0.27, Color4.create(0.85, 0.65, 0.55, 1)], // sunrise
+        [0.35, Color4.create(0.75, 0.84, 0.92, 1)], // morning
+        [0.5, Color4.create(0.78, 0.87, 0.95, 1)], // noon
+        [0.68, Color4.create(0.8, 0.85, 0.9, 1)], // afternoon
+        [0.75, Color4.create(0.92, 0.62, 0.48, 1)], // sunset
+        [0.8, Color4.create(0.25, 0.22, 0.35, 1)], // dusk
+        [1, Color4.create(0.1, 0.13, 0.22, 1)] // midnight
+      ),
+      density: 0.02
+    }
   }
 }
 
@@ -158,7 +218,8 @@ const environmentLabels: Record<EnvironmentSelection, string> = {
   clearNight: 'Clear night',
   storm: 'Storm',
   dayRamp: 'Day ramp',
-  trueDarkness: 'True darkness'
+  trueDarkness: 'True darkness',
+  starryNight: 'Starry night (lens flare repro)'
 }
 
 const timeLabels: Record<TimeSelection, string> = {
@@ -314,6 +375,18 @@ function setEnvironment(selection: EnvironmentSelection) {
   skyboxRemoved = false
   sunRemoved = false
   fogRemoved = false
+
+  // The repro also needs the rest of the reported setup, so it moves those rows too; each one can
+  // still be changed afterwards (e.g. Sun intensity Default vs 0 to compare the lens flare).
+  if (selection === 'starryNight') {
+    skySelection = 'galaxy'
+    sunVisible = true
+    sunIntensitySelection = 'off'
+    sunDirectionSelection = 'timeOfDay'
+    fogDensitySelection = 'default'
+    setTime('midnight')
+  }
+
   applySkybox()
   applySun()
   applyFog()
@@ -375,8 +448,7 @@ function setTime(selection: TimeSelection) {
 }
 
 function statusText() {
-  const skyLabel = skySelection === 'none' ? 'None (procedural)' : `Sky ${skySelection.toUpperCase()}`
-  const skyboxLabel = skyboxRemoved ? 'Removed' : skyLabel
+  const skyboxLabel = skyboxRemoved ? 'Removed' : skyLabels[skySelection]
   const sunLabel = sunRemoved
     ? 'Removed'
     : `${sunVisible ? 'Visible' : 'Hidden'}, intensity ${sunIntensityLabels[sunIntensitySelection]}, dir ${sunDirectionLabels[sunDirectionSelection]}`
@@ -425,21 +497,28 @@ const Panel = () => (
         value="A"
         variant={selectButtonVariant(skySelection === 'a')}
         fontSize={12}
-        uiTransform={{ width: '30%', height: '100%' }}
+        uiTransform={{ width: '23%', height: '100%' }}
         onMouseDown={() => setSky('a')}
       />
       <Button
         value="B"
         variant={selectButtonVariant(skySelection === 'b')}
         fontSize={12}
-        uiTransform={{ width: '30%', height: '100%' }}
+        uiTransform={{ width: '23%', height: '100%' }}
         onMouseDown={() => setSky('b')}
+      />
+      <Button
+        value="Galaxy"
+        variant={selectButtonVariant(skySelection === 'galaxy')}
+        fontSize={12}
+        uiTransform={{ width: '23%', height: '100%' }}
+        onMouseDown={() => setSky('galaxy')}
       />
       <Button
         value="None"
         variant={selectButtonVariant(skySelection === 'none')}
         fontSize={12}
-        uiTransform={{ width: '30%', height: '100%' }}
+        uiTransform={{ width: '23%', height: '100%' }}
         onMouseDown={() => setSky('none')}
       />
     </UiEntity>
@@ -475,7 +554,7 @@ const Panel = () => (
         onMouseDown={() => setEnvironment('clearNight')}
       />
     </UiEntity>
-    <UiEntity uiTransform={{ width: '100%', height: 36, flexDirection: 'row', justifyContent: 'space-between', margin: { bottom: 15 } }}>
+    <UiEntity uiTransform={{ width: '100%', height: 36, flexDirection: 'row', justifyContent: 'space-between', margin: { bottom: 8 } }}>
       <Button
         value="Storm"
         variant={selectButtonVariant(environmentSelection === 'storm')}
@@ -498,6 +577,13 @@ const Panel = () => (
         onMouseDown={() => setEnvironment('trueDarkness')}
       />
     </UiEntity>
+    <Button
+      value="Starry night (lens flare repro)"
+      variant={selectButtonVariant(environmentSelection === 'starryNight')}
+      fontSize={11}
+      uiTransform={{ width: '100%', height: 30, margin: { bottom: 15 } }}
+      onMouseDown={() => setEnvironment('starryNight')}
+    />
 
     {SectionLabel('Sun & moon visibility')}
     <UiEntity uiTransform={{ width: '100%', height: 36, flexDirection: 'row', justifyContent: 'space-between', margin: { bottom: 8 } }}>

@@ -121,7 +121,7 @@ The right-hand panel has nine rows, each independently settable, with its own `c
 
 | Row | Component field(s) |
 |-----|---------------------|
-| Sky (A/B/None) | `Skybox.skyboxTexture` |
+| Sky (A/B/Galaxy/None) | `Skybox.skyboxTexture` |
 | Remove Skybox | forces `Skybox.deleteFrom` regardless of Sky/Environment |
 | Environment preset | `Skybox.skyColors`/`clouds`/`stars` + `Sun.color` + `EnvironmentFog.color`/`density` |
 | Sun & moon visibility | `Sun.visible` |
@@ -151,10 +151,11 @@ preset is selected — picking a *new* preset clears all three force-removed fla
 | Clear night  | `clouds.opacity = 0`, `stars.brightness = 12`, cool blue `sun.color`. No fog override.                  | No clouds, very bright stars once night falls (pair with Time = 00:00 to see it immediately). |
 | Storm        | Dark grey constant `skyColors`, `clouds.opacity = 1` + slow `speed = 0.1` + dark `clouds.color`, grey `fog.color` + `fog.density = 0.01`, dim `sun.color`. | Heavy overcast dark-grey sky, clouds and fog all day, dim lighting, slow-drifting clouds, thicker fog (~100 m until ~63% fogged). |
 | Day ramp     | Multi-key `skyColors.horizon`, `sun.color` and `fog.color` gradients (dawn → noon → dusk → night), with an HDR (>1) noon sun key. | Colors visibly shift as `Time` moves through 00:00 → 06:00 → 12:00 → 18:00 → 00:00: deep blue night, pink-orange dawn/dusk, pale cyan/bright noon. |
+| Starry night (lens flare repro) | A creator's reported setup, copied verbatim (see [Lens flare repro](#lens-flare-repro-sunintensity--0)): dark red-purple `skyColors` with a red nadir, `clouds.opacity = 0`, `stars.brightness = 25`, a 9-key `sun.color` gradient, a 9-key `fog.color` gradient + `fog.density = 0.02`. Also sets Sky = Galaxy, Sun Visible, Sun intensity 0, Sun direction Time of day, Fog density Default, Time 00:00. | Starfield panorama, no sunlight. With the explorer fix: no lens flare. Without it: the moon's lens flare still shows. |
 | True darkness | Black `skyColors` (so the derived ambient and horizon rim are black too), `clouds`/`stars` off, black `sun.color`, black `fog.color`. | Pitch-black sky and ambient; the sun/moon disc is still drawn (color black — nearly invisible) unless you also click Sun "Hidden". The only real illumination is the scene's own point `LightSource`. |
 
 Environment presets' `skybox` part (except the ambient it derives) is inert while a Sky texture
-(A/B) is also selected — pick Sky = None to see `skyColors`/`clouds`/`stars` clearly. `sun`/`fog`
+(A/B/Galaxy) is also selected — pick Sky = None to see `skyColors`/`clouds`/`stars` clearly. `sun`/`fog`
 keep applying regardless of the Sky selection.
 
 ### Fog density row
@@ -190,6 +191,41 @@ Reflections are visible on:
 - a large vertical mirror-like plane,
 - the glossy floor tiles (reused from `0,6-ui-zindex-and-opacity`).
 
+## Lens flare repro (`Sun.intensity = 0`)
+
+A creator built a starry night with `Sun.intensity = 0` and still saw the sun/moon lens flare.
+`intensity` scaled the directional light but not the flare. The explorer fix (unity-explorer
+branch `fix/sdk-sun-lens-flare`) multiplies the flare intensity by `min(intensity, 1)`.
+
+The "Starry night (lens flare repro)" preset reproduces the setup. `images/galaxy.jpg` is a
+generated starfield standing in for the creator's own `galaxy.png`. The snippet does not set a
+time; the preset pins 00:00 because the Legacy look draws no flare at all around 03:30–06:30
+and 18:15–20:45. At 00:00 the moon flare is at 0.6; at 12:00 the sun flare is at 1.
+
+To test:
+1. Click **Starry night (lens flare repro)** and look around for the moon. Picking
+   **Sun direction: Low east** puts it at eye level if it is hard to find.
+2. Toggle **Sun intensity** between `Default` and `0 (off)`:
+
+| Sun intensity | Without the fix | With the fix |
+|---------------|-----------------|--------------|
+| Default (1) | flare | flare |
+| 0 (off) | **flare (bug)** | no flare |
+| 0.5 | flare at full strength | flare at half strength |
+| 2 | flare | flare (same as Default, never stronger) |
+
+3. **Sun & moon: Hidden** removes the flare in both builds. It is the workaround that already
+   existed before the fix.
+4. **Time: 12:00** checks the same thing with the sun flare instead of the moon flare.
+
+To get the build without the fix, check out the controller from before the fix commit in
+unity-explorer, then restore it:
+
+```
+git checkout 08c3a5fb6~1 -- Explorer/Assets/DCL/SkyBox/SkyboxRenderController.cs   # without the fix
+git checkout 08c3a5fb6 -- Explorer/Assets/DCL/SkyBox/SkyboxRenderController.cs     # with the fix
+```
+
 ## Orientation check (`images/sky-a.png`)
 
 `sky-a.png` is a labelled daylight panorama meant to be checked against the compass:
@@ -202,7 +238,8 @@ Reflections are visible on:
 Walk around and look up/down in-world to confirm each marker lines up with the direction it
 names. `sky-b.png` is a neon/night panorama (dark purple gradient, horizontal neon stripes,
 a large moon) with no orientation markers — it's meant to contrast visually with `sky-a.png`
-rather than to be direction-checked.
+rather than to be direction-checked. `galaxy.jpg` is a generated starfield with a faint galactic
+band, used by the lens flare repro.
 
 ## Running the scene
 
