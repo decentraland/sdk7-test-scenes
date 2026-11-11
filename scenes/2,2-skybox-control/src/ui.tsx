@@ -38,7 +38,7 @@ let fogRemoved = false
 const skyTextureSrc: Record<Exclude<SkySelection, 'none'>, string> = {
   a: 'images/sky-a.png',
   b: 'images/sky-b.png',
-  galaxy: 'images/galaxy.png'
+  galaxy: 'images/galaxy.jpg'
 }
 
 const skyLabels: Record<SkySelection, string> = {

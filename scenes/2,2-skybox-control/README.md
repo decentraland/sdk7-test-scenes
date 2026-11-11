@@ -197,7 +197,7 @@ A creator built a starry night with `Sun.intensity = 0` and still saw the sun/mo
 `intensity` scaled the directional light but not the flare. The explorer fix (unity-explorer
 branch `fix/sdk-sun-lens-flare`) multiplies the flare intensity by `min(intensity, 1)`.
 
-The "Starry night (lens flare repro)" preset reproduces the setup. `images/galaxy.png` is a
+The "Starry night (lens flare repro)" preset reproduces the setup. `images/galaxy.jpg` is a
 generated starfield standing in for the creator's own `galaxy.png`. The snippet does not set a
 time; the preset pins 00:00 because the Legacy look draws no flare at all around 03:30–06:30
 and 18:15–20:45. At 00:00 the moon flare is at 0.6; at 12:00 the sun flare is at 1.
@@ -238,7 +238,7 @@ git checkout 08c3a5fb6 -- Explorer/Assets/DCL/SkyBox/SkyboxRenderController.cs  
 Walk around and look up/down in-world to confirm each marker lines up with the direction it
 names. `sky-b.png` is a neon/night panorama (dark purple gradient, horizontal neon stripes,
 a large moon) with no orientation markers — it's meant to contrast visually with `sky-a.png`
-rather than to be direction-checked. `galaxy.png` is a generated starfield with a faint galactic
+rather than to be direction-checked. `galaxy.jpg` is a generated starfield with a faint galactic
 band, used by the lens flare repro.
 
 ## Running the scene
