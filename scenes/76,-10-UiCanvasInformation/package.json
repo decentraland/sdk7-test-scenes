@@ -2,9 +2,6 @@
   "name": "ui-canvas-information",
   "description": "ECS7 ",
   "version": "1.0.0",
-  "dependencies": {
-    "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09"
-  },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=6.0.0"
@@ -13,5 +10,8 @@
     "build": "sdk-commands build --skip-install",
     "deploy": "sdk-commands deploy",
     "start": "sdk-commands start"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5"
   }
 }

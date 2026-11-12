@@ -1,0 +1,329 @@
+[
+  {
+    "name": "shared implementations: qualified calls, overrides, overloads and axiom outputs",
+    "upstream": "HTNTest/src/HTNSharedImplementationTest.cpp:160",
+    "domain": "upstream/Domains/Test/shared_implementations.domain",
+    "callterms": "shared-impl",
+    "facts": [["candidate_value", "1"], ["candidate_value", "2"]],
+    "method": "run",
+    "expect": {
+      "status": "succeeded",
+      "plan": [
+        "!shared (payload 1 1)",
+        "!shared (payload 2 2)",
+        "!base_zero",
+        "!base_zero",
+        "!derived 3",
+        "!base_one 4",
+        "!pair 5 6",
+        "!outputs 105 5 106"
+      ],
+      "calls": {"Calls": 2}
+    }
+  },
+  {
+    "name": "shared implementations: deferred names and arities survive later expansion",
+    "upstream": "HTNTest/src/HTNSharedImplementationTest.cpp:167",
+    "note": "Deferred steps keep the name as written, qualified or not. Upstream decompose_call(top_level_only=1) = decompose(); (top_level_only=0) on the produced step = decomposeDeferred().",
+    "domain": "upstream/Domains/Test/shared_implementations.domain",
+    "callterms": "shared-impl",
+    "facts": [["candidate_value", "1"], ["candidate_value", "2"]],
+    "script": [
+      {
+        "op": "decompose",
+        "method": "deferred",
+        "save": "deferred",
+        "expect": {
+          "status": "succeeded",
+          "calls": {"Calls": 0},
+          "plan": [
+            "&shared 7",
+            "&SharedBase::shared 8",
+            "&choose 9",
+            "&SharedImplementations::choose 10",
+            "&choose 11 12"
+          ]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "shared",
+        "args": ["7"],
+        "expect": {"status": "invalid_call"}
+      },
+      {
+        "op": "expandDeferred",
+        "of": "deferred",
+        "from": 0,
+        "expect": {"status": "succeeded", "plan": ["!shared (payload 7 7)"]}
+      },
+      {
+        "op": "decompose",
+        "method": "SharedBase::shared",
+        "args": ["8"],
+        "expect": {"status": "invalid_call"}
+      },
+      {
+        "op": "expandDeferred",
+        "of": "deferred",
+        "from": 1,
+        "expect": {"status": "succeeded", "plan": ["!shared (payload 8 8)"]}
+      },
+      {
+        "op": "decompose",
+        "method": "choose",
+        "args": ["9"],
+        "expect": {"status": "invalid_call"}
+      },
+      {
+        "op": "expandDeferred",
+        "of": "deferred",
+        "from": 2,
+        "expect": {"status": "succeeded", "plan": ["!derived 9"]}
+      },
+      {
+        "op": "decompose",
+        "method": "SharedImplementations::choose",
+        "args": ["10"],
+        "expect": {"status": "invalid_call"}
+      },
+      {
+        "op": "expandDeferred",
+        "of": "deferred",
+        "from": 3,
+        "expect": {"status": "succeeded", "plan": ["!derived 10"]}
+      },
+      {
+        "op": "decompose",
+        "method": "choose",
+        "args": ["11", "12"],
+        "expect": {"status": "invalid_call"}
+      },
+      {
+        "op": "expandDeferred",
+        "of": "deferred",
+        "from": 4,
+        "expect": {"status": "succeeded", "plan": ["!pair 11 12"]}
+      },
+      {
+        "op": "expectCounters",
+        "calls": {"Calls": 2}
+      }
+    ]
+  },
+  {
+    "name": "shared implementations: non-tail recursion returns to both callable identities",
+    "upstream": "HTNTest/src/HTNSharedImplementationTest.cpp:187",
+    "note": "maxDepth mirrors the upstream default call-frame capacity (8192).",
+    "domain": "upstream/Domains/Test/shared_implementations.domain",
+    "callterms": "shared-impl",
+    "facts": [["candidate_value", "1"], ["candidate_value", "2"]],
+    "maxDepth": 8192,
+    "method": "recursive",
+    "args": ["1000"],
+    "expect": {
+      "status": "succeeded",
+      "planLength": 4002,
+      "steps": [
+        {"at": 2000, "text": "!return 0"},
+        {"at": 2001, "text": "!visit 0"},
+        {"at": 4001, "text": "!return 0"}
+      ]
+    }
+  },
+  {
+    "name": "shared implementations: client-only entries keep every public name and arity",
+    "upstream": "HTNTest/src/HTNSharedImplementationTest.cpp:199",
+    "domain": "upstream/Domains/Test/shared_implementations.domain",
+    "callterms": "shared-impl",
+    "facts": [["candidate_value", "1"], ["candidate_value", "2"]],
+    "script": [
+      {
+        "op": "decompose",
+        "method": "client_entry",
+        "expect": {"status": "succeeded", "plan": ["!client_zero"]}
+      },
+      {
+        "op": "decompose",
+        "method": "client_entry",
+        "args": ["17"],
+        "expect": {"status": "succeeded", "plan": ["!client_one 17"]}
+      },
+      {
+        "op": "decompose",
+        "method": "client_entry",
+        "args": ["17", "18"],
+        "expect": {"status": "invalid_call"}
+      },
+      {
+        "op": "decompose",
+        "method": "client_empty",
+        "expect": {"status": "no_plan"}
+      },
+      {
+        "op": "decompose",
+        "method": "SharedImplementations::client_entry",
+        "expect": {"status": "invalid_call"}
+      },
+      {
+        "op": "decompose",
+        "method": "unused",
+        "expect": {"status": "invalid_call"}
+      }
+    ]
+  },
+  {
+    "name": "shared implementations: mutual recursion",
+    "upstream": "HTNTest/src/HTNSharedImplementationTest.cpp:212",
+    "domain": "upstream/Domains/Test/shared_implementations.domain",
+    "callterms": "shared-impl",
+    "facts": [["candidate_value", "1"], ["candidate_value", "2"]],
+    "method": "client_cycle",
+    "args": ["4"],
+    "expect": {"status": "succeeded", "plan": ["!even_zero", "!odd 1", "!even 2", "!odd 3", "!even 4"]}
+  },
+  {
+    "name": "shared implementations: deferred-only target is not top-level but expandable",
+    "upstream": "HTNTest/src/HTNSharedImplementationTest.cpp:230",
+    "note": "The second half (dead_deferred_source is invalid_call without top-level filtering) needs name-based non-top-level dispatch, which the TS API does not expose.",
+    "domain": "upstream/Domains/Test/shared_implementations.domain",
+    "callterms": "shared-impl",
+    "facts": [["candidate_value", "1"], ["candidate_value", "2"]],
+    "script": [
+      {
+        "op": "decompose",
+        "method": "deferred_only",
+        "args": ["42"],
+        "expect": {"status": "invalid_call"}
+      },
+      {
+        "op": "decomposeDeferred",
+        "method": "deferred_only",
+        "args": ["42"],
+        "expect": {"status": "succeeded", "plan": ["!deferred_only 42"]}
+      }
+    ]
+  },
+  {
+    "name": "shared implementations: callterm requirements include unreachable call sites",
+    "upstream": "HTNTest/src/HTNSharedImplementationTest.cpp:241",
+    "note": "Upstream validates the registry against generated callterm requirements: unused_condition and unused_argument are required although unreachable.",
+    "domain": "upstream/Domains/Test/shared_implementations.domain",
+    "expect": {
+      "compile": "ok",
+      "irCallterms": ["echo", "missing_shared_callterm", "unused_condition", "unused_argument"]
+    }
+  },
+  {
+    "name": "shared implementations: axiom alternatives roll back and owned inputs are reusable",
+    "upstream": "HTNTest/src/HTNSharedImplementationTest.cpp:257",
+    "domain": "upstream/Domains/Test/shared_implementations.domain",
+    "callterms": "shared-impl",
+    "facts": [["candidate_value", "1"], ["candidate_value", "2"]],
+    "script": [
+      {
+        "op": "decompose",
+        "method": "retry",
+        "expect": {"status": "succeeded", "plan": ["!shared (payload 2 2)"]}
+      },
+      {
+        "op": "decompose",
+        "method": "rollback",
+        "args": ["(\"A long owned string passed through both callable names\" 3)"],
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!fallback (\"A long owned string passed through both callable names\" 3)"]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "shared_entry",
+        "args": ["(\"A long owned string passed through both callable names\" 3)"],
+        "expect": {"status": "succeeded", "planLength": 2}
+      },
+      {
+        "op": "decompose",
+        "method": "retry",
+        "expect": {"status": "succeeded", "plan": ["!shared (payload 2 2)"]}
+      },
+      {
+        "op": "decompose",
+        "method": "rollback",
+        "args": ["(\"A long owned string passed through both callable names\" 3)"],
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!fallback (\"A long owned string passed through both callable names\" 3)"]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "shared_entry",
+        "args": ["(\"A long owned string passed through both callable names\" 3)"],
+        "expect": {"status": "succeeded", "planLength": 2}
+      },
+      {
+        "op": "decompose",
+        "method": "retry",
+        "expect": {"status": "succeeded", "plan": ["!shared (payload 2 2)"]}
+      },
+      {
+        "op": "decompose",
+        "method": "rollback",
+        "args": ["(\"A long owned string passed through both callable names\" 3)"],
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!fallback (\"A long owned string passed through both callable names\" 3)"]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "shared_entry",
+        "args": ["(\"A long owned string passed through both callable names\" 3)"],
+        "expect": {"status": "succeeded", "planLength": 2}
+      },
+      {
+        "op": "expectCounters",
+        "calls": {"Calls": 12}
+      }
+    ]
+  },
+  {
+    "name": "shared implementations: error_plain reports the included call site once",
+    "upstream": "HTNTest/src/HTNSharedImplementationTest.cpp:277",
+    "domain": "upstream/Domains/Test/shared_implementations.domain",
+    "callterms": "shared-impl",
+    "facts": [["candidate_value", "1"], ["candidate_value", "2"]],
+    "method": "error_plain",
+    "expect": {
+      "status": "no_plan",
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {"code": "missing_callterm", "line": 11, "col": 19}
+      ]
+    }
+  },
+  {
+    "name": "shared implementations: error_qualified reports the included call site once",
+    "upstream": "HTNTest/src/HTNSharedImplementationTest.cpp:277",
+    "domain": "upstream/Domains/Test/shared_implementations.domain",
+    "callterms": "shared-impl",
+    "facts": [["candidate_value", "1"], ["candidate_value", "2"]],
+    "method": "error_qualified",
+    "expect": {
+      "status": "no_plan",
+      "diagnostics": {"missing_callterm": 1},
+      "diagnosticAt": [
+        {"code": "missing_callterm", "line": 11, "col": 19}
+      ]
+    }
+  },
+  {
+    "name": "shared implementations: minimal domain compiles",
+    "upstream": "HTNTest/src/HTNSharedImplementationTest.cpp:67",
+    "domain": "minimal_shared.domain",
+    "sources": {
+      "minimal_shared.domain": "(:domain Minimal top_level_domain (:method (run) top_level_method (one () ((!done)))))"
+    },
+    "expect": {"compile": "ok"}
+  }
+]

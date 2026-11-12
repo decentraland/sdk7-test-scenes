@@ -1,0 +1,17 @@
+// sentry_turret: the vehicle under attack drove behind a wall. The continue branch no longer holds; a new attack
+// on the soldier replaces the running plan (the host drops the old plan's active_plan when it adopts the new one).
+// method: behave
+// expect: succeeded
+//   1. !begin_plan attack h2
+//   2. !switch_weapon bullets
+//   3. !aim_at h2
+//   4. !fire bullets h2
+//   5. !end_plan
+
+active_plan attack v1
+wielded rockets
+threat h2 humanoid
+threat v1 vehicle
+distance_to h2 10.0
+distance_to v1 55.0
+line_of_fire h2

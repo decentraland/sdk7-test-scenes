@@ -1,0 +1,4 @@
+urosidoki/htn_planner@aec08fa36f2c521c4da00c045bf23b8aed7bfa92 (MIT, see LICENSE). Copied verbatim: Domains/, WorldStates/, HTNDiagnosticTests/,
+HTNHotReloadDemo/Validation/Wanderer.domain (the hot reload self-test template; @REVISION@ is replaced by A / B when compiled).
+cmake/LinuxSmoke/linux_smoke.domain also copied.
+LICENSE retains the complete upstream copyright and permission notice. Some fixture domain headers omit authors' e-mail addresses; author names are retained. Apart from those header edits, the fixture files are verbatim copies of the pinned source.

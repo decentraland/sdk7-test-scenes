@@ -1,0 +1,7 @@
+// v2_attack_task: no trunk throws a boulder.
+// method: be_troll
+// expect: succeeded
+//   1. !lift_boulder
+//   2. !throw_boulder knight
+
+enemy_visible knight

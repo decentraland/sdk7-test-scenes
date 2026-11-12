@@ -1,0 +1,12 @@
+// medic_bot: patient far.
+// method: behave
+// expect: succeeded
+//   1. !say start_inject
+//   2. !move_near alice 1.5
+//   3. !inject alice
+//   4. !mark_treated alice
+//   5. !say finish_inject
+
+now 0.0
+patient alice
+distance_to alice 6.0

@@ -1,0 +1,26 @@
+// Level 1. A plan is a list of steps.
+// One method with one branch and no condition: the planner always returns the same steps. The host runs them
+// one by one (walking takes time, waving too) and asks for a new plan when the last one is done.
+//
+// Primitives (src/playground/basics-actions.ts):
+//   (!go_to ?spot)      walk to a named spot of the station
+//   (!say ?text)        speech bubble, 1.5 s
+//   (!wait ?seconds)
+
+(:domain Hello top_level_domain
+
+    (:method (behave) top_level_method
+
+        (morning_round
+            ()
+            (
+                (!go_to well)
+                (!say "water: ok")
+                (!go_to tree)
+                (!say "tree: ok")
+                (!go_to bench)
+                (!wait 2.0)
+            )
+        )
+    )
+)

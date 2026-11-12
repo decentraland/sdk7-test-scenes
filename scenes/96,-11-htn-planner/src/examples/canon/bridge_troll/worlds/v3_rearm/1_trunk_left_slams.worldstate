@@ -1,0 +1,9 @@
+// v3_rearm: trunk left slams.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to knight
+//   2. !trunk_slam knight
+
+enemy_visible knight
+trunk_health 2
+trunk_nearby old_oak

@@ -1,0 +1,46 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "gltf-reuse-vs-merge",
+    "description": "Measurement bench for GLTF reuse vs duplication vs merging",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "SDK",
+    "email": ""
+  },
+  "main": "bin/game.js",
+  "tags": [],
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": 16,
+        "y": 0,
+        "z": 1
+      },
+      "cameraTarget": {
+        "x": 16,
+        "y": 1,
+        "z": 10
+      }
+    }
+  ],
+  "featureToggles": {},
+  "scene": {
+    "base": "94,-10",
+    "parcels": [
+      "94,-10",
+      "95,-10",
+      "94,-9",
+      "95,-9"
+    ]
+  },
+  "name": "gltf-reuse-vs-merge",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}

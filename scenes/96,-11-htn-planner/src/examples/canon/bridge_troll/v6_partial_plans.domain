@@ -1,0 +1,163 @@
+// Bridge troll, step 6 of 6: partial plans, split at the long walk by a fact that tells before from after.
+//
+// Teaches: plan only as far as the world is likely to stay the same. The walk to the enemy takes long and the
+// world changes meanwhile (the enemy steps back, the troll gets charged or hit), so a swing planned behind the walk
+// was chosen against a world that is gone when the troll arrives. The attack is split in two: `close_in` is one
+// long-running step that ends the plan; the next plan, made on arrival, picks the swing. The split is
+// only possible because a fact tells the two halves apart: `enemy_in_reach` (a range sensor). Each half states it
+// (`trunk_slam` and `whirlwind` need it, `close_in` needs its absence) so no branch depends on the order. `close_in`
+// also checks the trunk, as the chapter warns: a split that drops a check of a later step (here, "has a trunk")
+// would walk the troll to an enemy it cannot slam.
+//
+// Changed from v5_tired: `whirlwind` and `trunk_slam` need `enemy_in_reach` and lose their !navigate_to; new
+//   method `close_in` (one step); new fact `enemy_in_reach`. Root unchanged.
+// Source: Troy Humphreys, "Exploring HTN Planners through Example", Game AI Pro (CRC Press, 2013), chapter 12,
+//   section 12.10:
+//   https://www.gameaipro.com/GameAIPro/GameAIPro_Chapter12_Exploring_HTN_Planners_through_Example.pdf
+// Licence: the chapter is (c) CRC Press (free to read); re-expressed from its published description, nothing copied.
+// Deviations from the source: the chapter splits a two-method root (navigate if out of range / slam); here the split
+//   is inside `attack_enemy`, which keeps the rest of the series (rearm, whirlwind, tired).
+// Not ported:
+//   - automated partial planning by a time budget, and resuming a recorded "unprocessed task list" (12.10): the
+//     chapter itself advises authored splits; our deferred `&task` is the planner-side form of "continue later";
+//   - 12.9, simultaneous behaviours: two planners for the upper and lower body, or one domain with a non-blocking
+//     navigate and a `navigating` fact (shield the face while walking). We keep one planner per NPC; the
+//     one-domain form needs a host executor that walks in the background, beyond this paper prototype.
+//
+// Facts (host sensors): as v5_tired, plus (enemy_in_reach ?enemy) the enemy is within slam range.
+// Primitives (logged): as v5_tired.
+// Scenarios: worlds/v6_partial_plans/; stories: stories.ts; npm run htn:run -- --world v6_partial_plans/1_enemy_far_away
+
+(:domain BridgeTrollV6 top_level_domain
+
+    (:constants BridgeTrollV6
+        (whirlwind_charge 3)
+    )
+
+    (:method (be_troll) top_level_method
+
+        (fight
+            (and
+                (enemy_visible ?enemy)
+            )
+            (
+                (attack_enemy ?enemy)
+            )
+        )
+
+        (chase
+            (and
+                (enemy_last_seen ?enemy ?place)
+            )
+            (
+                (!navigate_to ?place)
+                (&regain_sight ?enemy)
+            )
+        )
+
+        (patrol
+            (and
+                (next_bridge ?bridge)
+            )
+            (
+                (!navigate_to ?bridge)
+                (!check_bridge ?bridge)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!idle 2.0)
+            )
+        )
+    )
+
+    // Hurt the enemy. Pre: ?inp_enemy is in sight. Effect: one attack made and recovered from, one step closer, or
+    // a new trunk.
+    (:method (attack_enemy ?inp_enemy)
+
+        (recover_first
+            (and
+                (tired)
+            )
+            (
+                (!recover)
+            )
+        )
+
+        (whirlwind
+            (and
+                (enemy_in_reach ?inp_enemy)
+                (power_up ?charge)
+                (>= ?charge @whirlwind_charge)
+            )
+            (
+                (!whirlwind ?inp_enemy)
+                (!recover)
+            )
+        )
+
+        (trunk_slam
+            (and
+                (enemy_in_reach ?inp_enemy)
+                (trunk_health ?hits)
+                (> ?hits 0)
+            )
+            (
+                (!trunk_slam ?inp_enemy)
+                (!recover)
+            )
+        )
+
+        // Partial plan: one long walk, then the plan ends; on arrival `enemy_in_reach` picks the swing.
+        (close_in
+            (and
+                (not (enemy_in_reach ?inp_enemy))
+                (trunk_health ?hits)
+                (> ?hits 0)
+            )
+            (
+                (!navigate_to ?inp_enemy)
+            )
+        )
+
+        (rearm
+            (and
+                (trunk_nearby ?tree)
+            )
+            (
+                (!navigate_to ?tree)
+                (!uproot_trunk ?tree)
+                (&attack_enemy ?inp_enemy)
+            )
+        )
+
+        (throw_boulder
+            ()
+            (
+                (!lift_boulder)
+                (!throw_boulder ?inp_enemy)
+            )
+        )
+    )
+
+    (:method (regain_sight ?inp_enemy)
+
+        (roar
+            (and
+                (enemy_visible ?inp_enemy)
+            )
+            (
+                (!roar ?inp_enemy)
+            )
+        )
+
+        (catch_breath
+            ()
+            (
+                (!catch_breath)
+            )
+        )
+    )
+)

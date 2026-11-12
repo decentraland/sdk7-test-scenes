@@ -19,17 +19,37 @@ function createBlock(position: Vector3): Entity {
 
 const WithAttached = engine.defineComponent("WithAttached", {})
 
-function createAttached(avatarId: string, anchorPointId: AvatarAnchorPointType, color: Color4, scale: number = 1.0): Entity {
+function createAttached(avatarId: string, anchorPointId: AvatarAnchorPointType, color: Color4, rotation: Quaternion, visible: boolean = true): Entity {
   const parent = engine.addEntity()
   const entity = engine.addEntity()
-  Transform.create(entity, { scale: Vector3.create(scale,scale,scale), rotation: Quaternion.fromEulerDegrees(90,0,0), parent})
+  Transform.create(entity, { rotation, parent })
 
-  MeshRenderer.setPlane(entity)
-  Material.setPbrMaterial(entity, { albedoColor: color , castShadows: false})
+  if (visible) {
+    MeshRenderer.setPlane(entity)
+    Material.setPbrMaterial(entity, { albedoColor: color , castShadows: false})
+  }
   
+  Transform.create(parent, { position: Vector3.create(8, 4, 8) })
   AvatarAttach.create(parent, { avatarId, anchorPointId })
 
-  return entity
+  return parent
+}
+
+function createHandAttachedWithFollowingEntity(playerAddress: string) {
+  // 1. Attach an entity to the Avatar  
+  const attachedEntity = createAttached(playerAddress,  AvatarAnchorPointType.AAPT_LEFT_HAND, Color4.Purple(), Quaternion.Identity(), false)
+  
+  // 2. Create a "follower entity" that uses the attached entity Transform information to
+  // check that it's being updated correctly, relative to the player transform
+  const followerEntity = engine.addEntity()
+  MeshRenderer.setBox(followerEntity)
+  engine.addSystem(() => {
+    const attachedEntTransform = Transform.get(attachedEntity)
+    const playerTransform = Transform.get(engine.PlayerEntity)
+    const desiredPos = Vector3.add(playerTransform.position, attachedEntTransform.position)
+    const desiredRot = Quaternion.add(playerTransform.rotation, attachedEntTransform.rotation)
+    Transform.createOrReplace(followerEntity, { position: desiredPos, rotation: desiredRot, scale: Vector3.create(0.15, 0.15, 0.15) })
+  })
 }
 
 function avatarAttachTest() {
@@ -37,13 +57,13 @@ function avatarAttachTest() {
   createBlock(Vector3.create(2 + 1.5, 1, 1.5))
 
   engine.addSystem(function() {
-
     for (const [entity, player] of engine.getEntitiesWith(PlayerIdentityData)) {
       if (WithAttached.has(entity)) continue
-      
-      createAttached(player.address,  AvatarAnchorPointType.AAPT_POSITION, Color4.Yellow())
-      createAttached(player.address,  AvatarAnchorPointType.AAPT_NAME_TAG, Color4.Green())
       WithAttached.create(entity)
+      
+      createAttached(player.address,  AvatarAnchorPointType.AAPT_POSITION, Color4.Yellow(), Quaternion.fromEulerDegrees(90,0,0))
+      createAttached(player.address,  AvatarAnchorPointType.AAPT_NAME_TAG, Color4.Green(), Quaternion.fromEulerDegrees(90,0,0))
+      createHandAttachedWithFollowingEntity(player.address)
 
       const sphere = engine.addEntity()
       Transform.create(sphere, { scale: Vector3.create(.2,.2,.2), parent: entity})
@@ -52,6 +72,17 @@ function avatarAttachTest() {
     }
   })
 
+  /*const waitTime = 5
+  let timer = waitTime
+  engine.addSystem((dt) => {
+    timer -= dt 
+    if (timer <= 0) {
+      timer = waitTime
+      for (const [entity, avatarAttach, transform] of engine.getEntitiesWith(AvatarAttach, Transform)) {
+        console.log(`Entity: ${entity}; Position: [${transform.position.x}, ${transform.position.y}, ${transform.position.z}]`)
+      }
+    }
+  })*/
 }
 
 export function main() {

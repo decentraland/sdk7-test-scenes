@@ -1,0 +1,30 @@
+// door_helper: the helper has arrived.
+// Mid-plan resume: the claimed helper has arrived; a replan from the root keeps it (claimed first).
+// method: behave
+// expect: succeeded
+//   1. !unlatch r2 d1
+//   2. !hold_door r2 d1
+//   3. !pass_door r1 d1 hall
+//   4. !release_door r2 d1
+//   5. !release r2
+//   6. &fetch r1 box hall
+
+self r1
+robot r1
+robot r2
+door d1 hall room_a
+door d1 room_a hall
+route hall room_a room_a
+route hall room_b room_a
+route room_a hall hall
+route room_a room_b room_b
+route room_b room_a room_a
+route room_b hall room_a
+job fetch box hall
+status r1 free
+status r2 busy
+claimed r2 r1
+at r1 room_a
+at r2 room_a
+holding r1 box
+door_type d1 spring

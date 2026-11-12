@@ -1,0 +1,14 @@
+// villager_day: rested, fed, money enough: the fallback. The host rolled "fishing at the pond" for this hour.
+// method: spend_hour
+// expect: succeeded
+//   1. !walk_to pond
+//   2. !pass_hour fishing
+
+hour 10
+hunger 2
+sleepiness 4
+money 5
+at farmhouse
+home farmhouse
+shop bakery food baker
+pastime fishing pond

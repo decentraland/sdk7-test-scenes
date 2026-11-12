@@ -1,0 +1,12 @@
+package-lock.json
+node_modules
+bin
+*.swp
+*.*~
+export
+.idea/
+
+.editor
+.idea
+.vscode
+dclcontext

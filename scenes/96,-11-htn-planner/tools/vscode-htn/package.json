@@ -1,0 +1,49 @@
+{
+  "name": "htn-domain",
+  "displayName": "HTN domain (.domain)",
+  "description": "Syntax highlighting, comments and brackets for HTN .domain files, and a problem matcher for `htn:compile -- --check`. Grammar adapted from upstream htn_planner HTNVSCode (MIT).",
+  "version": "0.1.0",
+  "publisher": "local",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": ["Programming Languages"],
+  "contributes": {
+    "languages": [
+      {
+        "id": "htn",
+        "aliases": ["HTN", "htn"],
+        "extensions": [".domain"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "htn",
+        "scopeName": "source.htn",
+        "path": "./syntaxes/htn.tmLanguage.json"
+      }
+    ],
+    "problemMatchers": [
+      {
+        "name": "htn-check",
+        "label": "HTN compiler diagnostics (file:line:col-endLine:endCol: severity code: message)",
+        "owner": "htn",
+        "source": "htn",
+        "fileLocation": ["autoDetect", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.+?):(\\d+):(\\d+)-(\\d+):(\\d+): (error|warning) ([a-z0-9-]+): (.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "endLine": 4,
+          "endColumn": 5,
+          "severity": 6,
+          "code": 7,
+          "message": 8
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+// infiltrator: hurt, a medikit lying in the storeroom. Healing comes first; the medikit picked up is passed on to
+// !use_medikit as a parameter, so one plan covers both.
+// method: behave
+// expect: succeeded
+//   1. !go_to_area storeroom
+//   2. !pick_up m1
+//   3. !use_medikit m1
+
+npc_in lobby
+player_in p1 hall
+injured
+holding g2
+item g2 gun
+loaded g2
+reachable_item m1 storeroom
+item m1 medikit
+lights storeroom on

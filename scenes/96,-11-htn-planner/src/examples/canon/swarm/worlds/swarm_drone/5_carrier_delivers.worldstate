@@ -1,0 +1,11 @@
+// swarm_drone: holding the resource, the drone brings it to the machine (the delivery comes before collecting).
+// method: behave
+// expect: succeeded
+//   1. !begin_plan deliver_resource r1
+//   2. !fly_to m1
+//   3. !release r1 m1
+//   4. !end_plan
+
+role collector r1
+processor m1
+holding r1

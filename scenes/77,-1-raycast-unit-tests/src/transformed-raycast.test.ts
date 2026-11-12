@@ -24,7 +24,9 @@ test('raycast: raycasting from a translated origin works', function* (context) {
   })
 
   // 2. Wait for the next frame to let the RaycastSystem to process the raycast
-  yield
+  while(!RaycastResult.has(entity)) {
+    yield // wait for next frame
+  }
 
   // this is the global origin of the raycast, result of the translation of the entity
   const globalOrigin = Vector3.create(20, 0, 20)
@@ -64,7 +66,9 @@ test('raycast: localDirection raycasting from a translated origin works', functi
   })
 
   // 2. Wait for the next frame to let the RaycastSystem to process the raycast
-  yield
+  while(!RaycastResult.has(entity)) {
+    yield // wait for next frame
+  }
 
   const tickNumber = EngineInfo.getOrNull(engine.RootEntity)?.tickNumber || -1
 
@@ -108,7 +112,9 @@ test('raycast: localDirection raycasting from a translated origin works, with ro
   })
 
   // 2. Wait for the next frame to let the RaycastSystem to process the raycast
-  yield
+  while(!RaycastResult.has(entity)) {
+    yield // wait for next frame
+  }
 
   const tickNumber = EngineInfo.getOrNull(engine.RootEntity)?.tickNumber || -1
 
@@ -153,7 +159,9 @@ test('raycast: localDirection raycasting from a translated origin works, with ro
   })
 
   // 2. Wait for the next frame to let the RaycastSystem to process the raycast
-  yield
+  while(!RaycastResult.has(entity)) {
+    yield // wait for next frame
+  }
 
   // this is the global origin of the raycast, result of the translation and scaling of the entity
   const globalOrigin = Vector3.create(15, 0, 15)

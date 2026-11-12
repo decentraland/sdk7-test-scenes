@@ -1,0 +1,88 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "HTN Planner",
+    "description": "HTN planner playground: level 12 Ambush with an animated primitive stalker starts by default; approach the crossing for it to step out. Use the Playgrounds menu to switch between twelve levels and two reference zones, restart, or remove the current playground. Each level has a tester bot and a live plan board."
+  },
+  "main": "bin/index.js",
+  "tags": [
+    "npc",
+    "ai",
+    "htn",
+    "test"
+  ],
+  "scene": {
+    "base": "96,-11",
+    "parcels": [
+      "96,-11",
+      "96,-10",
+      "96,-9",
+      "96,-8",
+      "96,-7",
+      "96,-6",
+      "96,-5",
+      "96,-4",
+      "97,-11",
+      "97,-10",
+      "97,-9",
+      "97,-8",
+      "97,-7",
+      "97,-6",
+      "97,-5",
+      "97,-4",
+      "98,-11",
+      "98,-10",
+      "98,-9",
+      "98,-8",
+      "98,-7",
+      "98,-6",
+      "98,-5",
+      "98,-4",
+      "99,-11",
+      "99,-10",
+      "99,-9",
+      "99,-8",
+      "99,-7",
+      "99,-6",
+      "99,-5",
+      "99,-4",
+      "100,-11",
+      "100,-10",
+      "100,-9",
+      "100,-8",
+      "100,-7",
+      "100,-6",
+      "100,-5",
+      "100,-4",
+      "101,-11",
+      "101,-10",
+      "101,-9",
+      "101,-8",
+      "101,-7",
+      "101,-6",
+      "101,-5",
+      "101,-4"
+    ]
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn",
+      "default": true,
+      "position": {
+        "x": 48,
+        "y": 0,
+        "z": 40
+      },
+      "cameraTarget": {
+        "x": 48,
+        "y": 1.5,
+        "z": 60
+      }
+    }
+  ],
+  "requiredPermissions": [],
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}

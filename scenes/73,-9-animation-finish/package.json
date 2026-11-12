@@ -1,0 +1,13 @@
+{
+  "name": "animation-finish",
+  "description": "Test scene for Animator playback-completion signaling",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "sdk-commands build",
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "latest"
+  }
+}

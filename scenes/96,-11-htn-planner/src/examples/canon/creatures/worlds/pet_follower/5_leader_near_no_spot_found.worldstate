@@ -1,0 +1,8 @@
+// pet_follower: leader near, no spot found.
+// method: behave
+// expect: succeeded
+//   1. !idle_wait 2.0 7.0
+
+now 0.0
+leader owner
+distance_to owner 2.0

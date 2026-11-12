@@ -1,0 +1,10 @@
+// v5_tired: charged and rested whirls.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to knight
+//   2. !whirlwind knight
+//   3. !recover
+
+enemy_visible knight
+trunk_health 2
+power_up 3

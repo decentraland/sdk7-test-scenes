@@ -1,0 +1,16 @@
+// villager_day: the baker at 7, fed: the shop's hours start, she walks to the bakery and keeps the counter.
+// method: spend_hour
+// expect: succeeded
+//   1. !walk_to bakery
+//   2. !tend_shop bakery
+
+hour 7
+hunger 1
+sleepiness 1
+money 20
+at cottage
+home cottage
+owns_shop bakery
+opening_hours bakery 7 18
+shop bakery food baker
+pastime chatting square

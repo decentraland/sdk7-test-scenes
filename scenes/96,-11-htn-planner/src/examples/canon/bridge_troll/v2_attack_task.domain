@@ -1,0 +1,78 @@
+// Bridge troll, step 2 of 6: a root branch delegates to a named compound task.
+//
+// Teaches: when a behaviour gets more than one way to happen, give it a name. `attack_enemy` is a compound task
+// with two methods (slam with the trunk it holds, else throw a boulder pulled from the ground); the root branch
+// only says "fight" and calls it. The root stays a short priority list, the detail lives one level down.
+//
+// Changed from v1: the root's attack branch now calls `attack_enemy`; new fact `holding_trunk`; new primitives
+//   !lift_boulder, !throw_boulder.
+// Source: Troy Humphreys, "Exploring HTN Planners through Example", Game AI Pro (CRC Press, 2013), chapter 12,
+//   sections 12.2.4 (AttackEnemy: trunk slam if the troll has a trunk, else lift and throw a boulder) and 12.6
+//   (the root calls AttackEnemy):
+//   https://www.gameaipro.com/GameAIPro/GameAIPro_Chapter12_Exploring_HTN_Planners_through_Example.pdf
+// Licence: the chapter is (c) CRC Press; re-expressed from its published description, nothing copied.
+// Deviations from the source: the boulder method is the unconditional last method (the chapter guards it with
+//   `WsHasTreeTrunk == false`, which is the same once the trunk method comes first); patrol and idle as in v1.
+// Not ported: nothing else of these sections.
+// Next: v3_rearm.domain lets the trunk break and the troll fetch a new one.
+//
+// Facts (host sensors): (enemy_visible ?enemy) (next_bridge ?bridge) as in v1; (holding_trunk) present while the
+//   troll carries a trunk.
+// Primitives (logged): (!navigate_to ?target) (!trunk_slam ?enemy) (!lift_boulder) (!throw_boulder ?enemy)
+//   (!check_bridge ?bridge) (!idle ?seconds)
+// Scenarios and expected plans: worlds/v2_attack_task/; npm run htn:run -- --world v2_attack_task/2_no_trunk_throws_a_boulder
+
+(:domain BridgeTrollV2 top_level_domain
+
+    (:method (be_troll) top_level_method
+
+        (fight
+            (and
+                (enemy_visible ?enemy)
+            )
+            (
+                (attack_enemy ?enemy)
+            )
+        )
+
+        (patrol
+            (and
+                (next_bridge ?bridge)
+            )
+            (
+                (!navigate_to ?bridge)
+                (!check_bridge ?bridge)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!idle 2.0)
+            )
+        )
+    )
+
+    // Hurt the enemy. Pre: ?inp_enemy is in sight. Effect: one attack made.
+    (:method (attack_enemy ?inp_enemy)
+
+        (trunk_slam
+            (and
+                (holding_trunk)
+            )
+            (
+                (!navigate_to ?inp_enemy)
+                (!trunk_slam ?inp_enemy)
+            )
+        )
+
+        // No trunk: a boulder is always at hand.
+        (throw_boulder
+            ()
+            (
+                (!lift_boulder)
+                (!throw_boulder ?inp_enemy)
+            )
+        )
+    )
+)

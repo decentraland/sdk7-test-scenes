@@ -1,0 +1,79 @@
+(:include "bot_base.domain")
+
+// Medic bot: find the best patient not treated recently, say so if it has to walk, walk up, inject, mark the
+// patient as treated, say the closing line. Lines have a cooldown; the mark has a lifetime the host keeps.
+//
+// Teaches: a target picked by a host sensor (patients best-first: critical first, then near) and filtered by a mark
+// with a lifetime (`recently_treated`, removed by the host after 60 s); the re-entrant get-in-range (a replan after
+// the walk resumes at the injection, without the opening line); speech with a cooldown; a bookkeeping write
+// (`!mark_treated`) as a step of the behaviour that needs it, never a branch of its own; a variant by `overrides`.
+// Source: Space Station 14 (MIT), `MedibotCompound`, `MedibotGetInRange`, `MedibotInject` in
+// Resources/Prototypes/NPCs/medibot.yml, the `MedibotInjectable` utility query in utility_queries.yml and
+// `NPCRecentlyInjectedComponent` (RemoveTime 1 minute), at commit 614f030530578e248a2393dd71ee9813d68d800d:
+// https://github.com/space-wizards/space-station-14/blob/614f030530578e248a2393dd71ee9813d68d800d/Resources/Prototypes/NPCs/medibot.yml
+// Licence: MIT, Copyright (c) 2017-2026 Space Wizards Federation; see src/examples/canon/THIRD_PARTY_NOTICES.md.
+// Adapted (YAML prototypes re-written in our domain language).
+// Emulations: the utility query (`MedibotInjectable`: injectable, damageable, alive or critical, scored by crit
+// state then distance, `EnumerableDescending`) is the host sensor `(patient ?entity)`, best first; its
+// `ComponentFilter` dropping recently injected targets is the `(not (recently_treated ?p))` in `job_target`, so the
+// mark is visible in the domain (the filter walks the sensor rows, so it needs fact backtracking, on in ALL and
+// FACTS_AND_AXIOMS; with NONE only the first patient is seen). `EnsureComponentOperator NPCRecentlyInjected` is
+// `!mark_treated`; the host removes the mark when its lifetime ends (SS14: `NPCPerceptionSystem.UpdateRecentlyInjected`).
+// Deviations: SS14's get-in-range tests "not in range" first and ends with a no-op; ours (reach tier) tests
+// "already there" first. The opening line is said only when the bot has to walk (as SS14: it is inside the
+// "not in range" branch).
+// Not ported: `PickNearbyInjectableOperator`'s choice of the reagent by damage type (the executor's job:
+// `!inject` picks it), the do-after of the injection (`expectDoAfter`: the executor waits for it).
+//
+// Facts:      (patient ?entity) host sensor, best first; (recently_treated ?entity) mark, host-removed after 60 s;
+//             (distance_to ?entity ?metres); (spoke ?line ?seconds); (now ?seconds).
+// Primitives: (!say ?line) (!move_near ?entity ?range) (!inject ?entity) (!mark_treated ?entity), idle's.
+
+(:domain MedicBot top_level_domain
+
+    (:axiom (job_target ?out_target) overrides ServiceBot
+        (and
+            (patient ?out_target)
+            (not (recently_treated ?out_target))
+        )
+    )
+
+    (:method (announce_approach ?inp_target) overrides ServiceBot
+
+        (in_reach
+            (and
+                (#within ?inp_target @approach_range)
+            )
+            ()
+        )
+
+        (on_my_way
+            ()
+            (
+                (say_line start_inject)
+            )
+        )
+    )
+
+    (:method (do_job ?inp_target) overrides ServiceBot
+
+        (inject
+            ()
+            (
+                (!inject ?inp_target)
+                (!mark_treated ?inp_target)
+                (say_line finish_inject)
+            )
+        )
+    )
+
+    (:method (behave) top_level_method
+
+        (bot
+            ()
+            (
+                (run_bot)
+            )
+        )
+    )
+)

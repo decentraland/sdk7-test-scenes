@@ -1,0 +1,54 @@
+{
+	"ecs7": true,
+	"runtimeVersion": "7",
+	"display": {
+		"title": "Pointer Events Distances Test",
+		"description": "Test scene for PBPointerEvents maxDistance / maxPlayerDistance / maxCameraDistance semantics",
+		"navmapThumbnail": "images/scene-thumbnail.png",
+		"favicon": "favicon_asset"
+	},
+	"owner": "",
+	"contact": {
+		"name": "SDK",
+		"email": ""
+	},
+	"main": "bin/index.js",
+	"tags": [],
+	"scene": {
+		"parcels": [
+			"34,20",
+			"35,20"
+		],
+		"base": "34,20"
+	},
+	"spawnPoints": [
+		{
+			"name": "spawn1",
+			"default": true,
+			"position": {
+				"x": [
+					26,
+					28
+				],
+				"y": [
+					0,
+					0
+				],
+				"z": [
+					7,
+					9
+				]
+			},
+			"cameraTarget": {
+				"x": 3,
+				"y": 1.5,
+				"z": 8
+			}
+		}
+	],
+	"requiredPermissions": [],
+	"featureToggles": {},
+	"worldConfiguration": {
+		"name": "sdk7testscenes.dcl.eth"
+	}
+}

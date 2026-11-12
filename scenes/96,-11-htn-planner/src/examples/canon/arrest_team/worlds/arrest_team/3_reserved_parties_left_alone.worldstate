@@ -1,0 +1,28 @@
+// arrest_team: the next planning run while scenario 1's plan is running: s1, a and b are reserved. s2 surrenders,
+// closest to b, but b is taken: c restrains s2, alone (a and b cannot cover).
+// method: squad_tick
+// expect: succeeded
+//   1. !reserve c
+//   2. !reserve s2
+//   3. !restrain c s2
+//   4. !wait_until_done c
+//   5. !free c
+//   6. !free s2
+
+squadmember a
+squadmember b
+squadmember c
+roster (a b c)
+enemy s1
+enemy s2
+near s1 a 2.0
+near s1 b 3.0
+near s1 c 9.0
+near s2 b 2.0
+near s2 c 3.0
+near s2 a 5.0
+surrendered s1
+surrendered s2
+reserved a
+reserved b
+reserved s1

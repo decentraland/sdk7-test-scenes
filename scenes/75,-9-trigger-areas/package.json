@@ -1,0 +1,21 @@
+{
+  "name": "trigger-areas",
+  "version": "1.0.0",
+  "description": "trigger areas test scene",
+  "scripts": {
+    "build": "sdk-commands build --skip-install",
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5"
+  },
+  "dependencies": {
+    "cannon": "latest",
+    "@types/cannon": "latest"
+  }
+}

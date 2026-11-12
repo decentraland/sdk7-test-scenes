@@ -1,0 +1,9 @@
+// v6_partial_plans: far, no trunk, no tree: boulder.
+// method: be_troll
+// expect: succeeded
+//   1. !lift_boulder
+//   2. !throw_boulder knight
+
+enemy_visible knight
+trunk_health 0
+power_up 0

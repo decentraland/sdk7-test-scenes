@@ -1,0 +1,14 @@
+// infiltrator: only a knife, already in the lit hall, the player already aware of it: every re-entrant step has
+// nothing to do, only the attack is left.
+// method: behave
+// expect: succeeded
+//   1. !close_in p1
+//   2. !stab p1 k1
+
+npc_in hall
+player_in p1 hall
+player_aware
+holding k1
+item k1 knife
+lights hall on
+control_box hall box_h

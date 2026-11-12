@@ -1,0 +1,25 @@
+// arrest_team: one change from scenario 1: b follows the player's order, and c is too far to cover. a restrains
+// alone.
+// method: squad_tick
+// expect: succeeded
+//   1. !reserve a
+//   2. !reserve s1
+//   3. !restrain a s1
+//   4. !wait_until_done a
+//   5. !free a
+//   6. !free s1
+
+squadmember a
+squadmember b
+squadmember c
+roster (a b c)
+enemy s1
+enemy s2
+near s1 a 2.0
+near s1 b 3.0
+near s1 c 9.0
+near s2 b 2.0
+near s2 c 3.0
+near s2 a 5.0
+surrendered s1
+following_order b

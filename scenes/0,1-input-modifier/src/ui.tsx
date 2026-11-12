@@ -1,6 +1,6 @@
 import ReactEcs, { Button, ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
 import { Color4 } from '@dcl/sdk/math'
-import { toggleModeValues } from '.'
+import {removeComponent, toggleModeValues} from '.'
 
 export function setupUi() {
   ReactEcsRenderer.setUiRenderer(uiComponent)
@@ -137,5 +137,23 @@ const uiComponent = () => (
         })
       }}
     />
+      <Button
+          value="REMOVE COMPONENT"
+          fontSize={buttonFontSize}
+          variant="primary"
+          uiTransform={{ width: buttonsWidth, height: buttonsHeight }}
+          onMouseDown={() => {
+              console.log('Clicked on REMOVE COMPONENT')
+    
+              removeComponent()
+
+              disableAll = false
+              disableWalk = false
+              disableJog = false
+              disableRun = false
+              disableJump = false
+              disableEmote = false
+          }}
+      />
   </UiEntity>
 )

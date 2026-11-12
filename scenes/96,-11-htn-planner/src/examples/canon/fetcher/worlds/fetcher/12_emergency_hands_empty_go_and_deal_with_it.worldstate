@@ -1,0 +1,28 @@
+// fetcher: emergency, hands empty: go and deal with it.
+// method: behave
+// expect: succeeded
+//   1. !move_to l3
+//   2. !address_emergency l3 e1
+
+distance l1 l1 0
+distance l1 l2 1
+distance l1 l3 2
+distance l1 l4 3
+distance l2 l1 1
+distance l2 l2 0
+distance l2 l3 1
+distance l2 l4 2
+distance l3 l1 2
+distance l3 l2 1
+distance l3 l3 0
+distance l3 l4 1
+distance l4 l1 3
+distance l4 l2 2
+distance l4 l3 1
+distance l4 l4 0
+job fetch o1
+at l2
+battery 4
+charger_at l2
+unviewed l4
+emergency l3 e1

@@ -1,0 +1,14 @@
+(:domain GuardNPC top_level_domain
+
+    (:method (run) top_level_method
+        (patrol
+            (and
+                (guard_on_duty)
+            )
+            (
+                (!move_to "checkpoint")
+                (!scan_area)
+            )
+        )
+    )
+)

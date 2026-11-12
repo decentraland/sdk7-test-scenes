@@ -1,0 +1,58 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Authoritative Server — Gem Rush",
+    "description": "Round-based multiplayer game showcasing the storage-at-key-moments pattern: all live game state (round phase, timers, gems, scores) lives in server memory and reaches clients via synced components; Storage is only read once at server boot and written once per round end (hall of fame + per-player lifetime stats). Zero Storage calls during gameplay."
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": [
+    "multiplayer",
+    "authoritative-server",
+    "storage",
+    "game",
+    "test"
+  ],
+  "scene": {
+    "parcels": [
+      "92,-9"
+    ],
+    "base": "92,-9"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          2,
+          4
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          2,
+          4
+        ]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1,
+        "z": 8
+      }
+    }
+  ],
+  "requiredPermissions": [],
+  "featureToggles": {},
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  },
+  "authoritativeMultiplayer": true
+}

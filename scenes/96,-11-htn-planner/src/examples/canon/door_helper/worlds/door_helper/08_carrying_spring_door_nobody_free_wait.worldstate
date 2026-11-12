@@ -1,0 +1,24 @@
+// door_helper: carrying, spring door, nobody free: wait.
+// method: behave
+// expect: succeeded
+//   1. !wait 1.0
+//   2. &fetch r1 box hall
+
+self r1
+robot r1
+robot r2
+door d1 hall room_a
+door d1 room_a hall
+route hall room_a room_a
+route hall room_b room_a
+route room_a hall hall
+route room_a room_b room_b
+route room_b room_a room_a
+route room_b hall room_a
+job fetch box hall
+status r1 free
+status r2 busy
+at r1 room_a
+at r2 room_b
+holding r1 box
+door_type d1 spring

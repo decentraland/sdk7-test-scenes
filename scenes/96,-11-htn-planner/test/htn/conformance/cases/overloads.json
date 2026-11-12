@@ -1,0 +1,120 @@
+[
+  {
+    "name": "method overloads: local, included, qualified, recursive and entry overloads",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:2741",
+    "domain": "upstream/Domains/Test/method_overloads.domain",
+    "script": [
+      {
+        "op": "decompose",
+        "method": "run",
+        "expect": {
+          "status": "succeeded",
+          "plan": ["!base_zero", "!override_one 7", "!local_two 8 9", "!base_zero", "!base_one 10", "!walk_done 2"]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "run",
+        "args": ["42"],
+        "expect": {"status": "succeeded", "plan": ["!override_one 42"]}
+      },
+      {
+        "op": "decompose",
+        "method": "run",
+        "args": ["1", "2"],
+        "expect": {"status": "invalid_call"}
+      },
+      {
+        "op": "decompose",
+        "method": "run",
+        "expect": {"status": "succeeded"}
+      },
+      {
+        "op": "decompose",
+        "method": "mixed",
+        "expect": {"status": "invalid_call"}
+      },
+      {
+        "op": "decompose",
+        "method": "mixed",
+        "args": ["9"],
+        "expect": {"status": "succeeded", "plan": ["!public_one 9"]}
+      }
+    ]
+  },
+  {
+    "name": "method overloads: deferred overloads resolve by argument count",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:2763",
+    "domain": "upstream/Domains/Test/method_overloads.domain",
+    "script": [
+      {
+        "op": "plan",
+        "method": "deferred",
+        "expect": {"status": "succeeded"}
+      },
+      {
+        "op": "resolve",
+        "expect": "ready",
+        "currentStep": {"head": "!later_zero"}
+      },
+      {
+        "op": "plan",
+        "method": "deferred",
+        "args": ["23"],
+        "expect": {"status": "succeeded"}
+      },
+      {
+        "op": "resolve",
+        "expect": "ready",
+        "currentStep": {
+          "head": "!later_one",
+          "types": {"0": "int"},
+          "args": {"0": "23"}
+        }
+      }
+    ]
+  },
+  {
+    "name": "axiom overloads: input, output, io and backtracking across overloads",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:2782",
+    "domain": "upstream/Domains/Test/axiom_overloads.domain",
+    "worldstate": "upstream/WorldStates/Test/axiom_overloads.worldstate",
+    "script": [
+      {
+        "op": "decompose",
+        "method": "run",
+        "expect": {"status": "succeeded", "plan": ["!overloads 70 9"]}
+      },
+      {
+        "op": "decompose",
+        "method": "mismatch",
+        "expect": {"status": "succeeded", "plan": ["!controlled_failure"]}
+      },
+      {
+        "op": "decompose",
+        "method": "io_mismatch",
+        "expect": {"status": "succeeded", "plan": ["!controlled_failure"]}
+      },
+      {
+        "op": "decompose",
+        "method": "backtrack",
+        "expect": {"status": "succeeded", "plan": ["!selected 71"]}
+      },
+      {
+        "op": "decompose",
+        "method": "io_backtrack",
+        "expect": {"status": "succeeded", "plan": ["!selected_io 70 10"]}
+      },
+      {
+        "op": "decompose",
+        "method": "io_bound_backtrack",
+        "expect": {"status": "succeeded", "plan": ["!selected_io 71 9"]}
+      },
+      {
+        "op": "decompose",
+        "method": "run",
+        "expect": {"status": "succeeded", "plan": ["!overloads 70 9"]}
+      }
+    ]
+  }
+]

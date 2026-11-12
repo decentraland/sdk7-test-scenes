@@ -1,0 +1,1 @@
+This scene showcases proximity interaction examples

@@ -1,0 +1,11 @@
+// swarm_drone: the leader with both followers close: it flies on to the next spot.
+// method: behave
+// expect: succeeded
+//   1. !fly_to p1
+
+role leader s1
+follower d3
+follower d4
+distance_to_leader d3 2.0
+distance_to_leader d4 2.5
+roam_point p1

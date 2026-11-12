@@ -1,0 +1,8 @@
+// swarm_drone: a follower follows the leader its role names.
+// method: behave
+// expect: succeeded
+//   1. !begin_plan follow_swarm_leader d1
+//   2. !follow d1
+//   3. !end_plan
+
+role follower d1

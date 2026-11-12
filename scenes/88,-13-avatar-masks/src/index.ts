@@ -1,0 +1,323 @@
+import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
+import { engine, InputAction, Material, MeshCollider, MeshRenderer, pointerEventsSystem, Transform, PointerEventType, inputSystem, GltfContainer, ColliderLayer, AvatarMask, AvatarAttach, AvatarAnchorPointType } from '@dcl/sdk/ecs'
+import { setupUi } from './ui'
+import { movePlayerTo, stopEmote, triggerEmote, triggerSceneEmote } from '~system/RestrictedActions'
+import { getPlayer } from '@dcl/sdk/src/players'
+import { parentEntity, removeParent, syncEntity } from '@dcl/sdk/src/network'
+
+enum SyncId {
+    CRATE_ANCHOR = 1,
+    CRATE = 2,
+}
+
+export function main() {
+    // uncomment the line below to initialize UI from ui.tsx
+    //setupUi()
+
+    // Trigger scene emote entity
+    const triggerSceneEmoteEntity = engine.addEntity()
+    MeshRenderer.setBox(triggerSceneEmoteEntity)
+    MeshCollider.setBox(triggerSceneEmoteEntity)
+    Material.setPbrMaterial(triggerSceneEmoteEntity, {albedoColor: Color4.Green()})
+    Transform.create(triggerSceneEmoteEntity, { position: Vector3.create(4, 1, 4)})
+
+    pointerEventsSystem.onPointerDown(
+        {
+            entity: triggerSceneEmoteEntity,
+            opts: {
+                button: InputAction.IA_PRIMARY,
+                hoverText: 'Press E',
+                showHighlight: true,
+                showFeedback: true,
+                maxDistance: 10,
+                maxPlayerDistance: 10,
+            },
+        },
+        function () {
+            console.log('Interacted with trigger scene emote entity')   
+            //triggerSceneEmote({ src: 'assets/scene/Models/WateringCan_emote.glb', loop: true, mask: AvatarMask.AM_FULL_BODY})
+            triggerSceneEmote({ src: 'assets/scene/Models/Hanoi_juggler_emote.glb', loop: true, mask: AvatarMask.AM_UPPER_BODY})
+            //triggerSceneEmote({ src: 'assets/scene/Models/AvatarMasks_Test_emote.glb', loop: true, mask: AvatarMask.AM_UPPER_BODY})
+        }
+    )
+
+    // Trigger emote entity
+    const triggerEmoteEntity = engine.addEntity()
+    MeshRenderer.setBox(triggerEmoteEntity)
+    MeshCollider.setBox(triggerEmoteEntity)
+    Material.setPbrMaterial(triggerEmoteEntity, {albedoColor: Color4.Yellow()})
+    Transform.create(triggerEmoteEntity, { position: Vector3.create(6, 1, 4)})
+
+    pointerEventsSystem.onPointerDown(
+        {
+            entity: triggerEmoteEntity,
+            opts: {
+                button: InputAction.IA_PRIMARY,
+                hoverText: 'Press E',
+                showHighlight: true,
+                showFeedback: true,
+                maxDistance: 10,
+                maxPlayerDistance: 10,
+            },
+        },
+        function () {
+            console.log('Interacted with trigger emote entity')
+            triggerEmote({ predefinedEmote: 'money'})
+        }
+    )
+
+    // Stop emote entity
+    const stopEmoteEntity = engine.addEntity()
+    MeshRenderer.setBox(stopEmoteEntity)
+    MeshCollider.setBox(stopEmoteEntity)
+    Material.setPbrMaterial(stopEmoteEntity, {albedoColor: Color4.Red()})
+    Transform.create(stopEmoteEntity, { position: Vector3.create(8, 1, 4)})
+
+    pointerEventsSystem.onPointerDown(
+        {
+            entity: stopEmoteEntity,
+            opts: {
+                button: InputAction.IA_PRIMARY,
+                hoverText: 'Press E',
+                showHighlight: true,
+                showFeedback: true,
+                maxDistance: 10,
+                maxPlayerDistance: 10,
+            },
+        },
+        function () {
+            console.log('Interacted with stop emote entity')
+            stopEmote({})
+        }
+    )
+
+    // One-shot masked emote entity.
+    // A non-looping masked emote must play exactly once and hand the upper body back to
+    // locomotion. If it restarts by itself, the masked loop flag is being ignored.
+    const oneShotMaskedEmoteEntity = engine.addEntity()
+    MeshRenderer.setBox(oneShotMaskedEmoteEntity)
+    MeshCollider.setBox(oneShotMaskedEmoteEntity)
+    Material.setPbrMaterial(oneShotMaskedEmoteEntity, {albedoColor: Color4.Blue()})
+    Transform.create(oneShotMaskedEmoteEntity, { position: Vector3.create(10, 1, 4)})
+
+    pointerEventsSystem.onPointerDown(
+        {
+            entity: oneShotMaskedEmoteEntity,
+            opts: {
+                button: InputAction.IA_PRIMARY,
+                hoverText: 'Fishing cast once (upper body)',
+                showHighlight: true,
+                showFeedback: true,
+                maxDistance: 10,
+                maxPlayerDistance: 10,
+            },
+        },
+        function () {
+            console.log('Interacted with one-shot masked emote entity')
+            triggerSceneEmote({ src: 'assets/Fishing_Cast_emote.glb', loop: false, mask: AvatarMask.AM_UPPER_BODY})
+        }
+    )
+
+    // Looping masked emote entity, same clip as the one-shot above so both can be compared.
+    // This one must keep repeating until the red stop entity is used.
+    const loopingMaskedEmoteEntity = engine.addEntity()
+    MeshRenderer.setBox(loopingMaskedEmoteEntity)
+    MeshCollider.setBox(loopingMaskedEmoteEntity)
+    Material.setPbrMaterial(loopingMaskedEmoteEntity, {albedoColor: Color4.Purple()})
+    Transform.create(loopingMaskedEmoteEntity, { position: Vector3.create(12, 1, 4)})
+
+    pointerEventsSystem.onPointerDown(
+        {
+            entity: loopingMaskedEmoteEntity,
+            opts: {
+                button: InputAction.IA_PRIMARY,
+                hoverText: 'Fishing cast looping (upper body)',
+                showHighlight: true,
+                showFeedback: true,
+                maxDistance: 10,
+                maxPlayerDistance: 10,
+            },
+        },
+        function () {
+            console.log('Interacted with looping masked emote entity')
+            triggerSceneEmote({ src: 'assets/Fishing_Cast_emote.glb', loop: true, mask: AvatarMask.AM_UPPER_BODY})
+        }
+    )
+
+    // movePlayerTo while a masked emote plays.
+    // An upper-body emote must keep playing while the scene moves the player (e.g. a sword strike
+    // combined with a step forward), for both the instant and the duration variants.
+    function stepForward(duration: number) {
+        const playerTransform = Transform.get(engine.PlayerEntity)
+        const forward = Vector3.rotate(Vector3.Forward(), playerTransform.rotation)
+        const target = Vector3.add(playerTransform.position, Vector3.scale(forward, 2))
+        target.x = Math.min(Math.max(target.x, 0.5), 15.5)
+        target.z = Math.min(Math.max(target.z, 0.5), 15.5)
+        target.y = playerTransform.position.y
+
+        movePlayerTo({ newRelativePosition: target, duration }).then((result) => {
+            console.log(`movePlayerTo(duration: ${duration}) success ? ${result.success}`)
+        })
+    }
+
+    function addMoveButton(x: number, color: Color4, hoverText: string, onClick: () => void) {
+        const entity = engine.addEntity()
+        MeshRenderer.setBox(entity)
+        MeshCollider.setBox(entity)
+        Material.setPbrMaterial(entity, { albedoColor: color })
+        Transform.create(entity, { position: Vector3.create(x, 1, 12), scale: Vector3.create(0.8, 0.8, 0.8) })
+
+        pointerEventsSystem.onPointerDown(
+            {
+                entity,
+                opts: {
+                    button: InputAction.IA_PRIMARY,
+                    hoverText,
+                    showHighlight: true,
+                    showFeedback: true,
+                    maxDistance: 10,
+                    maxPlayerDistance: 10,
+                },
+            },
+            onClick
+        )
+    }
+
+    addMoveButton(4, Color4.Teal(), 'Strike + step forward (duration)', () => {
+        triggerSceneEmote({ src: 'assets/Fishing_Cast_emote.glb', loop: false, mask: AvatarMask.AM_UPPER_BODY })
+        stepForward(0.5)
+    })
+
+    addMoveButton(6, Color4.Magenta(), 'Strike + step forward (instant)', () => {
+        triggerSceneEmote({ src: 'assets/Fishing_Cast_emote.glb', loop: false, mask: AvatarMask.AM_UPPER_BODY })
+        stepForward(0)
+    })
+
+    addMoveButton(8, Color4.Gray(), 'Step forward (duration)', () => stepForward(1))
+
+    addMoveButton(10, Color4.White(), 'Step forward (instant)', () => stepForward(0))
+
+    // Predefined emotes load from asset bundles, so these exercise the Mecanim Upper Body Layer
+    // that scene emotes use in production (raw GLTF scene emotes play as Legacy clips in preview).
+    addMoveButton(12, Color4.Black(), 'Wave (upper body) + step forward (duration)', () => {
+        triggerEmote({ predefinedEmote: 'wave', mask: AvatarMask.AM_UPPER_BODY })
+        stepForward(0.5)
+    })
+
+    addMoveButton(14, Color4.fromHexString('#FF8800'), 'Dance (upper body)', () => {
+        triggerEmote({ predefinedEmote: 'dance', mask: AvatarMask.AM_UPPER_BODY })
+    })
+
+    // Pickup crate
+    // Anchor entity is invisible, attached to the hand. Crate is a child with an offset.
+    const crateAnchorEntity = engine.addEntity()
+    Transform.create(crateAnchorEntity, {})
+    syncEntity(crateAnchorEntity, [AvatarAttach.componentId], SyncId.CRATE_ANCHOR)
+
+    const crateEntity = engine.addEntity()
+    const crateInitialPosition = Vector3.create(8, 0, 8)
+    const crateScale = Vector3.create(0.9, 0.9, 0.9)
+    const cratePositionOffsetWhenHeld = Vector3.create(0.35, 0, 0)
+    const crateRotationWhenHeld = Quaternion.fromEulerDegrees(0, 10, 10)
+    GltfContainer.create(crateEntity, {
+        src: 'assets/asset-packs/closed_wooden_crate/Crate_01/Crate_01.glb',
+        invisibleMeshesCollisionMask: ColliderLayer.CL_NONE,
+	    visibleMeshesCollisionMask: ColliderLayer.CL_NONE,
+    })
+    MeshCollider.setBox(crateEntity)
+    Transform.create(crateEntity, { position: crateInitialPosition, scale: crateScale })
+    syncEntity(crateEntity, [Transform.componentId], SyncId.CRATE)
+
+    let crateHeld = false
+
+    async function pickUpCrate() {
+        if (crateHeld) return
+        crateHeld = true
+
+        // Play carry animation
+        triggerSceneEmote({ src: 'assets/scene/Models/AvatarMasks_Test_emote.glb', loop: true, mask: AvatarMask.AM_UPPER_BODY})
+
+        // Remove collider so it doesn't block interactions while held
+        MeshCollider.deleteFrom(crateEntity)
+        pointerEventsSystem.removeOnPointerDown(crateEntity)
+
+        // Attach anchor to the local player's left hand, synced so others see it
+        const userData = await getPlayer()
+        if (!userData) return
+
+        AvatarAttach.createOrReplace(crateAnchorEntity, {
+            avatarId: userData.userId,
+            anchorPointId: AvatarAnchorPointType.AAPT_LEFT_HAND,
+        })
+
+        // Parent crate to anchor using parentEntity() for proper sync
+        Transform.createOrReplace(crateEntity, {
+            position: cratePositionOffsetWhenHeld,
+            scale: crateScale,
+            rotation: crateRotationWhenHeld,
+        })
+        parentEntity(crateEntity, crateAnchorEntity)
+    }
+
+    function dropCrate() {
+        if (!crateHeld) return
+        crateHeld = false
+
+        // Stop carry animation
+        stopEmote({})
+
+        // Detach anchor from avatar and unparent crate
+        AvatarAttach.deleteFrom(crateAnchorEntity)
+        removeParent(crateEntity)
+
+        // Place in front of the player (world position)
+        const playerTransform = Transform.get(engine.PlayerEntity)
+        const forward = Vector3.rotate(Vector3.Forward(), playerTransform.rotation)
+        const dropPosition = Vector3.add(playerTransform.position, forward)
+        dropPosition.y = 0
+
+        Transform.createOrReplace(crateEntity, {
+            position: dropPosition,
+            rotation: playerTransform.rotation,
+            scale: crateScale,
+        })
+
+        // Re-add collider and interaction
+        MeshCollider.setBox(crateEntity)
+        pointerEventsSystem.onPointerDown(
+            {
+                entity: crateEntity,
+                opts: {
+                    button: InputAction.IA_PRIMARY,
+                    hoverText: 'Pick up',
+                    showHighlight: false,
+                    showFeedback: true,
+                    maxDistance: 4,
+                    maxPlayerDistance: 4,
+                },
+            },
+            pickUpCrate
+        )
+    }
+
+    pointerEventsSystem.onPointerDown(
+        {
+            entity: crateEntity,
+            opts: {
+                button: InputAction.IA_PRIMARY,
+                hoverText: 'Pick up',
+                showHighlight: false,
+                showFeedback: true,
+                maxDistance: 4,
+                maxPlayerDistance: 4,
+            },
+        },
+        pickUpCrate
+    )
+
+    engine.addSystem(() => {
+        if (inputSystem.isTriggered(InputAction.IA_SECONDARY, PointerEventType.PET_DOWN)) {
+            dropCrate()
+        }
+    })
+}

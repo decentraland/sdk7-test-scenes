@@ -1,0 +1,24 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Particle System Showcase",
+    "description": "16 particle system examples demonstrating all PBParticleSystem features",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": [],
+  "scene": {
+    "parcels": ["0,7", "1,7", "0,8", "1,8", "0,9", "1,9"],
+    "base": "0,7"
+  },
+  "spawnPoints": [],
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}

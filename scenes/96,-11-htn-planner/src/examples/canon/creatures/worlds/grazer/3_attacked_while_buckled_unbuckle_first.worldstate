@@ -1,0 +1,10 @@
+// grazer: attacked while buckled: unbuckle first.
+// method: behave
+// expect: succeeded
+//   1. !unbuckle
+
+now 0.0
+hostile wolf
+distance_to wolf 0.800000011920929
+buckled
+pulled

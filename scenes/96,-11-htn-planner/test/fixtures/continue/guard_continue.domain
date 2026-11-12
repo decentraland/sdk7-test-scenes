@@ -1,0 +1,209 @@
+// Test-only copy of src/examples/guard/guard_tiered.domain (as of feat/htn-planner 20c81bc) with one continue branch
+// (Killzone 2 / Decima), for the continue ablation (test/npc/continue-ablation.test.ts, docs/htn-level-metrics.md):
+// GuardAgentOptions.continueTask '!continue' on and off, the same domain. Everything else is guard_tiered's.
+//   - continue_chase, directly above chase_visible_target: while the guard chases a target (the agent publishes the
+//     running step as `(running chase ?target)`) and that target is still visible, the plan is `(!continue)`: the
+//     agent keeps the running chase even when another target is listed first (target_visible rows come nearest
+//     first). With continueTask off nothing publishes `running`, so the branch never holds: guard_tiered as it is.
+//
+// guard_tiered's own header:
+// Guard, restructured (an experiment: docs/htn-level-metrics.md, Domain variants). The same
+// behaviour, facts and primitives as guard.domain (the reference), in another shape:
+//   - `reasoning`: belief upkeep, planned by the host before every decision (GuardAgentOptions.reasoning: its steps
+//     run at once, until no rule holds). guard.domain's two staleness filters live here, so the decision branches
+//     that read last_seen and heard_noise no longer depend on a filter above them;
+//   - `behave`: chase, the investigate tier (noise or memory: three branches), patrol, idle.
+// The branch names of the behaviours are guard.domain's top-level names, so a level's checks read the same
+// (AgentSetup.chosenDepth 2: the branch chosen one level below the root, else the root's own).
+//
+// Facts and primitives: as guard.domain (its header).
+
+(:domain GuardContinue top_level_domain
+
+    (:constants GuardSettings
+        (catch_pause 1.5)
+        (look_around_time 3.0)
+        (memory_span 20.0)
+        (patrol_pause 1.0)
+        (idle_wait 1.0)
+        (noise_memory_span 12.0)
+        (listen_time 2.0)
+        (startle_time 0.6)
+        (very_loud 0.75)
+    )
+
+    // ---- belief upkeep: one rule per branch, each step makes its own condition false --------------------------
+
+    (:method (reasoning) top_level_method
+
+        // A memory too old to be worth checking.
+        (forget_stale_memory
+            (and
+                (last_seen ?target ?any_position ?seen_at)
+                (now ?time)
+                (> (- ?time ?seen_at) @memory_span)
+            )
+            (
+                (!forget ?target)
+            )
+        )
+
+        (forget_stale_noise
+            (and
+                (heard_noise ?any_kind ?any_position ?heard_at ?any_loudness)
+                (now ?time)
+                (> (- ?time ?heard_at) @noise_memory_span)
+            )
+            (
+                (!forget_noise ?heard_at)
+            )
+        )
+
+        // Beliefs up to date: a successful empty plan (the host stops planning the upkeep).
+        (nothing_to_update
+            ()
+            ()
+        )
+    )
+
+    // ---- the decision -------------------------------------------------------------------------------------------
+
+    (:method (behave) top_level_method
+
+        // Keep the running chase while its target is still in sight (a nearer one does not steal it).
+        (continue_chase
+            (and
+                (running chase ?target)
+                (target_visible ?target ?any_position)
+            )
+            (
+                (!continue)
+            )
+        )
+
+        // htn-lint-disable-next-line order-dependent -- a behaviour below its continue branch: that order is the point
+        (chase_visible_target
+            (and
+                (target_visible ?target ?any_position)
+            )
+            (
+                (!chase ?target)
+                (!catch ?target)
+                (!wait @catch_pause)
+            )
+        )
+
+        (investigate
+            (or
+                (heard_noise ?any_kind ?any_position ?any_heard_at ?any_loudness)
+                (last_seen ?any_target ?any_seen_position ?any_seen_at)
+            )
+            (
+                (investigate)
+            )
+        )
+
+        (patrol
+            (and
+                (current_waypoint ?index)
+                (waypoint ?index ?position)
+            )
+            (
+                (!move_to ?position walk)
+                (!wait @patrol_pause)
+                (&advance_patrol)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!wait @idle_wait)
+            )
+        )
+    )
+
+    // Contract: a noise heard or a target remembered. Checks it and forgets it (the noise only if no newer one came).
+    (:method (investigate)
+
+        // Loud, or repeated until alarming. Fresher than a last-seen memory, so it comes first.
+        // A newer noise heard on the way survives !forget_noise and is checked next.
+        (check_alarming_noise
+            (and
+                (alert alarmed)
+                (heard_noise ?any_kind ?position ?heard_at ?loudness)
+            )
+            (
+                (!turn_to ?position)
+                (!listen @startle_time)
+                (go_to_noise ?position ?loudness)
+                (!look_around @look_around_time)
+                (!forget_noise ?heard_at)
+            )
+        )
+
+        (investigate_last_seen
+            (and
+                (last_seen ?target ?position ?any_seen_at)
+            )
+            (
+                (!move_to ?position hurry)
+                (!look_around @look_around_time)
+                (!forget ?target)
+            )
+        )
+
+        // Faint: stop, face it, listen. Hearing more raises the alert until check_alarming_noise.
+        (listen_to_noise
+            (and
+                (heard_noise ?any_kind ?position ?heard_at ?any_loudness)
+            )
+            (
+                (!turn_to ?position)
+                (!listen @listen_time)
+                (!forget_noise ?heard_at)
+            )
+        )
+    )
+
+    // Deferred from patrol: decomposed after the guard arrived and paused, so it reads the route
+    // as it is then (a group brain may have changed the route or the current waypoint meanwhile).
+    (:method (advance_patrol)
+
+        (next_waypoint
+            (and
+                (current_waypoint ?index)
+                (waypoint_count ?count)
+                (> ?count 0)
+            )
+            (
+                (!set_waypoint (% (++ ?index) ?count))
+            )
+        )
+
+        (no_route
+            ()
+            (
+            )
+        )
+    )
+
+    (:method (go_to_noise ?inp_position ?inp_loudness)
+
+        (very_loud
+            (and
+                (>= ?inp_loudness @very_loud)
+            )
+            (
+                (!move_to ?inp_position run)
+            )
+        )
+
+        (loud
+            ()
+            (
+                (!move_to ?inp_position hurry)
+            )
+        )
+    )
+)

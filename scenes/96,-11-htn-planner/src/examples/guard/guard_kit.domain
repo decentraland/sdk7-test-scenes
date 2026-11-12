@@ -1,0 +1,72 @@
+// The guard kit's shared behaviours: what guard/guard.domain and squad/yard_guard.domain both do, written once and
+// included by both (`(:include ...)`), so a fix reaches both guards (lint: duplicated-across-domains). The values
+// that differ per guard (pauses, look times) come in as parameters.
+// A branch name here is the behaviour name a level reads (AgentSetup.chosenDepth 2) when a root tier calls the
+// method directly: guard.domain's `chase` tier reads chase_visible_target, its `patrol` tier patrol.
+//
+// Facts (htn-planner/npc/blackboard.ts): (current_waypoint ?index) (waypoint_count ?count)
+// Primitives (htn-planner/npc/actions.ts): (!chase ?target) (!catch ?target) (!wait ?seconds)
+//   (!move_to ?position ?gait) (!look_around ?seconds) (!forget ?target) (!set_waypoint ?index)
+
+(:domain guard_kit
+
+    // Contract: ?inp_target is in sight. Runs at it until within catch reach, catches it, pauses ?inp_pause s.
+    (:method (catch_target ?inp_target ?inp_pause)
+
+        (chase_visible_target
+            ()
+            (
+                (!chase ?inp_target)
+                (!catch ?inp_target)
+                (!wait ?inp_pause)
+            )
+        )
+    )
+
+    // Contract: ?inp_target was last seen at ?inp_position. Hurries there, looks around ?inp_seconds s, forgets it.
+    (:method (check_last_seen ?inp_target ?inp_position ?inp_seconds)
+
+        (go_and_look
+            ()
+            (
+                (!move_to ?inp_position hurry)
+                (!look_around ?inp_seconds)
+                (!forget ?inp_target)
+            )
+        )
+    )
+
+    // Contract: ?inp_position is the current waypoint. Walks there, pauses ?inp_pause s, then advances the route.
+    (:method (walk_patrol ?inp_position ?inp_pause)
+
+        (patrol
+            ()
+            (
+                (!move_to ?inp_position walk)
+                (!wait ?inp_pause)
+                (&advance_patrol)
+            )
+        )
+    )
+
+    // Deferred from walk_patrol: decomposed after the guard arrived and paused, so it reads the route as it is then
+    // (a group brain may have changed the route or the current waypoint meanwhile).
+    (:method (advance_patrol)
+
+        (next_waypoint
+            (and
+                (current_waypoint ?index)
+                (waypoint_count ?count)
+                (> ?count 0)
+            )
+            (
+                (!set_waypoint (% (++ ?index) ?count))
+            )
+        )
+
+        (no_route
+            ()
+            ()
+        )
+    )
+)

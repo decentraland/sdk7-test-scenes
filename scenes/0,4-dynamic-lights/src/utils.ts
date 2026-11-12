@@ -5,7 +5,6 @@ import {
   TweenSequence,
   TweenLoop,
   VisibilityComponent,
-  PBLightSource_ShadowType,
   MeshCollider,
   pointerEventsSystem,
   InputAction,
@@ -61,7 +60,7 @@ export function setupCornellBox(suffix: string) {
     250,
     Color3.White(),
     Vector3.create(90, 0, 0),
-    PBLightSource_ShadowType.ST_HARD
+    true
   )
 
   // turn off and on
@@ -196,7 +195,7 @@ export function setupCornellBox(suffix: string) {
 
         if (light) {
           light1component = LightSource.getMutable(light)
-          light1component.brightness = currentIntensity
+          light1component.intensity = currentIntensity
         }
       }
     )
@@ -413,10 +412,10 @@ export function addLight(
   light: any,
   isSpot: boolean,
   range: number = 10,
-  brightness: number = 100,
+  intensity: number = 100,
   color: Color3 = Color3.create(1, 1, 1),
   lightRotation?: Vector3,
-  shadowType: PBLightSource_ShadowType = PBLightSource_ShadowType.ST_NONE,
+  shadow: boolean = false,
   shadowMaskTexture: string | undefined = undefined,
   innerAngle: number = 21.8,
   outerAngle: number = 30
@@ -432,35 +431,34 @@ export function addLight(
     light = engine.addEntity()
   }
 
-  if (isSpot) {
-    let smt =
+  let smt =
       shadowMaskTexture != undefined
-        ? Material.Texture.Common({
+          ? Material.Texture.Common({
             src: shadowMaskTexture
           })
-        : undefined
-
+          : undefined
+  
+  if (isSpot) {
     return LightSource.create(light, {
       active: true,
       color: color,
-      brightness: brightness,
+      intensity: intensity,
       range: range,
+      shadow: shadow,
+      shadowMaskTexture: smt,
       type: LightSource.Type.Spot({
         innerAngle: innerAngle,
         outerAngle: outerAngle,
-        shadow: shadowType,
-        shadowMaskTexture: smt
       })
     })
   } else {
     return LightSource.create(light, {
-      color: color,
-      range: range,
       active: true,
-      brightness: brightness,
-      type: LightSource.Type.Point({
-        shadow: shadowType
-      })
+      color: color,
+      intensity: intensity,
+      range: range,
+      shadowMaskTexture: smt,
+      type: LightSource.Type.Point({})
     })
   }
 }
@@ -480,7 +478,7 @@ export function setupStage() {
     3500,
     Color3.Yellow(),
     Vector3.create(45, 90, 0),
-    PBLightSource_ShadowType.ST_HARD
+    true
   )
   stageLightLeftComponent.active = isLightOn
 
@@ -490,8 +488,8 @@ export function setupStage() {
     20,
     3500,
     Color3.Green(),
-    Vector3.create(45, -90, 0),
-    PBLightSource_ShadowType.ST_HARD
+    Vector3.create(45, -90, 0), 
+    true
   )
   stageLightRightComponent.active = isLightOn
 
@@ -501,8 +499,8 @@ export function setupStage() {
     20,
     1500,
     Color3.White(),
-    Vector3.create(15, 0, 0),
-    PBLightSource_ShadowType.ST_HARD,
+    Vector3.create(15, 0, 0), 
+    true,
     undefined,
     40,
     55
@@ -737,11 +735,11 @@ export function setupStage() {
 
           if (stageSpotLightComponent.type?.$case === 'spot') {
             if (maskIndex === 0) {
-              stageSpotLightComponent.type.spot.shadowMaskTexture = Material.Texture.Common({ src: batSymbol })
+              stageSpotLightComponent.shadowMaskTexture = Material.Texture.Common({ src: batSymbol })
             } else if (maskIndex === 1) {
-              stageSpotLightComponent.type.spot.shadowMaskTexture = Material.Texture.Common({ src: window })
+              stageSpotLightComponent.shadowMaskTexture = Material.Texture.Common({ src: window })
             } else {
-              stageSpotLightComponent.type.spot.shadowMaskTexture = undefined
+              stageSpotLightComponent.shadowMaskTexture = undefined
             }
 
             maskIndex = (maskIndex + 1) % 3
@@ -764,7 +762,7 @@ export function setupBlackRoom() {
     350,
     Color3.create(1, 0.5, 0.5),
     Vector3.create(90, 0, 0),
-    PBLightSource_ShadowType.ST_HARD
+    true
   )
   light_Inside_Component.active = isOn
 
@@ -775,7 +773,7 @@ export function setupBlackRoom() {
     350,
     Color3.White(),
     Vector3.create(90, 0, 0),
-    PBLightSource_ShadowType.ST_SOFT
+    true
   )
 
   // toggle inside light on/off

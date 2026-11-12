@@ -1,5 +1,5 @@
 import { Color3, Vector3 } from '@dcl/sdk/math'
-import { engine, PBLightSource_ShadowType } from '@dcl/sdk/ecs'
+import { engine } from '@dcl/sdk/ecs'
 import { addLight, setupBlackRoom, setupCornellBox, setupStage } from './utils'
 
 export function main() {
@@ -12,7 +12,7 @@ export function main() {
     1500,
     Color3.Red(),
     Vector3.create(90, 0, 0),
-    PBLightSource_ShadowType.ST_HARD,
+    true,
     undefined,
     40,
     40
@@ -24,7 +24,7 @@ export function main() {
     1500,
     Color3.Green(),
     Vector3.create(90, 0, 0),
-    PBLightSource_ShadowType.ST_HARD,
+    true,
     undefined,
     40,
     40

@@ -1,0 +1,8 @@
+// v1_priority: enemy in sight.
+// method: be_troll
+// expect: succeeded
+//   1. !navigate_to knight
+//   2. !trunk_slam knight
+
+enemy_visible knight
+next_bridge north_bridge

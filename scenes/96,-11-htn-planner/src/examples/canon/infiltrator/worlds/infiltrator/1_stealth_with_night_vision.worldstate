@@ -1,0 +1,20 @@
+// infiltrator: a loaded night-vision gun in hand: stealth. Go to the player's area, put the lights out, take the
+// cover point, sneak kill.
+// method: behave
+// expect: succeeded
+//   1. !go_to_area hall
+//   2. !walk_to box_h
+//   3. !switch_lights hall off
+//   4. !walk_to crate
+//   5. !take_cover
+//   6. !sneak_kill p1 g1
+
+npc_in lobby
+player_in p1 hall
+holding g1
+item g1 gun
+loaded g1
+night_vision g1
+lights hall on
+control_box hall box_h
+cover_point hall crate

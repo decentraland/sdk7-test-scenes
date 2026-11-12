@@ -1,0 +1,14 @@
+// sentry_turret: a soldier in bullet range, rockets in hand. Bullets for soft targets: switch, aim, fire, all inside
+// the begin / end bracket.
+// method: behave
+// expect: succeeded
+//   1. !begin_plan attack h1
+//   2. !switch_weapon bullets
+//   3. !aim_at h1
+//   4. !fire bullets h1
+//   5. !end_plan
+
+wielded rockets
+threat h1 humanoid
+distance_to h1 12.0
+line_of_fire h1

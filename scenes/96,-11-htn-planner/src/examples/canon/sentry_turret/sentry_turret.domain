@@ -1,0 +1,200 @@
+// sentry_turret: the smallest real game domain. A fixed gun turret that replans five times a second.
+//
+// Teaches:
+//   - A continue branch (Killzone 2): while the running plan still makes sense, a replan answers `(!continue)` and
+//     the host keeps that plan. Without it a 5 Hz replan swaps targets every time the sensors rank another threat
+//     first. The continue branch sits next to the behaviour it guards, inside `attack_as_turret`, not in the root.
+//   - `!begin_plan` / `!end_plan` around a behaviour (Killzone 3): the host writes `(active_plan attack ?threat)`
+//     when the plan starts, so the next replan can see what is running. Bookkeeping is a step of the behaviour,
+//     never a priority branch of its own.
+//   - Weapon choice by threat kind and range, one branch per weapon, each with its own guard (Killzone 2).
+//   - Target choice in the host: the sensors publish `(threat ?t ?kind)` best-first (Space Station 14 picks the
+//     target with a utility query); the domain only filters by its own rules, in that order.
+//   - Every root branch has a guard that implies its task succeeds, so the plan is the same with backtracking off.
+//
+// Sources (re-expressed from the published description; our own text and names):
+//   - Straatman, Verweij, Champandard, "Killzone 2 Multiplayer Bots", Paris Game AI Conference 2009, slides:
+//     `attack_as_turret` (a continue branch, then remember the active plan and attack) and
+//     `select_weapon_and_attack_as_turret` (bullets against humanoids and turrets in bullet range, rockets against
+//     the rest in rocket range). https://web.archive.org/web/2015id_/http://files.aigamedev.com/coverage/GAIC09_Killzone2Bots_StraatmanChampandard.pdf
+//   - Straatman, Verweij, Champandard, Morcus, Kleve, "Hierarchical AI for Multiplayer Bots in Killzone 3",
+//     Game AI Pro ch. 29, listing 29.1: `!begin_plan ... !end_plan` around `select_weapon` and `!fire_weapon`.
+//     https://www.gameaipro.com/GameAIPro/GameAIPro_Chapter29_Hierarchical_AI_for_Multiplayer_Bots_in_Killzone_3.pdf
+//   - Space Station 14, Resources/Prototypes/NPCs/root.yml, `TurretCompound` (MIT, (c) 2017-2026 Space Wizards
+//     Federation; commit 10c868011e2920efe896539c93dfe8e8e476c338): pick a target, shoot it if in range and in line
+//     of sight, else spin idly. Only the shape is used, no text. https://github.com/space-wizards/space-station-14
+// Licence: re-expressed (nothing copied); credits in src/examples/canon/THIRD_PARTY_NOTICES.md.
+//
+// Emulations (our planner has no `!continue`, no plan comparison, no effects; see docs/htn-guidance.md "Replanning"):
+//   - `(!continue)`: a plan that is only this step tells the host "keep the running plan". The paper host in
+//     src/examples/canon/paper.ts does that; GuardAgent supports it with opt-in continueTask: "!continue".
+//     Its H2 candidate comparison and `activePlan` check methods are separate ways to keep a plan.
+//   - `(active_plan attack ?threat)`: written by the host when it runs `!begin_plan attack ?threat`, removed by
+//     `!end_plan` and when the host drops the plan. Killzone 2 wrote it with `!forget` / `!remember` inside the
+//     branch; Killzone 3 and Decima use the begin / end pair kept here.
+//   - Killzone 3 asks the host for a line of attack during planning (`(call request_line_of_attack ...)`); here the
+//     host publishes `(line_of_fire ?t)` before planning.
+//
+// Deviations: the continue branch also checks that its target is still attackable (Killzone 2 kept the plan on
+// `(active_plan attack_as_turret)` alone and let the running action fail); the threat index Killzone 2 passes to
+// `select_threat_and_attack_as_turret` is replaced by the host's best-first order; `wield` is re-entrant (nothing to
+// do when the weapon is already in hand); the idle spin is one long `!sweep`.
+// Not ported: Killzone's daemons and request facts, the threat selection method, weapon preference lists, the
+// energy turret variant of Space Station 14 and its utility query and services, reload and overheat handling.
+//
+// Facts (host sensors, written before each replan):
+//   (threat ?t ?kind)        visible threats, best first; kind: humanoid | turret | vehicle | drone
+//   (distance_to ?t ?d)      metres
+//   (line_of_fire ?t)        the gun can hit ?t from here
+//   (wielded ?weapon)        bullets | rockets
+//   (active_plan attack ?t)  written by the host from !begin_plan, see above
+// Primitives: (!begin_plan attack ?t) (!end_plan) (!continue) (!switch_weapon ?w) (!aim_at ?t) (!fire ?w ?t)
+//             (!sweep ?seconds)
+// Scenarios: worlds/sentry_turret/ (npm run htn:run -- --world sentry_turret/<scenario>; --list names them); story: stories.ts.
+
+(:domain SentryTurret top_level_domain
+
+    (:constants SentryTurret
+        (bullet_range 30.0)
+        (rocket_range 80.0)
+        (sweep_seconds 3.0)
+    )
+
+    (:method (behave) top_level_method
+
+        (combat
+            (and
+                (#attackable ?threat)
+            )
+            (
+                (attack_as_turret)
+            )
+        )
+
+        // Single-step branch of the "one long action" kind: the plan ends, the next replan looks again.
+        (scan
+            ()
+            (
+                (!sweep @sweep_seconds)
+            )
+        )
+    )
+
+    // Contract: some threat is attackable. Effect: the turret fires at one.
+    (:method (attack_as_turret)
+
+        // Keep the running attack while its target is still attackable, even if the sensors now rank another
+        // threat first. The next branch is more general: it is correct only because this one comes first, which
+        // is what a continue branch is.
+        (continue_attack
+            (and
+                (active_plan attack ?target)
+                (#attackable ?target)
+            )
+            (
+                (!continue)
+            )
+        )
+
+        (start_attack
+            (and
+                (#attackable ?threat)
+            )
+            (
+                (select_weapon_and_attack_as_turret ?threat)
+            )
+        )
+    )
+
+    // Contract: ?inp_threat is attackable. Effect: fired at with the weapon that suits it.
+    (:method (select_weapon_and_attack_as_turret ?inp_threat)
+
+        (use_bullets
+            (and
+                (#in_bullet_range ?inp_threat)
+            )
+            (
+                (attack_with ?inp_threat bullets)
+            )
+        )
+
+        (use_rockets
+            (and
+                (#in_rocket_range ?inp_threat)
+            )
+            (
+                (attack_with ?inp_threat rockets)
+            )
+        )
+    )
+
+    // One attack, bracketed so the host knows what runs.
+    (:method (attack_with ?inp_threat ?inp_weapon)
+
+        (fire
+            ()
+            (
+                (!begin_plan attack ?inp_threat)
+                (wield ?inp_weapon)
+                (!aim_at ?inp_threat)
+                (!fire ?inp_weapon ?inp_threat)
+                (!end_plan)
+            )
+        )
+    )
+
+    // Re-entrant: nothing to do when the weapon is already in hand.
+    (:method (wield ?inp_weapon)
+
+        (already_wielded
+            (and
+                (wielded ?inp_weapon)
+            )
+            ()
+        )
+
+        (switch
+            ()
+            (
+                (!switch_weapon ?inp_weapon)
+            )
+        )
+    )
+
+    // A threat in line of fire that one of the weapons can reach. `?io_`: finds one when unbound, checks the given
+    // one when bound (the continue branch passes its running target; an `?out_` argument must be unbound).
+    (:axiom (attackable ?io_threat)
+        (and
+            (threat ?io_threat ?any_kind)
+            (line_of_fire ?io_threat)
+            (or
+                (#in_bullet_range ?io_threat)
+                (#in_rocket_range ?io_threat)
+            )
+        )
+    )
+
+    // Bullets for soft targets, rockets for the rest (Killzone 2: no rockets against humanoids and turrets).
+    (:axiom (soft_target ?inp_threat)
+        (or
+            (threat ?inp_threat humanoid)
+            (threat ?inp_threat turret)
+        )
+    )
+
+    (:axiom (in_bullet_range ?inp_threat)
+        (and
+            (#soft_target ?inp_threat)
+            (distance_to ?inp_threat ?distance)
+            (<= ?distance @bullet_range)
+        )
+    )
+
+    (:axiom (in_rocket_range ?inp_threat)
+        (and
+            (not (#soft_target ?inp_threat))
+            (distance_to ?inp_threat ?distance)
+            (<= ?distance @rocket_range)
+        )
+    )
+)

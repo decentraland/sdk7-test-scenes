@@ -19,7 +19,7 @@
     "printWidth": 120,
     "trailingComma": "none"
   },
-  "dependencies": {
-    "@dcl/sdk": "^7.5.8-10926653489.commit-aec9f09"
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5"
   }
 }

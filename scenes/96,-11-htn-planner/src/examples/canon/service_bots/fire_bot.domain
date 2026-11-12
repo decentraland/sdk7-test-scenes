@@ -1,0 +1,59 @@
+(:include "bot_base.domain")
+
+// Fire bot: on a fire, raise the alarm, walk up, wait a second and put it out; else idle.
+//
+// Teaches: a variant whose announcement is unconditional (no cooldown: said on every plan that serves a fire, as
+// the source does) and whose job has a short wait before the action.
+// Source: Space Station 14 (MIT), `FirebotCompound`, `DouseFireTargetCompound` in
+// Resources/Prototypes/NPCs/firebot.yml and the `NearbyOnFire` utility query, at commit
+// 614f030530578e248a2393dd71ee9813d68d800d:
+// https://github.com/space-wizards/space-station-14/blob/614f030530578e248a2393dd71ee9813d68d800d/Resources/Prototypes/NPCs/firebot.yml
+// Licence: MIT, Copyright (c) 2017-2026 Space Wizards Federation; see src/examples/canon/THIRD_PARTY_NOTICES.md.
+// Adapted (YAML prototypes re-written in our domain language).
+// Emulations: the utility query (flammable and on fire, by distance, accessible, in line of sight) is the host
+// sensor `(on_fire ?entity)`, best first; `SetFloatOperator WaitTime 1` + `WaitOperator` is `!wait 1.0`.
+// Deviations: none in the shape; SS14 also walks to the interaction range (1.5 m, the base's `approach_range`).
+// Not ported: the `FireService` re-pick while it works (the sensor and a replan).
+//
+// Facts:      (on_fire ?entity) host sensor, best first; (distance_to ?entity ?metres); idle's.
+// Primitives: (!say ?line) (!move_near ?entity ?range) (!wait ?seconds) (!extinguish ?entity), idle's.
+
+(:domain FireBot top_level_domain
+
+    (:axiom (job_target ?out_target) overrides ServiceBot
+        (and
+            (on_fire ?out_target)
+        )
+    )
+
+    (:method (announce_approach ?inp_target) overrides ServiceBot
+
+        (alarm
+            ()
+            (
+                (!say fire_detected)
+            )
+        )
+    )
+
+    (:method (do_job ?inp_target) overrides ServiceBot
+
+        (douse
+            ()
+            (
+                (!wait 1.0)
+                (!extinguish ?inp_target)
+            )
+        )
+    )
+
+    (:method (behave) top_level_method
+
+        (bot
+            ()
+            (
+                (run_bot)
+            )
+        )
+    )
+)

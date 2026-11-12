@@ -1,0 +1,9 @@
+// v5_tired: tired after a slam.
+// method: be_troll
+// expect: succeeded
+//   1. !recover
+
+enemy_visible knight
+trunk_health 2
+power_up 3
+tired

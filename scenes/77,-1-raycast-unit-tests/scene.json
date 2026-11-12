@@ -45,5 +45,8 @@
     }
   ],
   "featureToggles": {},
-  "name": "77,-1-raycast-unit-tests"
+  "name": "77,-1-raycast-unit-tests",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
 }

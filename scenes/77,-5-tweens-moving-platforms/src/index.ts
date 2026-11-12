@@ -1,7 +1,6 @@
-import { EasingFunction, engine, Entity, GltfContainer, Transform, Tween, TweenLoop, TweenSequence } from '@dcl/sdk/ecs'
+import { TriggerArea, MeshRenderer, EasingFunction, engine, GltfContainer, Transform, Tween, TweenLoop, TweenSequence, triggerAreaEventsSystem } from '@dcl/sdk/ecs'
 import { Vector3 } from '@dcl/sdk/math'
 import { createCoin } from './modules/coin'
-import * as utils from '@dcl-sdk/utils'
 import { setupUi } from './ui'
 
 export function main() {
@@ -25,14 +24,10 @@ export function main() {
     position: Vector3.create(2, 1.5, 8)
   })
 
-  Tween.create(platform1, {
-    mode: Tween.Mode.Move({
-      start: Vector3.create(2, 1.5, 8),
-      end: Vector3.create(2, 1.5, 10)
-    }),
-    duration: 2000,
-    easingFunction: EasingFunction.EF_LINEAR
-  })
+  Tween.setMove(platform1,
+      Vector3.create(2, 1.5, 8),
+      Vector3.create(2, 1.5, 10),
+2000)
 
   TweenSequence.create(platform1, { sequence: [], loop: TweenLoop.TL_YOYO })
 
@@ -45,14 +40,10 @@ export function main() {
     position: Vector3.create(4, 1.5, 14)
   })
 
-  Tween.create(platform2, {
-    mode: Tween.Mode.Move({
-      start: Vector3.create(4, 1.5, 14),
-      end: Vector3.create(4, 4, 14)
-    }),
-    duration: 2000,
-    easingFunction: EasingFunction.EF_LINEAR
-  })
+  Tween.setMove(platform2,
+    Vector3.create(4, 1.5, 14),
+    Vector3.create(4, 4, 14),
+    2000)
 
   TweenSequence.create(platform2, { sequence: [], loop: TweenLoop.TL_YOYO })
 
@@ -65,40 +56,38 @@ export function main() {
     position: Vector3.create(14, 4, 12)
   })
 
-  utils.triggers.addTrigger(
-    platform3,
-    utils.LAYER_1,
-    utils.LAYER_1,
-    [{ type: 'box', scale: Vector3.create(1, 2, 1) }],
-    () => {
-      console.log('JUMPED ON')
-
-      Tween.createOrReplace(platform3, {
-        mode: Tween.Mode.Move({
-          start: Vector3.create(14, 4, 12),
-          end: Vector3.create(14, 4, 4)
-        }),
-        duration: 2000,
-        easingFunction: EasingFunction.EF_LINEAR,
-        currentTime: 0 // in case it was already moving
-      })
-
-      TweenSequence.createOrReplace(platform3, {
-        sequence: [
-          {
-            mode: Tween.Mode.Move({
-              start: Vector3.create(14, 4, 4),
-              end: Vector3.create(14, 4, 12)
-            }),
-            duration: 2000,
-            easingFunction: EasingFunction.EF_LINEAR
-          }
-        ]
-      }) // non looping
-    }
-  )
-
-  //utils.triggers.enableDebugDraw(true)
+  const platform3Trigger = engine.addEntity()
+  Transform.create(platform3Trigger, {
+    parent: platform3,
+    position: Vector3.create(0, 1.25, 0),
+    scale: Vector3.create(2, 0.2, 2),
+  })
+  // MeshRenderer.setBox(platform3Trigger) // for debugging
+  TriggerArea.create(platform3Trigger)
+  triggerAreaEventsSystem.onTriggerEnter(platform3Trigger, (result) => {
+    console.log('JUMPED ON')
+    Tween.createOrReplace(platform3, {
+      mode: Tween.Mode.Move({
+        start: Vector3.create(14, 4, 12),
+        end: Vector3.create(14, 4, 4)
+      }),
+      duration: 2000,
+      easingFunction: EasingFunction.EF_LINEAR,
+      currentTime: 0 // in case it was already moving
+    })
+    TweenSequence.createOrReplace(platform3, {
+      sequence: [
+        {
+          mode: Tween.Mode.Move({
+            start: Vector3.create(14, 4, 4),
+            end: Vector3.create(14, 4, 12)
+          }),
+          duration: 2000,
+          easingFunction: EasingFunction.EF_LINEAR
+        }
+      ]
+    }) // non looping
+  })
 
   //// path with many waypoints
   const platform4 = engine.addEntity()
@@ -108,15 +97,10 @@ export function main() {
   Transform.create(platform4, {
     position: Vector3.create(6.5, 7, 4)
   })
-
-  Tween.create(platform4, {
-    mode: Tween.Mode.Move({
-      start: Vector3.create(6.5, 7, 4),
-      end: Vector3.create(6.5, 7, 12)
-    }),
-    duration: 2000,
-    easingFunction: EasingFunction.EF_LINEAR
-  })
+    Tween.setMove(platform4, 
+      Vector3.create(6.5, 7, 4),
+      Vector3.create(6.5, 7, 12),
+    2000)
 
   TweenSequence.create(platform4, {
     sequence: [
@@ -149,7 +133,7 @@ export function main() {
   })
 
   // Instantiate pickable coin
-  createCoin('models/starCoin.glb', Vector3.create(9, 12.75, 8), Vector3.create(1.5, 3, 1.5), Vector3.create(0, 1, 0))
+  createCoin('models/starCoin.glb', Vector3.create(9, 12.75, 8))
 
   // UI with GitHub link
   setupUi()

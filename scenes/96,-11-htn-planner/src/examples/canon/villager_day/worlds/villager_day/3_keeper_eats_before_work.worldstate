@@ -1,0 +1,17 @@
+// villager_day: the baker at 7, opening time, but hungry: food comes before the shop's hours, so she eats the bread
+// she has first. Her customers wait.
+// method: spend_hour
+// expect: succeeded
+//   1. !eat
+
+hour 7
+hunger 6
+sleepiness 1
+money 20
+at cottage
+has food
+home cottage
+owns_shop bakery
+opening_hours bakery 7 18
+shop bakery food baker
+pastime chatting square

@@ -1,0 +1,3 @@
+controlled_entity 1
+event_recently_heard 1 footsteps
+objective_route 1 "route_A"

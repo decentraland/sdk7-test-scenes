@@ -1,0 +1,58 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Authoritative Server — Leaderboard",
+    "description": "Showcase of the Authoritative Server leaderboard use case: clients send score-claim actions, the headless server validates them (proximity anti-cheat + server-only component writes), persists per-player totals to Storage, and broadcasts a synced top-N ranking that every client renders in a UI panel. Includes a server-liveness heartbeat."
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": [
+    "multiplayer",
+    "authoritative-server",
+    "leaderboard",
+    "test"
+  ],
+  "scene": {
+    "parcels": [
+      "90,-9",
+      "91,-9"
+    ],
+    "base": "90,-9"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          6,
+          10
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          6,
+          10
+        ]
+      },
+      "cameraTarget": {
+        "x": 16,
+        "y": 1.5,
+        "z": 8
+      }
+    }
+  ],
+  "requiredPermissions": [],
+  "featureToggles": {},
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  },
+  "authoritativeMultiplayer": true
+}

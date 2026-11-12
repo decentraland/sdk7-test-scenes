@@ -1,0 +1,201 @@
+// FROZEN FIXTURE: the "before" shape of the guard. Do not edit, do not fix, do not use in a level or host.
+//
+// This is the guard domain as it was before the restructure of 2026-10-18: ported one-to-one from an earlier
+// prototype, then grown branch by branch. It is kept as the known bad shape, next to the live
+// src/examples/guard/guard.domain (the "after"). What is wrong with it: docs/htn-guidance.md, Domain design
+// ("Our domains against this"); the experiment and its numbers: the Domain variants section of docs/htn-level-metrics.md. In short:
+//   - two top-level branches that only do memory bookkeeping (forget_stale_memory, forget_stale_noise): each costs
+//     a whole plan and a tick when it fires, and the branches below them are correct only because the filters sit
+//     above them (order dependence);
+//   - a flat root: 8 branches, 6 of them primitive-only.
+//
+// Kept for:
+//   (a) the decision-equivalence test, test/npc/tiered-equivalence.test.ts: the live domain against this one,
+//       decision by decision (and the random-visitor diff, node scripts/htn-variant-diff.mjs, variant 'flat');
+//   (b) the lint known-bad fixture: test/tools/htn-lint.test.ts ("the known bad examples") and the lint baseline
+//       (test/tools/htn-lint.baseline.json) expect the structure warnings to fire here; htn-lint.json keeps its host
+//       lists and relaxes no rule on it (docs/htn-lint.md, "The scene's htn-lint.json, and why");
+//   (c) the before / after teaching pair (docs/htn-guidance.md, Domain design).
+// Its generated module (guard_flat.htn.ts) exists for those tests and tools only; nothing under src/ imports it.
+//
+// ---- the original header ------------------------------------------------------------------------------------
+//
+// Guard: patrol a route; chase a detected target; when it is lost, investigate where
+// it was last seen, look around, forget it and resume the patrol. Hearing: a faint noise makes it
+// stop, turn toward it and listen; a loud one (or faint ones repeated until the alert meter says
+// alarmed) makes it turn, flinch, hurry (or run, if very loud) there, look around and forget it.
+//
+// Facts, synced by the host every tick (htn-planner/npc/blackboard.ts):
+//   (now ?time)                          guard clock, float seconds
+//   (self_position ?position)            (x y z) floats, feet
+//   (target_visible ?target ?position)   one row per detected target, closest first
+//   (last_seen ?target ?position ?time)  memory of a lost target until forgotten
+//   (waypoint ?index ?position)          patrol route, int index
+//   (waypoint_count ?count)
+//   (current_waypoint ?index)            next waypoint to walk to
+//   (heard_noise ?kind ?position ?time ?loudness)  noise of interest until forgotten; ?loudness is
+//                                        the perceived level 0..1 at the guard, ?time the guard clock
+//   (alert ?level)                       calm | wary | alarmed (hearing meter; loud or repeated noises)
+//
+// Primitives, executed by the host (htn-planner/npc/actions.ts):
+//   (!chase ?target)               run at the live target position until within catch radius
+//   (!catch ?target)               host reaction to a catch, instant
+//   (!move_to ?position ?gait)     gait: walk | hurry | run
+//   (!look_around ?seconds)
+//   (!forget ?target)              drop the last_seen memory
+//   (!wait ?seconds)
+//   (!set_waypoint ?index)
+//   (!turn_to ?position)           turn in place to face a point
+//   (!listen ?seconds)             stand still, listening
+//   (!forget_noise ?time)          drop the heard noise if it is still the one heard at ?time
+
+(:domain GuardFlat top_level_domain
+
+    (:constants GuardSettings
+        (catch_pause 1.5)
+        (look_around_time 3.0)
+        (memory_span 20.0)
+        (patrol_pause 1.0)
+        (idle_wait 1.0)
+        (noise_memory_span 12.0)
+        (listen_time 2.0)
+        (startle_time 0.6)
+        (very_loud 0.75)
+    )
+
+    (:method (behave) top_level_method
+
+        (chase_visible_target
+            (and
+                (target_visible ?target ?any_position)
+            )
+            (
+                (!chase ?target)
+                (!catch ?target)
+                (!wait @catch_pause)
+            )
+        )
+
+        // A memory too old to be worth checking.
+        (forget_stale_memory
+            (and
+                (last_seen ?target ?any_position ?seen_at)
+                (now ?time)
+                (> (- ?time ?seen_at) @memory_span)
+            )
+            (
+                (!forget ?target)
+            )
+        )
+
+        (forget_stale_noise
+            (and
+                (heard_noise ?any_kind ?any_position ?heard_at ?any_loudness)
+                (now ?time)
+                (> (- ?time ?heard_at) @noise_memory_span)
+            )
+            (
+                (!forget_noise ?heard_at)
+            )
+        )
+
+        // Loud, or repeated until alarming. Fresher than a last-seen memory, so it comes first.
+        // A newer noise heard on the way survives !forget_noise and is checked next.
+        (check_alarming_noise
+            (and
+                (alert alarmed)
+                (heard_noise ?any_kind ?position ?heard_at ?loudness)
+            )
+            (
+                (!turn_to ?position)
+                (!listen @startle_time)
+                (go_to_noise ?position ?loudness)
+                (!look_around @look_around_time)
+                (!forget_noise ?heard_at)
+            )
+        )
+
+        (investigate_last_seen
+            (and
+                (last_seen ?target ?position ?any_seen_at)
+            )
+            (
+                (!move_to ?position hurry)
+                (!look_around @look_around_time)
+                (!forget ?target)
+            )
+        )
+
+        // Faint: stop, face it, listen. Hearing more raises the alert until check_alarming_noise.
+        (listen_to_noise
+            (and
+                (heard_noise ?any_kind ?position ?heard_at ?any_loudness)
+            )
+            (
+                (!turn_to ?position)
+                (!listen @listen_time)
+                (!forget_noise ?heard_at)
+            )
+        )
+
+        (patrol
+            (and
+                (current_waypoint ?index)
+                (waypoint ?index ?position)
+            )
+            (
+                (!move_to ?position walk)
+                (!wait @patrol_pause)
+                (&advance_patrol)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!wait @idle_wait)
+            )
+        )
+    )
+
+    // Deferred from patrol: decomposed after the guard arrived and paused, so it reads the route
+    // as it is then (a group brain may have changed the route or the current waypoint meanwhile).
+    (:method (advance_patrol)
+
+        (next_waypoint
+            (and
+                (current_waypoint ?index)
+                (waypoint_count ?count)
+                (> ?count 0)
+            )
+            (
+                (!set_waypoint (% (++ ?index) ?count))
+            )
+        )
+
+        (no_route
+            ()
+            (
+            )
+        )
+    )
+
+    (:method (go_to_noise ?inp_position ?inp_loudness)
+
+        (very_loud
+            (and
+                (>= ?inp_loudness @very_loud)
+            )
+            (
+                (!move_to ?inp_position run)
+            )
+        )
+
+        (loud
+            ()
+            (
+                (!move_to ?inp_position hurry)
+            )
+        )
+    )
+)

@@ -1,0 +1,6 @@
+(:domain AxiomIo top_level_domain
+(:method (run) top_level_method
+    (choose (and (#candidate_value (++ 1))) ((!selected 2))))
+(:axiom (candidate_value ?io_value)
+    (and (candidate ?io_value)))
+)

@@ -1,0 +1,240 @@
+[
+  {
+    "name": "backtracking: do_behavior_parent_guard falls back to !search",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:542",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "method": "do_behavior_parent_guard",
+    "args": ["enemy"],
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {"at": 0, "head": "!search"}
+      ]
+    }
+  },
+  {
+    "name": "backtracking: do_behavior_child_guard falls back to !search",
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:542",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "method": "do_behavior_child_guard",
+    "args": ["enemy"],
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {"at": 0, "head": "!search"}
+      ]
+    }
+  },
+  {
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:568",
+    "note": "Upstream runs this only when the domain is translated with runtime backtracking support; the expectations per mode are explicit.",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "worldstate": "upstream/WorldStates/Test/hierarchical_backtracking_no_combat.worldstate",
+    "mode": {"factsAndAxioms": false, "branches": false},
+    "name": "backtracking mode NONE: validate_child_guard",
+    "method": "validate_child_guard",
+    "expect": {"status": "no_plan"}
+  },
+  {
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:568",
+    "note": "Upstream runs this only when the domain is translated with runtime backtracking support; the expectations per mode are explicit.",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "worldstate": "upstream/WorldStates/Test/hierarchical_backtracking_no_combat.worldstate",
+    "mode": {"factsAndAxioms": false, "branches": false},
+    "name": "backtracking mode NONE: validate_fact_backtracking",
+    "method": "validate_fact_backtracking",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {"at": 0, "head": "!fact_fallback"}
+      ]
+    }
+  },
+  {
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:568",
+    "note": "Upstream runs this only when the domain is translated with runtime backtracking support; the expectations per mode are explicit.",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "worldstate": "upstream/WorldStates/Test/hierarchical_backtracking_no_combat.worldstate",
+    "mode": {"factsAndAxioms": false, "branches": false},
+    "name": "backtracking mode NONE: validate_axiom_backtracking",
+    "method": "validate_axiom_backtracking",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {"at": 0, "head": "!axiom_fallback"}
+      ]
+    }
+  },
+  {
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:568",
+    "note": "Upstream runs this only when the domain is translated with runtime backtracking support; the expectations per mode are explicit.",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "worldstate": "upstream/WorldStates/Test/hierarchical_backtracking_no_combat.worldstate",
+    "mode": {"factsAndAxioms": true, "branches": false},
+    "name": "backtracking mode FACTS_AND_AXIOMS: validate_child_guard",
+    "method": "validate_child_guard",
+    "expect": {"status": "no_plan"}
+  },
+  {
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:568",
+    "note": "Upstream runs this only when the domain is translated with runtime backtracking support; the expectations per mode are explicit.",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "worldstate": "upstream/WorldStates/Test/hierarchical_backtracking_no_combat.worldstate",
+    "mode": {"factsAndAxioms": true, "branches": false},
+    "name": "backtracking mode FACTS_AND_AXIOMS: validate_fact_backtracking",
+    "method": "validate_fact_backtracking",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {
+          "at": 0,
+          "head": "!selected_fact",
+          "types": {"0": "sym"},
+          "args": {"0": "second"}
+        }
+      ]
+    }
+  },
+  {
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:568",
+    "note": "Upstream runs this only when the domain is translated with runtime backtracking support; the expectations per mode are explicit.",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "worldstate": "upstream/WorldStates/Test/hierarchical_backtracking_no_combat.worldstate",
+    "mode": {"factsAndAxioms": true, "branches": false},
+    "name": "backtracking mode FACTS_AND_AXIOMS: validate_axiom_backtracking",
+    "method": "validate_axiom_backtracking",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {
+          "at": 0,
+          "head": "!selected_axiom",
+          "types": {"0": "sym"},
+          "args": {"0": "second"}
+        }
+      ]
+    }
+  },
+  {
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:568",
+    "note": "Upstream runs this only when the domain is translated with runtime backtracking support; the expectations per mode are explicit.",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "worldstate": "upstream/WorldStates/Test/hierarchical_backtracking_no_combat.worldstate",
+    "mode": {"factsAndAxioms": false, "branches": true},
+    "name": "backtracking mode BRANCHES: validate_child_guard",
+    "method": "validate_child_guard",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {
+          "at": 0,
+          "head": "!search",
+          "types": {"0": "sym"},
+          "args": {"0": "enemy"}
+        }
+      ]
+    }
+  },
+  {
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:568",
+    "note": "Upstream runs this only when the domain is translated with runtime backtracking support; the expectations per mode are explicit.",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "worldstate": "upstream/WorldStates/Test/hierarchical_backtracking_no_combat.worldstate",
+    "mode": {"factsAndAxioms": false, "branches": true},
+    "name": "backtracking mode BRANCHES: validate_fact_backtracking",
+    "method": "validate_fact_backtracking",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {"at": 0, "head": "!fact_fallback"}
+      ]
+    }
+  },
+  {
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:568",
+    "note": "Upstream runs this only when the domain is translated with runtime backtracking support; the expectations per mode are explicit.",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "worldstate": "upstream/WorldStates/Test/hierarchical_backtracking_no_combat.worldstate",
+    "mode": {"factsAndAxioms": false, "branches": true},
+    "name": "backtracking mode BRANCHES: validate_axiom_backtracking",
+    "method": "validate_axiom_backtracking",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {"at": 0, "head": "!axiom_fallback"}
+      ]
+    }
+  },
+  {
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:568",
+    "note": "Upstream runs this only when the domain is translated with runtime backtracking support; the expectations per mode are explicit.",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "worldstate": "upstream/WorldStates/Test/hierarchical_backtracking_no_combat.worldstate",
+    "mode": {"factsAndAxioms": true, "branches": true},
+    "name": "backtracking mode ALL: validate_child_guard",
+    "method": "validate_child_guard",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {
+          "at": 0,
+          "head": "!search",
+          "types": {"0": "sym"},
+          "args": {"0": "enemy"}
+        }
+      ]
+    }
+  },
+  {
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:568",
+    "note": "Upstream runs this only when the domain is translated with runtime backtracking support; the expectations per mode are explicit.",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "worldstate": "upstream/WorldStates/Test/hierarchical_backtracking_no_combat.worldstate",
+    "mode": {"factsAndAxioms": true, "branches": true},
+    "name": "backtracking mode ALL: validate_fact_backtracking",
+    "method": "validate_fact_backtracking",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {
+          "at": 0,
+          "head": "!selected_fact",
+          "types": {"0": "sym"},
+          "args": {"0": "second"}
+        }
+      ]
+    }
+  },
+  {
+    "upstream": "HTNTest/src/HTNGeneratedEquivalenceTest.cpp:568",
+    "note": "Upstream runs this only when the domain is translated with runtime backtracking support; the expectations per mode are explicit.",
+    "domain": "upstream/Domains/Test/hierarchical_backtracking.domain",
+    "worldstate": "upstream/WorldStates/Test/hierarchical_backtracking_no_combat.worldstate",
+    "mode": {"factsAndAxioms": true, "branches": true},
+    "name": "backtracking mode ALL: validate_axiom_backtracking",
+    "method": "validate_axiom_backtracking",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 1,
+      "steps": [
+        {
+          "at": 0,
+          "head": "!selected_axiom",
+          "types": {"0": "sym"},
+          "args": {"0": "second"}
+        }
+      ]
+    }
+  }
+]

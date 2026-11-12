@@ -1,0 +1,70 @@
+// Upstream docs/USE_CASES.md section 4, the squad planner: one planner for the whole squad assigns roles from a
+// shared snapshot; each NPC then plans its own way to carry out its order (squad_member.domain). The host plans
+// this again when the snapshot changes, so a role whose NPC dropped out goes to another one.
+// Test: test/examples/usecase-squad.test.ts.
+//
+// Facts: (roster ?members) the list of member ids in order; (available ?member) can take an order now;
+//        (has_lmg ?member) can suppress.
+// Primitives: (!order ?member suppress|flank|defend)
+
+(:domain Squad top_level_domain
+
+    (:method (assign_roles) top_level_method
+        (suppress_and_flank
+            (and
+                (roster ?members)
+                (available ?suppressor)
+                (has_lmg ?suppressor)
+                (available ?flanker)
+                (!= ?flanker ?suppressor)
+            )
+            (
+                (!order ?suppressor suppress)
+                (!order ?flanker flank)
+                (defend_rest ?members ?suppressor ?flanker)
+            )
+        )
+        (flank_only
+            (and
+                (roster ?members)
+                (available ?flanker)
+            )
+            (
+                (!order ?flanker flank)
+                (defend_rest ?members ?flanker ?flanker)
+            )
+        )
+        (nobody_left
+            ()
+            ()
+        )
+    )
+
+    // Everyone available in the roster except the two given members defends.
+    (:method (defend_rest ?inp_members ?inp_first ?inp_second)
+        (next_defender
+            (and
+                (split_list ?inp_members ?member ?rest)
+                (available ?member)
+                (!= ?member ?inp_first)
+                (!= ?member ?inp_second)
+            )
+            (
+                (!order ?member defend)
+                (defend_rest ?rest ?inp_first ?inp_second)
+            )
+        )
+        (skip_member
+            (and
+                (split_list ?inp_members ?skipped ?rest)
+            )
+            (
+                (defend_rest ?rest ?inp_first ?inp_second)
+            )
+        )
+        (end_of_roster
+            ()
+            ()
+        )
+    )
+)

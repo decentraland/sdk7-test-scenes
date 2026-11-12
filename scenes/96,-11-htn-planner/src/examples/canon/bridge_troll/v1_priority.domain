@@ -1,0 +1,60 @@
+// Bridge troll, step 1 of 6: branch order is priority.
+//
+// Teaches: the first branch whose condition holds wins, so the branches are listed from the most important to the
+// least, and an unconditional fallback goes last. A troll that sees an enemy walks over and slams it with its tree
+// trunk; otherwise it patrols its bridges; with nothing to do it idles.
+//
+// Source: Troy Humphreys, "Exploring HTN Planners through Example", Game AI Pro (CRC Press, 2013), chapter 12,
+//   section 12.3 (the "Trunk Thumper", a simplified example from Transformers: Fall of Cybertron's AI):
+//   https://www.gameaipro.com/GameAIPro/GameAIPro_Chapter12_Exploring_HTN_Planners_through_Example.pdf
+// Licence: the chapter is (c) CRC Press (free to read, "CRC Press retains full copyright"). Re-expressed from its
+//   published description in our own words and structure; nothing is copied.
+// Deviations from the source:
+//   - the chapter's ChooseBridgeToCheck operator picks the bridge while the plan runs; here a host sensor publishes
+//     `next_bridge` and the domain binds it, so the plan names the bridge (porting rule: target choice in the host);
+//   - so the patrol branch has a condition, and an `idle` fallback is added last (the chapter's patrol is its
+//     unconditional `[true]` method).
+// Not ported: nothing else of section 12.3.
+// Next: v2_attack_task.domain extracts the attack into a compound task with two methods.
+//
+// Facts (host sensors): (enemy_visible ?enemy) an enemy in sight, best target first;
+//   (next_bridge ?bridge) the bridge the patrol route checks next (the host moves it on after !check_bridge).
+// Primitives (logged, paper prototype): (!navigate_to ?target) (!trunk_slam ?enemy) (!check_bridge ?bridge)
+//   (!idle ?seconds)
+// Scenarios and expected plans: worlds/v1_priority/; stories: stories.ts. Run one with
+//   npm run htn:run -- --world v1_priority/1_enemy_in_sight
+
+(:domain BridgeTrollV1 top_level_domain
+
+    (:method (be_troll) top_level_method
+
+        // Most important first: an enemy in sight beats the patrol.
+        (attack_enemy
+            (and
+                (enemy_visible ?enemy)
+            )
+            (
+                (!navigate_to ?enemy)
+                (!trunk_slam ?enemy)
+            )
+        )
+
+        (patrol
+            (and
+                (next_bridge ?bridge)
+            )
+            (
+                (!navigate_to ?bridge)
+                (!check_bridge ?bridge)
+            )
+        )
+
+        // Fallback, last and unconditional; it takes time, so an idle troll does not replan in a tight loop.
+        (idle
+            ()
+            (
+                (!idle 2.0)
+            )
+        )
+    )
+)

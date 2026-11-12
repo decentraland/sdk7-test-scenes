@@ -1,0 +1,51 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Teleport Hub",
+    "description": "Hub scene that teleports to the other test scenes of this world with the realm-aware teleportTo",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "SDK",
+    "email": ""
+  },
+  "main": "bin/index.js",
+  "tags": [],
+  "scene": {
+    "parcels": [
+      "1,2"
+    ],
+    "base": "1,2"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          8,
+          8
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          11,
+          11
+        ]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 2,
+        "z": 8
+      }
+    }
+  ],
+  "featureToggles": {},
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}

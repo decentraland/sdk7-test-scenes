@@ -1,0 +1,225 @@
+[
+  {
+    "name": "negative literals: run preserves signed literals",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:251",
+    "domain": "upstream/Domains/Test/negative_literals.domain",
+    "callterms": "negative-literals",
+    "method": "run",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 2,
+      "steps": [
+        {
+          "at": 0,
+          "types": {"0": "int", "1": "float"},
+          "nums": {"0": -1, "1": -1.5}
+        },
+        {
+          "at": 1,
+          "nums": {"0": -1}
+        }
+      ]
+    }
+  },
+  {
+    "name": "negative literals: all value contexts preserve types and bindings",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:274",
+    "domain": "upstream/Domains/Test/negative_literals.domain",
+    "callterms": "negative-literals",
+    "facts": [["signed_fact", "-1", "-0.5"]],
+    "method": "contexts",
+    "expect": {
+      "status": "succeeded",
+      "planLength": 3,
+      "steps": [
+        {
+          "at": 0,
+          "nums": {"0": -123.456, "1": -1.5, "2": -2, "3": -7, "4.1": -0.5}
+        },
+        {
+          "at": 1,
+          "types": {"0": "list"},
+          "nums": {"0.1": -123.456, "0.2": -0.5, "0.3": -1}
+        },
+        {
+          "at": 2,
+          "nums": {"0": -1}
+        }
+      ]
+    }
+  },
+  {
+    "name": "negative literals: arithmetic operators keep their meaning",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:303",
+    "domain": "upstream/Domains/Test/negative_literals.domain",
+    "callterms": "negative-literals",
+    "method": "operators",
+    "args": ["7"],
+    "expect": {
+      "status": "succeeded",
+      "steps": [
+        {
+          "at": 0,
+          "nums": {"0": 3, "1": -1, "2": 0.5, "3": 6, "4": -5, "5": 1, "6": -2.5}
+        }
+      ]
+    }
+  },
+  {
+    "name": "negative literals: minimum int and negative zero",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:315",
+    "domain": "upstream/Domains/Test/negative_literals.domain",
+    "callterms": "negative-literals",
+    "method": "boundaries",
+    "expect": {
+      "status": "succeeded",
+      "steps": [
+        {
+          "at": 0,
+          "types": {"1": "float", "2": "int"},
+          "nums": {"0": -2147483648, "1": -0, "2": 0, "3": -123.456, "5": -2147483647, "4.0": -2147483648}
+        }
+      ]
+    }
+  },
+  {
+    "name": "negative literals: backtracking and deferred capture keep signed values",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:328",
+    "domain": "upstream/Domains/Test/negative_literals.domain",
+    "callterms": "negative-literals",
+    "facts": [["candidate", "-1"], ["candidate", "-2"], ["selected", "-3"]],
+    "script": [
+      {
+        "op": "decompose",
+        "method": "backtracking",
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "nums": {"0": -2, "1": -3}
+            }
+          ]
+        }
+      },
+      {
+        "op": "decompose",
+        "method": "deferred",
+        "expect": {"status": "succeeded"}
+      },
+      {
+        "op": "expandDeferred",
+        "from": 0,
+        "expect": {
+          "status": "succeeded",
+          "steps": [
+            {
+              "at": 0,
+              "nums": {"0": -1}
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "negative literals compiler: signed literals in task arguments",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:87",
+    "domain": "negative.domain",
+    "sources": {
+      "negative.domain": "(:domain Negative top_level_domain\n    (:method (run) top_level_method\n        (branch () ((!value -1 -1.5 -123.456 -2147483648 (-0.500 -1 (-123.456)))))))"
+    },
+    "expect": {"compile": "ok"}
+  },
+  {
+    "name": "negative literals compiler: malformed \"-\" is located",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:149",
+    "domain": "invalid_negative.domain",
+    "sources": {
+      "invalid_negative.domain": "(:domain Negative top_level_domain\n    (:method (run) top_level_method\n        (branch () ((!value -)))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"find": "-"},
+      "upstreamMessage": "negative literal"
+    }
+  },
+  {
+    "name": "negative literals compiler: malformed \"-.\" is located",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:149",
+    "domain": "invalid_negative.domain",
+    "sources": {
+      "invalid_negative.domain": "(:domain Negative top_level_domain\n    (:method (run) top_level_method\n        (branch () ((!value -.)))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"find": "-."},
+      "upstreamMessage": "negative literal"
+    }
+  },
+  {
+    "name": "negative literals compiler: malformed \"-abc\" is located",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:149",
+    "domain": "invalid_negative.domain",
+    "sources": {
+      "invalid_negative.domain": "(:domain Negative top_level_domain\n    (:method (run) top_level_method\n        (branch () ((!value -abc)))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"find": "-abc"},
+      "upstreamMessage": "negative literal"
+    }
+  },
+  {
+    "name": "negative literals compiler: malformed \"--1\" is located",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:149",
+    "domain": "invalid_negative.domain",
+    "sources": {
+      "invalid_negative.domain": "(:domain Negative top_level_domain\n    (:method (run) top_level_method\n        (branch () ((!value --1)))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"find": "--1"},
+      "upstreamMessage": "negative literal"
+    }
+  },
+  {
+    "name": "negative literals compiler: malformed \"- 1\" is located",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:149",
+    "domain": "invalid_negative.domain",
+    "sources": {
+      "invalid_negative.domain": "(:domain Negative top_level_domain\n    (:method (run) top_level_method\n        (branch () ((!value - 1)))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"find": "- 1"},
+      "upstreamMessage": "negative literal"
+    }
+  },
+  {
+    "name": "negative literals compiler: int overflow",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:169",
+    "domain": "overflow.domain",
+    "sources": {
+      "overflow.domain": "(:domain Negative top_level_domain\n    (:method (run) top_level_method\n        (branch () ((!value -2147483649)))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"find": "-2147483649"},
+      "upstreamMessage": "Number out of bounds"
+    }
+  },
+  {
+    "name": "negative literals compiler: float overflow",
+    "upstream": "HTNTest/src/HTNNegativeLiteralTest.cpp:169",
+    "domain": "overflow.domain",
+    "sources": {
+      "overflow.domain": "(:domain Negative top_level_domain\n    (:method (run) top_level_method\n        (branch () ((!value -9999999999999999999999999999999999999999999999999.0)))))"
+    },
+    "expect": {
+      "compile": "error",
+      "errorAt": {"find": "-9999999999999999999999999999999999999999999999999.0"},
+      "upstreamMessage": "Number out of bounds"
+    }
+  }
+]

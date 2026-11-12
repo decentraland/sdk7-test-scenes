@@ -1,0 +1,44 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Tween Following Cube",
+    "description": "A cube that chases the player with tweens, switchable between a per-re-aim Move tween (jitters) and setMoveContinuous (smooth)",
+    "navmapThumbnail": "images/scene-thumbnail.png",
+    "favicon": "favicon_asset"
+  },
+  "contact": {
+    "name": "decentraland",
+    "email": ""
+  },
+  "owner": "",
+  "scene": {
+    "parcels": [
+      "79,-4"
+    ],
+    "base": "79,-4"
+  },
+  "requiredPermissions": [],
+  "main": "bin/game.js",
+  "tags": [],
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": 8,
+        "y": 0,
+        "z": 1
+      },
+      "cameraTarget": {
+        "x": 3,
+        "y": 1,
+        "z": 6
+      }
+    }
+  ],
+  "name": "tween-following-cube",
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}

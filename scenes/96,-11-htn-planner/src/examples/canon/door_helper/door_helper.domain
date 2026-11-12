@@ -1,0 +1,432 @@
+// Door helper: a one-armed robot fetches an object through doors. An ordinary door stays open once unlatched; a
+// spring door shuts unless someone holds it. Empty-handed, the robot holds a spring door itself; carrying, it claims
+// a free teammate who comes over, holds the door and is released afterwards. A collision pre-empts the job: a free
+// teammate comes to help first.
+//
+// Teaches: four ordered methods for one task (door type x carrying), tried in the source's order; an unknown fact
+// (`door_type`) treated as "could be either", the first fitting method tried, and a failure at run time that writes
+// the learned fact so the replan picks the next method (RAE's "retry with the next method", without retries in the
+// planner); claiming and releasing a teammate as steps of the behaviour that needs them, with an already-claimed
+// branch so a replan keeps its helper; one hop per plan ending in a deferred `&fetch` (the path loop, decided against
+// the live world at every hop); one compound (`hold_open_for`) shared by "hold it yourself" and "a helper holds it";
+// an event tier above the job.
+// Source: RAE (Refinement Acting Engine), `domains/nav/domain_nav.py` (tasks `fetch`, `moveTo`, `moveThroughDoorway`,
+// `unlatch`, event `collision`) at commit 0e5faffb7eb732fdb8e3bbf2c6d2f2cbd520aa30:
+// https://github.com/patras91/rae_release/blob/0e5faffb7eb732fdb8e3bbf2c6d2f2cbd520aa30/domains/nav/domain_nav.py
+// Licence: BSD-3-Clause, Copyright (c) 2019, University of Maryland; see src/examples/canon/THIRD_PARTY_NOTICES.md.
+// Adapted (Python refinement methods re-written as HTN methods; the method order, the commands and the door/load
+// logic follow the source).
+// Emulations (the catalogue's porting rule):
+// - RAE plans a whole path with Dijkstra (`SD_GETPATH`) and loops over it, failing when a hop did not arrive; here the
+//   host publishes the next hop as a static table `(route ?from ?to ?next)` and each plan does one hop, then the
+//   deferred `&fetch` decides the next one against the world as it is.
+// - RAE retries a failed task with the next applicable method; here the failing command writes what it learned
+//   (`!pass_door` on a spring door that shut: `(door_type ?d spring)`) and the replan picks the next branch.
+// - RAE's `MoveThroughDoorway_Method2.parameters` (every free robot as a method instance) is the `helper_for` axiom
+//   (a robot already claimed by us first, else the first free one); `status` busy/free with locks is `!claim` /
+//   `!release`, idempotent.
+// - RAE runs `collision` as a separate concurrent task; here it is the root's first tier, taken on the replan the
+//   `(collided ?r)` fact triggers.
+// Deviations: the job ends with `!put` at the destination (RAE ends holding the object), so "done" is a world fact
+// `(object_at ?obj ?dest)` the root reads; a loaded robot at a spring door with no free teammate waits a second and
+// re-decides (RAE fails the task); no route: the robot reports it (RAE fails).
+// Not ported: RAE's second `unlatch` method (`unlatch2`, the same command again: our host retries by replanning),
+// the helper's own path planning (`!come_to` is one host-run walk; in RAE the helper runs `moveTo` with doorways and
+// could in turn recruit another robot), the commands' random failures (`Sense`), the planner heuristics
+// (`Heuristic1/2`), the commented-out `GetHelp_Method1` and `Restore`.
+// As a level (not built): two capsule robots and one door between two rooms, a host with the route table, a
+// door executor that swings a spring door shut unless held, `!come_to` as the helper's walk; the helper NPC would plan
+// its own `come_to` and hold from its own domain, given the claim as a fact.
+//
+// Facts:      (self ?robot); (robot ?r); (at ?r ?place); (holding ?r ?thing); (holding_door ?r ?door);
+//             (status ?r free|busy); (claimed ?helper ?by); (object_at ?obj ?place); (job fetch ?obj ?dest);
+//             (door ?d ?from ?to) both directions; (door_type ?d ordinary|spring) known types only; (door_open ?d);
+//             (crossing_cleanup ?passer ?holder ?door): successful pass writes it; final release removes it;
+//             (door_held ?d ?by); (route ?from ?to ?next) host path table; (collided ?r) event.
+// Primitives: (!move ?r ?to) (!unlatch ?r ?d) (!hold_door ?r ?d) (!pass_door ?r ?d ?to) (!release_door ?r ?d)
+//             (!take ?r ?obj) (!put ?r ?obj) (!claim ?helper ?by) (!release ?helper) (!come_to ?helper ?place)
+//             (!help_robot ?helper ?r) (!report_no_route ?r ?to) (!wait ?seconds)
+
+(:domain DoorHelper top_level_domain
+
+    (:method (behave) top_level_method
+
+
+        // A completed crossing owns cleanup even if the old plan tail was discarded.
+        (finish_crossing
+            (and
+                (self ?me)
+                (crossing_cleanup ?me ?holder ?door)
+            )
+            (
+                (finish_crossing ?me ?holder ?door)
+                (&behave)
+            )
+        )
+
+        (recover
+            (and
+                (self ?me)
+                (collided ?me)
+                (#helper_for ?me ?helper)
+            )
+            (
+                (recover ?me ?helper)
+            )
+        )
+
+        (fetch
+            (and
+                (self ?me)
+                (#open_fetch ?me ?obj ?dest)
+            )
+            (
+                (fetch ?me ?obj ?dest)
+            )
+        )
+
+        (idle
+            ()
+            (
+                (!wait 1.0)
+            )
+        )
+    )
+
+
+    // Contract: this passer owns the completed crossing. Release its door and helper before another job.
+    // The host keeps crossing_cleanup until the final release, so interruption cannot lose the obligation.
+    (:method (finish_crossing ?inp_passer ?inp_holder ?inp_door)
+        (self_held
+            (and (== ?inp_passer ?inp_holder))
+            ((!release_door ?inp_holder ?inp_door))
+        )
+        (helper_held
+            (and
+                (!= ?inp_passer ?inp_holder)
+                (claimed ?inp_holder ?inp_passer)
+            )
+            (
+                (!release_door ?inp_holder ?inp_door)
+                (!release ?inp_holder)
+            )
+        )
+    )
+
+    // A fetch job not done yet, whose object ?inp_r holds or knows where it is.
+    (:axiom (open_fetch ?inp_r ?out_obj ?out_dest)
+        (and
+            (job fetch ?out_obj ?out_dest)
+            (not (object_at ?out_obj ?out_dest))
+            (or
+                (holding ?inp_r ?out_obj)
+                (object_at ?out_obj ?any_place)
+            )
+        )
+    )
+
+    (:axiom (loaded ?inp_r)
+        (and
+            (holding ?inp_r ?any_thing)
+        )
+    )
+
+    // A door whose type is ?inp_type, or not known yet.
+    (:axiom (could_be ?inp_d ?inp_type)
+        (or
+            (door_type ?inp_d ?inp_type)
+            (not (door_type ?inp_d ?any_type))
+        )
+    )
+
+    // A teammate for ?inp_r: one it already claimed, else a free robot not holding a door.
+    (:axiom (helper_for ?inp_r ?out_helper)
+        (or
+            (claimed ?out_helper ?inp_r)
+            (and
+                (robot ?out_helper)
+                (!= ?out_helper ?inp_r)
+                (status ?out_helper free)
+                (not (holding_door ?out_helper ?any_door))
+            )
+        )
+    )
+
+    // Contract: one step of the job (a hop, the pick-up, the delivery); `&fetch` goes on against the live world.
+    (:method (fetch ?inp_r ?inp_obj ?inp_dest)
+
+        (deliver
+            (and
+                (holding ?inp_r ?inp_obj)
+                (at ?inp_r ?inp_dest)
+            )
+            (
+                (!put ?inp_r ?inp_obj)
+            )
+        )
+
+        (carry
+            (and
+                (holding ?inp_r ?inp_obj)
+                (not (at ?inp_r ?inp_dest))
+            )
+            (
+                (go_toward ?inp_r ?inp_dest)
+                (&fetch ?inp_r ?inp_obj ?inp_dest)
+            )
+        )
+
+        (pick_up
+            (and
+                (object_at ?inp_obj ?place)
+                (at ?inp_r ?place)
+            )
+            (
+                (drop_load ?inp_r)
+                (!take ?inp_r ?inp_obj)
+                (&fetch ?inp_r ?inp_obj ?inp_dest)
+            )
+        )
+
+        (go_get
+            (and
+                (object_at ?inp_obj ?place)
+            )
+            (
+                (go_toward ?inp_r ?place)
+                (&fetch ?inp_r ?inp_obj ?inp_dest)
+            )
+        )
+    )
+
+    // Contract: one hop towards ?inp_to (through a door if the hop has one), or nothing when already there.
+    (:method (go_toward ?inp_r ?inp_to)
+
+        (arrived
+            (and
+                (at ?inp_r ?inp_to)
+            )
+            ()
+        )
+
+        (through_door
+            (and
+                (at ?inp_r ?here)
+                (route ?here ?inp_to ?next)
+                (door ?d ?here ?next)
+            )
+            (
+                (cross_doorway ?inp_r ?d ?next)
+            )
+        )
+
+        (open_passage
+            (and
+                (at ?inp_r ?here)
+                (route ?here ?inp_to ?next)
+                (not (door ?any_door ?here ?next))
+            )
+            (
+                (!move ?inp_r ?next)
+            )
+        )
+
+        (no_route
+            ()
+            (
+                (!report_no_route ?inp_r ?inp_to)
+            )
+        )
+    )
+
+    // RAE moveThroughDoorway: methods 1, 3, 4, 2 in the source's order, plus a wait when no method applies.
+    (:method (cross_doorway ?inp_r ?inp_d ?inp_to)
+
+        (empty_ordinary
+            (and
+                (not (#loaded ?inp_r))
+                (#could_be ?inp_d ordinary)
+            )
+            (
+                (unlatch ?inp_r ?inp_d)
+                (!pass_door ?inp_r ?inp_d ?inp_to)
+            )
+        )
+
+        (empty_spring
+            (and
+                (not (#loaded ?inp_r))
+                (#could_be ?inp_d spring)
+            )
+            (
+                (hold_open_for ?inp_r ?inp_r ?inp_d ?inp_to)
+            )
+        )
+
+        (loaded_ordinary
+            (and
+                (holding ?inp_r ?obj)
+                (#could_be ?inp_d ordinary)
+            )
+            (
+                (!put ?inp_r ?obj)
+                (unlatch ?inp_r ?inp_d)
+                (!take ?inp_r ?obj)
+                (!pass_door ?inp_r ?inp_d ?inp_to)
+            )
+        )
+
+        (loaded_spring
+            (and
+                (#loaded ?inp_r)
+                (#could_be ?inp_d spring)
+                (#helper_for ?inp_r ?helper)
+            )
+            (
+                (helped_through ?inp_r ?helper ?inp_d ?inp_to)
+            )
+        )
+
+        (wait_for_helper
+            ()
+            (
+                (!wait 1.0)
+            )
+        )
+    )
+
+    // ?inp_holder unlatches and holds the door while ?inp_passer goes through, then lets it go.
+    (:method (hold_open_for ?inp_holder ?inp_passer ?inp_d ?inp_to)
+
+        (hold_and_pass
+            ()
+            (
+                (unlatch ?inp_holder ?inp_d)
+                (!hold_door ?inp_holder ?inp_d)
+                (!pass_door ?inp_passer ?inp_d ?inp_to)
+                (!release_door ?inp_holder ?inp_d)
+            )
+        )
+    )
+
+    // Re-entrant: an open door needs no unlatching.
+    (:method (unlatch ?inp_r ?inp_d)
+
+        (already_open
+            (and
+                (door_open ?inp_d)
+            )
+            ()
+        )
+
+        (unlatch
+            ()
+            (
+                (!unlatch ?inp_r ?inp_d)
+            )
+        )
+    )
+
+    // RAE MoveThroughDoorway_Method2 with its helper: claim, bring over, hold, pass, release.
+    (:method (helped_through ?inp_r ?inp_helper ?inp_d ?inp_to)
+
+        (helper_here
+            (and
+                (claimed ?inp_helper ?inp_r)
+                (at ?inp_r ?here)
+                (at ?inp_helper ?here)
+            )
+            (
+                (hold_open_for ?inp_helper ?inp_r ?inp_d ?inp_to)
+                (!release ?inp_helper)
+            )
+        )
+
+        (call_helper
+            (and
+                (at ?inp_r ?here)
+            )
+            (
+                (summon ?inp_r ?inp_helper ?here)
+                (&cross_doorway ?inp_r ?inp_d ?inp_to)
+            )
+        )
+    )
+
+    // RAE collision event (Recover_Method1): a free teammate comes over and helps.
+    (:method (recover ?inp_r ?inp_helper)
+
+        (helper_here
+            (and
+                (claimed ?inp_helper ?inp_r)
+                (at ?inp_r ?here)
+                (at ?inp_helper ?here)
+            )
+            (
+                (!help_robot ?inp_helper ?inp_r)
+                (!release ?inp_helper)
+            )
+        )
+
+        (call_helper
+            (and
+                (at ?inp_r ?here)
+            )
+            (
+                (summon ?inp_r ?inp_helper ?here)
+                (&recover ?inp_r ?inp_helper)
+            )
+        )
+    )
+
+    // Claim ?inp_helper for ?inp_r, have it put down what it carries and come to ?inp_place.
+    (:method (summon ?inp_r ?inp_helper ?inp_place)
+
+        (claim_and_call
+            ()
+            (
+                (claim ?inp_helper ?inp_r)
+                (drop_load ?inp_helper)
+                (!come_to ?inp_helper ?inp_place)
+            )
+        )
+    )
+
+    // Re-entrant: a helper already claimed by ?inp_by stays claimed.
+    (:method (claim ?inp_helper ?inp_by)
+
+        (already_claimed
+            (and
+                (claimed ?inp_helper ?inp_by)
+            )
+            ()
+        )
+
+        (claim
+            ()
+            (
+                (!claim ?inp_helper ?inp_by)
+            )
+        )
+    )
+
+    // Re-entrant: empty hands need nothing.
+    (:method (drop_load ?inp_r)
+
+        (empty
+            (and
+                (not (#loaded ?inp_r))
+            )
+            ()
+        )
+
+        (put_down
+            (and
+                (holding ?inp_r ?thing)
+            )
+            (
+                (!put ?inp_r ?thing)
+            )
+        )
+    )
+)
