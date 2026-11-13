@@ -1,0 +1,23 @@
+{
+  "name": "avatar-equipped-observer-test-scene",
+  "version": "1.0.0",
+  "description": "Avatar Equipped Observer Test Scene",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "build": "sdk-commands build"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "auth-server"
+  }
+}
