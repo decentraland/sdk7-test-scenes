@@ -1,0 +1,42 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Audio Playback Position Reports Test",
+    "description": "Test scene for the AudioEvent playback-position reports (tickNumber, currentOffset, clipLength) written by the renderer while an AudioSource plays. Covers audioEventsSystem.registerAudioPlaybackEntity / removeAudioPlaybackEntity (push), getAudioPlayback (pull), the lag computation against a per-tick scene clock versus the naive processing-time clock, seek landing, loop wrap, and that registerAudioEventsEntity still fires only on media-state changes.",
+    "navmapThumbnail": "images/scene-thumbnail.png",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": ["audio", "test"],
+  "scene": {
+    "parcels": ["89,-12"],
+    "base": "89,-12"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [0, 3],
+        "y": [0, 0],
+        "z": [0, 3]
+      },
+      "cameraTarget": {
+        "x": 8,
+        "y": 1,
+        "z": 8
+      }
+    }
+  ],
+  "requiredPermissions": [],
+  "featureToggles": {},
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}
