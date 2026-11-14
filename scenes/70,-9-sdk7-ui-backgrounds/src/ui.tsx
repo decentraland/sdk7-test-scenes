@@ -10,6 +10,14 @@ import ReactEcs, {
 const src = 'img.png'
 const centeredImage = 'img.png'
 
+// img.png is an RGBA sprite sheet with large transparent regions, so anything painted behind it
+// shows through its own alpha. The padding cases below compare against a magenta backdrop, which
+// only works with a fully opaque texture - hence this one (RGB, no alpha channel). Its 10px white
+// frame also makes the painted quad's edges readable at a glance.
+const opaqueSrc = 'opaque.png'
+
+const CROSSHAIR_COLOR = Color4.fromHexString('#00ff66ff')
+
 let dt = 0
 let userId: string | undefined
 
@@ -161,7 +169,204 @@ const options = [
                 <Label value="CENTER" color={Color4.Green()} fontSize={29} />
             </UiEntity>
         )
+    },
+    // Regression coverage for unity-explorer#8758 / #10207: uiBackground did not cover
+    // the padding area for 'stretch' and 'center' textureMode. Each case below wraps its
+    // child in a magenta parent sized to exactly the child's own box, with no padding of
+    // its own. The child paints on top of that magenta; any area the child fails to cover
+    // shows the parent through as a magenta frame. Broken build = visible magenta,
+    // fixed build = no magenta.
+    function PaddingStretch() {
+        const boxWidth = 460
+        const boxHeight = 200
+        return (
+            <UiEntity
+                uiTransform={{ width: boxWidth, height: boxHeight }}
+                uiBackground={{ color: Color4.Magenta() }}
+            >
+                <UiEntity
+                    uiTransform={{ width: boxWidth, height: boxHeight, padding: 36 }}
+                    uiBackground={{ texture: { src: opaqueSrc }, textureMode: 'stretch' }}
+                >
+                    <Label
+                        value={
+                            'PADDING + STRETCH (repro of #8758)\n' +
+                            'Texture must cover this whole box, including the 36px padding.\n' +
+                            'ANY magenta visible anywhere = BROKEN (texture stopped at 388x128).\n' +
+                            'NO magenta = FIXED.'
+                        }
+                        fontSize={18}
+                        color={Color4.White()}
+                    />
+                </UiEntity>
+            </UiEntity>
+        )
+    },
+    function PaddingCenter() {
+        const boxWidth = 400
+        const boxHeight = 300
+        return (
+            <UiEntity
+                uiTransform={{ width: boxWidth, height: boxHeight }}
+                uiBackground={{ color: Color4.Magenta() }}
+            >
+                <UiEntity
+                    uiTransform={{
+                        width: boxWidth,
+                        height: boxHeight,
+                        padding: { top: 0, right: 72, bottom: 72, left: 0 },
+                        positionType: 'absolute',
+                        position: { top: 0, left: 0 }
+                    }}
+                    uiBackground={{ texture: { src: opaqueSrc }, textureMode: 'center' }}
+                />
+                {/* Fixed crosshair marking the TRUE center of the box (ignores padding). It is drawn
+                    after the texture so it sits on top of it, and in lime because the texture's body
+                    is dark navy - a dark crosshair disappears into it. */}
+                <UiEntity
+                    uiTransform={{
+                        width: 6,
+                        height: 44,
+                        positionType: 'absolute',
+                        position: { top: boxHeight / 2 - 22, left: boxWidth / 2 - 3 }
+                    }}
+                    uiBackground={{ color: CROSSHAIR_COLOR }}
+                />
+                <UiEntity
+                    uiTransform={{
+                        width: 44,
+                        height: 6,
+                        positionType: 'absolute',
+                        position: { top: boxHeight / 2 - 3, left: boxWidth / 2 - 22 }
+                    }}
+                    uiBackground={{ color: CROSSHAIR_COLOR }}
+                />
+                <UiEntity
+                    uiTransform={{
+                        width: boxWidth,
+                        height: boxHeight,
+                        positionType: 'absolute',
+                        position: { top: 0, left: 0 },
+                        padding: 8
+                    }}
+                >
+                    <Label
+                        value={
+                            'PADDING + CENTER (asymmetric padding: top 0, right 72, bottom 72, left 0)\n' +
+                            'Coverage is NOT the signal here (center mode never fills the box).\n' +
+                            'Compare the image to the black crosshair, which marks the true center:\n' +
+                            'BROKEN = image sits up-and-left of the crosshair.\n' +
+                            'FIXED = image is centered exactly on the crosshair.'
+                        }
+                        fontSize={16}
+                        color={Color4.White()}
+                    />
+                </UiEntity>
+            </UiEntity>
+        )
+    },
+    // Regression controls: nine-slices and plain color were already drawn by UITK itself
+    // over the full box, so they must show NO magenta both before and after the fix.
+    function PaddingNineSlices() {
+        const boxWidth = 460
+        const boxHeight = 200
+        return (
+            <UiEntity
+                uiTransform={{ width: boxWidth, height: boxHeight }}
+                uiBackground={{ color: Color4.Magenta() }}
+            >
+                <UiEntity
+                    uiTransform={{ width: boxWidth, height: boxHeight, padding: 36 }}
+                    uiBackground={{ texture: { src: opaqueSrc }, textureMode: 'nine-slices' }}
+                >
+                    <Label
+                        value={
+                            'PADDING + NINE-SLICES (regression control, NOT part of the bug)\n' +
+                            'This mode was always correct. No magenta should ever show here,\n' +
+                            'on either a broken or a fixed build.'
+                        }
+                        fontSize={18}
+                        color={Color4.Black()}
+                    />
+                </UiEntity>
+            </UiEntity>
+        )
+    },
+    function PaddingColor() {
+        const boxWidth = 460
+        const boxHeight = 200
+        return (
+            <UiEntity
+                uiTransform={{ width: boxWidth, height: boxHeight }}
+                uiBackground={{ color: Color4.Magenta() }}
+            >
+                <UiEntity
+                    uiTransform={{ width: boxWidth, height: boxHeight, padding: 36 }}
+                    uiBackground={{ color: Color4.fromHexString('#1c7ed6ff') }}
+                >
+                    <Label
+                        value={
+                            'PADDING + COLOR (regression control, NOT part of the bug)\n' +
+                            'A plain color fill was always correct. No magenta should ever show\n' +
+                            'here, on either a broken or a fixed build.'
+                        }
+                        fontSize={18}
+                        color={Color4.White()}
+                    />
+                </UiEntity>
+            </UiEntity>
+        )
+    },
+    function PaddingAndBorder() {
+        const boxWidth = 460
+        const boxHeight = 200
+        return (
+            <UiEntity
+                uiTransform={{ width: boxWidth, height: boxHeight }}
+                uiBackground={{ color: Color4.Magenta() }}
+            >
+                <UiEntity
+                    uiTransform={{
+                        width: boxWidth,
+                        height: boxHeight,
+                        padding: 36,
+                        borderWidth: 8,
+                        borderColor: Color4.Green()
+                    }}
+                    uiBackground={{ texture: { src: opaqueSrc }, textureMode: 'stretch' }}
+                >
+                    <Label
+                        value={
+                            'PADDING + BORDER (padding box and border box differ)\n' +
+                            'The opaque green 8px border must stay fully visible at all times --\n' +
+                            'the texture deliberately stops at the inner edge of the border, since\n' +
+                            'in UI Toolkit custom-generated content draws on top of the border.\n' +
+                            'BROKEN = magenta ring between the border and the texture.\n' +
+                            'FIXED = texture flush against the border, no magenta.'
+                        }
+                        fontSize={16}
+                        color={Color4.White()}
+                    />
+                </UiEntity>
+            </UiEntity>
+        )
     }
+]
+
+// `sdk-commands deploy` rebuilds with --production, which strips the names off these function
+// expressions, so deriving the labels from Function.name leaves the deployed dropdown blank.
+const optionLabels = [
+    'StretchAndTint',
+    'NineSlicesAndTint',
+    'NineSlicesAndTintVertical',
+    'NineSlicesAndMargin',
+    'Center',
+    'AvatarTexture',
+    'PaddingStretch',
+    'PaddingCenter',
+    'PaddingNineSlices',
+    'PaddingColor',
+    'PaddingAndBorder'
 ]
 
 function selectOption(index: number) {
@@ -177,13 +382,18 @@ export const ui = () => {
                 width: '100%',
                 height: '50%',
                 flexDirection: 'column',
-                margin: { left: 300 }
+                margin: { left: 500 }
             }}
             uiBackground={{ color: Color4.Black() }}
         >
-            <Label value="Select an example from below" />
-            <Dropdown options={options.map(($) => $.name)} onChange={selectOption} />
             <Renderer />
+            <Label value="Select an example above" fontSize={28} uiTransform={{ height: 40, margin: { top: 24 } }} />
+            <Dropdown
+                options={optionLabels}
+                onChange={selectOption}
+                fontSize={28}
+                uiTransform={{ width: 560, height: 52 }}
+            />
         </UiEntity>
     )
 }
