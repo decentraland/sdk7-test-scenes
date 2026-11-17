@@ -1,10 +1,11 @@
 import { createHud } from './hud'
-import { createSideArea, createTrack } from './track'
+import { createCourse } from './course'
+import { createTrack } from './track'
 
-// Locomotion measurement track. It adds no AvatarModifierArea, InputModifier or AvatarLocomotionSettings, so the
+// Locomotion measurement track and geometry course. It adds no AvatarModifierArea, InputModifier or AvatarLocomotionSettings, so the
 // player moves at each explorer's default speeds.
 export function main() {
   createTrack()
-  createSideArea()
+  createCourse()
   createHud()
 }

@@ -3,7 +3,7 @@
   "runtimeVersion": "7",
   "display": {
     "title": "Locomotion Track",
-    "description": "Flat 128 m measurement track with a 1/5/10 m grid for comparing player locomotion between explorers",
+    "description": "Flat 128 m measurement track with a 1/5/10 m grid, plus ledges, stairs, slopes and a wall, for comparing player locomotion between explorers",
     "favicon": "favicon_asset"
   },
   "owner": "",
@@ -111,6 +111,146 @@
         "x": 64,
         "y": 1.5,
         "z": 96
+      }
+    },
+    {
+      "name": "ledge-0.5",
+      "default": false,
+      "position": {
+        "x": 131,
+        "y": 0.5,
+        "z": 4
+      },
+      "cameraTarget": {
+        "x": 120,
+        "y": 2,
+        "z": 4
+      }
+    },
+    {
+      "name": "ledge-1",
+      "default": false,
+      "position": {
+        "x": 131,
+        "y": 1,
+        "z": 10
+      },
+      "cameraTarget": {
+        "x": 120,
+        "y": 2.5,
+        "z": 10
+      }
+    },
+    {
+      "name": "ledge-2",
+      "default": false,
+      "position": {
+        "x": 131,
+        "y": 2,
+        "z": 16
+      },
+      "cameraTarget": {
+        "x": 120,
+        "y": 3.5,
+        "z": 16
+      }
+    },
+    {
+      "name": "ledge-3",
+      "default": false,
+      "position": {
+        "x": 131,
+        "y": 3,
+        "z": 22
+      },
+      "cameraTarget": {
+        "x": 120,
+        "y": 4.5,
+        "z": 22
+      }
+    },
+    {
+      "name": "ledge-4.7",
+      "default": false,
+      "position": {
+        "x": 131,
+        "y": 4.7,
+        "z": 28
+      },
+      "cameraTarget": {
+        "x": 120,
+        "y": 6.2,
+        "z": 28
+      }
+    },
+    {
+      "name": "ledge-10",
+      "default": false,
+      "position": {
+        "x": 131,
+        "y": 10,
+        "z": 34
+      },
+      "cameraTarget": {
+        "x": 120,
+        "y": 11.5,
+        "z": 34
+      }
+    },
+    {
+      "name": "stairs",
+      "default": false,
+      "position": {
+        "x": 129,
+        "y": 0,
+        "z": 53.5
+      },
+      "cameraTarget": {
+        "x": 140,
+        "y": 1.5,
+        "z": 53.5
+      }
+    },
+    {
+      "name": "slopes",
+      "default": false,
+      "position": {
+        "x": 129,
+        "y": 0,
+        "z": 85.2
+      },
+      "cameraTarget": {
+        "x": 140,
+        "y": 1.5,
+        "z": 85.2
+      }
+    },
+    {
+      "name": "slopes-top",
+      "default": false,
+      "position": {
+        "x": 150,
+        "y": 3,
+        "z": 85.2
+      },
+      "cameraTarget": {
+        "x": 140,
+        "y": 4.5,
+        "z": 85.2
+      }
+    },
+    {
+      "name": "wall",
+      "default": false,
+      "position": {
+        "x": 138,
+        "y": 0,
+        "z": 115
+      },
+      "cameraTarget": {
+        "x": 150,
+        "y": 1.5,
+        "z": 115
       }
     }
   ],

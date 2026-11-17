@@ -3,7 +3,6 @@ import {
   BillboardMode,
   engine,
   Material,
-  MeshCollider,
   MeshRenderer,
   TextShape,
   TextureWrapMode,
@@ -37,7 +36,7 @@ function strip(centerX: number, centerZ: number, sizeX: number, sizeZ: number, y
   Material.setBasicMaterial(e, { diffuseColor: color })
 }
 
-function flatLabel(x: number, z: number, text: string, fontSize: number, color: Color4, yawDeg = 0) {
+export function flatLabel(x: number, z: number, text: string, fontSize: number, color: Color4, yawDeg = 0) {
   const e = engine.addEntity()
   Transform.create(e, { position: Vector3.create(x, LABEL_Y, z), rotation: flatRotation(yawDeg) })
   TextShape.create(e, { text, fontSize, textColor: color })
@@ -128,27 +127,4 @@ export function createTrack() {
   }
 
   flatLabel(SPAWN.x - 3, SPAWN.z - 1.5, 'SPAWN 24,44\n(64, 0, 64)', 5, Color4.Yellow())
-}
-
-/** Side area east of the track for later collision tests. Nothing here is on the open track. */
-export function createSideArea() {
-  const wall = engine.addEntity()
-  Transform.create(wall, {
-    position: Vector3.create(148, 1.5, SPAWN.z),
-    scale: Vector3.create(0.5, 3, 48)
-  })
-  MeshRenderer.setBox(wall)
-  MeshCollider.setBox(wall)
-  Material.setPbrMaterial(wall, { albedoColor: Color4.create(0.85, 0.45, 0.2, 1), roughness: 1, metallic: 0 })
-
-  const sign = engine.addEntity()
-  Transform.create(sign, { position: Vector3.create(140, 4.5, SPAWN.z) })
-  TextShape.create(sign, {
-    text: 'Collision area\n(not part of the open track)',
-    fontSize: 10,
-    textColor: Color4.White(),
-    outlineWidth: 0.1,
-    outlineColor: Color3.Black()
-  })
-  Billboard.create(sign, { billboardMode: BillboardMode.BM_Y })
 }
