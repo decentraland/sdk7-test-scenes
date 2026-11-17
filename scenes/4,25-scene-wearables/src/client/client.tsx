@@ -5,7 +5,6 @@ import ReactEcs, { Button, Label, ReactEcsRenderer, UiEntity } from '@dcl/sdk/re
 import { room } from '../shared/messages'
 import { Outfits } from '../shared/schemas'
 import { NPC_KEY, WEARABLE_NAMES, WEARABLES } from '../shared/wearables'
-import { getEquippedWearables } from './equippedWearables'
 
 const BASE = 'urn:decentraland:off-chain:base-avatars:'
 const BASE_FEMALE = (BASE + 'BaseFemale').toLowerCase()
@@ -203,7 +202,7 @@ const VISIBILITY: [string, Color4][] = [
 ]
 
 function profileWearables() {
-  return (getEquippedWearables(engine.PlayerEntity) ?? []).map(({ urn, visible }) => {
+  return (AvatarEquippedData.getOrNull(engine.PlayerEntity)?.wearables ?? []).map(({ urn, visible }) => {
     const [label, color] = VISIBILITY[visible === undefined ? 2 : visible ? 1 : 0]
     const value = `${urn.split(':').pop()}: ${label}`
     return (

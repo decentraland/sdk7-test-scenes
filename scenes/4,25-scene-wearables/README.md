@@ -128,7 +128,6 @@ Not possible yet:
 | Concern | Where |
 | --- | --- |
 | Wearable list and paths | `src/shared/wearables.ts` |
-| Reading `AvatarEquippedData.wearables` before the SDK ships it | `src/client/equippedWearables.ts` |
 | Messages, synced component, server-only writes | `src/shared/messages.ts`, `src/shared/schemas.ts` |
 | Server | `src/server/server.ts` |
 | Dressing avatars and the panel | `src/client/client.tsx` |

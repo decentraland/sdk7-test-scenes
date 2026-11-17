@@ -1,6 +1,5 @@
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { AvatarEquippedData, engine, Material, MeshRenderer, TextAlignMode, TextShape, Transform } from '@dcl/sdk/ecs'
-import { getEquippedWearables } from './equippedWearables'
 
 const REFRESH_SECONDS = 0.5
 const UNSET_GRACE_SECONDS = 5
@@ -71,7 +70,7 @@ engine.addSystem((dt: number) => {
     lastSnapshot = snapshot
   }
 
-  const wearables = getEquippedWearables(engine.PlayerEntity) ?? []
+  const wearables = AvatarEquippedData.getOrNull(engine.PlayerEntity)?.wearables ?? []
   const unset = wearables.filter((w) => w.visible === undefined).length
   const summary = `unset: ${unset}/${wearables.length}`
   const lines = wearables.map((w) => `${shortName(w.urn)}: ${visibility(w.visible)}`)
