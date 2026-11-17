@@ -18,6 +18,6 @@
     "trailingComma": "none"
   },
   "devDependencies": {
-    "@dcl/sdk": "https://sdk-team-cdn.decentraland.org/@dcl/js-sdk-toolchain/branch/feat/avatar-equipped-wearables-auth-server/dcl-sdk-7.33.1-43910272635.commit-bc865b5.tgz"
+    "@dcl/sdk": "auth-server"
   }
 }
