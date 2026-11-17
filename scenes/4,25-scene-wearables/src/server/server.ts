@@ -1,6 +1,6 @@
 import { engine, Entity, PlayerIdentityData } from '@dcl/sdk/ecs'
 import { syncEntity } from '@dcl/sdk/network'
-import { NPC_KEY, WEARABLES } from '../shared/wearables'
+import { NPC_KEY, WEARABLE_NAMES } from '../shared/wearables'
 import { room } from '../shared/messages'
 import { Outfits } from '../shared/schemas'
 
@@ -14,7 +14,7 @@ export function startServer(): void {
 
   // The sender comes from the verified message context, never from the payload
   room.onMessage('toggleWearable', (data, context) => {
-    if (!context || !(data.name in WEARABLES)) return
+    if (!context || !WEARABLE_NAMES.includes(data.name)) return
     const key = data.npc ? NPC_KEY : context.from.toLowerCase()
     const worn = outfits.get(key) ?? []
     outfits.set(key, worn.includes(data.name) ? worn.filter((n) => n !== data.name) : [...worn, data.name])

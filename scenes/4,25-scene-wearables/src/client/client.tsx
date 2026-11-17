@@ -77,7 +77,7 @@ function spawnNpc(name: string, x: number, wearables: string[], z = 13) {
 function readSynced(): Map<string, string[]> | undefined {
   for (const [, outfits] of engine.getEntitiesWith(Outfits)) {
     const result = new Map<string, string[]>()
-    outfits.keys.forEach((key, i) => result.set(key, outfits.wearables[i].split(',').filter((n) => n in WEARABLES)))
+    outfits.keys.forEach((key, i) => result.set(key, outfits.wearables[i].split(',').filter((n) => WEARABLE_NAMES.includes(n))))
     return result
   }
   return undefined
