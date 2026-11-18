@@ -93,6 +93,7 @@ const toPaths = (names: readonly string[], female: boolean) =>
 
 function dressAvatarsSystem() {
   synced = isStateSyncronized() ? readSynced() : undefined
+  for (const entity of applied.keys()) if (entity !== npc && !PlayerIdentityData.has(entity)) applied.delete(entity)
   const outfits = synced ?? NO_OUTFITS
 
   dress(npc, NPC_KEY, toPaths(merge(outfits.get(NPC_KEY) ?? [], local.npc), false), (paths) =>
@@ -114,8 +115,9 @@ function dressAvatarsSystem() {
     const address = identity.address.toLowerCase()
     const female = avatarBase.bodyShapeUrn.toLowerCase() === BASE_FEMALE
     const names = merge(outfits.get(address) ?? [], player === engine.PlayerEntity ? local.me : [])
-    const paths = toPaths(names, female)
     const playerCase = player === engine.PlayerEntity ? caseMe : caseOthers
+    // Full AvatarShape forces the male body
+    const paths = toPaths(names, playerCase !== 'full' && female)
 
     // Player entity ids are reused after a disconnect, so the key includes the address
     dress(player, `${address}|${playerCase}|${equipped.wearableUrns.join(',')}`, paths, () => {

@@ -70,7 +70,7 @@ engine.addSystem((dt: number) => {
     lastSnapshot = snapshot
   }
 
-  const wearables = AvatarEquippedData.getOrNull(engine.PlayerEntity)?.wearables ?? []
+  const wearables = component.wearables
   const unset = wearables.filter((w) => w.visible === undefined).length
   const summary = `unset: ${unset}/${wearables.length}`
   const lines = wearables.map((w) => `${shortName(w.urn)}: ${visibility(w.visible)}`)

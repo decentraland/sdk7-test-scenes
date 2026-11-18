@@ -147,7 +147,8 @@ Not possible yet:
    override active (any **On me** case, or scene wearables picked) the flags must stay the profile's: a scene wearable
    never appears in the list and does not change the flags.
 7. Two clients, A and B. A wears an item in **Local only**. Expected: B does not see it. A wears an item in **Synced**.
-   Expected: B sees it on A, and on the mannequin too. A late joiner sees the synced outfits right away.
+   Expected: B sees it on A, and on the mannequin too. A late joiner sees the synced outfits right away. Take the
+   Local only picks off first: they stay on A in Synced, and the Synced panel lists only the synced items.
 
 ### LOCAL SCENE DEVELOPMENT
 
