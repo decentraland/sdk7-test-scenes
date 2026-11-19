@@ -1,0 +1,28 @@
+{
+  "name": "crdt-wasted-writes-dcl-project",
+  "version": "1.0.0",
+  "description": "Components rewritten every frame without changing, for get_crdt_traffic",
+  "scripts": {
+    "start": "sdk-commands start",
+    "deploy": "sdk-commands deploy",
+    "build": "sdk-commands build",
+    "upgrade-sdk": "npm install --save-dev @dcl/sdk@latest",
+    "upgrade-sdk:next": "npm install --save-dev @dcl/sdk@next",
+    "format": "npx prettier src --write",
+    "lint": "npx eslint src --fix"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=6.0.0"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 120,
+    "trailingComma": "none"
+  },
+  "devDependencies": {
+    "@dcl/sdk": "^7.24.5",
+    "@dcl/js-runtime": "7.30.1"
+  }
+}
