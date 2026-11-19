@@ -1,0 +1,66 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Nametag Culling Test Scene",
+    "description": "AvatarModifierType.AMT_DISABLE_NAMETAG_CULLING and the 100-nearest nametag cap",
+    "navmapThumbnail": "images/scene-thumbnail.png",
+    "favicon": "favicon_asset"
+  },
+  "owner": "",
+  "contact": {
+    "name": "SDK",
+    "email": ""
+  },
+  "main": "bin/index.js",
+  "tags": [],
+  "scene": {
+    "parcels": [
+      "6,24",
+      "7,24",
+      "8,24",
+      "9,24",
+      "10,24",
+      "11,24",
+      "12,24",
+      "13,24",
+      "6,25",
+      "7,25",
+      "8,25",
+      "9,25",
+      "10,25",
+      "11,25",
+      "12,25",
+      "13,25"
+    ],
+    "base": "6,24"
+  },
+  "spawnPoints": [
+    {
+      "name": "spawn1",
+      "default": true,
+      "position": {
+        "x": [
+          2,
+          4
+        ],
+        "y": [
+          0,
+          0
+        ],
+        "z": [
+          14,
+          18
+        ]
+      },
+      "cameraTarget": {
+        "x": 20,
+        "y": 1,
+        "z": 16
+      }
+    }
+  ],
+  "worldConfiguration": {
+    "name": "sdk7testscenes.dcl.eth"
+  }
+}
