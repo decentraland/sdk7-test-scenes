@@ -17,6 +17,17 @@ const latinBurst = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 012345
 // Cyrillic burst: outside the pre-filled set, so it is rasterized at runtime on every path
 const cyrillicBurst = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ ЄІЇҐ\n' +
   'абвгдеёжзийклмнопрстуфхцчшщъыьэюя єіїґ'
+// Font Awesome icon fonts from a creator report: Medal and Compass showed as tofu while Star rendered.
+// Icons are private-use code points outside the pre-filled set, so FreeType draws them at runtime.
+// Solid has no space glyph and maps ASCII to icons, so icon strings carry no spaces or Latin text.
+const faSolid = 'assets/fonts/duck-font-awesome-solid.ttf'
+const faRegular = 'assets/fonts/duck-font-awesome-regular.ttf'
+const faBrands = 'assets/fonts/duck-font-awesome-brands.ttf'
+const faStar = ''
+const faMedal = ''
+const faCompass = ''
+const faEnvelope = ''
+const faAddressBook = ''
 const modes = [
   { label: 'Azeret Mono', src: 'assets/fonts/AzeretMono-Medium.ttf', expected: 'Custom monospaced face on all four components.' },
   { label: 'Bungee Shade TTF', src: 'assets/fonts/BungeeShade-Regular.ttf', expected: 'Decorative outlined Latin letters with a dimensional shadow.' },
@@ -103,7 +114,8 @@ function observeUiResults() {
 function setSource(src: string | undefined) {
   const selectedMode = modes.findIndex(item => item.src === src)
   if (selectedMode >= 0) mode = selectedMode
-  sourceLabel = selectedMode >= 0 ? modes[selectedMode].label : 'Delayed Bungee Shade'
+  sourceLabel = selectedMode >= 0 ? modes[selectedMode].label
+    : src?.includes('/slow/') ? 'Delayed Bungee Shade' : (src ?? '').split('/').pop() ?? ''
   if (active[0]) TextShape.getMutable(worldText).fontSrc = src
   if (active[1]) UiText.getMutable(label).fontSrc = src
   if (active[2]) UiInput.getMutable(input).fontSrc = src
@@ -268,6 +280,25 @@ function runPerf() {
   ])
 }
 
+function setIcons(src: string, icons: string) {
+  setSource(src)
+  if (active[0]) TextShape.getMutable(worldText).text = icons
+  if (active[1]) UiText.getMutable(label).value = icons
+  if (active[2]) UiInput.getMutable(input).placeholder = icons
+  if (active[3]) UiDropdown.getMutable(dropdown).options = [icons]
+  logTest('icons-requested', { source: src, codePoints: Array.from(icons).map(c => 'U+' + c.charCodeAt(0).toString(16).toUpperCase()) })
+}
+
+function runIcons() {
+  begin('Icon font / Font Awesome', [
+    { seconds: 8, text: 'Icons 1/5: cold Solid, Medal then Compass only, before any other icon. Both must draw; a box (tofu) is the reported bug.', action: () => setIcons(faSolid, faMedal + faCompass) },
+    { seconds: 8, text: 'Icons 2/5: Solid, left to right: Star, Medal, Compass, Envelope, Address book. All five must draw.', action: () => setIcons(faSolid, faStar + faMedal + faCompass + faEnvelope + faAddressBook) },
+    { seconds: 8, text: 'Icons 3/5: Regular (outline): Star, Compass, Envelope, Address book, then Medal. Expected: the last one IS tofu, Regular has no Medal.', action: () => setIcons(faRegular, faStar + faCompass + faEnvelope + faAddressBook + faMedal) },
+    { seconds: 8, text: 'Icons 4/5: Brands: GitHub, Discord, Ethereum, X. All four must draw.', action: () => setIcons(faBrands, '') },
+    { seconds: 8, text: 'Icons 5/5: back to Solid, Star, Medal, Compass (now warm). All three must draw.', action: () => setIcons(faSolid, faStar + faMedal + faCompass) }
+  ])
+}
+
 function uiBox(top: number, height: number): Entity {
   const entity = engine.addEntity()
   fixtures.push(entity)
@@ -403,7 +434,8 @@ export function setupFontTests(options: { delayedLoads: boolean }) {
         ['2. Shared font: remove owners', runShared],
         ['3. Fallbacks + recovery', runFallbacks], ['4. Recreate x20', runChurn],
         [delayedLoadsEnabled ? '5. Delayed load: switch' : '5. Switch while loading (local only)', () => runDelayed(false)], [delayedLoadsEnabled ? '6. Delayed load: remove' : '6. Remove while loading (local only)', () => runDelayed(true)],
-        ['7. Scene boundary', runBoundary], ['8. Perf: cold load + glyph burst', runPerf], ['Stop / reset', resetScenario]
+        ['7. Scene boundary', runBoundary], ['8. Perf: cold load + glyph burst', runPerf],
+        ['9. Icon font (Font Awesome)', runIcons], ['Stop / reset', resetScenario]
       ].map(([title, action]) => <Button key={title as string} value={title as string} fontSize={15}
         uiTransform={{ height: 34, margin: 2 }} onMouseDown={action as () => void} />)}
       <Label value={(delayedLoadsEnabled ? 'Local delay enabled. Fresh URLs left: ' + (slowFileCount - slowSlot) : 'Cases 5 and 6: local preview only; unavailable on zone.') + '\nVisual inspection required; memory/deferred deletion use Unity tests.'}
