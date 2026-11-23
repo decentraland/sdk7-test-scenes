@@ -50,7 +50,11 @@ function routeMatches(route: Route, scenario: Scenario) {
 type ProbeStatus = { message: string; finished: boolean }
 
 export function runProbe(onStatus?: (status: ProbeStatus) => void) {
-  const report = (message: string, finished = false) => onStatus?.({ message, finished })
+  let cancelled = false
+  let stop: (() => void) | undefined
+  const report = (message: string, finished = false) => {
+    if (!cancelled) onStatus?.({ message, finished })
+  }
   const fail = (stage: string, error: unknown) => {
     log({ stage, result: 'failed', error: String(error) })
     report('WASM probe failed during ' + stage + '. See scene logs.', true)
@@ -67,6 +71,7 @@ export function runProbe(onStatus?: (status: ProbeStatus) => void) {
       fail('init', error)
       return
     }
+    if (cancelled) return
 
     const detour: ReturnType<typeof createDetourNavigatorFromMesh>[] = []
     let detourCrowd: ReturnType<typeof createDetourCrowdFromMesh> | undefined
@@ -101,7 +106,9 @@ export function runProbe(onStatus?: (status: ProbeStatus) => void) {
       let stopped = false
 
       function cleanup() {
+        if (stopped) return
         stopped = true
+        stop = undefined
         engine.removeSystem(tick)
         releaseMeshes()
       }
@@ -167,9 +174,14 @@ export function runProbe(onStatus?: (status: ProbeStatus) => void) {
         }
       }
       engine.addSystem(tick)
+      stop = cleanup
     } catch (error) {
       releaseMeshes()
       fail('setup', error)
     }
   })
+  return () => {
+    cancelled = true
+    stop?.()
+  }
 }

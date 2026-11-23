@@ -19,6 +19,23 @@ pnpm start --mcp
 - **Opposing groups** runs navcat avoidance live. Three bots from each end of the upper deck swap sides. The board shows arrivals and steps with overlap.
 - **Run WASM probe** initializes Detour in the current Explorer and runs six route checks and the opposing-groups case in the background. The panel shows initialization and Detour's results. The scene log also records navcat results and timing.
 
+## Traversal tests
+
+Open **Traversal tests**, choose a fixture and select a variant. The scene spawns its geometry and bots in place of the comparison arena. **Run** steps the fixture at 30 fixed simulation ticks per second. **Pause** keeps the current state visible, **Reset** returns to the start of the variant, and **Back to comparison** restores the main arena. Start from the front of the parcel to watch the course.
+
+| Fixture | Checks |
+| --- | --- |
+| Run-up and crouch jump | Launch speed, approach obstruction and clearance to stand |
+| Chained jumps | Braking distance and confirmed support between jumps |
+| Mantle clearance | Correct ledge, grip, capsule fit and landing support |
+| Contested ladder | Approach direction, exclusive use and blocked dismount |
+| Interrupted jump | Cancellation before or after takeoff, lost support and stale probes |
+| Ledge transfer | Consecutive grips and world pose continuity on a moving support |
+
+Each variant shows **PASS** when its expected outcome holds, including safely declining or recovering from a traversal. **FAIL** includes the failing state. The scene also writes a `[ground-traversal]` result with the scenario, variant, case IDs, simulation ticks and verdict.
+
+The registry loads pure TypeScript fixtures from `src/traversal/fixtures`. The visual adapter renders their geometry and state. The traversal fixtures currently exercise their own deterministic movement controllers and geometric checks. The original arena still offers its live navcat comparison. A later pass can feed navcat approaches into the same scenarios and compare them with those controllers.
+
 ## Reproduce the comparison
 
 Use pinned Rust dependencies and Godot 4.7.2 stable. Set `GODOT_BIN` to the absolute path of the Godot console binary on Windows, or put Godot on PATH. Run Cargo with a native Windows toolchain, or the equivalent native toolchain for the host OS.
