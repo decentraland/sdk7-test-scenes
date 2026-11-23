@@ -5,14 +5,22 @@ import { SNAP_EXTENTS, withinSnap } from './navigation'
 
 export type CrowdMetrics = { total: number; arrived: number; minCenterDistance: number; overlapSteps: number }
 export type CrowdRun = { step(dt: number): void; positions(): Point[] }
+export type CrowdSettings = {
+  agents: readonly { start: Point; goal: Point }[]
+  radius: number
+  height: number
+  maxSpeed: number
+  maxAcceleration: number
+}
 
-const { agents, radius, height, maxSpeed, maxAcceleration, arrivalRadius } = OPPOSING_GROUPS
+const { agents, radius, arrivalRadius } = OPPOSING_GROUPS
 
 function reflect([x, y, z]: Point): Vec3 {
   return [x, y, -z]
 }
 
-export function createNavcatCrowd(mesh: NavMesh): CrowdRun {
+export function createNavcatCrowd(mesh: NavMesh, settings: CrowdSettings = OPPOSING_GROUPS): CrowdRun {
+  const { agents, radius, height, maxSpeed, maxAcceleration } = settings
   const group = crowd.create(radius)
   const ids = agents.map(({ start, goal }) => {
     const id = crowd.addAgent(group, mesh, reflect(start), {
@@ -26,7 +34,7 @@ export function createNavcatCrowd(mesh: NavMesh): CrowdRun {
     if (group.agents[id].state === crowd.AgentState.INVALID ||
         !target.success || !withinSnap(target.position, reflect(goal)) ||
         !crowd.requestMoveTarget(group, id, target.nodeRef, target.position)) {
-      throw new Error('Could not place a navcat crowd agent on the upper deck')
+      throw new Error('Could not place a navcat crowd agent at ' + start.join(', '))
     }
     return id
   })

@@ -33,10 +33,22 @@ export type TraversalVariant = {
   label: string
 }
 
+export type TraversalWalk = {
+  phase: string
+  from: Point
+  to: Point
+  shapes: readonly TraversalShape[]
+  radius: number
+  height: number
+}
+
+// Waypoints exclude the start and end at the exact requested ground pose.
+export type TraversalRouter = (walk: TraversalWalk) => readonly Point[] | undefined
+
 export type TraversalScenario = {
   id: string
   label: string
   cases: readonly string[]
   variants: readonly TraversalVariant[]
-  create(variantId: string): TraversalRun
+  create(variantId: string, route?: TraversalRouter): TraversalRun
 }

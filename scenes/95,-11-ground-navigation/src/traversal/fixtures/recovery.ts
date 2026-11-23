@@ -1,5 +1,6 @@
 import type { Point } from '../../arena'
 import type { TraversalScenario, TraversalShape } from '../types'
+import { walkPoints } from '../walk'
 
 type Probe = { id: number; revision: number; due: number; supported: boolean }
 type Landing = { surface: TraversalShape; feet: Point; time: number }
@@ -65,7 +66,7 @@ export const interruptedJump: TraversalScenario = {
     { id: 'remove-landing', label: 'Landing disappears' },
     { id: 'stale-probe', label: 'Delayed landing probe' }
   ],
-  create(variantId) {
+  create(variantId, route) {
     if (!interruptedJump.variants.some(({ id }) => id === variantId)) throw new Error('Unknown jump variant: ' + variantId)
     let landing: TraversalShape | undefined = originalLanding
     let feet = start
@@ -88,6 +89,8 @@ export const interruptedJump: TraversalScenario = {
     let replans = 0
     let previousPlanCompleted = false
     const pending: Probe[] = []
+    let stepsToTakeoff: Point[] | undefined
+    let recoveryPoints: Point[] = []
 
     function fail(reason: string) {
       detail = reason
@@ -135,6 +138,9 @@ export const interruptedJump: TraversalScenario = {
       if (Math.abs(feet[1] - surfaceY(support)) > 1e-6 || !hasFootprint(feet, support) || !hasFootprint(nextGoal, support)) {
         return fail('Replan did not start and end on the measured support.')
       }
+      const points = walkPoints(route, 'Recovery from ' + support.id, feet, nextGoal, surfaces(), radius, height)
+      if (!points) return fail('Planner did not route from the measured support.')
+      recoveryPoints = [...points]
       replanSurface = support
       replans++
       phase = 'replan'
@@ -211,13 +217,21 @@ export const interruptedJump: TraversalScenario = {
         elapsed += dt
         if (elapsed > 6) return fail('No landing or recovery within six simulated seconds.')
         switch (phase) {
-          case 'approach':
-            if (variantId === 'cancel-before' && takeoff[0] - feet[0] <= 2.8 * dt) {
+          case 'approach': {
+            if (!stepsToTakeoff) {
+              const points = walkPoints(route, 'Jump approach', feet, takeoff, surfaces(), radius, height)
+              if (!points) return fail('Planner did not find the initial route to takeoff.')
+              stepsToTakeoff = [...points]
+            }
+            const waypoint = stepsToTakeoff[0]
+            const next = moveToward(feet, waypoint, 2.8 * dt)
+            if (variantId === 'cancel-before' && stepsToTakeoff.length === 1 && next === takeoff) {
               cancelRequested = true
               startReplan(startDeck, safeBeforeJump)
             } else {
-              feet = moveToward(feet, takeoff, 2.8 * dt)
-              if (feet === takeoff) {
+              feet = next
+              if (next === waypoint) stepsToTakeoff.shift()
+              if (stepsToTakeoff.length === 0) {
                 if (!hasFootprint(feet, startDeck)) return fail('The bot cannot take off without support.')
                 tookOff = true
                 phase = 'airborne'
@@ -225,15 +239,18 @@ export const interruptedJump: TraversalScenario = {
               }
             }
             break
+          }
           case 'airborne':
             advanceFlight(dt)
             break
           case 'replan': {
-            const next = moveToward(feet, target, 2.1 * dt)
+            const waypoint = recoveryPoints[0]
+            const next = moveToward(feet, waypoint, 2.1 * dt)
             if (!replanSurface || !hasFootprint(next, replanSurface)) return fail('Recovery left the measured support.')
             heading = Math.atan2(next[0] - feet[0], next[2] - feet[2]) * 180 / Math.PI
             feet = next
-            if (feet === target) phase = 'settled'
+            if (next === waypoint) recoveryPoints.shift()
+            if (recoveryPoints.length === 0) phase = 'settled'
             break
           }
           case 'settled':

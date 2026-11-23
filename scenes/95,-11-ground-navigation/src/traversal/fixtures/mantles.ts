@@ -1,5 +1,6 @@
 import type { Point } from '../../arena'
-import type { TraversalFrame, TraversalRun, TraversalScenario, TraversalShape } from '../types'
+import type { TraversalFrame, TraversalRouter, TraversalRun, TraversalScenario, TraversalShape } from '../types'
+import { walkPoints } from '../walk'
 import { advance, BOT_HEIGHT, BOT_RADIUS, capsuleHits, supports, touchesGrip } from './mantles-support'
 
 type Leg = { to: Point; speed: number; label: string }
@@ -21,7 +22,7 @@ const mantleVariants = [
   { id: 'all-blocked', label: 'All three checks blocked', grip: false, opening: false, landing: false, blocked: false }
 ]
 
-function createMantle(variantId: string): TraversalRun {
+function createMantle(variantId: string, route?: TraversalRouter): TraversalRun {
   const selected = mantleVariants.find(({ id }) => id === variantId)
   if (!selected) throw new Error('Unknown mantle variant: ' + variantId)
   const variant = selected
@@ -62,6 +63,7 @@ function createMantle(variantId: string): TraversalRun {
   let stage: 'approach' | 'vault' | 'retreat' = 'approach'
   let verdict: Verdict = 'running'
   let detail = 'The guide shows the narrow probe. The bot needs hand contact and full capsule clearance.'
+  let approachPlanned = false
 
   function fail(reason: string) {
     verdict = 'fail'
@@ -98,7 +100,12 @@ function createMantle(variantId: string): TraversalRun {
     ]
     if (failures.length) {
       stage = 'retreat'
-      legs = [{ to: start, speed: 2.4, label: 'Retreat to start' }]
+      const retreat = walkPoints(route, 'Vault retreat', feet, start, solids, BOT_RADIUS, BOT_HEIGHT)
+      if (!retreat) {
+        fail('Planner did not find the retreat across the start platform.')
+        return
+      }
+      legs = retreat.map((to) => ({ to, speed: 2.4, label: 'Retreat to start' }))
       detail = 'Probe sees the target. Vault rejected: ' + failures.join(', ') + '.'
     } else {
       stage = 'vault'
@@ -117,6 +124,12 @@ function createMantle(variantId: string): TraversalRun {
     },
     step(dt) {
       if (verdict !== 'running') return
+      if (!approachPlanned) {
+        approachPlanned = true
+        const path = walkPoints(route, 'Vault approach', feet, approach, solids, BOT_RADIUS, BOT_HEIGHT)
+        if (!path) return fail('Planner did not find the approach to the ledges.')
+        legs = path.map((to) => ({ to, speed: 2.2, label: 'Approach ledges' }))
+      }
       const leg = legs[legIndex]
       const next = advance(feet, leg.to, leg.speed * dt)
       if (solids.some((part) => capsuleHits(feet, next, part))) {
@@ -178,7 +191,7 @@ function poseMatches(a: Pose, b: Pose) {
   return Math.hypot(...offset) <= 0.02 && Math.abs(headingError) <= 1
 }
 
-function createTransfer(variantId: string): TraversalRun {
+function createTransfer(variantId: string, route?: TraversalRouter): TraversalRun {
   if (!transferVariants.some(({ id }) => id === variantId)) throw new Error('Unknown transfer variant: ' + variantId)
 
   const start: Point = [3.35, 1.45, 7]
@@ -210,6 +223,7 @@ function createTransfer(variantId: string): TraversalRun {
   let detail = 'Transfer between both handholds before standing on the exit floor.'
   let legs: readonly Leg[] = [{ to: approach, speed: 2.4, label: 'Approach first grip' }]
   let legIndex = 0
+  let approachPlanned = false
 
   function worldPose(): Pose {
     if (!attached) return pose
@@ -349,6 +363,12 @@ function createTransfer(variantId: string): TraversalRun {
     },
     step(dt) {
       if (verdict !== 'running') return
+      if (!approachPlanned) {
+        approachPlanned = true
+        const path = walkPoints(route, 'Grip approach', pose.feet, approach, solids(), BOT_RADIUS, BOT_HEIGHT)
+        if (!path) return fail('Planner did not find the approach to the first grip.')
+        legs = path.map((to) => ({ to, speed: 2.4, label: 'Approach first grip' }))
+      }
       if (stage === 'rotate') {
         rotateWithGrip(dt)
         return

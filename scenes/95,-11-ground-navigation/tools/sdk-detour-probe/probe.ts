@@ -90,7 +90,7 @@ export function runProbe(onStatus?: (status: ProbeStatus) => void) {
       detourCrowd = createDetourCrowdFromMesh(importNavMesh(openData).navMesh)
       log({ stage: 'import', ms: now() - importStart, bytes: openData.length + closedData.length })
       report('WASM initialized. Running routes and crowds…')
-      const navcat = [meshes.open, meshes.closed].map(createNavcatNavigatorFromMesh)
+      const navcat = [meshes.open, meshes.closed].map((mesh) => createNavcatNavigatorFromMesh(mesh))
       const routers: Navigator[][] = [navcat, detour]
       const groups: CrowdRun[] = [createNavcatCrowd(meshes.open), detourCrowd]
       const observations = groups.map(createCrowdObserver)

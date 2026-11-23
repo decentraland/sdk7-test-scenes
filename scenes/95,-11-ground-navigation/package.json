@@ -12,6 +12,9 @@
     "bake": "tsx scripts/bake.ts",
     "compare:fixtures": "tsx scripts/export-fixtures.ts",
     "compare": "tsx scripts/compare.ts",
+    "compare:crowd-load": "tsx scripts/compare-crowd-load.ts",
+    "compare:traversal": "tsx scripts/compare-traversal.ts",
+    "compare:catalog": "tsx scripts/compare-catalog.ts",
     "probe:prepare": "tsx scripts/bake.ts && tsx scripts/prepare-detour-sdk-probe.ts",
     "test": "vitest run",
     "types": "tsx scripts/bake.ts && tsc --noEmit"

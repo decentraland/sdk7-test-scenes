@@ -6,6 +6,7 @@ import {
   findNodePath,
   findStraightPath,
   type NavMesh,
+  type QueryFilter,
   type Vec3,
 } from 'navcat'
 import { generateSoloNavMesh } from 'navcat/blocks'
@@ -29,6 +30,7 @@ export const NAVIGATION_BAKE = {
   detailSampleDistanceVoxels: 6,
   detailSampleErrorVoxels: 1,
 }
+export type NavigationBake = typeof NAVIGATION_BAKE
 
 export const SNAP_EXTENTS: Vec3 = [0.55, 0.35, 0.55]
 
@@ -58,8 +60,7 @@ export function toRecastGeometry(surfaces: readonly Surface[]) {
   return { positions: Float32Array.from(positions), indices: Uint32Array.from(indices) }
 }
 
-export function bakeNavcatMesh(surfaces: readonly Surface[]): NavMesh {
-  const bake = NAVIGATION_BAKE
+export function bakeNavcatMesh(surfaces: readonly Surface[], bake: NavigationBake = NAVIGATION_BAKE): NavMesh {
   const { navMesh } = generateSoloNavMesh(toRecastGeometry(surfaces), {
     cellSize: bake.cellSize,
     cellHeight: bake.cellHeight,
@@ -82,14 +83,14 @@ export function bakeNavcatMesh(surfaces: readonly Surface[]): NavMesh {
   return navMesh
 }
 
-export function createNavcatNavigatorFromMesh(navMesh: NavMesh): Navigator {
+export function createNavcatNavigatorFromMesh(navMesh: NavMesh, filter: QueryFilter = DEFAULT_QUERY_FILTER): Navigator {
   const findEndpoint = (point: Vec3) => {
     const nearest = findNearestPoly(
       createFindNearestPolyResult(),
       navMesh,
       point,
       SNAP_EXTENTS,
-      DEFAULT_QUERY_FILTER,
+      filter,
     )
     return nearest.success && withinSnap(nearest.position, point) ? nearest : undefined
   }
@@ -106,7 +107,7 @@ export function createNavcatNavigatorFromMesh(navMesh: NavMesh): Navigator {
         to.nodeRef,
         from.position,
         to.position,
-        DEFAULT_QUERY_FILTER,
+        filter,
       )
       // A successful search can still return a partial corridor.
       if (!corridor.success || corridor.path[corridor.path.length - 1] !== to.nodeRef) {

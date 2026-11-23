@@ -1,5 +1,6 @@
 import type { Point } from '../../arena'
 import type { TraversalScenario, TraversalShape } from '../types'
+import { walkPoints } from '../walk'
 
 type Stage = 'queued' | 'approach' | 'climb' | 'wait' | 'dismount' | 'retreat' | 'done'
 type Rider = {
@@ -93,7 +94,7 @@ export const contestedLadder: TraversalScenario = {
     { id: 'exit-timeout', label: 'Timeout and retreat' },
     { id: 'cancel-reservation', label: 'Cancel queued claim' }
   ],
-  create(variantId) {
+  create(variantId, route) {
     if (!contestedLadder.variants.some(({ id }) => id === variantId)) throw new Error('Unknown ladder variant: ' + variantId)
     const requests = [
       rider('a', true, [8.2, floorY, 4.7]),
@@ -124,11 +125,29 @@ export const contestedLadder: TraversalScenario = {
       detail = message
     }
 
-    function claim(actor: Rider): Reservation {
+    function claim(actor: Rider): Reservation | undefined {
       actor.stage = 'approach'
+      const behindWall = actor.up && actor.feet[2] > wall.center[2]
+      if (route) {
+        const entrance: Point = actor.up ? [8.2, floorY, 5.85] : upperEntry
+        const occupied: TraversalShape[] = actors.filter((other) => other !== actor).map((other) => ({
+          id: 'waiting-' + other.id, kind: 'obstacle',
+          center: [other.feet[0], other.feet[1] + height / 2, other.feet[2]],
+          size: [radius * 2, height, radius * 2]
+        }))
+        const points = walkPoints(route, 'Ladder approach ' + actor.id, actor.feet, entrance,
+          [floor, landing, wall, ...(cratePresent ? [crate] : []), ...occupied], radius, height)
+        if (!points) {
+          fail('Planner did not find the approach to the ladder for ' + actor.id + '.')
+          return undefined
+        }
+        actor.waypoints = [...points, actor.up ? ladderBottom : ladderTop]
+        routedAroundWall ||= behindWall
+        return { rider: actor }
+      }
       if (!actor.up) {
         actor.waypoints = [[actor.feet[0], landingY, ladderTop[2]], upperEntry, ladderTop]
-      } else if (actor.feet[2] > wall.center[2]) {
+      } else if (behindWall) {
         routedAroundWall = true
         actor.waypoints = [[9.55, floorY, actor.feet[2]], [9.55, floorY, 5.3], [8.2, floorY, 5.3], ladderBottom]
       } else {
@@ -164,7 +183,7 @@ export const contestedLadder: TraversalScenario = {
     function checkMotion() {
       for (const actor of actors) {
         if (collides(actor.feet, wall) || (cratePresent && collides(actor.feet, crate))) {
-          fail(actor.id + ' intersected an obstacle.')
+          fail(actor.id + ' intersected an obstacle at ' + actor.feet.map((n) => n.toFixed(3)).join(', ') + '.')
           return
         }
         const atAnchor = Math.abs(actor.feet[0] - ladderBottom[0]) < radius &&
@@ -207,6 +226,7 @@ export const contestedLadder: TraversalScenario = {
           const actor = pending.shift()
           if (!actor) return finish()
           current = claim(actor)
+          if (!current) return
           // Inject a delayed activation with a valid contact pose from the previous claim.
           if (cancelled && !staleClaimRejected) {
             if (attach(cancelled, ladderBottom, 0)) return fail('A cancelled claim could still attach to the ladder.')

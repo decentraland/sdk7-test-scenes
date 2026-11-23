@@ -34,7 +34,21 @@ Open **Traversal tests**, choose a fixture and select a variant. The scene spawn
 
 Each variant shows **PASS** when its expected outcome holds, including safely declining or recovering from a traversal. **FAIL** includes the failing state. The scene also writes a `[ground-traversal]` result with the scenario, variant, case IDs, simulation ticks and verdict.
 
-The registry loads pure TypeScript fixtures from `src/traversal/fixtures`. The visual adapter renders their geometry and state. The traversal fixtures currently exercise their own deterministic movement controllers and geometric checks. The original arena still offers its live navcat comparison. A later pass can feed navcat approaches into the same scenarios and compare them with those controllers.
+The registry loads pure TypeScript fixtures from `src/traversal/fixtures`. The visual adapter renders their geometry and state. The on-screen traversal menu uses the reference approach. The comparison runner uses the same controllers and verdicts with navcat and Detour approaches.
+
+### Compare traversal planners
+
+`pnpm compare:traversal` runs all 30 variants with the reference approach, navcat and Detour. It writes route probes, ticks and final verdicts to `.comparison/traversal-node.json`. Both engines bake the same walkable tops and blocked areas from each fixture. The runner records separate native link checks for six fixtures, with authored and projected endpoints, and tests direction and reachability when a link is removed.
+
+The shared controllers own jumping, climbing, contacts, cancellation and recovery. The shaft fixture presents the two consecutive hangs as one link between walkable floors in the native link check. The planner approaches and the native link checks run separately, so the report does not treat finding an off-mesh link as proof of executing it.
+
+```sh
+pnpm exec tsx scripts/prepare-detour-sdk-probe.ts --traversal-compare
+pnpm exec sdk-commands build --skip-install --dir .comparison/traversal-compare-sdk
+pnpm exec sdk-commands start --skip-build --no-watch --no-client --port 8185 --dir .comparison/traversal-compare-sdk
+```
+
+Open the preview in Desktop Explorer. The isolated scene runs automatically and logs `[traversal-compare]` results. Repeated small bakes exercise integration and are outside the crowd performance comparison.
 
 ## Reproduce the comparison
 
@@ -88,3 +102,25 @@ Read `[detour-sdk-probe]` in Explorer's scene logs. The probe uses the stock emb
 The local Desktop Explorer run on SDK 7.30.1 on November 23, 2026 initialized Detour in 59 ms. The imports and setup of two query meshes and a crowd took 3 ms. Both backends returned the expected verdict on all six live route scenarios. Detour's measured query mean was lower on three scenarios and navcat's was lower on the other three. On six opposing agents both backends reached 6/6 with zero overlap steps. The mean over 450 updates was 0.244 ms for navcat and 0.067 ms for Detour. The scene exposed `Date.now`, so individual sub-millisecond timings and p95 from that clock are unreliable. Query means come from batches of 32, with alternating engine order on each step. Crowd means describe this one probe run.
 
 This local run verified live search and crowd execution on Desktop. To check a hosted deployment, open the published lab and use **Run WASM probe** on the target Explorer. The probe uses baked maps and tests execution on the Explorer that runs it.
+
+## Crowd load comparison
+
+`pnpm compare:crowd-load` runs the 32- and 64-agent bottleneck cases in Node and writes `.comparison/crowd-load-node.json`. To run the same trials in Desktop Explorer:
+
+```sh
+pnpm exec tsx scripts/prepare-detour-sdk-probe.ts --crowd-load
+pnpm exec sdk-commands build --skip-install --dir .comparison/crowd-load-sdk
+pnpm exec sdk-commands start --skip-build --no-watch --no-client --port 8175 --dir .comparison/crowd-load-sdk
+```
+
+Open that preview in Explorer. The scene runs automatically and writes `[crowd-load]` results. Each configuration runs three times for 45 simulated seconds at 30 steps per second. Two opposing groups share a 3 m corridor and an alternative path. In the closing case, both backends switch to a pre-baked closed map after two simulated seconds, preserve the agents' positions and recreate their crowd with the original goals and zero initial velocity. The switch measures crowd allocation and target reissue. A separate set of queries checks that routes use the alternative corridor. Mesh building is outside these timings.
+
+The timed batches include crowd updates and reading back agent positions. Geometry checks and pairwise overlap counting run outside the timed interval. Arrival means an agent entered the 0.35 m goal radius at least once. An overlap step means at least one pair of centres was closer than 0.58 m. The scene advances several fixed simulation steps per rendered frame. Its results measure crowd work rather than interactive frame times.
+
+## Research catalogue comparison
+
+`pnpm compare:catalog` runs the case manifest in Node using the same navcat and Detour versions as the scene. The detailed results go to `.comparison/catalog-comparison.json`. Each entry includes the source case ID and title, tested layer, coverage and a verdict per backend. An adapted case tests only the mechanism described in its result. Controller results use shared logic and should be read independently of engine results. The runner keeps unsupported features and missing inputs visible. A failed check gives the command a non-zero exit code after it writes the report.
+
+The imported grid and MAPF cases use [Moving AI's official map and scenario archives](https://movingai.com/benchmarks/mapf/index.html). Keep extracted `.map` files at the root of `.comparison/movingai`, with scenario files under `scen-even` and `scen-random`. Set `DCL_MAPF_DATA` to use another directory. The report identifies any expected file that is absent. The benchmark inputs stay local and are excluded from scene deployment.
+
+If the default Detour buffers lose routes in the imported single-agent grid cases, the runner repeats them with 16,384 search nodes, 4,096 corridor polygons and 4,096 output points. The verdict uses the second pass and the report keeps both counts. The reported query percentile is for the default limits.

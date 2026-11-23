@@ -1,5 +1,6 @@
 import type { Point } from '../../arena'
-import type { TraversalFrame, TraversalRun, TraversalScenario, TraversalShape } from '../types'
+import type { TraversalFrame, TraversalRouter, TraversalRun, TraversalScenario, TraversalShape } from '../types'
+import { walkPoints } from '../walk'
 
 const radius = 0.24
 const standingHeight = 1.65
@@ -112,7 +113,7 @@ const runupVariants = [
   { id: 'moving-beam', label: 'Beam blocks standing' }
 ] as const
 
-function createRunup(variantId: string): TraversalRun {
+function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
   const start = platform('launch-deck', 2.6, launchZ + radius + 0.06)
   const target = platform('landing-deck', 9.12, 10.08)
   const floor = lowerDeck()
@@ -139,6 +140,8 @@ function createRunup(variantId: string): TraversalRun {
   let flight: Flight | undefined
   let beamShifted = false
   let stoodBeforeLaunch = false
+  let runupChecked = false
+  let retreatPoints: Point[] | undefined
 
   function finish(passed: boolean, message: string, endPhase: string) {
     verdict = passed ? 'pass' : 'fail'
@@ -164,8 +167,18 @@ function createRunup(variantId: string): TraversalRun {
     }
 
     if (phase === 'Find run-up') {
-      const dx = laneX - feet[0]
-      const dz = approachZ - feet[2]
+      if (!retreatPoints) {
+        const planned = walkPoints(route, 'Run-up recovery', feet, [laneX, platformY, approachZ],
+          [...surfaces, ...(wall ? [wall] : [])], radius, stance)
+        if (!planned) {
+          finish(!shouldLand && hasFootprint(start, feet), 'No available route to the run-up.', 'Stopped')
+          return
+        }
+        retreatPoints = [...planned]
+      }
+      const [x, , z] = retreatPoints[0]
+      const dx = x - feet[0]
+      const dz = z - feet[2]
       const distance = Math.hypot(dx, dz)
       const fraction = Math.min(1, 2.8 * dt / distance)
       const next: Point = [feet[0] + dx * fraction, platformY, feet[2] + dz * fraction]
@@ -175,10 +188,22 @@ function createRunup(variantId: string): TraversalRun {
       }
       heading = Math.atan2(dx, dz) * 180 / Math.PI
       feet = next
-      if (fraction === 1) phase = 'Approach lip'
+      if (fraction === 1) {
+        retreatPoints.shift()
+        if (!retreatPoints.length) phase = 'Approach lip'
+      }
       return
     }
 
+    if (route && !runupChecked) {
+      runupChecked = true
+      const line = walkPoints(route, 'Launch alignment', feet, [laneX, platformY, launchZ],
+        [...surfaces, ...(beam ? [beam] : [])], radius, stance)
+      if (!line || line.some(([x]) => Math.abs(x - laneX) > 0.12)) {
+        finish(false, 'Planner did not provide a straight run-up to the launch pose.', 'Stopped')
+        return
+      }
+    }
     const remaining = launchZ - feet[2]
     const timeToSpeed = (runupSpeed - speed) / runupAcceleration
     const acceleratingFor = Math.min(dt, timeToSpeed)
@@ -244,7 +269,7 @@ const secondJumpAcceleration = 8
 const intermediateZ = 7.8
 const waypointTolerance = 0.35
 
-function createChainedJumps(variantId: string): TraversalRun {
+function createChainedJumps(variantId: string, route?: TraversalRouter): TraversalRun {
   const closeWaypoints = variantId === 'close-waypoints'
   const expectedRejection = variantId === 'short-landing'
   const firstSpeed = closeWaypoints ? 1.2 : 3.5
@@ -303,6 +328,14 @@ function createChainedJumps(variantId: string): TraversalRun {
         if (expectedRejection) {
           finish(false, 'Plan accepted a landing that should be too short.', 'Stopped')
           return
+        }
+        if (route) {
+          const brakingLane = walkPoints(route, 'Braking lane', [laneX, platformY, firstLandingZ],
+            [laneX, platformY, secondLaunchZ], surfaces, radius, standingHeight)
+          if (!brakingLane || brakingLane.some(([x]) => Math.abs(x - laneX) > 0.12)) {
+            finish(false, 'Planner could not keep braking on the intermediate deck.', 'Stopped')
+            return
+          }
         }
         phase = 'First jump'
         detail = 'First takeoff. Second jump requires confirmed contact and zero speed.'
