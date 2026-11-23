@@ -2,11 +2,16 @@ import { exportNavMesh, importNavMesh } from 'recast-navigation'
 import type { Point, Surface } from '../../src/arena'
 import { createNavcatCrowd, type CrowdSettings } from '../../src/crowd'
 import { bakeNavcatMesh, createNavcatNavigatorFromMesh, NAVIGATION_BAKE } from '../../src/navigation'
+import { advance } from '../../src/traversal/fixtures/mantles-support'
 import { bakeDetourMesh, createDetourCrowdFromMesh, createDetourNavigatorFromMesh } from '../../test/detour'
 import {
-  createTraversalNavigator, traversalSurfaces, type AuthoredLink, type TraversalBackend
+  createTraversalNavigator, traversalSurfaces, type AuthoredLink, type TraversalBackend, type TraversalQueryOptions
 } from '../sdk-detour-probe/traversal-routing'
-import { box, check, unsupported, type CatalogCase, type CatalogResult } from './types'
+import { CLUTTER_CELL, CLUTTER_GOAL, CLUTTER_RADIUS, CLUTTER_SPEED, CLUTTER_START,
+  clutterMaps, clutterOverlap, clutterPoint, clutterTrace } from './clutter'
+import { gridDistance } from './grid'
+import { outsideRect } from './ground'
+import { box, check, missing, type CatalogCase, type CatalogResult } from './types'
 import {
   closestBetween, gap, interpolate, jointRoute, pathLength, reservedGridRoutes, sweptGap, timedRoute,
   validateGridRoutes, type TimedPoint
@@ -18,9 +23,9 @@ function surface(x1: number, x2: number, z1: number, z2: number, y = 0): Surface
 
 function withNavigator<T>(
   backend: TraversalBackend, surfaces: readonly Surface[], run: (nav: ReturnType<typeof createTraversalNavigator>) => T,
-  links: readonly AuthoredLink[] = [], radius = 0.18
+  links: readonly AuthoredLink[] = [], radius = 0.18, options: TraversalQueryOptions = {}
 ): T {
-  const nav = createTraversalNavigator(backend, surfaces, radius, 0.8, links, true)
+  const nav = createTraversalNavigator(backend, surfaces, radius, 0.8, links, true, options)
   try {
     return run(nav)
   } finally {
@@ -51,20 +56,68 @@ function doorReplan(backend: TraversalBackend) {
   const navigators = meshes.map((mesh) => createTraversalNavigator(backend, mesh, 0.18, 0.8))
   const events = [0, 1, 0, 2]
   let checks = 0
+  let revision = 0
+  let acknowledgementsMs = 0
+  let invalidationsMs = 0
+  let replansMs = 0
+  let maxRecoveryTicks = 0
+  const previous = navigators[0].route(s, g)
+  const gate: readonly [number, number, number, number] = [4.82, 7.18, 0, 2]
+  if (previous.status !== 'complete' || (crossedZ(previous.points, 6) ?? Infinity) > 2 || outsideRect(previous, gate)) {
+    for (const nav of navigators) nav.dispose?.()
+    return check(false, 'The original route does not use the gate being closed.')
+  }
   try {
     for (let i = 0; i < 100; i++) {
       const state = events[i % events.length]
-      const expected = state === 0 ? 2 : state === 1 ? 5 : Infinity
+      const old = { revision, route: previous }
+      let active: typeof old | undefined = old
+      const updateAt = performance.now()
+      const navigator = navigators[state]
+      revision++
+      const acknowledgedAt = performance.now()
+      if (active.revision !== revision) active = undefined
+      acknowledgementsMs += acknowledgedAt - updateAt
+      invalidationsMs += performance.now() - acknowledgedAt
+      const expected = dijkstra([[[1, 1], [2, 3]], state === 0 ? [[3, 1]] : [],
+        state !== 2 ? [[3, 2]] : [], []], 0)
       for (const from of [s, live]) {
-        const route = navigators[state].route(from, g)
+        const queryAt = performance.now()
+        const route = navigator.route(from, g)
+        replansMs += performance.now() - queryAt
         const crossing = crossedZ(route.points, 6)
         const observed = route.status === 'unreachable' ? Infinity
           : crossing !== undefined && crossing <= 2 ? 2 : crossing !== undefined && crossing >= 6 ? 5 : NaN
         if (observed !== expected) return check(false, 'Topology toggle ' + i + ' chose cost class ' + observed + ', expected ' + expected)
         checks++
+        if (from === live) active = { revision, route }
       }
+      if (state === 2) {
+        if (active?.route.points.length) return check(false, 'A closed network retained motion targets.')
+        continue
+      }
+      if (active?.revision !== revision || active.route.status !== 'complete' ||
+          (state === 1 && !outsideRect(active.route, gate))) {
+        return check(false, 'The replacement corridor steers through the closed gate at revision ' + revision + '.')
+      }
+      let feet = live
+      let index = 0
+      let ticks = 0
+      while (index < active.route.points.length && ticks++ < 350) {
+        const next = advance(feet, active.route.points[index], 0.1)
+        if (state === 1 && !outsideRect({ status: 'complete', points: [feet, next] }, gate)) {
+          return check(false, 'Swept follower entered a closed gate.')
+        }
+        feet = next
+        if (feet === active.route.points[index]) index++
+      }
+      if (index !== active.route.points.length || gap(feet, g) > 0.08) return check(false, 'The recovered follower did not arrive.')
+      maxRecoveryTicks = Math.max(maxRecoveryTicks, ticks)
     }
-    return check(true, checks + ' queries at start and current position matched short, bypass, reopened and unreachable cost classes; prebuilt topology snapshots')
+    return check(revision === 100 && checks === 200,
+      checks + ' queries at start/live position match fresh Dijkstra. 100 snapshot acknowledgements ' +
+      acknowledgementsMs.toFixed(3) + ' ms, invalidation ' + invalidationsMs.toFixed(3) + ' ms, requery ' +
+      replansMs.toFixed(3) + ' ms, swept recovery max ' + maxRecoveryTicks + ' ticks; never entered a closed gate.')
   } finally {
     for (const nav of navigators) nav.dispose?.()
   }
@@ -128,28 +181,63 @@ function dijkstra(graph: readonly (readonly WeightedEdge[])[], start: number) {
   }
 }
 
-function changingWeights() {
+function changingWeights(backend: TraversalBackend) {
+  const goal: Point = [10.75, 0, 3]
+  const links: readonly AuthoredLink[] = [
+    { from: [2.6, 0, 3], to: [9.4, 0, 3], area: 1 },
+    { from: [2.6, 0, 7], to: [9.4, 0, 7], area: 2 },
+    { from: [2.6, 0, 15], to: [9.4, 0, 15], area: 3 }
+  ]
+  const geometry = [surface(0, 3, 0, 10), surface(9, 12, 0, 10), surface(0, 3, 13, 17), surface(9, 12, 13, 17)]
+  const navigators = [1, 3].map((short) => [1, 3].map((isolated) =>
+    createTraversalNavigator(backend, geometry, 0.18, 0.8, links, true, { costs: { 1: short, 3: isolated } })))
   let adjacent = 1
   let remote = 1
-  let previousRemote: number | undefined
   let changed = 0
-  for (let tick = 0; tick <= 100; tick++) {
-    const live = tick % 10 === 0 ? 0 : tick % 2 === 0 ? 1 : 2
-    if (tick % 20 === 0) {
-      const before = adjacent
-      adjacent = tick % 40 ? 3 : 1
-      if (adjacent !== before) changed++
-    } else if (tick % 20 === 10) {
-      remote = remote === 1 ? 3 : 1
+  let queried = 0
+  let maxCompleteMs = 0
+  let previousChoice: number | undefined
+  try {
+    for (let tick = 0; tick <= 100; tick++) {
+      const live: Point = [1.25 + tick % 9 * 0.025, 0, 3 + tick % 7 * 0.08]
+      const before = navigators[adjacent === 1 ? 0 : 1][remote === 1 ? 0 : 1]
+      if (tick % 20 === 0) {
+        const previous = adjacent
+        adjacent = tick % 40 ? 3 : 1
+        if (adjacent !== previous) changed++
+      } else if (tick % 20 === 10) remote = remote === 1 ? 3 : 1
+      const began = performance.now()
+      const route = navigators[adjacent === 1 ? 0 : 1][remote === 1 ? 0 : 1].route(live, goal)
+      maxCompleteMs = Math.max(maxCompleteMs, performance.now() - began)
+      queried++
+      const crossing = crossedZ(route.points, 6)
+      const choice = crossing === undefined ? -1 : Math.abs(crossing - 3) < 0.15 ? 0 : Math.abs(crossing - 7) < 0.15 ? 1 : -1
+      const entry = links.slice(0, 2).map(({ from }) => gap(live, from))
+      const traversal = links.slice(0, 2).map(({ from, to }, i) => gap(from, to) * (i === 0 ? adjacent : 1) + gap(to, goal))
+      const optimum = dijkstra([[[1, entry[0]], [2, entry[1]]], [[3, traversal[0]]], [[3, traversal[1]]], [],
+        [[5, gap(links[2].from, links[2].to) * remote]], []], 0)
+      const actual = choice < 0 ? Infinity : entry[choice] + traversal[choice]
+      if (route.status !== 'complete' || Math.abs(actual - optimum) > 1e-6 ||
+          (tick > 0 && tick % 20 === 0 && choice === previousChoice)) {
+        return check(false, 'Native weight event chose the wrong branch at tick ' + tick + ', selected ' + choice + '.')
+      }
+      if (tick % 20 === 10) {
+        const unmodified = before.route(live, goal)
+        const previous = crossedZ(unmodified.points, 6)
+        if (unmodified.status !== route.status || previous === undefined || crossing === undefined || Math.abs(previous - crossing) > 1e-6 ||
+            Math.abs(pathLength(unmodified.points) - pathLength(route.points)) > 1e-6) {
+          return check(false, 'Weight change on isolated island changed the active path.')
+        }
+      }
+      previousChoice = choice
     }
-    const reference = dijkstra([[[1, 3 * adjacent], [2, 5]], [[3, 3 * adjacent]], [[3, 5]], [], [[5, 6 * remote]], []], live)
-    const planned = live === 1 ? 3 * adjacent : live === 2 ? 5 : Math.min(6 * adjacent, 10)
-    if (planned !== reference || (tick % 20 === 10 && planned !== previousRemote)) {
-      return check(false, 'Weight event changed the wrong route or disagreed with Dijkstra at tick ' + tick)
-    }
-    if (tick % 20 === 0) previousRemote = planned
+    return check(changed === 5 && queried === 101,
+      '101 native live-position queries matched the independent weighted branch oracle; five adjacent switches, ' +
+      'remote changes left length and lane unchanged. Native query atomically exposes first and full points: max ' +
+      maxCompleteMs.toFixed(3) + ' ms.')
+  } finally {
+    for (const row of navigators) for (const nav of row) nav.dispose?.()
   }
-  return check(changed === 5, '101 live-position queries matched fresh Dijkstra; isolated weight updates left branch ordering unchanged (controller cost layer)')
 }
 
 function passingBay() {
@@ -278,7 +366,7 @@ async function warehouseScale(backend: TraversalBackend): Promise<CatalogResult>
       }
     }
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return unsupported(
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return missing(
       'Moving AI map/scenario input missing: extract the official original archives into DCL_MAPF_DATA with scen-even/ and scen-random/')
     throw error
   }
@@ -287,15 +375,45 @@ async function warehouseScale(backend: TraversalBackend): Promise<CatalogResult>
 }
 
 function stairBlockage(backend: TraversalBackend) {
-  const before: Point = [2, 0, 2]
-  const after: Point = [7, 2, 2]
-  const geometry = [surface(0, 4, 0, 4), surface(6, 10, 0, 4, 2)]
-  const stair: AuthoredLink = { from: [3, 0, 2], to: [7, 2, 2] }
-  const initiallyOpen = withNavigator(backend, geometry, (nav) => nav.route(before, after).status === 'complete', [stair])
-  const fixed = withNavigator(backend, geometry, (nav) => nav.route(before, after).status === 'unreachable')
-  const timed = timedRoute([[1], [2], []], 0, 2, 8, (node, t) => node !== 1 || t >= 3)
-  return check(initiallyOpen && fixed && timed?.join(',') === '0,0,0,1,2',
-    'Authored stair is reachable with link and unreachable after fixed blockage; transient occupancy waits until release')
+  const bottom = surface(0, 4, 0, 4)
+  const top = surface(8, 12, 0, 4, 2)
+  const rise = (x: number) => (x - 4) / 2
+  function stair(x0: number, x1: number): Surface {
+    return { vertices: [[x0, rise(x0), 1.55], [x0, rise(x0), 2.45], [x1, rise(x1), 2.45], [x1, rise(x1), 1.55]],
+      triangles: [0, 1, 2, 0, 2, 3] }
+  }
+  const before: Point = [4.5, rise(4.5), 2]
+  const after: Point = [9, 2, 2]
+  const obstruction: Point = [5.2, rise(5.2), 2]
+  const radius = 0.25
+  const path = withNavigator(backend, [bottom, stair(4, 8), top], (nav) => nav.route(before, after), [], radius, { climb: 0.1 })
+  const fixed = withNavigator(backend, [bottom, stair(4, 5.05), stair(5.55, 8), top],
+    (nav) => nav.route(before, after).status, [], radius, { climb: 0.1 })
+  if (path.status !== 'complete' || gap(path.points[path.points.length - 1], after) > 0.08) {
+    return check(false, 'The open one-person stair does not lead to the upper arrival.')
+  }
+
+  let feet = before
+  let corner = 0
+  let wait = 0
+  let collisions = 0
+  const follow = path.points.map(([x, , z]): Point => [x, Math.max(0, Math.min(2, rise(x))), z])
+  for (let tick = 1; tick <= 150 && corner < follow.length; tick++) {
+    const next = advance(feet, follow[corner], 2 / 30)
+    if (tick <= 30 && sweptGap(feet, next, obstruction, obstruction).distance < 2 * radius) {
+      wait++
+      continue
+    }
+    if (tick <= 30 && gap(next, obstruction) < 2 * radius) collisions++
+    feet = next
+    if (next === follow[corner]) corner++
+  }
+  const unguarded = gap(before, obstruction) >= 2 * radius &&
+    sweptGap(before, [obstruction[0] + 0.01, obstruction[1], obstruction[2]], obstruction, obstruction).distance < 2 * radius
+  return check(fixed === 'unreachable' && wait > 0 && wait <= 30 && collisions === 0 &&
+    corner === follow.length && gap(feet, after) < 0.08 && unguarded,
+  'The moving actor clears in 1 s, waits ' + wait + ' ticks, collisions ' + collisions +
+    ', no transient replan. The fixed blockage requires one replan and yields ' + fixed + '.')
 }
 
 function docking(backend: TraversalBackend) {
@@ -304,20 +422,44 @@ function docking(backend: TraversalBackend) {
   const bank = surface(0, 4, 0, 4)
   const positions = [
     { start: 4.5, locked: false }, { start: 3.7, locked: false },
-    { start: 3.7, locked: true }, { start: 4.5, locked: false }
+    { start: 3.7, locked: true }, { start: 3.7, locked: false }, { start: 4.5, locked: false }
   ]
+  const near: Point = [3.3, 0, 2]
+  const far: Point = [4.4, 0.45, 2]
+  const link: AuthoredLink = { from: near, to: far, bidirectional: true }
+  let connector: Point[] | undefined
   const connected = positions.map(({ start, locked }) => {
-    const link: AuthoredLink = { from: [3.3, 0, 2], to: [4.4, 0.45, 2], bidirectional: true }
-    return withNavigator(backend, [bank, surface(start, 9, 0, 4, 0.45)],
-      (nav) => nav.route(left, right).status === 'complete', locked ? [link] : [])
+    return withNavigator(backend, [bank, surface(start, 9, 0, 4, 0.45)], (nav) => {
+      const route = nav.route(left, right)
+      if (locked && route.status === 'complete') {
+        const entry = route.points.findIndex(([x, , z]) => Math.hypot(x - near[0], z - near[2]) < 0.1)
+        if (entry >= 0 && entry + 1 < route.points.length &&
+            Math.hypot(route.points[entry + 1][0] - far[0], route.points[entry + 1][2] - far[2]) < 0.1) {
+          connector = route.points.slice(entry, entry + 2)
+        }
+      }
+      return route.status === 'complete'
+    }, locked ? [link] : [])
   })
-  const halfway: Point = [3.65, 0.2, 2]
-  const safe = gap(halfway, [3.3, 0, 2]) < gap(halfway, [4.4, 0.45, 2])
-    ? [3.3, 0, 2] as Point : [4.4, 0.45, 2] as Point
+  if (!connector) return check(false, 'The latched native route did not cross the authored connector.')
+  let feet = near
+  const speedPerTick = 0.04
+  for (let tick = 0; tick < 9; tick++) feet = advance(feet, far, speedPerTick)
+  const detachedAt = feet
+  // The bridge hinge holds long enough to finish backtracking on the original side.
+  const safe = gap(feet, near) < gap(feet, far) ? near : far
+  let largestStep = 0
+  for (let tick = 0; tick < 30 && feet !== safe; tick++) {
+    const next = advance(feet, safe, speedPerTick)
+    largestStep = Math.max(largestStep, Math.hypot(next[0] - feet[0], next[1] - feet[1], next[2] - feet[2]))
+    feet = next
+  }
   const recovered = withNavigator(backend, [bank, surface(4.5, 9, 0, 4, 0.45)],
-    (nav) => nav.route(safe, left).status === 'complete' && nav.route(safe, right).status === 'unreachable')
-  return check(connected.join(',') === 'false,false,true,false' && recovered,
-    'Separate, overlapping, latched and released states gave ' + connected.join('/') + '; queued transfer resolves to the original bank')
+    (nav) => nav.route(feet, left).status === 'complete' && nav.route(feet, right).status === 'unreachable')
+  return check(connected.join(',') === 'false,false,true,false,false' && detachedAt[0] > near[0] &&
+    detachedAt[0] < far[0] && feet === near && largestStep <= speedPerTick + 1e-8 && recovered,
+  'Separate, overlapping, latched, unlocked and separated gave ' + connected.join('/') +
+    '; the active transfer backed out from x=' + detachedAt[0].toFixed(2) + ' to the source anchor without teleporting.')
 }
 
 function occupancySlots() {
@@ -335,85 +477,44 @@ function occupancySlots() {
     'Capsule occupancy reserves one lane, rejects a full cell or wide mover, then resumes through the released slot')
 }
 
-function elevator() {
-  const stairsTicks = 10
-  function schedule(start: number, disable?: number) {
-    const earliestBoard = Math.ceil(start / 8) * 8
-    if (earliestBoard + 4 - start >= stairsTicks) return { events: ['stairs'], duration: stairsTicks }
-    const events: string[] = []
-    for (let tick = start; tick <= earliestBoard + 4; tick++) {
-      if (disable !== undefined && tick >= disable) {
-        return { events: [...events, 'stairs'], duration: tick - start + stairsTicks }
-      }
-      if (tick < earliestBoard && !events.length) events.push('wait')
-      if (tick === earliestBoard && tick % 8 === 0) events.push('board')
-      if (tick === earliestBoard + 1 && events.includes('board')) events.push('ride')
-      if (tick === earliestBoard + 4 && events.includes('ride')) events.push('exit')
-    }
-    return { events, duration: earliestBoard + 4 - start }
-  }
-  const arrives = schedule(0)
-  const missed = schedule(1)
-  const disabled = schedule(3, 4)
-  const order = 'board,ride,exit'
-  return check(arrives.events.join(',') === order && arrives.duration === 4 &&
-    missed.events.join(',') === 'stairs' && missed.duration === 10 &&
-    disabled.events.join(',') === 'wait,stairs' && disabled.duration === 11,
-  'Cabin contacts permit board→ride→exit only during actual service; just missed and disabled calls choose stairs')
-}
-
 function rotatingIsland(backend: TraversalBackend) {
   const a: Point = [2, 0, 6]
   const b: Point = [6, 0, 10]
   const center: Point = [6, 0, 6]
   const ends = [surface(0, 4.06, 5, 7), surface(5, 7, 7.94, 12)]
-  const phases = [0, 45, 90].map((angle) => {
+  function rotate(x: number, z: number, angle: number): Point {
     const radians = angle * Math.PI / 180
+    return [center[0] + x * Math.cos(radians) - z * Math.sin(radians), 0,
+      center[2] + x * Math.sin(radians) + z * Math.cos(radians)]
+  }
+  const phases = [0, 45, 90].map((angle, revision) => {
     const rectangle = surface(4, 8, 5.3, 6.7)
-    const vertices = rectangle.vertices.map(([x, y, z]): Point => {
-      const ox = x - center[0]
-      const oz = z - center[2]
-      return [center[0] + ox * Math.cos(radians) - oz * Math.sin(radians), y,
-        center[2] + ox * Math.sin(radians) + oz * Math.cos(radians)]
-    })
+    const vertices = rectangle.vertices.map(([x, , z]) => rotate(x - center[0], z - center[2], angle))
     return withNavigator(backend, [...ends, { vertices, triangles: rectangle.triangles }], (nav) =>
-      [nav.route(a, center).status, nav.route(b, center).status].map((status) => status === 'complete' ? '1' : '0').join(''))
+      [nav.route(a, center), nav.route(b, center)].map((route) => ({ route, revision })))
   })
-  return check(phases.join(',') === '10,00,01', 'Fresh navmesh topology for 0°, 45°, 90°: ' + phases.join(' → ') + ' (expected A–island, neither, B–island)')
-}
-
-function shuffledCells(seed: number) {
-  let state = seed >>> 0
-  const cells = Array.from({ length: 400 }, (_, index) => ({ x: index % 20, z: Math.floor(index / 20) }))
-    .filter(({ x, z }) => (x < 8 || x > 11) && (z < 8 || z > 11))
-  for (let i = cells.length - 1; i > 0; i--) {
-    state = (Math.imul(1664525, state) + 1013904223) >>> 0
-    const j = state % (i + 1)
-    const cell = cells[i]
-    cells[i] = cells[j]
-    cells[j] = cell
+  const crossings: string[] = []
+  let revision = 0
+  function cross(from: 'A' | 'B', token: typeof phases[number][number]) {
+    if (token.revision !== revision || token.route.status !== 'complete') return false
+    const points = token.route.points
+    const portal = from === 'A' ? crossedZ(points, 4) : crossedZ(points.map(([x, y, z]): Point => [z, y, x]), 8)
+    if (portal === undefined || Math.abs(portal - 6) > 0.7 || gap(points[points.length - 1], center) > 0.08) return false
+    crossings.push(from + '@' + revision)
+    return true
   }
-  return cells
-}
-
-function intersectsCell(a: Point, b: Point, x: number, z: number, margin: number) {
-  let enter = 0
-  let leave = 1
-  for (const [axis, coordinate] of [[0, x], [2, z]]) {
-    const low = coordinate * 0.25 - margin
-    const high = (coordinate + 1) * 0.25 + margin
-    const delta = b[axis] - a[axis]
-    if (delta === 0) {
-      if (a[axis] < low || a[axis] > high) return false
-      continue
-    }
-    const first = (low - a[axis]) / delta
-    const second = (high - a[axis]) / delta
-    enter = Math.max(enter, Math.min(first, second))
-    leave = Math.min(leave, Math.max(first, second))
-    if (enter > leave) return false
-  }
-  return true
+  const attached = cross('A', phases[0][0]) && !cross('B', phases[0][1])
+  const aboard: Point[] = []
+  for (let tick = 0; tick <= 90; tick++) aboard.push(rotate(0.9, 0.05, tick))
+  const continuity = aboard.slice(1).every((point, i) =>
+    Math.abs(gap(point, center) - Math.hypot(0.9, 0.05)) < 1e-6 && gap(point, aboard[i]) < 0.016)
+  revision = 1
+  const staleRejected = !cross('A', phases[0][0]) && !cross('A', phases[1][0]) && !cross('B', phases[1][1])
+  revision = 2
+  const nextDock = !cross('A', phases[2][0]) && cross('B', phases[2][1])
+  return check(attached && continuity && staleRejected && nextDock && crossings.join() === 'A@0,B@2',
+    'A docks at 0°, the old portal is invalid at 45°, and B docks at 90°. Events ' + crossings.join(' → ') +
+    '; attached world pose remains continuous throughout rotation.')
 }
 
 function obstacleTrace(phase: number, rate: number, end: number): TimedPoint[] {
@@ -430,65 +531,79 @@ function obstacleTrace(phase: number, rate: number, end: number): TimedPoint[] {
 }
 
 function timedClutter(backend: TraversalBackend) {
-  const start: Point = [0.5, 0, 2.5]
-  const goal: Point = [4.5, 0, 2.5]
+  const start = clutterPoint(CLUTTER_START)
+  const goal = clutterPoint(CLUTTER_GOAL)
   const floor = box('floor', 'surface', [0, -0.2, 0], [5, 0, 5])
-  const speed = 1.5
-  const radius = 0.15
+  const obstacleRadius = 0.2
+  const minimumGap = CLUTTER_RADIUS + obstacleRadius
+  const deadline = 9
+  const phases = [0, 1.5, 3, 4.5]
+  const rates = [0.75, 1, 1.25]
   const summaries: string[] = []
-  let complete = true
-  for (const density of [10, 20, 30]) {
-    let arrival = 0
-    let walls = 0
-    let timeout = 0
-    let travelTotal = 0
-    for (let index = 0; index < 20; index++) {
-      const blockers = shuffledCells(813 + index).slice(0, density * 4)
-      const shapes = blockers.map(({ x, z }, i) =>
-        box('obstacle-' + i, 'obstacle', [x * 0.25, 0, z * 0.25], [(x + 1) * 0.25, 1, (z + 1) * 0.25]))
+  const fixture: Point[] = [[1, 0, 2.5], [4, 0, 2.5]]
+  const forbidden = closestBetween(clutterTrace(fixture), obstacleTrace(0.5, 1, 2))
+  const delayed = closestBetween(clutterTrace(fixture, 1), obstacleTrace(0.5, 1, 3))
+  let complete = forbidden.distance < 1e-6 && Math.abs(forbidden.time - 1) < 1e-6 && delayed.distance > minimumGap
+  let preventedContacts = 0
+  for (const { density, maps } of clutterMaps()) {
+    const outcomes = phases.map((phase) => ({
+      phase, arrivals: 0, blocked: 0, falseRoutes: 0, stalls: 0, walls: 0, timeouts: 0, contacts: 0
+    }))
+    for (const { rows, obstacles } of maps) {
+      const shapes = obstacles.map(({ x, z }, i) =>
+        box('obstacle-' + i, 'obstacle', [x * CLUTTER_CELL, 0, z * CLUTTER_CELL], [(x + 1) * CLUTTER_CELL, 1, (z + 1) * CLUTTER_CELL]))
       const route = withNavigator(backend, traversalSurfaces([floor, ...shapes], 0.8, 0),
-        (nav) => nav.route(start, goal), [], radius)
-      if (route.status !== 'complete' || gap(route.points[route.points.length - 1], goal) > 0.25) {
-        timeout += 12
+        (nav) => nav.route(start, goal), [], CLUTTER_RADIUS)
+      const connected = Number.isFinite(gridDistance(rows, CLUTTER_START, CLUTTER_GOAL))
+      if (!connected || route.status !== 'complete' || gap(route.points[route.points.length - 1], goal) > 0.25) {
+        for (const outcome of outcomes) {
+          if (!connected) {
+            if (route.status === 'unreachable') outcome.blocked += rates.length
+            else outcome.falseRoutes += rates.length
+          } else {
+            outcome.stalls += rates.length
+          }
+        }
         continue
       }
-      if (route.points.slice(1).some((point, i) => blockers.some(({ x, z }) =>
-        intersectsCell(route.points[i], point, x, z, radius - 0.002)))) {
-        walls += 12
+      const poses = [start, ...route.points]
+      const movingLane = obstacleTrace(0, 1, 6)
+      if (poses.slice(1).some((point, i) => clutterOverlap(poses[i], point, obstacles)) ||
+          movingLane.slice(1).some(({ position }, i) => clutterOverlap(movingLane[i].position, position, obstacles, obstacleRadius))) {
+        for (const outcome of outcomes) outcome.walls += rates.length
         continue
       }
-      const travel = pathLength(route.points) / speed
-      for (const phase of [0, 1.5, 3, 4.5]) {
-        for (const rate of [0.75, 1, 1.25]) {
-          let chosen: number | undefined
-          for (let hold = 0; hold + travel <= 9; hold += 0.25) {
-            let time = hold
-            const trace: TimedPoint[] = hold ? [{ position: route.points[0], time: 0 }] : []
-            trace.push({ position: route.points[0], time })
-            for (let i = 1; i < route.points.length; i++) {
-              const dist = gap(route.points[i - 1], route.points[i])
-              if (dist === 0) continue
-              time += dist / speed
-              trace.push({ position: route.points[i], time })
-            }
-            if (closestBetween(trace, obstacleTrace(phase, rate, time)).distance >= radius + 0.2) {
-              chosen = time
+      const travel = pathLength(poses) / CLUTTER_SPEED
+      for (const outcome of outcomes) {
+        for (const rate of rates) {
+          let departure: number | undefined
+          for (let hold = 0; hold + travel <= deadline; hold += 0.25) {
+            const close = closestBetween(clutterTrace(poses, hold, 0), obstacleTrace(outcome.phase, rate, hold + travel))
+            if (close.distance >= minimumGap) {
+              departure = hold
+              if (hold > 0) preventedContacts++
               break
             }
           }
-          if (chosen === undefined) timeout++
-          else {
-            arrival++
-            travelTotal += chosen
+          if (departure === undefined) {
+            outcome.timeouts++
+            continue
           }
+          const trace = clutterTrace(poses, departure)
+          const arrival = trace[trace.length - 1]
+          const distance = closestBetween(trace, obstacleTrace(outcome.phase, rate, arrival.time)).distance
+          if (distance < minimumGap - 1e-6) outcome.contacts++
+          else if (gap(arrival.position, goal) > 0.25 || arrival.time > deadline) outcome.timeouts++
+          else outcome.arrivals++
         }
       }
     }
-    complete &&= arrival === 240 && !walls && !timeout
-    summaries.push(density + '%: ' + arrival + '/240 arrivals, ' + walls + ' wall exits, ' + timeout +
-      ' timeouts, ' + (arrival ? (travelTotal / arrival).toFixed(2) : '—') + ' s mean')
+    complete &&= outcomes.every(({ arrivals, blocked }) => arrivals + blocked === maps.length * rates.length)
+    summaries.push(Math.round(density * 100) + '% ' + JSON.stringify(outcomes))
   }
-  return check(complete, 'Native ground routes, shared wait/swept-contact controller in 60 synthetic layouts. ' + summaries.join('; '))
+  return check(complete && preventedContacts > 0,
+    'Shared static layouts, 4 phases × 3 speeds, 30 Hz follower and swept circles. ' +
+    preventedContacts + ' waits prevented contact. ' + summaries.join('; '))
 }
 
 function crowdFactory(backend: TraversalBackend, surfaces: readonly Surface[], radius: number, height: number) {
@@ -655,21 +770,20 @@ function crossingFlow(backend: TraversalBackend) {
 }
 
 export const timeCrowdCases: CatalogCase[] = [
-  { id: 'T01', layer: 'planner', coverage: 'adapted', run: doorReplan },
+  { id: 'T01', layer: 'integration', run: doorReplan },
   { id: 'T02', layer: 'controller', run: timedDoor },
   { id: 'T03', layer: 'controller', run: braking },
   { id: 'T04', layer: 'controller', run: hiddenCollision },
-  { id: 'T05', layer: 'controller', coverage: 'adapted', run: changingWeights },
-  { id: 'T06', layer: 'integration', coverage: 'adapted', run: timedClutter },
+  { id: 'T05', layer: 'integration', run: changingWeights },
+  { id: 'T06', layer: 'integration', run: timedClutter },
   { id: 'M01', layer: 'controller', run: passingBay },
   { id: 'M02', layer: 'controller', run: goalResidency },
   { id: 'M03', layer: 'controller', run: cyclicTraffic },
   { id: 'M04', layer: 'benchmark', run: warehouseScale },
   { id: 'M05', layer: 'benchmark', run: antipodal },
   { id: 'M06', layer: 'benchmark', coverage: 'adapted', run: crossingFlow },
-  { id: 'GAME-12', layer: 'integration', coverage: 'adapted', run: stairBlockage },
-  { id: 'GAME-13', layer: 'integration', coverage: 'adapted', run: docking },
+  { id: 'GAME-12', layer: 'integration', run: stairBlockage },
+  { id: 'GAME-13', layer: 'integration', run: docking },
   { id: 'GAME-16', layer: 'controller', run: occupancySlots },
-  { id: 'GAME-17', layer: 'controller', run: elevator },
-  { id: 'E26', layer: 'planner', coverage: 'adapted', run: rotatingIsland }
+  { id: 'E26', layer: 'integration', run: rotatingIsland }
 ]

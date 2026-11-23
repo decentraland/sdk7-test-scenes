@@ -1,7 +1,10 @@
 import type { Point } from '../../src/arena'
+import { createNavcatNavigatorFromMesh } from '../../src/navigation'
 import type { TraversalShape } from '../../src/traversal/types'
-import { createTraversalNavigator, traversalSurfaces, type TraversalBackend } from '../sdk-detour-probe/traversal-routing'
+import { createDetourNavigatorFromMesh } from '../../test/detour'
+import { traversalSurfaces, type TraversalBackend } from '../sdk-detour-probe/traversal-routing'
 import { outsideRect } from './ground'
+import { detourTiles, navcatTiles } from './native-tiles'
 import { box, check, type CatalogCase } from './types'
 
 const start: Point = [1, 0, 4]
@@ -14,22 +17,46 @@ const chunks = [box('nw', 'obstacle', [5.4, 0, 5.4], [6, 2, 6]),
   box('se', 'obstacle', [6, 0, 6], [6.6, 2, 6.6])]
 
 function store(backend: TraversalBackend, initial: readonly TraversalShape[]) {
-  const bake = (shapes: readonly TraversalShape[]) => createTraversalNavigator(backend, traversalSurfaces([slab, ...shapes], 1.4), 0.18, 1.4)
-  let published = { revision: 0, navigator: bake(initial) }
+  function stage(revision: number, shapes: readonly TraversalShape[]) {
+    const faces = traversalSurfaces([slab, ...shapes], 1.4)
+    if (backend === 'navcat') {
+      const mesh = navcatTiles(faces, 0.18)
+      return { revision, navigator: createNavcatNavigatorFromMesh(mesh), tiles: Object.keys(mesh.tiles).length, dispose() {} }
+    }
+    const mesh = detourTiles(faces, 0.18)
+    let tiles = 0
+    for (let i = 0; i < mesh.getMaxTiles(); i++) {
+      if (mesh.getTile(i).header()) tiles++
+    }
+    const navigator = createDetourNavigatorFromMesh(mesh)
+    return { revision, navigator, tiles, dispose: navigator.dispose }
+  }
+  let published = stage(0, initial)
+  let staged: ReturnType<typeof stage> | undefined
   let latestRevision = 0
   let pending = Promise.resolve()
   return {
     query(from = start, to = goal) {
-      const { revision, navigator } = published
-      return { revision, path: navigator.route(from, to) }
+      const { revision, navigator, tiles } = published
+      return { revision, tiles, path: navigator.route(from, to) }
+    },
+    inspectStaged(revision: number, from = start, to = goal) {
+      if (staged?.revision !== revision) return undefined
+      return { tiles: staged.tiles, path: staged.navigator.route(from, to) }
     },
     schedule(shapes: readonly TraversalShape[], completions: readonly Promise<unknown>[]) {
-      const revision = ++latestRevision
+      const revision = latestRevision + 1
+      const candidate = stage(revision, shapes)
+      staged?.dispose()
+      staged = candidate
+      latestRevision = revision
+      // Build native tile data now. The barrier delays publication, so queries
+      // during the hold still run against the previous live tiled snapshot.
       pending = Promise.all(completions).then(() => {
         if (revision !== latestRevision) return
-        const navigator = bake(shapes)
-        published.navigator.dispose?.()
-        published = { revision, navigator }
+        published.dispose()
+        published = candidate
+        staged = undefined
       })
       return revision
     },
@@ -39,7 +66,9 @@ function store(backend: TraversalBackend, initial: readonly TraversalShape[]) {
     },
     dispose() {
       latestRevision++
-      published.navigator.dispose?.()
+      staged?.dispose()
+      staged = undefined
+      published.dispose()
     }
   }
 }
@@ -61,6 +90,7 @@ export const revisionCases: CatalogCase[] = [
         const to: Point = [11, 0, 6]
         const before = map.query(from, to)
         const change = map.schedule(chunks, gates.map((gate) => gate.passed))
+        const candidate = map.inspectStaged(change, from, to)
         gates.slice(0, 3).forEach((gate) => gate.release())
         await Promise.resolve()
         const during = map.query(from, to)
@@ -71,12 +101,17 @@ export const revisionCases: CatalogCase[] = [
         const remove = map.schedule([], [])
         await map.ready(remove)
         const clear = map.query(from, to)
-        return check(rebuilt && before.path.status === 'complete' && during.revision === before.revision &&
+        return check(rebuilt && before.tiles > 4 && before.path.status === 'complete' &&
+          candidate !== undefined && candidate.tiles > 4 && candidate.path.status === 'complete' &&
+          outsideRect(candidate.path, [5.4, 6.6, 5.4, 6.6]) &&
+          JSON.stringify(candidate.path) !== JSON.stringify(before.path) && during.revision === before.revision &&
           JSON.stringify(during.path) === JSON.stringify(before.path) && after.revision === change &&
+          JSON.stringify(after.path) === JSON.stringify(candidate.path) &&
           after.path.status === 'complete' && outsideRect(after.path, [5.4, 6.6, 5.4, 6.6]) &&
           unaffected.path.status === 'complete' && clear.path.status === 'complete' &&
           !outsideRect(clear.path, [5.4, 6.6, 5.4, 6.6]),
-        'Three of four edits cannot publish a mixed map. All four publish together, and removing the debris restores direct passage.')
+        'The staged native tiled map already routes around debris. Three released barriers expose only the original map. ' +
+          'The fourth publishes the staged path, and removing debris restores the direct passage.')
       } finally {
         map.dispose()
       }
@@ -101,6 +136,7 @@ export const revisionCases: CatalogCase[] = [
           const z = 2.5 + revision * 0.1
           const hazard = box('hazard', 'obstacle', [4.8, 0, z], [6.3, 2, z + 1.5])
           const job = map.schedule([...boxes.slice(revision), hazard], [gate.passed])
+          if ((map.inspectStaged(job)?.tiles ?? 0) <= 4) invalid++
           const concurrent = await Promise.all(Array.from({ length: 30 }, async (_, i) => {
             await Promise.resolve()
             const lane = 2.6 + i * 0.015
@@ -116,7 +152,7 @@ export const revisionCases: CatalogCase[] = [
                 !outsideRect(after.path, [4.8, 6.3, z, z + 1.5])) invalid++
           }
         }
-        return check(invalid === 0, '300 calls against 100 seeded obstacles and five scheduled revisions, invalid results ' + invalid + '.')
+        return check(invalid === 0, '300 calls against 100 seeded obstacles and five staged native tiled revisions, invalid results ' + invalid + '.')
       } finally {
         map.dispose()
       }
@@ -127,18 +163,26 @@ export const revisionCases: CatalogCase[] = [
     async run(backend) {
       const map = store(backend, [])
       try {
+        const staleGate = barrier()
+        const oldRevision = map.schedule(chunks, [staleGate.passed])
+        const oldReady = map.ready(oldRevision)
         const gate = barrier()
         const revision = map.schedule([wall], [gate.passed])
+        const candidate = map.inspectStaged(revision)
         let settled = false
         const ready = map.ready(revision).then((valid) => { settled = true; return valid })
-        await Promise.resolve()
-        const stillPending = !settled && map.query().revision === 0
+        staleGate.release()
+        const obsolete = !(await oldReady)
+        const oldRoute = map.query()
+        const stillPending = !settled && oldRoute.revision === 0 && oldRoute.path.status === 'complete' &&
+          !outsideRect(oldRoute.path, [5.8, 6.2, 0, 7])
         gate.release()
         const current = await ready
         const result = map.query()
-        return check(stillPending && current && result.revision === revision && result.path.status === 'complete' &&
+        return check(obsolete && stillPending && current && candidate !== undefined && candidate.tiles > 4 &&
+          result.revision === revision && result.path.status === 'complete' && JSON.stringify(result.path) === JSON.stringify(candidate.path) &&
           outsideRect(result.path, [5.8, 6.2, 0, 7]),
-        'A required-revision fence stays pending until the last tile result and then exposes only the updated route.')
+        'The obsolete native snapshot is discarded. The last barrier keeps the original tiled path visible until the current staged detour can publish.')
       } finally {
         map.dispose()
       }

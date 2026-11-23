@@ -27,6 +27,7 @@ export const SLABS: readonly Slab[] = [
 ]
 
 export const GATE = { x: 12.5, y: 3.05, z: 7.5 } as const
+export const GATE_SIZE: Point = [3, 1.55, 0.16]
 
 export function getSurfaces(doorOpen: boolean): Surface[] {
   return SLABS.filter((slab) => doorOpen || !slab.behindGate).map((slab) => ({

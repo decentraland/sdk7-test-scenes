@@ -1,9 +1,13 @@
 import type { Point, Surface } from '../../src/arena'
-import { getSurfaces } from '../../src/arena'
 import type { Navigator, Route } from '../../src/navigation'
 import { capsuleHits } from '../../src/traversal/fixtures/mantles-support'
 import { createTraversalNavigator, traversalSurfaces, type AuthoredLink, type TraversalBackend, type TraversalQueryOptions } from '../sdk-detour-probe/traversal-routing'
 import { crosses, floor, outsideRect, pathLength, usingMesh } from './ground'
+import { avoidTerrain, hazardTerrain, regionalFilters, slowTerrain } from './ground-areas'
+import { displacedCorridor } from './ground-corridor'
+import { actionableDoor, lateDoor } from './ground-door'
+import { groundFollower, pointDistance } from './ground-motion'
+import { followPartial, tolerantGoal } from './ground-partial'
 import { box, check, type CatalogCase } from './types'
 
 function planner(id: string, run: CatalogCase['run'], coverage?: CatalogCase['coverage']): CatalogCase {
@@ -19,9 +23,9 @@ const balcony = { from: highEdge, to: lowEdge }
 const forward: AuthoredLink = { from: lowEdge, to: highEdge, bidirectional: true }
 const complete = (route: Route) => route.status === 'complete'
 
-function native(
+function native<T>(
   backend: TraversalBackend, faces: readonly Surface[], links: readonly AuthoredLink[],
-  fn: (nav: Navigator) => boolean, options: TraversalQueryOptions = {}, snap = true
+  fn: (nav: Navigator) => T, options: TraversalQueryOptions = {}, snap = true
 ) {
   const nav = createTraversalNavigator(backend, faces, 0.2, 1.3, links, snap, options)
   try {
@@ -50,61 +54,78 @@ const longLane: AuthoredLink = { from: [2.6, 0, 7], to: [9.4, 0, 7], flags: 4, a
 const via = (nav: Navigator, z: number) => crosses(nav.route(from, to), 0, 6, (point) => Math.abs(point[2] - z) < 0.4)
 const near = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
 
+const rampBottom: Point = [2.2, 0, 8]
+const rampTop: Point = [2.2, 3, 8]
+const rampDecks = [floor(0, 10, 0, 9), floor(0, 10, 7, 9, 3), floor(7, 10, 2, 7, 0, 3)]
+const rampDrop: AuthoredLink = { from: [1.5, 3, 8], to: [1.5, 0, 8], flags: 2 }
+const rampCross = (route: Route) => route.points.slice(1).some((end, i) => {
+  const start = route.points[i]
+  return Math.min(start[1], end[1]) < 1.5 && Math.max(start[1], end[1]) >= 1.5 &&
+    start[0] > 6.9 && end[0] > 6.9
+})
+
+function traversalEvents(route: Route) {
+  return route.points.slice(1).flatMap((end, i) => {
+    const start = route.points[i]
+    const change = end[1] - start[1]
+    return Math.abs(change) > 2.7 && Math.hypot(end[0] - start[0], end[2] - start[2]) < 0.15
+      ? [change > 0 ? 'climb' : 'drop'] : []
+  })
+}
+
 export const topologyCases: CatalogCase[] = [
   planner('E17', (backend) => {
-    const oneWay = native(backend, decks, [balcony], (nav) => complete(nav.route(high, low)) && !complete(nav.route(low, high)))
-    const returned = native(backend, decks, [{ ...balcony, bidirectional: true }],
-      (nav) => complete(nav.route(high, low)) && complete(nav.route(low, high)))
-    return check(oneWay && returned, 'Native downward drop is directional until its bidirectional flag is enabled.')
+    const plans = (links: AuthoredLink[]) => native(backend, rampDecks, links, (nav) => ({
+      down: nav.route(rampTop, rampBottom), up: nav.route(rampBottom, rampTop)
+    }), { climb: 0.1 })
+    const oneWay = plans([rampDrop])
+    const bidirectional = plans([{ ...rampDrop, bidirectional: true }])
+    const noDrop = plans([])
+    const describe = ({ up, down }: typeof oneWay) => ({
+      complete: complete(up) && complete(down), up: traversalEvents(up), down: traversalEvents(down),
+      upRamp: rampCross(up), downRamp: rampCross(down)
+    })
+    return check([oneWay, bidirectional, noDrop].every(({ up, down }) => complete(up) && complete(down)) &&
+      traversalEvents(oneWay.down).join() === 'drop' && traversalEvents(oneWay.up).length === 0 && rampCross(oneWay.up) &&
+      traversalEvents(bidirectional.down).join() === 'drop' && traversalEvents(bidirectional.up).join() === 'climb' &&
+      traversalEvents(noDrop.up).length === 0 && traversalEvents(noDrop.down).length === 0 &&
+      rampCross(noDrop.up) && rampCross(noDrop.down),
+    'Native routes over the ramp and directional link drive different traversal events: ' +
+      JSON.stringify({ oneWay: describe(oneWay), bidirectional: describe(bidirectional), noDrop: describe(noDrop) }))
   }),
   planner('E18', (backend) => {
     const ledges = [floor(0, 3, 0, 6), floor(6, 9, 0, 6), floor(6, 9, 0, 6, 3)]
-    const connect = (x: number, y: number) => native(backend, ledges, [
+    const connect = (x: number, y: number, faces = ledges) => native(backend, faces, [
       { from: [2, 0, 3], to: [x, y, 3], radius: 0.5 }
-    ], (nav) => complete(nav.route([1, 0, 3], [8, 0, 3])) && !complete(nav.route([1, 0, 3], [8, 3, 3])), {}, false)
-    return check(connect(5.82, 0) && !connect(5.42, 0) && !connect(6.2, 3),
-      'Raw anchor is accepted within horizontal reach, and a nearby upstairs polygon cannot replace the intended floor.')
+    ], (nav) => [nav.route([1, 0, 3], [8, 0, 3]).status, nav.route([1, 0, 3], [8, 3, 3]).status], {}, false)
+    const inside = connect(5.82, 0)
+    const outside = connect(5.42, 0)
+    const floorRemoved = connect(5.82, 0, [ledges[0], ledges[2]])
+    const intentionalUpper = connect(6.24, 3)
+    return check(inside.join() === 'complete,unreachable' && outside.join() === 'unreachable,unreachable' &&
+      floorRemoved.join() === 'unreachable,unreachable' && intentionalUpper.join() === 'unreachable,complete',
+    'Raw anchor radius and wrong-floor rejection, with a positive upper-anchor control: ' +
+      JSON.stringify({ inside, outside, floorRemoved, intentionalUpper }))
   }),
-  planner('E20', (backend) => {
-    const linked = [floor(0, 3, 0, 3), floor(6, 9, 0, 3), floor(11, 14, 0, 3)]
-    const edge: AuthoredLink = { from: [2, 0, 1], to: [7, 0, 1], flags: 2 }
-    const states = [0xffff, 3, 1].map((includeFlags) => native(backend, linked, [edge], (nav) =>
-      complete(nav.route([1, 0, 1], [8, 0, 1])) && !complete(nav.route([1, 0, 1], [12, 0, 1])), { includeFlags }))
-    return check(states.join() === 'true,true,false', 'The allowed link survives the mask, the excluded link blocks B, and isolated C stays unreachable.')
-  }, 'adapted'),
-  planner('E21', (backend) => {
-    const altered = [...decks, floor(0, 0.75, 4, 4.8)]
-    const query = (r: Navigator) => complete(r.route(high, low)) && !complete(r.route(low, high))
-    return check(native(backend, decks, [balcony], query) &&
-      native(backend, decks, [balcony], query, { roundTrip: true }) &&
-      native(backend, altered, [balcony], query, { roundTrip: true }),
-    'Directional link survives export/import and rebuilding geometry beside the link.')
-  }, 'adapted'),
-  planner('E22', (backend) => {
-    const s: Point = [12.5, 1.2, 5.4]
-    const g: Point = [8, 3, 11.5]
-    const revisions = [true, false, true].map((open) => usingMesh(backend, getSurfaces(open),
-      (nav) => nav.route(s, g), { tiled: true }))
-    return check(revisions.every(complete) && pathLength(revisions[1]) > pathLength(revisions[0]) + 1 &&
-      Math.abs(pathLength(revisions[0]) - pathLength(revisions[2])) < 1e-6,
-    'Closing changes the active corridor to a longer route; reopening restores the original route.')
-  }, 'adapted'),
-  planner('E25', (backend) => {
-    const faces = [floor(0, 3, 0, 8), floor(3, 9, 6, 8)]
-    return usingMesh(backend, faces, (nav) => {
-      const nearRoute = nav.route([2.65, 0, 2.5], [8, 0, 7])
-      const outside = nav.route([5, 0, 2.5], [8, 0, 7])
-      const repaired = nav.route([2.55, 0, 2.5], [8, 0, 7])
-      return check(complete(nearRoute) && !complete(outside) && complete(repaired) &&
-        [nearRoute, repaired].every((r) => crosses(r, 0, 3.1, ([, , z]) => z > 6)),
-      'Recovery from a measured on-surface pose uses the L bend, and a distant displacement needs reprojection.')
-    })
-  }, 'adapted'),
+  planner('E20', regionalFilters),
+  { id: 'E22', layer: 'integration', run: lateDoor },
+  planner('E25', displacedCorridor),
   planner('E27', (backend) => {
-    const full = native(backend, lanes, [shortLane, longLane], (nav) => via(nav, 3))
-    const denied = native(backend, lanes, [shortLane, longLane], (nav) => via(nav, 7), { includeFlags: 5 })
-    return check(full && denied, 'Revoking the short action capability on the same endpoints selects the alternate link.')
-  }, 'adapted'),
+    const link = [{ ...rampDrop, bidirectional: true }]
+    const position = groundFollower(rampBottom)
+    const optedIn = native(backend, rampDecks, link, (nav) => nav.route(rampBottom, rampTop), { climb: 0.1 })
+    const neverAllowed = native(backend, rampDecks, link, (nav) => nav.route(rampBottom, rampTop), { includeFlags: 1, climb: 0.1 })
+    position.assign(optedIn.points)
+    position.step(0.22, () => true)
+    const moved = pointDistance(position.position(), rampBottom) > 0.1 && position.position()[1] < 0.12
+    const revoked = native(backend, rampDecks, link, (nav) => nav.route(position.position(), rampTop), { includeFlags: 1, climb: 0.1 })
+    position.assign(revoked.points)
+    for (let tick = 0; tick < 180 && !position.finished(); tick++) position.step(0.22, () => true)
+    const arrived = position.finished() && pointDistance(position.position(), rampTop) < 0.12
+    return check(complete(optedIn) && traversalEvents(optedIn).join() === 'climb' && moved && arrived &&
+      [neverAllowed, revoked].every((route) => complete(route) && rampCross(route) && traversalEvents(route).length === 0),
+    'Eligible agent plans the short animation link. The other chooses the ramp. The first loses access before using the link, replans from its moved position, and arrives via the ramp.')
+  }),
   planner('GAME-01', (backend) => check(stacked(backend, 4), 'Same-XZ balconies 4 m apart cannot shortcut the authored far-edge drop.')),
   planner('GAME-02', (backend) => {
     const ledges = [floor(0, 3, 0, 4), floor(6, 10, 0, 4), floor(5, 10, 0, 4, 3)]
@@ -127,15 +148,27 @@ export const topologyCases: CatalogCase[] = [
     'Standing, crouching and narrow profiles select three different legal passages.')
   }),
   planner('GAME-04', (backend) => {
-    const outcomes = [0.39, 0.41, 0.79, 0.81].map((height) => {
+    const ledges = [
+      { height: 0.39, upward: true, downward: true },
+      { height: 0.41, upward: false, downward: true },
+      { height: 0.79, upward: false, downward: true },
+      { height: 0.81, upward: false, downward: false }
+    ]
+    const outcomes = ledges.map(({ height, upward, downward }) => {
       const a: Point = [2, 0, 2]
       const b: Point = [6, height, 2]
       const links = [...(height <= 0.4 ? [{ from: a, to: b }] : []), ...(height <= 0.8 ? [{ from: b, to: a }] : [])]
-      return native(backend, [floor(0, 3, 0, 4), floor(5, 8, 0, 4, height)], links, (nav) =>
-        complete(nav.route(a, b)) === (height <= 0.4) && complete(nav.route(b, a)) === (height <= 0.8))
+      return native(backend, [floor(0, 3, 0, 4), floor(5, 8, 0, 4, height)], links, (nav) => {
+        const up = nav.route(a, b)
+        const down = nav.route(b, a)
+        const upValid = complete(up) && crosses(up, 0, 4, ([, y]) => Math.abs(y - height / 2) < 0.1)
+        const downValid = complete(down) && crosses(down, 0, 4, ([, y]) => Math.abs(y - height / 2) < 0.1)
+        return upValid === upward && downValid === downward &&
+          (upward || !complete(up)) && (downward || !complete(down))
+      })
     })
-    return check(outcomes.every(Boolean), 'Four authored step/drop heights enforce separate directional thresholds.')
-  }, 'adapted'),
+    return check(outcomes.every(Boolean), 'Four isolated ledges check independent fixed climb/drop expectations in both directions.')
+  }),
   {
     id: 'GAME-05', layer: 'controller',
     run: () => {
@@ -151,11 +184,7 @@ export const topologyCases: CatalogCase[] = [
       'Both standing poses have headroom; only the low beam clips the moving capsule.')
     }
   },
-  planner('GAME-06', (backend) => {
-    const query = (cost: number, expected: number) => native(backend, lanes, [shortLane, longLane],
-      (nav) => via(nav, expected), { costs: { 1: cost } })
-    return check(query(1, 3) && query(2.4, 7), 'The slow-terrain profile selects the longer route at the higher traversal cost.')
-  }, 'adapted'),
+  planner('GAME-06', slowTerrain),
   planner('GAME-07', (backend) => {
     const strip = [floor(0, 3, 0, 21), floor(4, 7, 0, 21), floor(3, 4, 20, 21)]
     const narrow = [floor(0, 3, 0, 6), floor(4, 7, 0, 6)]
@@ -187,22 +216,37 @@ export const topologyCases: CatalogCase[] = [
       complete(nav.route(middle, [6, 0, 2])))))
     return check(cases.every(Boolean), 'All four door states keep the middle navigable and affect only the corresponding branch.')
   }, 'adapted'),
-  planner('GAME-10', (backend) => {
-    const routeDoor = (capable: boolean, locked: boolean, expected: number) =>
-      native(backend, lanes, [shortLane, longLane], (nav) => via(nav, expected),
-        { includeFlags: capable && !locked ? 7 : 5 })
-    const canRequest = routeDoor(true, false, 3)
-    const cannotOpen = routeDoor(false, false, 7)
-    const lockedBeforeEntry = routeDoor(true, true, 7)
-    return check(canRequest && cannotOpen && lockedBeforeEntry, 'OpenDoor capability permits the actionable link, and a late lock selects the detour.')
-  }, 'adapted'),
+  { id: 'GAME-10', layer: 'integration', run: actionableDoor },
   planner('GAME-11', (backend) => {
     const links = [{ ...shortLane, flags: 2 }, longLane]
-    const choose = (flags: number, z: number) => native(backend, lanes, links, (nav) => via(nav, z), { includeFlags: flags })
-    const accessibleBy = (team: 'A' | 'B', owner: 'A' | 'B') => choose(team === owner ? 7 : 5, team === owner ? 3 : 7)
-    return check(accessibleBy('A', 'A') && accessibleBy('B', 'A') && accessibleBy('A', 'B') && accessibleBy('B', 'B'),
-      'Team access switches when ownership changes without changing geometry.')
-  }, 'adapted'),
+    return native(backend, lanes, links, (ownerView) => native(backend, lanes, links, (guestView) => {
+      type Team = 'A' | 'B'
+      let owner: Team = 'A'
+      let epoch = 0
+      let misses = 0
+      const cache = new Map<string, Route>()
+      const query = (team: Team) => {
+        const key = team + ':' + epoch
+        const existing = cache.get(key)
+        if (existing) return existing
+        const route = (team === owner ? ownerView : guestView).route(from, to)
+        cache.set(key, route)
+        misses++
+        return route
+      }
+      const lane = (route: Route, z: number) => complete(route) && crosses(route, 0, 6, (point) => Math.abs(point[2] - z) < 0.4)
+      const firstA = query('A')
+      const firstB = query('B')
+      const initially = lane(firstA, 3) && lane(firstB, 7) && query('A') === firstA && query('B') === firstB
+      owner = 'B'
+      epoch++
+      const secondB = query('B')
+      const secondA = query('A')
+      return check(initially && lane(secondA, 7) && lane(secondB, 3) &&
+        secondA !== firstA && secondB !== firstB && query('A') === secondA && query('B') === secondB && misses === 4,
+      'Both teams share identical endpoints and geometry. Transfer swaps their route privileges and fences each team’s cached route by ownership revision.')
+    }, { includeFlags: 5 }))
+  }),
   planner('GAME-15', (backend) => {
     const start: Point = [2, 3, 3]
     const exit: Point = [7, 3, 3]
@@ -271,13 +315,7 @@ export const topologyCases: CatalogCase[] = [
       accepted === currentMap && !complete(blocked),
     'Late downstairs result cannot replace the upstairs route. Removing its only link invalidates the old map result with the same query ID.')
   }),
-  planner('GAME-22', (backend) => {
-    const links = [shortLane, longLane]
-    const normally = native(backend, lanes, links, (nav) => via(nav, 3))
-    const hazard = native(backend, lanes, links, (nav) => via(nav, 7), { costs: { 1: 4 } })
-    const unaffected = native(backend, lanes, links, (nav) => via(nav, 3), { costs: { 1: 1 } })
-    return check(normally && hazard && unaffected, 'Changing only the area cost selects the safe branch for the risk-sensitive profile.')
-  }, 'adapted'),
+  planner('GAME-22', hazardTerrain),
   planner('GAME-23', (backend) => {
     const y = [0, 3, 6]
     const faces = y.map((height) => floor(0, 9, 0, 9, height))
@@ -312,25 +350,9 @@ export const topologyCases: CatalogCase[] = [
     return check(consistent && searches === 96, '1/8/32 agents, shared target, changed floor and portal closed; ' +
       searches + ' cached searches; cold p95 ' + durations[Math.ceil(durations.length * 0.95) - 1]?.toFixed(3) + ' ms.')
   }, 'adapted'),
-  planner('GAME-24', (backend) => usingMesh(backend, [floor(0, 5, 0, 5), floor(5.8, 8, 0, 5)], (nav) => {
-    const result = nav.route([1, 0, 2], [6.3, 0, 2])
-    return check(!complete(result) && result.points.length === 0 &&
-      complete(nav.route([1, 0, 2], [4.6, 0, 2])),
-    'No complete route is reported across the sealed gap; the safe reachable endpoint still works.')
-  }, { tiled: true }), 'adapted'),
-  planner('GAME-25', (backend) => usingMesh(backend, [floor(0, 5, 0, 5)], (nav) => {
-    const goal: Point = [5.4, 0, 2]
-    const valid: Point = [4.6, 0, 2]
-    function accept(tolerance: number) {
-      return near(valid, goal) <= tolerance && complete(nav.route([1, 0, 2], valid))
-    }
-    return check(!accept(0.7) && accept(0.9), '0.7 m refuses the endpoint while 0.9 m accepts the measured safe candidate.')
-  })),
-  planner('GAME-26', (backend) => {
-    return check(native(backend, lanes, [shortLane, longLane], (nav) => via(nav, 3)) &&
-      native(backend, lanes, [shortLane, longLane], (nav) => via(nav, 7), { includeFlags: 5 }),
-    'Filtering an avoid tag with no physical collision forces the alternate path.')
-  }, 'adapted'),
+  { id: 'GAME-24', layer: 'integration', run: followPartial },
+  { id: 'GAME-25', layer: 'integration', run: tolerantGoal },
+  planner('GAME-26', avoidTerrain),
   planner('P04', (backend) => check(
     native(backend, lanes, [shortLane, longLane], (nav) => via(nav, 3)) &&
     native(backend, lanes, [shortLane, longLane], (nav) => via(nav, 7), { costs: { 1: 3 } }),

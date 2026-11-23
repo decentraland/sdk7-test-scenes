@@ -1,14 +1,14 @@
 import {
-  addTile, buildTile, createFindNearestPolyResult, DEFAULT_QUERY_FILTER, findNearestPoly, findNodePath,
-  getTileAndPolyByRef, getTileAt, isValidNodeRef, removeTile, type NavMeshTile, type Vec3
+  addOffMeshConnection, addTile, buildTile, createFindNearestPolyResult, DEFAULT_QUERY_FILTER, findNearestPoly, findNodePath,
+  getTileAndPolyByRef, getTileAt, isValidNodeRef, OffMeshConnectionDirection, removeTile, type NavMeshTile, type Vec3
 } from 'navcat'
 import { generateTiledNavMesh as buildNavcatTiles } from 'navcat/blocks'
-import { NavMeshQuery, Raw, UnsignedCharArray, statusSucceed } from 'recast-navigation'
+import { exportNavMesh, importNavMesh, NavMeshQuery, Raw, UnsignedCharArray, statusSucceed } from 'recast-navigation'
 import { generateTiledNavMesh as buildDetourTiles } from 'recast-navigation/generators'
 import type { Point, Surface } from '../../src/arena'
 import { createNavcatNavigatorFromMesh, toRecastGeometry, type Navigator } from '../../src/navigation'
 import { createDetourNavigatorFromMesh } from '../../test/detour'
-import type { TraversalBackend } from '../sdk-detour-probe/traversal-routing'
+import type { AuthoredLink, TraversalBackend } from '../sdk-detour-probe/traversal-routing'
 import { floor } from './ground'
 
 export const CELL_SIZE = 0.05
@@ -27,10 +27,12 @@ type NativeTileFixture = {
   dispose?(): void
 }
 
+type NativeTileOptions = { links?: readonly AuthoredLink[]; roundTrip?: boolean }
+
 export const nativePoint = ([x, y, z]: Point): Vec3 => [x, y, -z]
 export const detourPoint = ([x, y, z]: Point) => ({ x, y, z: -z })
 
-export function navcatTiles(faces: readonly Surface[], radius = 0.16) {
+export function bakeNavcatTiles(faces: readonly Surface[], radius = 0.16) {
   const radiusVoxels = Math.ceil(radius / CELL_SIZE)
   return buildNavcatTiles(toRecastGeometry(faces), {
     cellSize: CELL_SIZE, cellHeight: CELL_SIZE, tileSizeVoxels: TILE_SIZE, tileSizeWorld: TILE_EDGE,
@@ -38,24 +40,40 @@ export function navcatTiles(faces: readonly Surface[], radius = 0.16) {
     walkableClimbVoxels: 2, walkableClimbWorld: 0.1, walkableSlopeAngleDegrees: 40,
     borderSize: radiusVoxels + 3, minRegionArea: 1, mergeRegionArea: 1, maxSimplificationError: 0.35,
     maxEdgeLength: 80, maxVerticesPerPoly: 6, detailSampleDistance: 0.25, detailSampleMaxError: 0.05
-  }).navMesh
+  })
 }
 
-export function detourTiles(faces: readonly Surface[], radius = 0.16) {
+export function navcatTiles(faces: readonly Surface[], radius = 0.16) {
+  return bakeNavcatTiles(faces, radius).navMesh
+}
+
+export function detourTiles(faces: readonly Surface[], radius = 0.16, links: readonly AuthoredLink[] = []) {
   const geometry = toRecastGeometry(faces)
   const radiusVoxels = Math.ceil(radius / CELL_SIZE)
   const result = buildDetourTiles(geometry.positions, geometry.indices, {
     cs: CELL_SIZE, ch: CELL_SIZE, tileSize: TILE_SIZE,
     walkableRadius: radiusVoxels, walkableHeight: 28, walkableClimb: 2,
     walkableSlopeAngle: 40, borderSize: radiusVoxels + 3, minRegionArea: 1, mergeRegionArea: 1,
-    maxSimplificationError: 0.35, maxEdgeLen: 80, maxVertsPerPoly: 6, detailSampleDist: 5, detailSampleMaxError: 1
+    maxSimplificationError: 0.35, maxEdgeLen: 80, maxVertsPerPoly: 6, detailSampleDist: 5, detailSampleMaxError: 1,
+    offMeshConnections: links.map((link, i) => ({
+      startPosition: detourPoint(link.from), endPosition: detourPoint(link.to), radius: link.radius ?? 0.45,
+      bidirectional: link.bidirectional ?? false, flags: link.flags ?? 1, area: link.area ?? 0, userId: i + 1
+    }))
   })
   if (!result.success) throw new Error(result.error)
   return result.navMesh
 }
 
-function navcatNativeTiles(open: readonly Surface[], reroute: readonly Surface[]): NativeTileFixture {
-  const nav = navcatTiles(open)
+function navcatNativeTiles(open: readonly Surface[], reroute: readonly Surface[], options: NativeTileOptions): NativeTileFixture {
+  const prepared = navcatTiles(open)
+  for (const link of options.links ?? []) {
+    addOffMeshConnection(prepared, {
+      start: nativePoint(link.from), end: nativePoint(link.to), radius: link.radius ?? 0.45,
+      direction: link.bidirectional ? OffMeshConnectionDirection.BIDIRECTIONAL : OffMeshConnectionDirection.START_TO_END,
+      flags: link.flags ?? 1, area: link.area ?? 0
+    })
+  }
+  const nav = options.roundTrip ? JSON.parse(JSON.stringify(prepared)) as typeof prepared : prepared
   const replacement = navcatTiles(reroute)
   const navigator = createNavcatNavigatorFromMesh(nav)
   const linked = () => getTileAt(nav, 1, 0, 0)
@@ -89,9 +107,11 @@ function navcatNativeTiles(open: readonly Surface[], reroute: readonly Surface[]
   }
 }
 
-function detourNativeTiles(open: readonly Surface[], reroute: readonly Surface[]): NativeTileFixture {
-  const nav = detourTiles(open)
-  const replacement = detourTiles(reroute)
+function detourNativeTiles(open: readonly Surface[], reroute: readonly Surface[], options: NativeTileOptions): NativeTileFixture {
+  const prepared = detourTiles(open, 0.16, options.links)
+  const nav = options.roundTrip ? importNavMesh(exportNavMesh(prepared)).navMesh : prepared
+  if (options.roundTrip) prepared.destroy()
+  const replacement = detourTiles(reroute, 0.16, options.links)
   const linked = () => nav.getTileRefAt(1, 0, 0)
   const original = nav.getTileAt(1, 0, 0)
   const changed = replacement.getTileAt(1, 0, 0)
@@ -159,9 +179,10 @@ function detourNativeTiles(open: readonly Surface[], reroute: readonly Surface[]
 export function usingNativeTiles<T>(
   backend: TraversalBackend, body: (scene: NativeTileFixture) => T,
   faces = [floor(0, 6, 0, 1.8)],
-  reroute = [floor(0, 2.55, 0, 1.8), floor(2.55, 3.45, 1.14, 1.8), floor(3.45, 6, 0, 1.8)]
+  reroute = [floor(0, 2.55, 0, 1.8), floor(2.55, 3.45, 1.14, 1.8), floor(3.45, 6, 0, 1.8)],
+  options: NativeTileOptions = {}
 ) {
-  const fixture = backend === 'navcat' ? navcatNativeTiles(faces, reroute) : detourNativeTiles(faces, reroute)
+  const fixture = backend === 'navcat' ? navcatNativeTiles(faces, reroute, options) : detourNativeTiles(faces, reroute, options)
   try {
     return body(fixture)
   } finally {

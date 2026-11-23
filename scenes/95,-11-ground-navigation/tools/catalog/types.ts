@@ -3,7 +3,7 @@ import type { TraversalShape } from '../../src/traversal/types'
 import type { TraversalBackend } from '../sdk-detour-probe/traversal-routing'
 
 export type CatalogResult = {
-  status: 'pass' | 'fail' | 'unsupported'
+  status: 'pass' | 'fail' | 'unsupported' | 'missing'
   detail: string
 }
 
@@ -20,6 +20,10 @@ export function check(passed: boolean, detail: string): CatalogResult {
 
 export function unsupported(detail: string): CatalogResult {
   return { status: 'unsupported', detail }
+}
+
+export function missing(detail: string): CatalogResult {
+  return { status: 'missing', detail }
 }
 
 export function box(

@@ -1,17 +1,33 @@
 import { describe, expect, it } from 'vitest'
+import { TRAVERSAL_CASE_REQUIREMENTS, traversalCaseIds } from '../src/traversal/catalog-coverage'
 import { TRAVERSAL_SCENARIOS } from '../src/traversal/registry'
 import { createTraversalSimulation } from '../src/traversal/simulation'
 
 it('registers each traversal fixture and its variants under stable, unique IDs', () => {
   const ids = TRAVERSAL_SCENARIOS.map((scenario) => scenario.id)
-  expect(ids).toHaveLength(6)
   expect(new Set(ids).size).toBe(ids.length)
+  for (const requirement of TRAVERSAL_CASE_REQUIREMENTS) {
+    const scenario = TRAVERSAL_SCENARIOS.find(({ id }) => id === requirement.scenario)
+    expect(scenario, requirement.id).toBeDefined()
+    for (const variant of requirement.variants) {
+      expect(scenario?.variants.some(({ id }) => id === variant), requirement.id + ' ' + variant).toBe(true)
+    }
+  }
   for (const scenario of TRAVERSAL_SCENARIOS) {
     const variants = scenario.variants.map((variant) => variant.id)
-    expect(variants.length).toBeGreaterThan(1)
+    expect(variants.length).toBeGreaterThan(0)
     expect(new Set(variants).size).toBe(variants.length)
-    expect(scenario.cases.length).toBeGreaterThan(0)
+    for (const variant of variants) {
+      expect(traversalCaseIds(scenario.id, variant), scenario.id + ' ' + variant).not.toHaveLength(0)
+    }
+    expect(new Set(variants.flatMap((variant) => traversalCaseIds(scenario.id, variant)))).toEqual(new Set(scenario.cases))
   }
+})
+
+it('limits the beam timing requirement to the standing and moved-beam variants', () => {
+  expect(traversalCaseIds('run-up-jump', 'ready')).not.toContain('GAME-T03')
+  expect(traversalCaseIds('run-up-jump', 'clear-beam')).toContain('GAME-T03')
+  expect(traversalCaseIds('run-up-jump', 'moving-beam')).toContain('GAME-T03')
 })
 
 for (const scenario of TRAVERSAL_SCENARIOS) {

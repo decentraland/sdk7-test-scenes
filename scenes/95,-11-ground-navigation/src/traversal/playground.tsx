@@ -1,6 +1,7 @@
 import { engine } from '@dcl/sdk/ecs'
 import { Color4 } from '@dcl/sdk/math'
 import ReactEcs, { ReactEcsRenderer, UiEntity } from '@dcl/sdk/react-ecs'
+import { traversalCaseIds } from './catalog-coverage'
 import { createTraversalSimulation, TRAVERSAL_STEP } from './simulation'
 import type { TraversalScenario, TraversalVariant } from './types'
 import { createTraversalVisuals } from './visuals'
@@ -76,7 +77,7 @@ export function mountTraversalPlayground(scenarios: readonly TraversalScenario[]
     if (frame.verdict !== 'running') {
       playing = false
       console.log('[ground-traversal] ' + JSON.stringify({
-        scenario: scenario.id, variant: variant.id, cases: scenario.cases, ticks: simulation.ticks(),
+        scenario: scenario.id, variant: variant.id, cases: traversalCaseIds(scenario.id, variant.id), ticks: simulation.ticks(),
         verdict: frame.verdict, phase: frame.phase, detail: frame.detail
       }))
     }

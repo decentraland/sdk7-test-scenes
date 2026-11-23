@@ -3,7 +3,9 @@ import { resolve } from 'node:path'
 
 const crowdLoad = process.argv.includes('--crowd-load')
 const traversal = process.argv.includes('--traversal-compare')
-const mode = traversal ? 'traversal-compare' : crowdLoad ? 'crowd-load' : 'detour'
+const sdkAvatars = process.argv.includes('--sdk-avatars')
+const sdkIntegration = process.argv.includes('--sdk-integration') || sdkAvatars
+const mode = sdkIntegration ? 'sdk-integration' : traversal ? 'traversal-compare' : crowdLoad ? 'crowd-load' : 'detour'
 const folder = resolve('.comparison', mode + '-sdk')
 await mkdir(resolve(folder, 'src'), { recursive: true })
 try {
@@ -22,7 +24,10 @@ await writeFile(resolve(folder, 'tsconfig.json'), JSON.stringify({
   include: ['src/**/*.ts']
 }))
 await writeFile(resolve(folder, '.dclignore'), '.*\nnode_modules\nsrc\npackage.json\ntsconfig.json\n')
-const entry = traversal
+const entry = sdkIntegration
+  ? "import { runSdkIntegrationScene } from '../../../tools/sdk-detour-probe/sdk-integration-scene'\n" +
+    'export function main() { runSdkIntegrationScene(' + sdkAvatars + ') }\n'
+  : traversal
   ? "import { runTraversalComparisonScene } from '../../../tools/sdk-detour-probe/traversal-compare-scene'\n" +
     'export function main() { runTraversalComparisonScene() }\n'
   : crowdLoad
@@ -33,4 +38,5 @@ const entry = traversal
   : "import { runProbe } from '../../../tools/sdk-detour-probe/probe'\n" +
     'export function main() { runProbe() }\n'
 await writeFile(resolve(folder, 'src/index.ts'), entry)
+if (sdkIntegration) await (await import('./sdk-landing-models')).writeLandingModels(folder)
 console.log(folder)

@@ -107,6 +107,7 @@ const approachZ = 4.72
 const runupVariants = [
   { id: 'ready', label: 'Already at speed' },
   { id: 'too-slow', label: 'Too slow at the lip' },
+  { id: 'build-speed', label: 'Build speed from rest' },
   { id: 'side-on', label: 'Recover the run-up' },
   { id: 'wall', label: 'Run-up obstructed' },
   { id: 'clear-beam', label: 'Stand before the lip' },
@@ -115,7 +116,7 @@ const runupVariants = [
 
 function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
   const start = platform('launch-deck', 2.6, launchZ + radius + 0.06)
-  const target = platform('landing-deck', 9.12, 10.08)
+  const target = platform('landing-deck', launchZ + 2.65 - radius, launchZ + 2.95 + radius)
   const floor = lowerDeck()
   const surfaces = [start, target, floor]
   const ready = variantId === 'ready'
@@ -127,7 +128,8 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
   const wall = variantId === 'wall'
     ? makeBox('runup-wall', 'obstacle', [6.6, platformY, 5.18], [9.4, 2.8, 5.52])
     : undefined
-  let beam = startsCrouched ? beamAt(6.10) : undefined
+  const originalBeam = beamAt(launchZ - 0.5)
+  let beam = startsCrouched ? originalBeam : undefined
   let feet: Point = ready || tooSlow
     ? [laneX, platformY, launchZ]
     : retreat ? [laneX + 0.85, platformY, 6.53] : [laneX, platformY, 4.94]
@@ -139,7 +141,11 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
   let detail = 'Check launch speed, stance clearance and actual landing support.'
   let flight: Flight | undefined
   let beamShifted = false
-  let stoodBeforeLaunch = false
+  let tick = 0
+  let shiftedTick = 0
+  let baselineStandTick = 0
+  let standTick = 0
+  let launchTick = 0
   let runupChecked = false
   let retreatPoints: Point[] | undefined
 
@@ -151,6 +157,7 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
 
   function step(dt: number) {
     if (verdict !== 'running') return
+    tick++
 
     if (flight) {
       const until = flight.time + dt
@@ -158,6 +165,7 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
       feet = contact?.point ?? trajectory(flight, until)
       flight.time = until
       if (contact) {
+        const stoodBeforeLaunch = standTick > 0 && standTick === baselineStandTick && standTick < launchTick
         finish(shouldLand && contact.surface === target && (!startsCrouched || stoodBeforeLaunch),
           'Contact with ' + contact.surface.id, 'Touchdown')
       } else if (until > 1.4) {
@@ -205,22 +213,30 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
       }
     }
     const remaining = launchZ - feet[2]
-    const timeToSpeed = (runupSpeed - speed) / runupAcceleration
-    const acceleratingFor = Math.min(dt, timeToSpeed)
-    const stepSpeed = speed + runupAcceleration * acceleratingFor
-    const distance = (speed + stepSpeed) * acceleratingFor / 2 + stepSpeed * (dt - acceleratingFor)
-    const travel = Math.min(remaining, distance)
+    function runupDistance(entrySpeed: number) {
+      const acceleratingFor = Math.min(dt, (runupSpeed - entrySpeed) / runupAcceleration)
+      const stepSpeed = entrySpeed + runupAcceleration * acceleratingFor
+      return (entrySpeed + stepSpeed) * acceleratingFor / 2 + stepSpeed * (dt - acceleratingFor)
+    }
+    const travel = Math.min(remaining, runupDistance(speed))
     speed = Math.min(runupSpeed, Math.sqrt(speed ** 2 + 2 * runupAcceleration * travel))
     heading = 0
     feet = [laneX, platformY, feet[2] + travel]
 
-    if (variantId === 'moving-beam' && !beamShifted && feet[2] >= 6.10 + radius - runupSpeed * dt) {
-      beam = beamAt(launchZ + radius + 0.05)
-      beamShifted = true
+    if (startsCrouched && baselineStandTick === 0) {
+      const stillBlocked = overlapsBody(originalBeam, feet, standingHeight)
+      if (!stillBlocked) baselineStandTick = tick
+      const nextFeet: Point = [laneX, platformY, Math.min(launchZ, feet[2] + runupDistance(speed))]
+      if (variantId === 'moving-beam' && !beamShifted && stillBlocked &&
+          !overlapsBody(originalBeam, nextFeet, standingHeight)) {
+        beam = beamAt(launchZ + radius + 0.05)
+        shiftedTick = tick
+        beamShifted = true
+      }
     }
     if (beam && stance === crouchingHeight && !overlapsBody(beam, feet, standingHeight)) {
       stance = standingHeight
-      stoodBeforeLaunch = feet[2] < launchZ - epsilon
+      if (feet[2] < launchZ - epsilon) standTick = tick
     }
     if (remaining - travel > epsilon) {
       detail = (stance === standingHeight ? 'Standing' : 'Crouched') + ' · ' + speed.toFixed(2) + ' m/s'
@@ -231,14 +247,23 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
     const predictedLanding = trajectory(candidate, jumpDuration)
     const blockedByStance = stance !== standingHeight || (beam !== undefined && overlapsBody(beam, feet, standingHeight))
     const canReachLanding = hasFootprint(target, predictedLanding)
+    const displacement = predictedLanding[2] - launchZ
+    const speedOracle = tooSlow ? 0.8 : 2.8
+    if (Math.abs(displacement - speedOracle) > epsilon || Math.abs(feet[2] - launchZ) > epsilon ||
+        launchZ + radius >= start.center[2] + start.size[2] / 2) {
+      finish(false, 'Measured flight or launch pose differs from the independent 0.8 s velocity oracle.', 'Stopped')
+      return
+    }
     if (blockedByStance || !canReachLanding) {
-      const expected = blockedByStance ? variantId === 'moving-beam' && beamShifted : tooSlow && !canReachLanding
+      const expected = blockedByStance ? variantId === 'moving-beam' && beamShifted &&
+        shiftedTick > 0 && baselineStandTick === shiftedTick + 1 && standTick === 0 : tooSlow && !canReachLanding
       finish(expected && hasFootprint(start, feet),
         blockedByStance ? 'No standing clearance at the lip. Bot stays on the launch deck.' :
           speed.toFixed(2) + ' m/s does not reach the landing window.', 'Stopped')
       return
     }
     phase = 'In flight'
+    launchTick = tick
     detail = 'Takeoff at ' + speed.toFixed(2) + ' m/s'
     flight = candidate
   }
@@ -261,7 +286,8 @@ export const runupJump: TraversalScenario = {
 const chainVariants = [
   { id: 'room-to-brake', label: 'Room to brake' },
   { id: 'short-landing', label: 'Landing too short' },
-  { id: 'close-waypoints', label: 'Close waypoints' }
+  { id: 'close-waypoints', label: 'Close waypoints at 30 Hz' },
+  { id: 'close-waypoints-60hz', label: 'Close waypoints at 60 Hz' }
 ] as const
 
 const brakingAcceleration = 4
@@ -270,7 +296,8 @@ const intermediateZ = 7.8
 const waypointTolerance = 0.35
 
 function createChainedJumps(variantId: string, route?: TraversalRouter): TraversalRun {
-  const closeWaypoints = variantId === 'close-waypoints'
+  const doubleStep = variantId === 'close-waypoints-60hz'
+  const closeWaypoints = variantId === 'close-waypoints' || doubleStep
   const expectedRejection = variantId === 'short-landing'
   const firstSpeed = closeWaypoints ? 1.2 : 3.5
   const launchAt = intermediateZ - firstSpeed * jumpDuration
@@ -295,6 +322,7 @@ function createChainedJumps(variantId: string, route?: TraversalRouter): Travers
   let verdict: TraversalFrame['verdict'] = 'running'
   let detail = 'Check intermediate landing before committing to a second jump.'
   let tick = 0
+  let firstTakeoffTick = 0
   let middleContactTick = 0
   let secondTakeoffTick = 0
   let nearWaypointBeforeContact = false
@@ -338,6 +366,7 @@ function createChainedJumps(variantId: string, route?: TraversalRouter): Travers
           }
         }
         phase = 'First jump'
+        firstTakeoffTick = tick
         detail = 'First takeoff. Second jump requires confirmed contact and zero speed.'
         return
       }
@@ -364,10 +393,12 @@ function createChainedJumps(variantId: string, route?: TraversalRouter): Travers
           detail = 'Intermediate contact confirmed. Braking from ' + speed.toFixed(2) + ' m/s.'
           return
         }
-        const inOrder = middleContactTick > 0 && middleContactTick < secondTakeoffTick && secondTakeoffTick < tick
+        const inOrder = firstTakeoffTick > 0 && firstTakeoffTick < middleContactTick &&
+          middleContactTick < secondTakeoffTick && secondTakeoffTick < tick
         const checkedCloseWaypoint = !closeWaypoints || nearWaypointBeforeContact
         finish(contact.surface === target && inOrder && checkedCloseWaypoint,
-          'Contact with ' + contact.surface.id +
+          'Contact with ' + contact.surface.id + ' · ' + (doubleStep ? 60 : 30) + ' Hz · action ticks ' +
+          [firstTakeoffTick, middleContactTick, secondTakeoffTick, tick].join('/') +
             (nearWaypointBeforeContact ? ' · waypoint was in range before intermediate contact.' : ''),
           'Touchdown')
         return
@@ -399,7 +430,15 @@ function createChainedJumps(variantId: string, route?: TraversalRouter): Travers
     }
   }
 
-  return { frame: () => frame(shapes, feet, standingHeight, 0, phase, verdict, detail), step }
+  return {
+    frame: () => frame(shapes, feet, standingHeight, 0, phase, verdict, detail),
+    step(dt) {
+      if (doubleStep) {
+        step(dt / 2)
+        step(dt / 2)
+      } else step(dt)
+    }
+  }
 }
 
 export const chainedJumps: TraversalScenario = {

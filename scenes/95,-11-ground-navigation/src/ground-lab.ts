@@ -13,7 +13,7 @@ import {
   pointerEventsSystem
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import { GATE, OPPOSING_GROUPS, SCENARIOS, SLABS, type Point, type Scenario, type Slab } from './arena'
+import { GATE, GATE_SIZE, OPPOSING_GROUPS, SCENARIOS, SLABS, type Point, type Scenario, type Slab } from './arena'
 import { createCrowdObserver, createNavcatCrowd } from './crowd'
 import meshes from './generated/meshes'
 import { createNavcatNavigatorFromMesh, type Route } from './navigation'
@@ -134,7 +134,7 @@ export function mountGroundLab() {
   for (const shape of SLABS) slab(shape)
   const open = createNavcatNavigatorFromMesh(meshes.open)
   const closed = createNavcatNavigatorFromMesh(meshes.closed)
-  const gate = box(Vector3.create(GATE.x, GATE.y, GATE.z), Vector3.create(3, 1.55, 0.16), colors.island)
+  const gate = box(Vector3.create(GATE.x, GATE.y, GATE.z), Vector3.create(...GATE_SIZE), colors.island)
   const bot = addEntity()
   Transform.create(bot, { position: Vector3.create(12.4, BOT_HEIGHT / 2, 2.6), scale: Vector3.create(0.58, BOT_HEIGHT, 0.58) })
   MeshRenderer.setSphere(bot)

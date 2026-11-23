@@ -1,4 +1,5 @@
 import type { Point } from '../../src/arena'
+import { traversalCaseIds } from '../../src/traversal/catalog-coverage'
 import { TRAVERSAL_SCENARIOS } from '../../src/traversal/registry'
 import { createTraversalSimulation } from '../../src/traversal/simulation'
 import { createTraversalNavigator, createTraversalRouter, traversalSurfaces, type AuthoredLink, type TraversalBackend } from './traversal-routing'
@@ -17,6 +18,7 @@ export function runTraversalComparison(record: typeof TRAVERSAL_RUNS[number], no
     while (frame.verdict === 'running') frame = simulation.tick()
     return {
       backend, scenario: scenario.id, variant: variant.id, ticks: simulation.ticks(),
+      caseIds: traversalCaseIds(scenario.id, variant.id),
       verdict: frame.verdict, phase: frame.phase, detail: frame.detail,
       probes: router?.probes ?? []
     }

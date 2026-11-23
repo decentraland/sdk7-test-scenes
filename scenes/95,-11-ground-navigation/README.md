@@ -29,6 +29,7 @@ Open **Traversal tests**, choose a fixture and select a variant. The scene spawn
 | Chained jumps | Braking distance and confirmed support between jumps |
 | Mantle clearance | Correct ledge, grip, capsule fit and landing support |
 | Contested ladder | Approach direction, exclusive use and blocked dismount |
+| Elevator boarding | Boarding window, closed shaft, ride, exit and in-flight fallback to stairs |
 | Interrupted jump | Cancellation before or after takeoff, lost support and stale probes |
 | Ledge transfer | Consecutive grips and world pose continuity on a moving support |
 
@@ -38,7 +39,7 @@ The registry loads pure TypeScript fixtures from `src/traversal/fixtures`. The v
 
 ### Compare traversal planners
 
-`pnpm compare:traversal` runs all 30 variants with the reference approach, navcat and Detour. It writes route probes, ticks and final verdicts to `.comparison/traversal-node.json`. Both engines bake the same walkable tops and blocked areas from each fixture. The runner records separate native link checks for six fixtures, with authored and projected endpoints, and tests direction and reachability when a link is removed.
+`pnpm compare:traversal` runs 36 variants with the reference approach, navcat and Detour. It writes route probes, ticks, the matched research cases and final verdicts to `.comparison/traversal-node.json`. Both engines bake the same walkable tops and blocked areas from each fixture. The runner records separate native link checks for six fixtures, with authored and projected endpoints, and tests direction and reachability when a link is removed.
 
 The shared controllers own jumping, climbing, contacts, cancellation and recovery. The shaft fixture presents the two consecutive hangs as one link between walkable floors in the native link check. The planner approaches and the native link checks run separately, so the report does not treat finding an off-mesh link as proof of executing it.
 
@@ -49,6 +50,18 @@ pnpm exec sdk-commands start --skip-build --no-watch --no-client --port 8185 --d
 ```
 
 Open the preview in Desktop Explorer. The isolated scene runs automatically and logs `[traversal-compare]` results. Repeated small bakes exercise integration and are outside the crowd performance comparison.
+
+### Check live SDK7 collisions and transforms
+
+```sh
+pnpm exec tsx scripts/prepare-detour-sdk-probe.ts --sdk-integration
+pnpm exec sdk-commands build --skip-install --dir .comparison/sdk-integration-sdk
+pnpm exec sdk-commands start --skip-build --no-watch --no-client --port 18485 --dir .comparison/sdk-integration-sdk
+```
+
+Open `http://127.0.0.1:18485` as the realm for parcel `95,-11` in a regular Desktop Explorer window. The scene runs automatically and prints named verdicts as `[sdk-navigation-integration]`. Navcat and Detour run the same door update, opening action, partial-route fixture and corridor recovery as Node. Other probes exercise SDK raycasts against a platform moved while a result is pending, three GLTF loading outcomes, and physical collider pose before and after reparenting.
+
+For the two-avatar variant, prepare with `--sdk-avatars` and rebuild. Use a multiplayer realm supported by the target Explorer. Have two separate guests stand on the indicated pads while the observer stays off them. On the second prompt, the left guest leaves and the right guest stays. The observer checks both physics-only and player raycast masks and then selects the freed pad. The Node catalogue also runs a deterministic variant that feeds duplicate remote-avatar IDs into the landing check.
 
 ## Reproduce the comparison
 
@@ -61,6 +74,8 @@ pnpm compare --write-replays
 ```
 
 The full run writes per-case data to `.comparison/results.json`. The last command also refreshes the reference paths bundled in the scene. `pnpm compare:fixtures` exports the geometry and cases without running the native adapters. Detour runs through WASM in Node, Godot runs headless and landmass runs as a release Rust executable. The Node suite and scene build need neither Godot nor Cargo.
+
+The route check independently validates walkable support and the agent's footprint along each segment. A failed check gives the command a non-zero exit code after it writes the report.
 
 All geometry starts in `src/arena.ts`. Navcat and Detour each bake the same input surfaces and agent settings. Godot and landmass query the same exported convex Recast polygons. Their paths use that export without Detour's separate detail mesh. The two gate states are baked ahead. The mid-route check starts on the east ramp after closing the gate.
 
@@ -119,10 +134,10 @@ The timed batches include crowd updates and reading back agent positions. Geomet
 
 ## Research catalogue comparison
 
-`pnpm compare:catalog` runs the case manifest in Node using the same navcat and Detour versions as the scene. The detailed results go to `.comparison/catalog-comparison.json`. Each entry includes the source case ID and title, tested layer, coverage and a verdict per backend. An adapted case tests only the mechanism described in its result. Controller results use shared logic and should be read independently of engine results. The runner keeps unsupported features and missing inputs visible. A failed check gives the command a non-zero exit code after it writes the report.
+`pnpm compare:catalog` runs the case manifest in Node using the same navcat and Detour versions as the scene. The detailed results go to `.comparison/catalog-comparison.json`. Each entry includes the source case ID and title, tested layer, coverage and a verdict per backend. An adapted case tests only the mechanism described in its result. Controller results use shared logic and should be read independently of engine results. The runner distinguishes unavailable engine features from missing required inputs or variants. A failed or missing check gives the command a non-zero exit code after it writes the report.
 
 `specified` is the default label for a registered test. It does not certify that the test exercises every condition in the research recipe. The full catalogue run covers the two Node backends. Explorer playback and the standalone Godot and landmass comparisons cover separate fixture sets.
 
-The imported grid and MAPF cases use [Moving AI's official map and scenario archives](https://movingai.com/benchmarks/mapf/index.html). Keep extracted `.map` files at the root of `.comparison/movingai`, with scenario files under `scen-even` and `scen-random`. Set `DCL_MAPF_DATA` to use another directory. The report identifies any expected file that is absent. The benchmark inputs stay local and are excluded from scene deployment.
+The imported grid and MAPF cases use [Moving AI's official map and scenario archives](https://movingai.com/benchmarks/mapf/index.html) and the separate [Dragon Age arena map](https://movingai.com/benchmarks/dao/arena.map.zip). Keep extracted `.map` files at the root of `.comparison/movingai`, with scenario files under `scen-even` and `scen-random`. Set `DCL_MAPF_DATA` to use another directory. The report identifies any expected file that is absent. The benchmark inputs stay local and are excluded from scene deployment.
 
 If the default Detour buffers lose routes in the imported single-agent grid cases, the runner repeats them with 16,384 search nodes, 4,096 corridor polygons and 4,096 output points. The verdict uses the second pass and the report keeps both counts. The reported query percentile is for the default limits.

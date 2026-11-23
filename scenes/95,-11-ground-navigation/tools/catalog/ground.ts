@@ -6,6 +6,7 @@ import { createNavcatNavigatorFromMesh, toRecastGeometry, type Route } from '../
 import type { TraversalShape } from '../../src/traversal/types'
 import { createDetourNavigatorFromMesh, type DetourQueryLimits } from '../../test/detour'
 import { createTraversalNavigator, traversalSurfaces, type TraversalBackend } from '../sdk-detour-probe/traversal-routing'
+import { groundClearance, groundFollower, pointDistance, type GroundEdge } from './ground-motion'
 import { box, check, type CatalogCase } from './types'
 
 export function floor(x0: number, x1: number, z0: number, z1: number, y = 0, farY = y): Surface {
@@ -108,9 +109,11 @@ function compareFloors(backend: TraversalBackend) {
 function narrowVertical(backend: TraversalBackend) {
   return usingMesh(backend, getSurfaces(true), (nav) => {
     const first = nav.route([8, 0, 11], [9, 0, 11])
-    const miss = nav.route([8, 1.5, 11], [9, 0, 11])
-    return check(first.status === 'complete' && miss.status === 'unreachable' && miss.points.length === 0,
-      'A vertical miss between decks returns no points after a successful query.')
+    const wrongStart = nav.route([8, 1.5, 11], [9, 0, 11])
+    const wrongGoal = nav.route([8, 0, 11], [9, 1.5, 11])
+    return check(first.status === 'complete' && [wrongStart, wrongGoal].every((route) =>
+      route.status === 'unreachable' && route.points.length === 0),
+    'Vertical misses for start and goal between decks return no points after a successful lower-floor query.')
   })
 }
 
@@ -127,22 +130,57 @@ export const groundCases: CatalogCase[] = [
       nav.route([2, -2, 8], [2, 3, 9]).status === 'unreachable', { tiled }))
     return check(matches, 'Solo and 2 m tiles both connect the sloped decks and isolate the floor beneath.')
   }),
-  { ...ground('E04', (backend) => {
-    const outcomes = [1.35, 1.4, 1.45].map((gap) => {
-      const shapes = [openFloor, box('ceiling', 'obstacle', [5, gap, 0], [7, gap + 0.2, 10])]
-      return usingMesh(backend, traversalSurfaces(shapes, 1.4), (nav) => nav.route([2, 0, 5], [10, 0, 5]).status)
+  ground('E04', (backend) => {
+    const cell = 0.05
+    const height = 1.4
+    // Rasterizing the flat floor raises the walkable span top by one cell.
+    const start: Point = [2, cell, 5]
+    const goal: Point = [10, cell, 5]
+    const outcomes = [-1, 0, 1].map((offset) => {
+      const roofY = height + (offset + 1) * cell
+      const roof = floor(5, 7, 0, 10, roofY)
+      const faces = [floor(0, 12, 0, 10), { ...roof, triangles: [0, 2, 1, 0, 3, 2] }]
+      const route = usingMesh(backend, faces, (nav) => nav.route(start, goal), { height })
+      const follower = groundFollower(start)
+      follower.assign(route.status === 'complete' ? route.points : [goal])
+      let safe = true
+      for (let tick = 0; tick < 80 && !follower.finished() && safe; tick++) {
+        safe = follower.step(0.2, (a, b) => Math.max(a[0], b[0]) + 0.22 <= 5 ||
+          Math.min(a[0], b[0]) - 0.22 >= 7 ||
+          Math.max(a[1], b[1]) + height <= roofY + 0.001)
+      }
+      return { status: route.status, swept: safe && follower.finished() && pointDistance(follower.position(), goal) < 0.02 }
     })
-    return check(outcomes.join() === 'unreachable,complete,complete', 'Ground clearance cuts at H−1, H, H+1: ' + outcomes.join(', '))
-  }), coverage: 'adapted' },
+    return check(outcomes.every(({ status, swept }, i) => status === (i === 0 ? 'unreachable' : 'complete') && swept === (i > 0)),
+      'Native ceiling triangles and the swept capsule agree at H−1, H, H+1: ' + JSON.stringify(outcomes))
+  }),
   ground('E05', (backend) => {
-    const direct = (radius: number, shift: number) => usingMesh(backend, [
-      floor(0, 4, 0, 8), floor(8, 12, 0, 8), floor(4, 8, 2.7 + shift, 3.3 + shift), floor(4, 8, 6, 8)
-    ], (nav) => {
-      const route = nav.route([2, 0, 3], [10, 0, 3])
-      return route.status === 'complete' && crosses(route, 0, 6, ([, , z]) => z < 4)
-    }, { radius })
-    return check([0, 0.023].every((shift) => direct(0.18, shift) && !direct(0.36, shift)),
-      'Small agent uses the 0.6 m shortcut, larger agent is routed away from it at two voxel offsets.')
+    const start: Point = [2, 0, 3]
+    const goal: Point = [10, 0, 3]
+    const outcomes = [0, 0.023].flatMap((shift) => {
+      const low = 2.7 + shift
+      const high = 3.3 + shift
+      const faces = [floor(0, 4, 0, 8), floor(8, 12, 0, 8), floor(4, 8, low, high), floor(4, 8, 6, 8)]
+      const edge = (x0: number, z0: number, x1: number, z1: number): GroundEdge => [[x0, 0, z0], [x1, 0, z1]]
+      const boundaries = [
+        edge(0, 0, 0, 8), edge(12, 0, 12, 8), edge(0, 8, 12, 8),
+        edge(0, 0, 4, 0), edge(8, 0, 12, 0), edge(4, low, 8, low), edge(4, high, 8, high),
+        edge(4, 6, 8, 6), ...[4, 8].flatMap((x) => [edge(x, 0, x, low), edge(x, high, x, 6)])
+      ]
+      return [0.18, 0.36].map((radius) => {
+        const route = usingMesh(backend, faces, (nav) => nav.route(start, goal), { radius })
+        const clearance = groundClearance(route.points, boundaries)
+        const throughExpectedLane = crosses(route, 0, 6, ([, , z]) =>
+          radius === 0.18 ? z >= low && z <= high : z >= 6 && z <= 8)
+        // The contour simplifier can move vertices by less than half a 5 cm cell.
+        const last = route.points[route.points.length - 1]
+        const legal = route.status === 'complete' && throughExpectedLane && clearance >= radius - 0.025 &&
+          last !== undefined && pointDistance(last, goal) < 0.12
+        return { radius, clearance: clearance.toFixed(3), status: route.status, legal }
+      })
+    })
+    return check(outcomes.every(({ legal }) => legal),
+      'Each bot must reach its route through the expected branch with a safe swept disc: ' + JSON.stringify(outcomes))
   }),
   ground('E06', (backend) => {
     const slopes = [1.7, 2.45, 3.5].map((y) => usingMesh(backend,
@@ -151,7 +189,7 @@ export const groundCases: CatalogCase[] = [
     const steps = [0, 0.05, 0.30].map((y) => usingMesh(backend,
       [floor(0, 3, 0, 3), floor(0, 3, 3, 7, y)], (nav) => nav.route([1.5, 0, 1], [1.5, y, 6]).status))
     return check(slopes[0] === 'complete' && slopes[1] === 'complete' && slopes[2] === 'unreachable' &&
-      steps[0] === 'complete' && steps[2] === 'unreachable',
+      steps[0] === 'complete' && steps[1] === 'complete' && steps[2] === 'unreachable',
     'Slope limit and steps: slopes ' + slopes.join(', ') + '; steps ' + steps.join(', '))
   }),
   ground('E07', (backend) => {
@@ -185,29 +223,53 @@ export const groundCases: CatalogCase[] = [
       'Three approaches retain connectivity without clipping either hole.')
     })
   }),
-  { ...ground('E10', (backend) => {
-    const faces = [floor(0, 4, 0, 6, 2), floor(4, 8, 0, 6, 2),
-      { vertices: [[4, 2, 3], [4.00001, 2, 3], [4, 2, 3.00001]], triangles: [0, 1, 2] } satisfies Surface]
-    return usingMesh(backend, faces, (nav) => {
-      const routes = [3.98, 4, 4.02].map((x) => nav.route([x, 2, 3], [6, 2, 3]))
-      return check(routes.every((r) => r.status === 'complete' && r.points.every((p) =>
-        p.every(Number.isFinite) && Math.abs(p[1] - 2) < 0.15)), 'Three edge queries stay finite and on the authored deck.')
-    })
+  { ...ground('E11', (backend) => {
+    const faces = [floor(0, 10, 0, 2), floor(0, 10, 2.65, 5), floor(8, 10, 2, 2.65)]
+    const route = (links: Parameters<typeof createTraversalNavigator>[4] = []) =>
+      usingMesh(backend, faces, (nav) => nav.route([1, 0, 1], [1, 0, 4]), { links })
+    const legalPortal = (path: Route) => path.status === 'complete' &&
+      crosses(path, 2, 2.3, ([x]) => x >= 8 && x <= 10) &&
+      !crosses(path, 2, 2.3, ([x]) => x < 8 || x > 10)
+    const valid = route()
+    // A bad seam weld is represented as one false adjacency. These adapters do not
+    // expose Godot's edge-connection margin directly.
+    const faulty = route([{ from: [1, 0, 1.6], to: [1, 0, 3.1] }])
+    return check(legalPortal(valid) && faulty.status === 'complete' &&
+      crosses(faulty, 2, 2.3, ([x]) => x < 8) && !legalPortal(faulty),
+    'The portal oracle accepts the remote bridge and rejects an injected false connection across the gap.')
   }), coverage: 'adapted' },
-  { ...ground('E11', (backend) => usingMesh(backend, [floor(0, 10, 0, 2), floor(0, 10, 2.65, 5), floor(8, 10, 2, 2.65)], (nav) => {
-    const path = nav.route([1, 0, 1], [1, 0, 4])
-    return check(path.status === 'complete' && crosses(path, 2, 2.3, ([x]) => x >= 8 && x <= 10),
-      'Parallel corridors connect only through the remote portal.')
-  })), coverage: 'adapted' },
-  { ...ground('E13', (backend) => {
+  ground('E13', (backend) => {
     const a = floor(0, 3, 0, 3)
     const b = floor(3, 6, 0, 3)
     const extra = floor(2.99, 3.01, 0, 3)
     const route = (faces: readonly Surface[]) => usingMesh(backend, faces, (nav) => nav.route([1, 0, 1], [5, 0, 1]))
+    // Exterior edges should have one incident triangle and interior edges two.
+    // The weld uses the same cell spacing as the baked input.
+    function conflicts(faces: readonly Surface[]) {
+      const edges = new Map<string, number>()
+      for (const face of faces) {
+        const vertices = face.vertices.map((point) => point.map((value) => Math.round(value / 0.05)).join(','))
+        for (let i = 0; i < face.triangles.length; i += 3) {
+          const triangle = face.triangles.slice(i, i + 3).map((index) => vertices[index])
+          for (let j = 0; j < 3; j++) {
+            const key = [triangle[j], triangle[(j + 1) % 3]].sort().join(' → ')
+            edges.set(key, (edges.get(key) ?? 0) + 1)
+          }
+        }
+      }
+      return [...edges].filter(([edge, count]) => count > 2 || edge.split(' → ')[0] === edge.split(' → ')[1])
+    }
     const clean = route([a, b])
-    const withDuplicate = route([a, b, b, extra])
-    return check(clean.status === 'complete' && withDuplicate.points.every((p) => p.every(Number.isFinite)) &&
-      (withDuplicate.status === 'unreachable' || pathLength(withDuplicate) >= 3.99),
-    'A third coplanar edge yields a finite valid route or a safe refusal; the clean mesh connects.')
-  }), coverage: 'adapted' },
+    const malformed = [[a, b, b], [a, b, extra]].map((input) => {
+      const result = route(input)
+      const diagnostics = conflicts(input)
+      const safe = result.status === 'unreachable' || (pathLength(result) >= 3.99 &&
+        result.points.every(([x, y, z]) => x >= 0 && x <= 6 && y >= -0.05 && y <= 0.15 && z >= 0 && z <= 3))
+      return { conflicts: diagnostics.length, status: result.status, safe }
+    })
+    return check(conflicts([a, b]).length === 0 && clean.status === 'complete' &&
+      malformed.every(({ conflicts, safe }) => conflicts > 0 && safe),
+    'After welding to the bake grid, both the duplicate polygon edge and the thin wedge are diagnosed. ' +
+      'The clean maps connect and malformed inputs give a safe route or refusal: ' + JSON.stringify(malformed))
+  }),
 ]

@@ -338,64 +338,101 @@ const earlyLadder = integration('GAME-T14', (backend) => {
   'Early attachment took over only the matching descending route. A wrong ladder resolved to its own reachable exit.')
 })
 
-const retryCooldown = controller('GAME-T16', () => {
-  const goal = floor('short-jump', 2.8, 0, 0, 0.7)
+const retryCooldown = integration('GAME-T16', (backend) => {
+  const goal = floor('short-jump', 2.8, 0, 1.1, 1.0, 3.2)
+  const start = floor('takeoff', 0, 0, 1.1, 1.5, 3.2)
+  const alternate = floor('rear bypass', 1.4, 0, 2.3, 2.8, 0.8)
+  const lower = floor('recovery', 1.4, -0.6, 0, 2.1, 1.7)
+  const target: Point = [2.8, 0, 0]
   const history = new Map<string, { revision: number; failures: number; expires: number }>()
-  function attempt(agent: string, revision: number, now: number, vx: number) {
-    const key = agent + ':' + goal.id
-    const record = history.get(key)
-    const active = record?.revision === revision && record.expires > now ? record : { revision, failures: 0, expires: now + 5 }
-    if (active.failures >= 3) return 'walk-detour'
-    const route = flight({ position: noGround, velocity: [vx, 4, 0], floors: [goal] })
-    if (!route.support) {
-      history.set(key, { ...active, failures: active.failures + 1 })
-      return 'miss'
-    }
-    history.delete(key)
-    return 'arrived'
-  }
-  const outcomes = [0, 1, 2, 3].map((now) => attempt('a', 1, now, 1.8))
-  const second = attempt('b', 1, 3, 3.5)
-  const validForRevision = attempt('a', 2, 4, 3.5)
-  const retryAfterExpiry = [0, 1, 2].every((_, n) => attempt('c', 1, n, 1.8) === 'miss') &&
-    attempt('c', 1, 4, 3.5) === 'walk-detour' && attempt('c', 1, 6, 3.5) === 'arrived'
-  return check(outcomes.join('/') === 'miss/miss/miss/walk-detour' && second === 'arrived' &&
-    validForRevision === 'arrived' && retryAfterExpiry,
-  'Three measured misses vetoed the link for that bot only. Another bot, a new mesh revision and expired cooldown retained access.')
+  const geometry = [start, goal, alternate, lower]
+  return withNavigator(backend, geometry, 0.12, 0.45, [{ from: noGround, to: target }], (withJump) => {
+    return withNavigator(backend, geometry, 0.12, 0.45, [], (onlyWalk) => {
+      let launches = 0
+      function attempt(agent: string, revision: number, now: number, vx: number) {
+        const key = agent + ':' + goal.id
+        const previous = history.get(key)
+        const active = previous?.revision === revision && previous.expires > now
+          ? previous : { revision, failures: 0, expires: now + 5 }
+        if (active.failures >= 3) {
+          const detour = onlyWalk(noGround, target)
+          const reachesEnd = Math.hypot(...(detour.points[detour.points.length - 1] ?? noGround)
+            .map((coord, axis) => coord - target[axis])) < 0.12
+          return detour.status === 'complete' && reachesEnd && detour.points.some((point) => point[2] > 1.85)
+            ? 'walk-detour' : 'detour-missing'
+        }
+        const route = withJump(noGround, target)
+        if (route.status !== 'complete' || route.points.some((point) => point[2] > 0.1)) return 'jump-missing'
+        launches++
+        const landing = flight({ position: noGround, velocity: [vx, 4, 0], floors: [goal, lower] })
+        if (landing.support === lower.id) {
+          history.set(key, { ...active, failures: active.failures + 1 })
+          return 'miss'
+        }
+        if (landing.support !== goal.id) return 'no-safe-landing'
+        history.delete(key)
+        return 'arrived'
+      }
+      const outcomes = [0, 1, 2, 3].map((now) => attempt('a', 1, now, 1.8))
+      const attemptsBeforeDetour = launches
+      // Same time, same revision and shared jump route. Only A's executor has vetoed it.
+      const second = attempt('b', 1, 3, 3.5)
+      const validForRevision = attempt('a', 2, 4, 3.5)
+      const retryAfterExpiry = [0, 1, 2].every((_, now) => attempt('c', 1, now, 1.8) === 'miss') &&
+        attempt('c', 1, 4, 3.5) === 'walk-detour' && attempt('c', 1, 6, 3.5) === 'arrived'
+      return check(outcomes.join('/') === 'miss/miss/miss/walk-detour' && attemptsBeforeDetour === 3 &&
+        second === 'arrived' && validForRevision === 'arrived' && retryAfterExpiry,
+      'Three measured misses followed by a native rear bypass at 3 s: ' + outcomes.join('/') +
+        '. Same-revision peer: ' + second + '; refreshed revision: ' + validForRevision + '.')
+    })
+  })
 })
 
 const timedRetry = controller('GAME-T17', () => {
   const start = floor('before-fence', 0.95, 0, 0, 3, 2.1)
   const ledge = floor('fence-top', 1.44, 0.6, 0, 0.7, 0.7)
+  const origin: Point = [0.32, 0, 0]
+  const raised: Point = [origin[0], top(ledge) + 0.1, origin[2]]
+  const grip: Point = [0.81, raised[1], 0]
+  const topPose: Point = [ledge.center[0], top(ledge), ledge.center[2]]
+  const maxStep = 2 / 60
+
   function execute(contacts: readonly boolean[]) {
-    let feet: Point = [0.32, 0, 0]
-    let elapsed = 0
-    let slips = 0
-    for (const frictionSufficient of contacts.slice(0, 2)) {
-      const raised: Point = [feet[0], top(ledge) + 0.1, feet[2]]
-      elapsed += 0.45
-      if (capsuleHits(feet, raised, ledge)) return { valid: false, elapsed, slips }
-      if (frictionSufficient && plantAfterGrip(feet, ledge)) {
-        feet = [ledge.center[0], top(ledge), ledge.center[2]]
-        return { valid: supports(ledge, feet), elapsed, slips, usedDetour: false }
+    let feet = origin
+    let ticks = 0
+    const slipped: { ticks: number; feet: Point }[] = []
+    function follow(next: Point, needsSupport = false) {
+      for (let tick = 0; tick < 90 && feet !== next; tick++) {
+        const proposal = advance(feet, next, maxStep)
+        if (capsuleHits(feet, proposal, ledge) || (needsSupport && !supports(start, proposal))) return false
+        feet = proposal
+        ticks++
       }
-      slips++
-      elapsed += 0.25
-      if (!supports(start, feet)) return { valid: false, elapsed, slips }
+      return feet === next
     }
-    const around: Point[] = [[0.32, 0, 0.75], [2.20, 0, 0.75]]
-    for (const waypoint of around) {
-      if (!supports(start, waypoint) || capsuleHits(feet, waypoint, ledge)) return { valid: false, elapsed, slips }
-      elapsed += Math.hypot(waypoint[0] - feet[0], waypoint[2] - feet[2]) / 2
-      feet = waypoint
+    for (const frictionSufficient of contacts.slice(0, 2)) {
+      if (!supports(start, feet) || !follow(raised) || !follow(grip)) return undefined
+      if (frictionSufficient) {
+        const finished = follow([topPose[0], raised[1], topPose[2]]) && follow(topPose) && supports(ledge, feet)
+        return finished ? { ticks, slipped, feet, usedDetour: false } : undefined
+      }
+      if (!follow(raised) || !follow(origin) || !supports(start, feet)) return undefined
+      slipped.push({ ticks, feet })
     }
-    return { valid: true, elapsed, slips, usedDetour: true }
+    if (!follow([origin[0], 0, 0.75], true) || !follow([2.2, 0, 0.75], true)) return undefined
+    return { ticks, slipped, feet, usedDetour: true }
   }
+  const control = execute([true])
   const success = execute([false, true])
   const fallback = execute([false, false])
-  return check(success.valid && success.slips === 1 && !success.usedDetour && close(success.elapsed, 1.15) &&
-    fallback.valid && fallback.slips === 2 && fallback.usedDetour === true && close(fallback.elapsed, 2.715),
-  'A forced slip consumed movement time on the original support. A finite retry budget forced the verified side passage.')
+  return check(control !== undefined && success !== undefined && fallback !== undefined &&
+    success.slipped.length === 1 && !success.usedDetour && supports(ledge, success.feet) &&
+    success.ticks - control.ticks === success.slipped[0].ticks &&
+    fallback.slipped.length === 2 && fallback.usedDetour && fallback.feet[0] > 2 && supports(start, fallback.feet) &&
+    fallback.slipped[1].ticks === fallback.slipped[0].ticks * 2 &&
+    fallback.ticks > fallback.slipped[1].ticks &&
+    [...success.slipped, ...fallback.slipped].every(({ feet }) => feet[1] === origin[1] && supports(start, feet)),
+  'Measured ascent/slip/recovery at 60 Hz. A successful retry charges the entire first attempt; two slips spend the budget and walk the supported side route.')
 })
 
 const fasterFall = controller('TALK-T02', () => {
@@ -480,39 +517,68 @@ const boostDoubleJump = controller('TALK-T05', () => {
 })
 
 const generatedChain = integration('TALK-T06', (backend) => {
-  let seed = 1897
+  const initialSeed = 1897
+  let seed = initialSeed
   function sample() {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0
     return seed / 0x100000000
   }
+  const timestep = 1 / 120
   const launch: Point = [2.5, 0.25, 2]
-  const middle: Point = [5.4 + sample() * 0.36, 0.5, 3.2 + sample() * 0.28]
-  const goal: Point = [2.6 + sample() * 0.32, 0.8, 5.8 + sample() * 0.33]
+  const firstCommand = { velocity: [3.95 + sample() * 0.25, 4.15, 1.50 + sample() * 0.16] as Point, time: 0.76 }
+  const secondCommand = { velocity: [-3.95 - sample() * 0.25, 4.05, 3.48 + sample() * 0.12] as Point, time: 0.71 }
+  function expectedContact(start: Point, { velocity, time }: typeof firstCommand): Point {
+    return [start[0] + velocity[0] * time, start[1] + velocity[1] * time - 5 * time ** 2, start[2] + velocity[2] * time]
+  }
+  // Derive the supports from the control sequence, before baking or simulating any contact.
+  const middle = expectedContact(launch, firstCommand)
+  const goal = expectedContact(middle, secondCommand)
   const routeNodes = [launch, middle, goal]
   const shapes = routeNodes.map(([x, y, z], i) => floor('seeded-' + i, x, y, z, 1.4, 1.4))
   const links = [{ from: launch, to: middle }, { from: middle, to: goal }]
   let runway: Point = [launch[0] - 0.42, launch[1], launch[2]]
   let steps = 0
-  while (runway !== launch && supports(shapes[0], runway, 0.12)) {
-    runway = advance(runway, launch, (1.4 + steps++ * 0.1) / 120)
+  while (steps < 120 && runway !== launch && supports(shapes[0], runway, 0.12)) {
+    runway = advance(runway, launch, (1.4 + steps++ * 0.1) * timestep)
   }
-  function replay(from: Point, to: Point, floors: readonly TraversalShape[]) {
-    const time = (4 + Math.sqrt(16 - 20 * (to[1] - from[1]))) / 10
-    return flight({ position: from, velocity: [(to[0] - from[0]) / time, 4, (to[2] - from[2]) / time],
-      floors, limit: 1.2 })
+  const headingFor = ([x, , z]: Point) => Math.atan2(z, x)
+  const secondHeading = headingFor(secondCommand.velocity)
+  function replay(floors: readonly TraversalShape[]) {
+    const first = flight({ position: runway, velocity: firstCommand.velocity, floors, limit: 1.2 })
+    if (first.support !== shapes[1].id) return { first, turnTicks: 0 }
+    const anchor = first.contact.position
+    let heading = headingFor(first.contact.velocity)
+    let turnTicks = 0
+    while (heading !== secondHeading && turnTicks < 120 && supports(shapes[1], anchor, 0.12)) {
+      const remaining = secondHeading - heading
+      const maxTurn = Math.PI * 2 * timestep
+      heading = Math.abs(remaining) <= maxTurn ? secondHeading : heading + Math.sign(remaining) * maxTurn
+      turnTicks++
+    }
+    if (heading !== secondHeading) return { first, turnTicks }
+    const secondSpeed = Math.hypot(secondCommand.velocity[0], secondCommand.velocity[2])
+    const second = flight({
+      position: anchor, velocity: [Math.cos(heading) * secondSpeed, secondCommand.velocity[1], Math.sin(heading) * secondSpeed],
+      floors, limit: 1.2
+    })
+    return { first, second, turnTicks }
   }
-  const first = replay(launch, middle, shapes)
-  const second = replay(first.contact.position, goal, shapes)
-  const missing = replay(launch, middle, [shapes[0], shapes[2]])
+  const { first, second, turnTicks } = replay(shapes)
+  const missing = replay([shapes[0], shapes[2]])
   const connected = withNavigator(backend, shapes, 0.12, 0.6, links, (route) => {
     const result = route(launch, goal)
-    return result.status === 'complete' && result.points.some((p) => Math.hypot(p[0] - middle[0], p[2] - middle[2]) < 0.4)
+    return result.status === 'complete' && result.points.some((p) =>
+      Math.hypot(p[0] - middle[0], p[1] - middle[1], p[2] - middle[2]) < 0.4)
   })
-  const disconnected = withNavigator(backend, [shapes[0], shapes[2]], 0.12, 0.6, [], (route) =>
+  const disconnected = withNavigator(backend, [shapes[0], shapes[2]], 0.12, 0.6, links, (route) =>
     route(launch, goal).status === 'unreachable')
-  return check(runway === launch && steps > 1 && first.support === 'seeded-1' && second.support === 'seeded-2' && !missing.support &&
-    second.contact.position[0] < first.contact.position[0] && connected && disconnected,
-  'The fixed-seed waypoint sequence replayed two grounded launches, including movement back along X. Removing the only middle support broke the first landing and native reachability.')
+  const matches = (contact: typeof first.contact, target: Point, time: number) =>
+    close(contact.time, time) && contact.position.every((coordinate, i) => close(coordinate, target[i]))
+  return check(runway === launch && steps > 1 && first.support === shapes[1].id && matches(first.contact, middle, firstCommand.time) &&
+    turnTicks > 0 && second?.support === shapes[2].id && matches(second.contact, goal, secondCommand.time) &&
+    second.contact.position[0] < first.contact.position[0] && !missing.first.support && !missing.second && connected && disconnected,
+  'Motion-first seed ' + initialSeed + ': ' + JSON.stringify({ firstCommand, middle, turnTicks, secondCommand, goal }) +
+    '. Removing the intermediate support broke first contact and native reachability despite unchanged authored links.')
 })
 
 const shelfBetweenSamples = controller('TALK-T08', () => {

@@ -11,10 +11,12 @@ import {
 import { Detour, NavMeshQuery, Raw, statusDetail } from 'recast-navigation'
 import { generateTileCache } from 'recast-navigation/generators'
 import type { Point } from '../../src/arena'
-import { bakeNavcatMesh, createNavcatNavigatorFromMesh, toRecastGeometry } from '../../src/navigation'
+import { bakeNavcatMesh, createNavcatNavigatorFromMesh, toRecastGeometry, type Route } from '../../src/navigation'
 import { bakeDetourMesh, createDetourNavigatorFromMesh } from '../../test/detour'
 import { crosses, floor } from './ground'
-import { CELL_SIZE, detourPoint, detourTiles, nativePoint, navcatTiles, usingNativeTiles } from './native-tiles'
+import { degenerateDetails } from './ground-detail'
+import { groundFollower, pointDistance } from './ground-motion'
+import { CELL_SIZE, detourPoint, detourTiles, nativePoint, navcatTiles, TILE_EDGE, usingNativeTiles } from './native-tiles'
 import { check, unsupported, type CatalogCase } from './types'
 
 const nearest = (mesh: NavMesh, point: Point) =>
@@ -32,7 +34,31 @@ const importResolution: CatalogCase['run'] = (backend) => {
     return check(incompatible === undefined && restored?.status === 'complete' &&
       crosses(restored, 0, 2, ([, , z]) => z > 0.56 && z < 1.24),
     'SDK import guard rejects incompatible voxel size using the native tile metadata, then routes through the only door when restored.')
-  }, room, room)
+  }, room, room, { roundTrip: true })
+}
+
+const persistedLink: CatalogCase['run'] = (backend) => {
+  const from: Point = [1, 0, 0.9]
+  const to: Point = [5, 0, 0.9]
+  const links = [{ from: [2.5, 0, 0.9] as Point, to: [4.5, 0, 0.9] as Point }]
+  const right = floor(4, 6, 0, 1.8)
+  const open = [floor(0, 3, 0, 1.8), right]
+  const revised = [floor(0, 2.25, 0, 1.8), floor(2.25, 2.75, 0.45, 1.8), floor(2.75, 3, 0, 1.8), right]
+  const direction = (nav: { navigator: ReturnType<typeof createNavcatNavigatorFromMesh> }) => {
+    const through = nav.navigator.route(from, to)
+    return through.status === 'complete' && crosses(through, 0, 3.5, ([, , z]) => Math.abs(z - 0.9) < 0.2) &&
+      nav.navigator.route(to, from).status === 'unreachable'
+  }
+  const initial = usingNativeTiles(backend, direction, open, revised, { links })
+  return usingNativeTiles(backend, (fixture) => {
+    const loaded = direction(fixture)
+    const evicted = fixture.evict() && fixture.navigator.route(from, to).status === 'unreachable'
+    fixture.refill('changed')
+    const rebuilt = direction(fixture)
+    return check(initial && loaded && evicted && rebuilt,
+      'The serialized one-way link survives a fresh runtime and replacement of its source tile. ' +
+      JSON.stringify({ initial, loaded, evicted, rebuilt }))
+  }, open, revised, { links, roundTrip: true })
 }
 
 const anyAngleCosts: CatalogCase['run'] = (backend) => {
@@ -196,7 +222,35 @@ const surfaceStopsAtGap: CatalogCase['run'] = (backend) => {
   const surfaces = [floor(0, 2, 0, 2), floor(2.8, 5, 0, 2)]
   const from: Point = [1.5, 0, 1]
   const to: Point = [3.4, 0, 1]
-  const isLocal = (x: number) => x >= from[0] && x <= 2
+  const observe = (local: Point, visited: number, success: boolean, path: Route) => {
+    // Only an explicit action may leave the launch deck. Use the native local
+    // movement result as the start of the fixed-step ballistic traversal.
+    const clamped = success && visited > 0 && local[0] >= from[0] && local[0] <= 2
+    const actionAvailable = path.status === 'complete' && crosses(path, 0, 2.4, ([, , z]) => Math.abs(z - 1) < 0.1)
+    if (!clamped || !actionAvailable) return check(false, 'Local movement or the requested crossing action is invalid.')
+    const ticks = 48
+    const dt = 1 / 60
+    const duration = ticks * dt
+    const speed = (to[0] - local[0]) / duration
+    const radius = 0.2
+    let crossedAirborne = 0
+    let clearance = Infinity
+    let position: Point = [local[0], 0, local[2]]
+    for (let tick = 1; tick <= ticks; tick++) {
+      const t = tick * dt
+      const next: Point = [local[0] + speed * t, 4 * t - 5 * t * t, local[2]]
+      if (position[0] < 2.8 && next[0] > 2) {
+        clearance = Math.min(clearance, position[1], next[1])
+        crossedAirborne++
+      }
+      position = next
+    }
+    const landed = position[0] - radius >= 2.8 && position[0] + radius <= 5 &&
+      Math.abs(position[0] - to[0]) < 0.01 && Math.abs(position[1]) < 1e-6 && position[2] >= radius && position[2] <= 2 - radius
+    return check(crossedAirborne > 0 && clearance > 0.02 && landed,
+      'Native walk remains on the launch deck. The separately authorized fixed-step action clears the gap and lands on the far deck: ' +
+      JSON.stringify({ local, crossedAirborne, clearance, landed }))
+  }
   if (backend === 'navcat') {
     const mesh = bakeNavcatMesh(surfaces)
     addOffMeshConnection(mesh, {
@@ -205,9 +259,8 @@ const surfaceStopsAtGap: CatalogCase['run'] = (backend) => {
     })
     const start = nearest(mesh, from)
     const local = moveAlongSurface(mesh, start.nodeRef, start.position, nativePoint(to), DEFAULT_QUERY_FILTER)
-    return check(start.success && local.success && isLocal(local.position[0]) && local.visited.length >= 1 &&
-      createNavcatNavigatorFromMesh(mesh).route(from, to).status === 'complete',
-    'Native local surface movement stops on the launch deck. An authored off-mesh action has a complete route across the gap.')
+    return observe(nativePoint(local.position), local.visited.length, start.success && local.success,
+      createNavcatNavigatorFromMesh(mesh).route(from, to))
   }
   const mesh = bakeDetourMesh(surfaces, undefined, [{
     startPosition: detourPoint(from), endPosition: detourPoint(to), radius: 0.4, bidirectional: false
@@ -217,9 +270,8 @@ const surfaceStopsAtGap: CatalogCase['run'] = (backend) => {
   try {
     const start = query.findNearestPoly(detourPoint(from))
     const local = query.moveAlongSurface(start.nearestRef, start.nearestPoint, detourPoint(to))
-    return check(start.success && local.success && isLocal(local.resultPosition.x) && local.visited.length >= 1 &&
-      navigator.route(from, to).status === 'complete',
-    'Native local surface movement stops on the launch deck. An authored off-mesh action has a complete route across the gap.')
+    const { x, y, z } = local.resultPosition
+    return observe([x, y, -z], local.visited.length, start.success && local.success, navigator.route(from, to))
   } finally {
     Raw.destroy(query.defaultFilter.raw)
     query.destroy()
@@ -317,19 +369,37 @@ const streamedFrontier: CatalogCase['run'] = (backend) => usingNativeTiles(backe
     if (!fixture.loaded()) return 'pending'
     return fixture.path(start, goal).complete ? 'complete' : 'blocked'
   }
+  const outbound = fixture.navigator.route(start, goal)
+  const traveler = groundFollower(start)
+  traveler.assign(outbound.points)
+  traveler.step(0.23, () => true)
   if (positionState() !== 'complete' || !fixture.evict()) return check(false, 'Could not evict the centre tile.')
   const partial = fixture.path(start, goal)
   const pending = positionState() === 'pending' && partial.refs.length > 0 && !partial.complete &&
     partial.refs.every(fixture.valid) && fixture.navigator.route(start, goal).status === 'unreachable'
+  const beforeFrontier = 12
+  for (let tick = 0; tick < beforeFrontier; tick++) traveler.step(0.1, (_, next) => next[0] + 0.18 <= TILE_EDGE)
+  const held = traveler.position()
+  const approachedButStopped = !traveler.finished() && held[0] > TILE_EDGE - 0.3 && held[0] + 0.18 <= TILE_EDGE
   fixture.refill('changed')
-  const knownBlocked = positionState() === 'blocked'
+  const knownBlocked = positionState() === 'blocked' && fixture.navigator.route(held, goal).status === 'unreachable'
   if (!fixture.evict()) return check(false, 'Could not remove the known blocked tile.')
   fixture.refill('original')
-  const resumed = positionState() === 'complete'
+  const recovered = fixture.navigator.route(held, goal)
+  traveler.assign(recovered.points)
+  for (let tick = 0; tick < 60 && !traveler.finished(); tick++) traveler.step(0.1, () => true)
+  const resumed = recovered.status === 'complete' && traveler.finished() && pointDistance(traveler.position(), goal) < 0.1
+
+  const returnPath = fixture.navigator.route(traveler.position(), start)
+  traveler.assign(returnPath.points)
+  traveler.step(0.28, () => true)
   if (!fixture.evict()) return check(false, 'Could not invalidate the loaded path a second time.')
-  const stopped = positionState() === 'pending' && !fixture.path(start, goal).complete
-  return check(pending && knownBlocked && resumed && stopped,
-    'A missing native tile exposes a usable partial prefix and pending state. A loaded disconnected tile is blocked, reopening completes, and eviction stops the path again.')
+  for (let tick = 0; tick < 15; tick++) traveler.step(0.1, (_, next) => next[0] - 0.18 >= TILE_EDGE * 2)
+  const stopped = returnPath.status === 'complete' && positionState() === 'pending' && !traveler.finished() &&
+    traveler.position()[0] - 0.18 >= TILE_EDGE * 2 && traveler.position()[0] < TILE_EDGE * 2 + 0.3 &&
+    fixture.navigator.route(traveler.position(), start).status === 'unreachable'
+  return check(pending && approachedButStopped && knownBlocked && resumed && stopped,
+    'The follower stops before the unloaded footprint, distinguishes unknown from loaded-blocked, replans from the held pose on load, and stops safely after mid-route removal.')
 }, undefined, [floor(0, 2.75, 0, 1.8), floor(3.25, 6, 0, 1.8)])
 
 const evictAndReturn: CatalogCase['run'] = (backend) => usingNativeTiles(backend, (fixture) => {
@@ -356,13 +426,15 @@ const evictAndReturn: CatalogCase['run'] = (backend) => usingNativeTiles(backend
 })
 
 export const nativeRegressionCases: CatalogCase[] = [
-  { id: 'E12', layer: 'integration', coverage: 'adapted', run: importResolution },
+  { id: 'E10', layer: 'planner', run: degenerateDetails },
+  { id: 'E12', layer: 'integration', run: importResolution },
   { id: 'E14', layer: 'planner', run: anyAngleCosts },
   { id: 'E15', layer: 'planner', run: zeroPolygon },
   { id: 'E16', layer: 'planner', run: pathStatuses },
-  { id: 'E19', layer: 'planner', coverage: 'adapted', run: surfaceStopsAtGap },
+  { id: 'E19', layer: 'integration', run: surfaceStopsAtGap },
+  { id: 'E21', layer: 'integration', run: persistedLink },
   { id: 'E23', layer: 'integration', run: obstacleQueue },
   { id: 'E24', layer: 'integration', run: replaceCorridor },
-  { id: 'GAME-21', layer: 'integration', coverage: 'adapted', run: streamedFrontier },
+  { id: 'GAME-21', layer: 'integration', run: streamedFrontier },
   { id: 'GAME-29', layer: 'integration', run: evictAndReturn }
 ]

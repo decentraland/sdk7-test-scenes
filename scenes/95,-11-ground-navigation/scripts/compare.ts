@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { OPPOSING_GROUPS, getSurfaces, type Point, type Scenario } from '../src/arena'
+import { evaluateArenaRoute } from '../src/arena-route-check'
 import { createCrowdObserver, createNavcatCrowd, type CrowdMetrics, type CrowdRun } from '../src/crowd'
 import { bakeNavcatMesh, createNavcatNavigatorFromMesh, type Navigator, type Route } from '../src/navigation'
 import { createDetourCrowd, createDetourNavigator } from '../test/detour'
@@ -79,31 +80,6 @@ async function native(executable: string, args: string[], report: string, backen
   return data
 }
 
-function crossesRamp(path: readonly Point[], side: 'east' | 'west') {
-  return path.slice(1).some(([x, y, z], i) => {
-    const [ax, ay, az] = path[i]
-    if (ay === y) return false
-    const t = (1.5 - ay) / (y - ay)
-    const heightX = ax + t * (x - ax)
-    const heightZ = az + t * (z - az)
-    return t >= 0 && t <= 1 && heightZ >= 3 && heightZ <= 9 && (side === 'east' ? heightX >= 11 : heightX <= 5)
-  })
-}
-
-function evaluate(scenario: Scenario, route: TimedRoute) {
-  if (!Number.isFinite(route.p95Ms) || route.p95Ms < 0 || route.points.some((p) => p.length !== 3 || !p.every(Number.isFinite))) {
-    throw new Error('Malformed route timing or points: ' + scenario.id)
-  }
-  if (route.status !== scenario.expected) return 'unexpected status'
-  if (route.status === 'unreachable') return route.points.length === 0 ? 'pass' : 'returned partial route'
-  if (!route.points.length || distance(route.points[0], scenario.start) > 0.6 ||
-      distance(route.points[route.points.length - 1], scenario.goal) > 0.6) return 'wrong endpoint'
-  if (scenario.via && !crossesRamp(route.points, scenario.via)) return 'wrong ramp'
-  if (scenario.id === 'gate-closes-mid-route' && crossesRamp(route.points, 'east')) return 'used closed ramp'
-  if (scenario.id === 'underpass' && route.points.some((point) => Math.abs(point[1]) >= 0.35)) return 'wrong floor'
-  return 'pass'
-}
-
 const flags = new Set(process.argv.slice(2))
 if (flags.has('--node-only') && flags.has('--write-replays')) throw new Error('Replays require all four engines')
 if ([...flags].some((flag) => !['--node-only', '--write-replays'].includes(flag))) {
@@ -132,7 +108,10 @@ const report = backends.map((backend) => ({
     if (matches.length !== 1) throw new Error(backend.backend + ': missing or repeated case ' + scenario.id)
     const route = matches[0]
     const length = route.points.slice(1).reduce((total, point, index) => total + distance(route.points[index], point), 0)
-    return { ...route, length, verdict: evaluate(scenario, route) }
+    const verdict = Number.isFinite(route.p95Ms) && route.p95Ms >= 0
+      ? evaluateArenaRoute(scenario, route)
+      : 'malformed route timing'
+    return { ...route, length, verdict }
   })
 }))
 
@@ -145,10 +124,10 @@ for (const backend of report) {
   if (backend.crowd) console.log('Opposing groups:', backend.crowd)
 }
 await writeFile(resolve(directory, 'results.json'), JSON.stringify(report, null, 2) + '\n')
-if (flags.has('--write-replays')) {
-  if (report.some((backend) => backend.scenarios.some((scenario) => scenario.verdict !== 'pass'))) {
-    throw new Error('Reference paths were kept because a route check failed. See .comparison/results.json.')
-  }
+if (report.some((backend) => backend.scenarios.some((scenario) => scenario.verdict !== 'pass'))) {
+  console.error('A route check failed. See .comparison/results.json.')
+  process.exitCode = 1
+} else if (flags.has('--write-replays')) {
   const replay = report.filter((backend) => backend.backend !== 'navcat').map(({ backend, runtime, scenarios }) => ({
     backend, runtime,
     scenarios: scenarios.map(({ id, status, points }) => ({

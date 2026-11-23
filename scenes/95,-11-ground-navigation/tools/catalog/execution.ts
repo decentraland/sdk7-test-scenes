@@ -1,7 +1,9 @@
 import type { Point } from '../../src/arena'
-import { advance, capsuleHits, supports } from '../../src/traversal/fixtures/mantles-support'
+import { advance, BOT_RADIUS, capsuleHits, interpolate, supports } from '../../src/traversal/fixtures/mantles-support'
 import { createTraversalNavigator, traversalSurfaces } from '../sdk-detour-probe/traversal-routing'
+import { withNavigator } from './advanced-actions-support'
 import { canStepUp, descendingSupport, distance, resolveMotion, worldPoint } from './execution-support'
+import { sweptGap } from './time-crowd-support'
 import { box, check, type CatalogCase } from './types'
 
 function staleCompletion() {
@@ -11,9 +13,9 @@ function staleCompletion() {
   const ended = new Map<Ticket, 'abort' | 'finish'>()
   const ownership = new Map<string, Ticket>()
 
-  function start(generation: number, attempt: number, slot: string, route: string) {
+  function start(generation: number, attempt: number, slot: string, route: string, x: number) {
     const ticket = { id: 7, generation, attempt }
-    actors.set(ticket.id, { ticket, slot, route, x: 0 })
+    actors.set(ticket.id, { ticket, slot, route, x })
     ownership.set(slot, ticket)
     return ticket
   }
@@ -28,17 +30,19 @@ function staleCompletion() {
     return true
   }
 
-  const removed = start(1, 1, 'climb', 'old-goal')
+  const removed = start(1, 1, 'climb', 'old-goal', 1.25)
   const removeAbort = terminate(removed, 'abort')
   actors.delete(removed.id)
-  const replacement = start(2, 1, 'ladder', 'other-goal')
+  // The recycled entity takes the same slot, making release by a stale event observable.
+  const replacement = start(2, 1, 'climb', 'other-goal', 2.25)
   const oldCompletion = terminate({ ...removed }, 'finish')
   const other = actors.get(replacement.id)
-  const replacementIntact = other?.x === 0 && other.route === 'other-goal' && ownership.get('ladder') === replacement
+  const replacementIntact = other?.x === 2.25 && other.route === 'other-goal' && ownership.get('climb') === replacement
   const teleportAbort = terminate(replacement, 'abort')
-  const teleported = start(2, 2, 'climb', 'teleport-goal')
+  const teleported = start(2, 2, 'climb', 'teleport-goal', 3.25)
   const oldAttemptCompletion = terminate({ ...replacement }, 'finish')
-  const teleportIntact = actors.get(teleported.id)?.x === 0 && ownership.get('climb') === teleported
+  const actor = actors.get(teleported.id)
+  const teleportIntact = actor?.x === 3.25 && actor.route === 'teleport-goal' && ownership.get('climb') === teleported
   const validCompletion = terminate({ ...teleported }, 'finish')
   const duplicateCompletion = terminate({ ...teleported }, 'finish')
 
@@ -50,90 +54,123 @@ function staleCompletion() {
 
 function singleMotionWriter() {
   const blocker = box('arrival-blocker', 'obstacle', [2.6, 0, -0.3], [2.7, 1.8, 0.3])
+  const deck = box('floor below transition', 'surface', [-1, -0.2, -1], [5, 0, 1])
   const dt = 1 / 30
   function simulate(blocked: boolean, previousAvoidance: boolean) {
     let pose: Point = [0, 0, 0]
-    let transitioning = true
+    let phase: 'jump' | 'recovery' | 'walk' = 'jump'
     let avoidance = false
     let finish = 0
     let abort = 0
-    let foreignMovement = 0
-    let nextTickOwner = ''
-    for (let tick = 1; tick <= 31; tick++) {
+    let avoidedProposals = 0
+    let maximumTravel = 0
+    let stray = 0
+    let safeRecovery = true
+    const owners: string[] = []
+    for (let tick = 1; tick <= 70; tick++) {
       const t = tick * dt
-      const otherX = 3 - 3 * t
-      const walk: Point = [pose[0] + 2 * dt, pose[1], Math.abs(pose[0] - otherX) < 0.6 ? pose[2] + 0.1 : pose[2]]
-      const transition: Point = [3 * t, Math.max(4 * t * (1 - t), 0), 0]
-      const aborting = transitioning && blocked && capsuleHits(pose, transition, blocker)
-      const commit = resolveMotion(transitioning ? 'transition' : 'walk', [
-        { owner: 'walk', point: walk }, { owner: 'transition', point: aborting ? pose : transition }
+      const peer: Point = [3 - 3 * t, 0, -0.48]
+      const steers = Math.hypot(pose[0] - peer[0], pose[2] - peer[2]) < 0.8
+      if (phase !== 'walk' && steers) avoidedProposals++
+      const walk: Point = [pose[0] + 2 * dt, pose[1], pose[2] + (steers && previousAvoidance ? 0.1 : 0)]
+      const ballistic: Point = [3 * t, Math.max(4 * t * (1 - t), 0), 0]
+      const obstructed = phase === 'jump' && blocked && capsuleHits(pose, ballistic, blocker)
+      if (obstructed) phase = 'recovery'
+      const recovery: Point = [pose[0], Math.max(0, pose[1] - 1.5 * dt), pose[2]]
+      const action = phase === 'recovery' ? recovery : ballistic
+      const commit = resolveMotion(phase === 'walk' ? 'walk' : 'transition', [
+        { owner: 'walk', point: walk }, { owner: 'transition', point: action }
       ])
+      maximumTravel = Math.max(maximumTravel, distance(pose, commit.point))
+      if (phase !== 'walk' && (commit.point !== action || avoidance)) stray++
+      if (phase === 'recovery' && capsuleHits(pose, commit.point, blocker)) safeRecovery = false
       pose = commit.point
-      if (aborting) {
-        transitioning = false
-        avoidance = previousAvoidance
+      owners.push(commit.owner)
+      if (phase === 'walk') break
+      if (phase === 'recovery' && pose[1] === 0) {
+        safeRecovery &&= supports(deck, pose)
         abort++
-        continue
-      }
-      if (!transitioning) {
-        nextTickOwner = commit.owner
-        break
-      }
-      if (pose[2] !== 0 || Math.abs(pose[0] - 3 * t) > 1e-8 || avoidance) foreignMovement++
-      if (tick === 30) {
-        transitioning = false
-        avoidance = previousAvoidance
+        phase = 'walk'
+      } else if (phase === 'jump' && tick === 30) {
+        safeRecovery &&= supports(deck, pose)
         finish++
+        phase = 'walk'
+      }
+      if (phase === 'walk') {
+        avoidance = previousAvoidance
       }
     }
-    return { finish, abort, avoidance, foreignMovement, nextTickOwner }
+    return { finish, abort, avoidance, stray, owners, safeRecovery, maximumTravel, avoidedProposals }
   }
   const success = simulate(false, true)
   const failure = simulate(true, true)
   const originallyOff = simulate(false, false)
   return check(success.finish === 1 && success.abort === 0 && failure.finish === 0 && failure.abort === 1 &&
-    [success, failure, originallyOff].every((run) => run.nextTickOwner === 'walk' && run.foreignMovement === 0) &&
+    [success, failure, originallyOff].every((run) => run.owners[run.owners.length - 1] === 'walk' &&
+      run.owners.slice(0, -1).every((owner) => owner === 'transition') && run.stray === 0 && run.safeRecovery &&
+      run.maximumTravel < 0.17 && run.avoidedProposals > 0) &&
     success.avoidance && failure.avoidance && !originallyOff.avoidance,
-  'The jump owns motion across 30 ticks, including when the nearby follower steers. Walk resumes with the previous avoidance setting on both exits.')
+  'The jump and blocked safe descent are sole motion owners while the peer triggers steering proposals. Walk resumes on support with the previous avoidance setting.')
 }
 
-function deferredWaypoint() {
-  let depth = 0
-  let maxDepth = 0
-  let pathGoal = 'old'
-  const committed = new Set<string>()
-  const pending: (() => void)[] = []
-  const trace: string[] = []
+const deferredWaypoint: CatalogCase['run'] = (backend) => {
+  const from: Point = [0.75, 0, 1.5]
+  const entrance: Point = [2.5, 0, 1.5]
+  const exit: Point = [5.5, 2.5, 1.5]
+  const goal: Point = [7.2, 2.5, 1.5]
+  const floors = [
+    box('ladder approach', 'surface', [0, -0.2, 0], [3.5, 0, 3]),
+    box('upper target', 'surface', [4.8, 2.3, 0], [8, 2.5, 3])
+  ]
+  return withNavigator(backend, floors, 0.15, 0.6, [{ from: entrance, to: exit }], (route) => {
+    const approach = route(from, entrance)
+    if (approach.status !== 'complete') return check(false, 'No native route to the ladder entrance.')
+    let feet = from
+    for (const point of approach.points) {
+      for (let tick = 0; feet !== point && tick < 80; tick++) feet = advance(feet, point, 0.08)
+    }
+    if (distance(feet, entrance) > 0.12) return check(false, 'Follower did not reach the event trigger.')
 
-  function query() {
-    trace.push('query ' + pathGoal)
-  }
+    let depth = 0
+    let maxDepth = 0
+    const queries: { from: Point; path: ReturnType<typeof route> }[] = []
+    const committed = new Set<string>()
+    const pending: (() => void)[] = []
+    const trace: string[] = []
 
-  function process(id: string) {
-    if (committed.has(id) || depth > 0) return
-    depth++
-    maxDepth = Math.max(maxDepth, depth)
-    // The listener asks for a new target path while the waypoint is being dispatched.
-    pending.push(() => { pathGoal = 'new'; query() })
-    process(id)
-    committed.add(id)
-    trace.push('start ' + id)
-    depth--
-  }
+    function process(id: string) {
+      if (committed.has(id) || depth > 0) return
+      depth++
+      maxDepth = Math.max(maxDepth, depth)
+      // The listener asks for a new target path while the waypoint is being dispatched.
+      pending.push(() => {
+        queries.push({ from: feet, path: route(feet, goal) })
+        trace.push('query-new')
+      })
+      process(id)
+      committed.add(id)
+      trace.push('start ' + id)
+      depth--
+    }
 
-  function updateSignal(id: string) {
-    process(id)
-    while (pending.length) pending.shift()?.()
-  }
+    function updateSignal(id: string) {
+      process(id)
+      while (pending.length) pending.shift()?.()
+    }
 
-  updateSignal('ladder')
-  updateSignal('ladder')
-  return check(maxDepth === 1 && pending.length === 0 && pathGoal === 'new' &&
-    trace.join(',') === 'start ladder,query new',
-  'Repeated and reentrant waypoint signals produced one start and one query after the event committed.')
+    updateSignal('ladder')
+    updateSignal('ladder')
+    const nextPath = queries[0]?.path
+    return check(maxDepth === 1 && pending.length === 0 && queries.length === 1 && queries[0]?.from === feet &&
+      trace.join(',') === 'start ladder,query-new' && nextPath?.status === 'complete' &&
+      nextPath.points.some((point) => distance(point, exit) < 0.13) &&
+      distance(nextPath.points[nextPath.points.length - 1] ?? from, goal) < 0.12,
+    'The follower reached the ladder. Reentrant and next-tick duplicate waypoints issued one real upstairs query after commit.')
+  })
 }
 
 const reversedLadder: CatalogCase['run'] = (backend) => {
+  const ladderId = 'tilted-ladder'
   const origin: Point = [8, 0, 8]
   const from = worldPoint([0, 0, 0], origin, 60)
   const to = worldPoint([0, 2, 0.4], origin, 60)
@@ -141,16 +178,56 @@ const reversedLadder: CatalogCase['run'] = (backend) => {
   const upper = box('upper', 'surface', [5, 1.85, 5], [11, 2, 11])
   const surfaces = traversalSurfaces([lower, upper], 1.6)
   const navigator = createTraversalNavigator(backend, surfaces, 0.25, 1.6, [{ from, to, bidirectional: true }], true)
+  const reserved = new Set<string>()
+  const events: { phase: 'enter' | 'exit'; id: string; at: Point }[] = []
+  let feet: Point = [to[0], 0, to[2]]
+  const lowerGoal: Point = feet
+  const upperGoal: Point = [from[0], 2, from[2]]
+
+  function follow(entry: Point, exit: Point, goal: Point) {
+    const path = navigator.route(feet, goal)
+    if (path.status !== 'complete' || distance(path.points[0], feet) >= 0.16 ||
+        distance(path.points[path.points.length - 1], goal) >= 0.16) return false
+    const linkStart = path.points.findIndex((point, i) =>
+      i + 1 < path.points.length && Math.abs(point[1] - path.points[i + 1][1]) > 1)
+    if (linkStart < 0 || distance(path.points[linkStart], entry) >= 0.16 ||
+        distance(path.points[linkStart + 1], exit) >= 0.16 || reserved.has(ladderId)) return false
+
+    function walk(points: readonly Point[], deck: typeof lower, height: number) {
+      for (const point of points) {
+        const target: Point = [point[0], height, point[2]]
+        for (let tick = 0; feet !== target; tick++) {
+          if (tick === 300) return false
+          feet = advance(feet, target, 0.05)
+          if (!supports(deck, feet)) return false
+        }
+      }
+      return true
+    }
+
+    const ascending = entry[1] < exit[1]
+    if (!walk([...path.points.slice(0, linkStart), entry], ascending ? lower : upper, entry[1])) return false
+    reserved.add(ladderId)
+    events.push({ phase: 'enter', id: ladderId, at: feet })
+    for (let tick = 1; tick <= 40; tick++) {
+      feet = interpolate(entry, exit, tick / 40)
+      if (!reserved.has(ladderId) || distance(feet, entry) > distance(entry, exit) + 1e-6) return false
+    }
+    if (!supports(ascending ? upper : lower, feet)) return false
+    events.push({ phase: 'exit', id: ladderId, at: feet })
+    reserved.delete(ladderId)
+    return walk([...path.points.slice(linkStart + 2), goal], ascending ? upper : lower, exit[1])
+  }
+
   try {
     const expectedUpper: Point = [8.34641016, 2, 8.2]
-    const up = navigator.route(from, to)
-    const down = navigator.route(to, from)
-    const matches = (path: typeof up, start: Point, end: Point) => path.status === 'complete' &&
-      path.points.length >= 2 && distance(path.points[0], start) < 0.16 &&
-      distance(path.points[path.points.length - 1], end) < 0.16
-    return check(distance(to, expectedUpper) < 1e-6 && matches(up, origin, expectedUpper) &&
-      matches(down, expectedUpper, origin),
-    'One rotated bidirectional link reports world endpoints in opposite order on ascending and descending routes.')
+    const travelled = follow(from, to, upperGoal) && follow(to, from, lowerGoal)
+    const expected = [origin, expectedUpper, expectedUpper, origin]
+    return check(travelled && supports(lower, feet) && reserved.size === 0 && events.length === expected.length &&
+      events.every(({ phase, id, at }, i) =>
+        id === ladderId && phase === (i % 2 ? 'exit' : 'enter') && distance(at, expected[i]) < 1e-6),
+    'One reserved ladder ID climbs and descends from the opposite endpoints in XZ. World events: ' +
+      events.map(({ phase, at }) => phase + ' ' + at.map((value) => value.toFixed(2)).join('/')).join(', ') + '.')
   } finally {
     navigator.dispose?.()
   }
@@ -161,88 +238,150 @@ const wideLanes: CatalogCase['run'] = (backend) => {
   const far = box('far lip', 'surface', [3.4, 0.8, 8], [9.4, 1, 11])
   const centre = box('temporary obstacle', 'obstacle', [5.8, 1, 8], [6.9, 2.8, 9])
   const completeBlock = box('all lanes blocked', 'obstacle', [3.4, 1, 8], [9.4, 2.8, 9])
-  const samples = [0.2, 0.5, 0.8].map((t) => ({
-    from: [4 + 4 * t, 1, 5.6] as Point,
-    to: [4.4 + 4 * t, 1, 8.6] as Point
-  }))
-  const allowed = (block: typeof centre) => samples.filter(({ to }) => !capsuleHits(to, to, block))
-  const lanes = allowed(centre)
-  const closedLanes = allowed(completeBlock)
-  const open = createTraversalNavigator(backend, traversalSurfaces([near, far, centre], 1.8), 0.25, 1.8, lanes, true)
-  const closed = createTraversalNavigator(backend, traversalSurfaces([near, far, completeBlock], 1.8), 0.25, 1.8, closedLanes, true)
+  const segment = { start: [[4, 1, 5.6], [8, 1, 5.6]], end: [[4.4, 1, 8.6], [8.4, 1, 8.6]] } as const
+  const span = segment.end[1][0] - segment.end[0][0]
+  const routeStarts = [[4.8, 1, 4], [7.2, 1, 4]] as const
+  const routeGoals = [[5.2, 1, 10], [7.6, 1, 10]] as const
+
+  function openIntervals(block: typeof centre) {
+    // Shrink the traversable interval by the capsule radius at both sides of the blocker.
+    const [x] = block.center
+    const halfWidth = block.size[0] / 2 + BOT_RADIUS
+    const leftEnd = (x - halfWidth - segment.end[0][0]) / span
+    const rightStart = (x + halfWidth - segment.end[0][0]) / span
+    if (rightStart <= 0 || leftEnd >= 1) return [[0, 1]]
+    return [[0, Math.min(leftEnd, 1)], [Math.max(rightStart, 0), 1]].filter(([low, high]) => high > low)
+  }
+
+  const intervals = openIntervals(centre)
+  const closedIntervals = openIntervals(completeBlock)
+  if (intervals.length !== 2 || closedIntervals.length !== 0) return check(false, 'Incorrect interval clipping.')
+  const lanes = intervals.map(([low, high]) => {
+    const t = (low + high) / 2
+    return { t, from: interpolate(...segment.start, t), to: interpolate(...segment.end, t) }
+  })
+  const open = createTraversalNavigator(backend, traversalSurfaces([near, far, centre], 1.8), BOT_RADIUS, 1.8, lanes, true)
+  const closed = createTraversalNavigator(backend, traversalSurfaces([near, far, completeBlock], 1.8), BOT_RADIUS, 1.8)
   try {
-    const routeStarts = [[4.8, 1, 4], [7.2, 1, 4]] as const
-    const routeGoals = [[5.2, 1, 10], [7.6, 1, 10]] as const
-    const crossXs = routeStarts.map((start, i) => {
+    const crossings = routeStarts.map((start, i) => {
       const route = open.route(start, routeGoals[i])
-      if (route.status !== 'complete') return NaN
+      if (route.status !== 'complete') return undefined
       for (let j = 1; j < route.points.length; j++) {
-        const [ax, , az] = route.points[j - 1]
-        const [bx, , bz] = route.points[j]
-        if (az < 7 && bz > 7) return ax + (bx - ax) * (7 - az) / (bz - az)
+        if (route.points[j - 1][2] < 6 && route.points[j][2] > 8) {
+          return { from: route.points[j - 1], to: route.points[j] }
+        }
       }
-      return NaN
     })
-    return check(lanes.length === 2 && closedLanes.length === 0 && crossXs[0] < 5.6 && crossXs[1] > 7 &&
-      crossXs[1] - crossXs[0] > 2 * 0.25 &&
-      routeStarts.every((start, i) => closed.route(start, routeGoals[i]).status === 'unreachable'),
-    'Segment transition adapter samples matched lanes, rejects the blocked middle and the full-width closure. Native point links provide the two routes.')
+    const nativeMatches = crossings.every((crossing, i) => crossing !== undefined &&
+      distance(crossing.from, lanes[i].from) < 0.18 && distance(crossing.to, lanes[i].to) < 0.18)
+    const pose = (i: number, tick: number): Point => {
+      const { from, to } = lanes[i]
+      if (tick <= 20) return interpolate(routeStarts[i], from, tick / 20)
+      if (tick >= 50) return interpolate(to, routeGoals[i], (tick - 50) / 20)
+      const t = (tick - 20) / 30
+      const [x, y, z] = interpolate(from, to, t)
+      return [x, y + 2.4 * t * (1 - t), z]
+    }
+    let minGap = Infinity
+    let hits = 0
+    for (let tick = 1; tick <= 70; tick++) {
+      const before = [pose(0, tick - 1), pose(1, tick - 1)]
+      const after = [pose(0, tick), pose(1, tick)]
+      minGap = Math.min(minGap, sweptGap(before[0], after[0], before[1], after[1]).distance)
+      hits += after.filter((next, i) => capsuleHits(before[i], next, centre)).length
+    }
+    const expectedLanes = lanes.every(({ from, to }) =>
+      Math.abs(to[0] - from[0] - 0.4) < 1e-6 && supports(near, from) && supports(far, to))
+    const blockedMiddle = capsuleHits(interpolate(...segment.end, 0.5), interpolate(...segment.end, 0.5), centre)
+    return check(expectedLanes && nativeMatches && blockedMiddle && minGap >= 2 * BOT_RADIUS && hits === 0 &&
+      routeStarts.every((start, i) => supports(far, routeGoals[i]) &&
+        closed.route(start, routeGoals[i]).status === 'unreachable'),
+    'One segment action clipped to ' + intervals.map(([lo, hi]) => lo.toFixed(2) + '–' + hi.toFixed(2)).join(' and ') +
+      '; native matched slots ' + nativeMatches + '; swept capsule gap ' + (minGap - 2 * BOT_RADIUS).toFixed(3) +
+      ' m; obstacle contacts ' + hits + '; closure leaves no slot.')
   } finally {
     closed.dispose?.()
     open.dispose?.()
   }
 }
 
-function rotatingSupport() {
+const rotatingSupport: CatalogCase['run'] = (backend) => {
   const pivot: Point = [8, 2, 8]
   const footOffset: Point = [1, 0, 0]
-  let feet = worldPoint(footOffset, pivot, 0)
-  let snapshotUsed = -1
-  let maximumError = 0
-  let allTicksSupported = true
-  let routeOrigin: Point | undefined
   const localDeck = box('deck in platform space', 'surface', [-2, -0.2, -2], [2, 0, 2])
-  for (let tick = 0; tick <= 15; tick++) {
-    snapshotUsed = tick
-    const yaw = 6 * snapshotUsed
-    const world = worldPoint(footOffset, pivot, yaw)
-    feet = resolveMotion('platform', [
-      { owner: 'platform', point: world },
-      { owner: 'walk', point: [feet[0] + 0.03, feet[1], feet[2]] }
-    ]).point
-    const radiusError = Math.abs(Math.hypot(feet[0] - 8, feet[2] - 8) - 1)
-    const headingError = Math.abs(Math.atan2(8 - feet[2], feet[0] - 8) - (Math.PI / 2) * tick / 15)
-    maximumError = Math.max(maximumError, radiusError, headingError, Math.abs(feet[1] - 2))
-    const relative: Point = [feet[0] - pivot[0], feet[1] - pivot[1], feet[2] - pivot[2]]
-    allTicksSupported &&= supports(localDeck, worldPoint(relative, [0, 0, 0], -yaw))
-    if (tick === 15) routeOrigin = feet
-  }
-  return check(snapshotUsed === 15 && allTicksSupported && maximumError < 1e-6 &&
-    routeOrigin !== undefined && distance(routeOrigin, [8, 2, 7]) < 1e-6,
-  'The local foot anchor keeps its one-metre radius for 15 ticks and the replan starts at the rotated world position.')
+  // Both the whole orbit and the exit lie in the part of the deck walkable at every angle.
+  const stableSurface = box('common walkable area', 'surface', [6.6, 1.8, 6.6], [9.4, 2, 9.4])
+  const exit: Point = [7, 2, 8]
+  return withNavigator(backend, [stableSurface], 0.12, 0.6, [], (route) => {
+    let feet = worldPoint(footOffset, pivot, 0)
+    const snapshots: number[] = []
+    let maximumError = 0
+    let allTicksSupported = true
+    for (let tick = 1; tick <= 15; tick++) {
+      const followerRoute = route(feet, exit)
+      const followerPoint = followerRoute.points[1]
+      if (followerRoute.status !== 'complete' || !followerPoint) {
+        return check(false, 'The concurrent walk update had no usable proposal.')
+      }
+      const yaw = 6 * tick
+      const platformPoint = worldPoint(footOffset, pivot, yaw)
+      feet = resolveMotion('platform', [
+        { owner: 'platform', point: platformPoint },
+        { owner: 'walk', point: advance(feet, followerPoint, 0.03) }
+      ]).point
+      snapshots.push(tick)
+      const radians = Math.PI * tick / 30
+      const expected: Point = [pivot[0] + Math.cos(radians), pivot[1], pivot[2] - Math.sin(radians)]
+      maximumError = Math.max(maximumError, distance(feet, expected))
+      const relative: Point = [feet[0] - pivot[0], feet[1] - pivot[1], feet[2] - pivot[2]]
+      allTicksSupported &&= supports(localDeck, worldPoint(relative, [0, 0, 0], -yaw))
+    }
+    const final = route(feet, exit)
+    const first = final.points[0]
+    const last = final.points[final.points.length - 1]
+    return check(allTicksSupported && maximumError < 1e-6 && final.status === 'complete' && first && last &&
+      distance(first, [8, 2, 7]) <= 0.08 && distance(last, exit) <= 0.08,
+    'All 15 moving-support snapshots were used despite concurrent native walk queries (' + snapshots.join(',') +
+      '). The final route originates at the measured world contact.')
+  })
 }
 
 function sideContact() {
-  const wall = box('wall', 'obstacle', [0.25, 0, 0], [0.4, 1.4, 2.8])
+  const wall = box('wall', 'obstacle', [0.25, 0, -0.6], [0.4, 1.4, 2.8])
   const floor = box('floor', 'surface', [-3, -0.2, -3], [3, 0, 8])
   function jump(hasWall: boolean) {
     let y = 0
     let velocity = 4.905
-    let pose: Point = [0, 0, 0]
+    let pose: Point = [0, 0, -0.6]
+    let drivenByEdge = false
+    for (let step = 1; step <= 6; step++) {
+      const walk: Point = [0.01, 0, -0.6 + step / 10]
+      if (hasWall && capsuleHits(pose, walk, wall)) drivenByEdge = true
+      pose = [0, walk[1], walk[2]]
+    }
+    const validTakeoff = supports(floor, pose)
     let landings = 0
+    let retriggerRequests = 0
     let extraImpulses = 0
-    let blocked = false
+    let ascentWallContacts = 0
     const ascent: number[] = []
     for (let tick = 1; tick <= 35; tick++) {
+      // Request a second impulse after the first side contact while ascending.
+      if (tick === 2) {
+        retriggerRequests++
+        if (supports(floor, pose)) {
+          velocity = 4.905
+          extraImpulses++
+        }
+      }
       const nextZ = tick / 10
       y += velocity / 30 - 4.905 / 900
       velocity -= 9.81 / 30
       const wanted: Point = [hasWall ? 0.01 : 0, y, nextZ]
       const hitWall = hasWall && capsuleHits(pose, wanted, wall)
-      blocked ||= hitWall
+      if (hitWall && velocity > 0) ascentWallContacts++
       const next: Point = [hitWall ? 0 : wanted[0], y, nextZ]
       const support = descendingSupport(pose, next, [floor])
-      if (tick === 5 && support) extraImpulses++
       if (velocity >= 0) ascent.push(next[1])
       if (support) {
         landings++
@@ -250,36 +389,50 @@ function sideContact() {
       }
       pose = next
     }
-    return { ascent, landings, extraImpulses, blocked }
+    return { ascent, landings, extraImpulses, ascentWallContacts, drivenByEdge, validTakeoff, retriggerRequests }
   }
   const contact = jump(true)
   const clear = jump(false)
-  return check(contact.blocked && contact.landings === 1 && clear.landings === 1 && contact.extraImpulses === 0 &&
-    contact.ascent.length === clear.ascent.length && contact.ascent.every((height, i) => height === clear.ascent[i]),
-  'A lateral obstruction removed horizontal pressure without changing the ascent, resetting the jump or counting a landing.')
+  return check(contact.drivenByEdge && contact.ascentWallContacts > 0 && clear.ascentWallContacts === 0 &&
+    [contact, clear].every((run) => run.validTakeoff && run.landings === 1 && run.retriggerRequests === 1 && run.extraImpulses === 0) &&
+    contact.ascent.length === clear.ascent.length && contact.ascent.every((height, i) => {
+      const t = (i + 1) / 30
+      return height === clear.ascent[i] && Math.abs(height - (4.905 * t - 4.905 * t * t)) < 1e-7
+    }),
+  'The grounded run-up and upward sweep hit the wall. Midair retrigger was refused, the ascent matched independent ballistics, and exactly one genuine landing fired.')
 }
 
 function edgeLanding() {
   const deck = box('landing deck', 'surface', [2, 0.8, 0], [4, 1, 2])
   const fallback = box('lower deck', 'surface', [-1, -0.2, -2], [6, 0, 4])
-  const desired: Point = [2.3, 1, 1]
+  const desired: Point = [2.08, 1, 1]
   const top = [2.28, 1.1, 1] as const
-  const edge = [2.11, 1.1, 1] as const
+  const edge = [1.80, 1.1, 1] as const
   const stop = (start: Point) => {
     let from = start
+    let sideContacts = 0
+    let nearTargetInAir = false
     for (let tick = 0; tick < 30; tick++) {
       const to: Point = [from[0], from[1] - 0.05, from[2]]
       const hit = descendingSupport(from, to, [deck, fallback])
-      if (hit) return hit
+      if (hit) return { ...hit, sideContacts, nearTargetInAir }
+      nearTargetInAir ||= distance(to, desired) <= 0.35
+      if (capsuleHits(from, to, deck)) {
+        sideContacts++
+        const slide: Point = [Math.min(from[0], 2 - BOT_RADIUS - 0.001), from[1], from[2]]
+        if (distance(from, slide) > 0.06 || capsuleHits(from, slide, deck)) return undefined
+        from = slide
+        continue
+      }
       from = to
     }
     return undefined
   }
   const grounded = stop(top)
   const grazing = stop(edge)
-  return check(distance(edge, desired) < 0.35 && capsuleHits([1.8, 0.96, 1], [2.11, 0.96, 1], deck) &&
-    grounded?.surface === deck && grazing?.surface === fallback && grazing.contact[1] === 0,
-  'The edge is inside waypoint tolerance and touches the capsule, but only a complete foot contact ends the jump on the upper deck.')
+  return check(grounded?.surface === deck && grounded.nearTargetInAir && grounded.sideContacts === 0 && grazing?.surface === fallback &&
+    grazing.sideContacts === 1 && grazing.nearTargetInAir && grazing.contact[1] === 0,
+  'Both enter waypoint tolerance. The supported descent lands on the deck, while the observed side hit slides out and lands on the lower floor.')
 }
 
 function slideAlongWall() {
@@ -433,10 +586,10 @@ function remoteAvatarHits() {
 export const executionCases: CatalogCase[] = [
   { id: 'EXEC-T02', layer: 'controller', run: staleCompletion },
   { id: 'EXEC-T03', layer: 'controller', run: singleMotionWriter },
-  { id: 'EXEC-T04', layer: 'controller', run: deferredWaypoint },
-  { id: 'EXEC-T05', layer: 'planner', coverage: 'adapted', run: reversedLadder },
-  { id: 'EXEC-T06', layer: 'planner', coverage: 'adapted', run: wideLanes },
-  { id: 'EXEC-T09', layer: 'controller', run: rotatingSupport },
+  { id: 'EXEC-T04', layer: 'integration', run: deferredWaypoint },
+  { id: 'EXEC-T05', layer: 'integration', run: reversedLadder },
+  { id: 'EXEC-T06', layer: 'integration', run: wideLanes },
+  { id: 'EXEC-T09', layer: 'integration', run: rotatingSupport },
   { id: 'EXEC-T10', layer: 'controller', run: sideContact },
   { id: 'EXEC-T11', layer: 'controller', run: edgeLanding },
   { id: 'EXEC-T12', layer: 'controller', run: slideAlongWall },
