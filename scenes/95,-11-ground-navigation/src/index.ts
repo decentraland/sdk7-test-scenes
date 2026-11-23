@@ -127,6 +127,8 @@ export function main() {
   VisibilityComponent.create(marker, { visible: true })
 
   const board = text(Vector3.create(8, 2.06, 2.3), '', 1.65)
+  const probeBoard = text(Vector3.create(12.9, 2.8, 2.3), '', 1.25)
+  let probeRunning = false
   let backendIndex = 0
   let current: Scenario = SCENARIOS[0]
   let doorOpen = true
@@ -245,6 +247,21 @@ export function main() {
   button(9.0, 'Underpass', () => run(SCENARIOS[2]))
   button(10.8, 'Isolated platform', () => run(SCENARIOS[3]))
   button(12.6, 'Opposing groups', runCrowd)
+  button(14.4, 'Run WASM probe', () => {
+    if (probeRunning) return
+    probeRunning = true
+    TextShape.getMutable(probeBoard).text = 'Loading Detour WASM…'
+    void import('../tools/sdk-detour-probe/probe')
+      .then(({ runProbe }) => runProbe(({ message, finished }) => {
+        TextShape.getMutable(probeBoard).text = message
+        probeRunning = !finished
+      }))
+      .catch((error: unknown) => {
+        probeRunning = false
+        TextShape.getMutable(probeBoard).text = 'WASM probe could not load. See scene logs.'
+        console.error('[detour-sdk-probe] ' + String(error))
+      })
+  })
 
   run(current)
   engine.addSystem((dt) => {

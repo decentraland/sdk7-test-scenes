@@ -1,8 +1,5 @@
-import { exportNavMesh, init } from 'recast-navigation'
 import { mkdir, readFile, symlink, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { getSurfaces } from '../src/arena'
-import { bakeDetourMesh } from '../test/detour'
 
 const folder = resolve('.comparison/detour-sdk')
 await mkdir(resolve(folder, 'src'), { recursive: true })
@@ -22,20 +19,8 @@ await writeFile(resolve(folder, 'tsconfig.json'), JSON.stringify({
   include: ['src/**/*.ts']
 }))
 await writeFile(resolve(folder, '.dclignore'), '.*\nnode_modules\nsrc\npackage.json\ntsconfig.json\n')
-await init()
-
-function meshBytes(open: boolean) {
-  const mesh = bakeDetourMesh(getSurfaces(open))
-  try {
-    return JSON.stringify(Array.from(exportNavMesh(mesh)))
-  } finally {
-    mesh.destroy()
-  }
-}
-
 await writeFile(resolve(folder, 'src/index.ts'),
   "import { runProbe } from '../../../tools/sdk-detour-probe/probe'\n" +
-  "export function main() { runProbe(new Uint8Array(" + meshBytes(true) + "), new Uint8Array(" +
-  meshBytes(false) + ")) }\n"
+  "export function main() { runProbe() }\n"
 )
 console.log(folder)

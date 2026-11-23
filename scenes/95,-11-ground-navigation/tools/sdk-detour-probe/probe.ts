@@ -2,6 +2,7 @@ import { engine, executeTask } from '@dcl/sdk/ecs'
 import { init, importNavMesh } from 'recast-navigation'
 import { OPPOSING_GROUPS, SCENARIOS, type Point, type Scenario } from '../../src/arena'
 import { createCrowdObserver, createNavcatCrowd, type CrowdRun } from '../../src/crowd'
+import detourMeshes from '../../src/generated/detour-meshes'
 import meshes from '../../src/generated/meshes'
 import { createNavcatNavigatorFromMesh, type Navigator, type Route } from '../../src/navigation'
 import { createDetourCrowdFromMesh, createDetourNavigatorFromMesh } from '../../test/detour'
@@ -46,24 +47,44 @@ function routeMatches(route: Route, scenario: Scenario) {
   })
 }
 
-export function runProbe(openData: Uint8Array, closedData: Uint8Array) {
+type ProbeStatus = { message: string; finished: boolean }
+
+export function runProbe(onStatus?: (status: ProbeStatus) => void) {
+  const report = (message: string, finished = false) => onStatus?.({ message, finished })
+  const fail = (stage: string, error: unknown) => {
+    log({ stage, result: 'failed', error: String(error) })
+    report('WASM probe failed during ' + stage + '. See scene logs.', true)
+  }
   const globals = globalThis as unknown as Record<string, unknown>
   log({ stage: 'host', wasm: typeof globals.WebAssembly, timer, process: typeof globals.process, window: typeof globals.window })
+  report('Initializing Detour WASM…')
   executeTask(async () => {
     const initStart = now()
     try {
       await init()
       log({ stage: 'init', result: 'ok', ms: now() - initStart })
     } catch (error) {
-      log({ stage: 'init', result: 'failed', error: String(error) })
+      fail('init', error)
       return
+    }
+
+    const detour: ReturnType<typeof createDetourNavigatorFromMesh>[] = []
+    let detourCrowd: ReturnType<typeof createDetourCrowdFromMesh> | undefined
+    function releaseMeshes() {
+      detourCrowd?.dispose()
+      detour.forEach((router) => router.dispose())
     }
 
     try {
       const importStart = now()
-      const detour = [openData, closedData].map((bytes) => createDetourNavigatorFromMesh(importNavMesh(bytes).navMesh))
-      const detourCrowd = createDetourCrowdFromMesh(importNavMesh(openData).navMesh)
+      const openData = new Uint8Array(detourMeshes.open)
+      const closedData = new Uint8Array(detourMeshes.closed)
+      for (const bytes of [openData, closedData]) {
+        detour.push(createDetourNavigatorFromMesh(importNavMesh(bytes).navMesh))
+      }
+      detourCrowd = createDetourCrowdFromMesh(importNavMesh(openData).navMesh)
       log({ stage: 'import', ms: now() - importStart, bytes: openData.length + closedData.length })
+      report('WASM initialized. Running routes and crowds…')
       const navcat = [meshes.open, meshes.closed].map(createNavcatNavigatorFromMesh)
       const routers: Navigator[][] = [navcat, detour]
       const groups: CrowdRun[] = [createNavcatCrowd(meshes.open), detourCrowd]
@@ -76,13 +97,13 @@ export function runProbe(openData: Uint8Array, closedData: Uint8Array) {
       let caseIndex = 0
       let batch = 0
       let crowdStep = 0
+      let matchingDetourRoutes = 0
       let stopped = false
 
       function cleanup() {
         stopped = true
         engine.removeSystem(tick)
-        detour.forEach((router) => router.dispose())
-        detourCrowd.dispose()
+        releaseMeshes()
       }
 
       function tick() {
@@ -110,6 +131,7 @@ export function runProbe(openData: Uint8Array, closedData: Uint8Array) {
                 }
               })
               log({ stage: 'route', id: scenario.id, queryBatchSize, results })
+              if (results[1].matches) matchingDetourRoutes++
               caseIndex++
               batch = 0
             }
@@ -132,15 +154,22 @@ export function runProbe(openData: Uint8Array, closedData: Uint8Array) {
             log({ stage: 'crowd', steps: crowdStep, results })
             cleanup()
             log({ stage: 'done' })
+            const { arrived, total, overlapSteps } = results[1]
+            report(
+              'WASM initialized • Detour routes ' + matchingDetourRoutes + '/' + scenarios.length +
+              '\nCrowd ' + arrived + '/' + total + ' reached • ' + overlapSteps + ' overlap steps',
+              true
+            )
           }
         } catch (error) {
-          log({ stage: 'tick', result: 'failed', error: String(error) })
           cleanup()
+          fail('tick', error)
         }
       }
       engine.addSystem(tick)
     } catch (error) {
-      log({ stage: 'setup', result: 'failed', error: String(error) })
+      releaseMeshes()
+      fail('setup', error)
     }
   })
 }

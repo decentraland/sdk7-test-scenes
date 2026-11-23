@@ -17,14 +17,14 @@
     "types": "tsx scripts/bake.ts && tsc --noEmit"
   },
   "dependencies": {
-    "navcat": "0.4.1"
+    "navcat": "0.4.1",
+    "recast-navigation": "0.44.0"
   },
   "devDependencies": {
     "@dcl/js-runtime": "7.30.1",
     "@dcl/sdk": "7.30.1",
     "@dcl/sdk-commands": "7.30.1",
     "@types/node": "^24.0.0",
-    "recast-navigation": "0.44.0",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
     "vitest": "3.2.7"
