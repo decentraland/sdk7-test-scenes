@@ -245,27 +245,31 @@ export const topologyCases: CatalogCase[] = [
       return choose([isolated, upstairs, cheap]) === cheap && choose([cheap, upstairs, isolated]) === cheap
     }), 'The farther ground candidate beats an isolated candidate and an upstairs detour in either order.')
   }),
-  planner('GAME-20', async (backend) => {
-    const ticket = native(backend, decks, [forward], (nav) => {
-      const old = { revision: 1, query: 1, path: nav.route(low, lowEdge) }
-      const latest = { revision: 1, query: 2, path: nav.route(low, high) }
-      const changedMap = { revision: 2, query: 2, path: nav.route(low, high) }
-      let current: typeof latest | undefined
-      let query = 2
-      let revision = 1
-      function receive(message: typeof latest) {
-        if (message.query === query && message.revision === revision) current = message
-      }
-      receive(latest)
-      receive(old)
-      if (current !== latest || !complete(latest.path)) return false
-      revision++
-      query++
-      current = undefined
-      receive(changedMap)
-      return current === undefined
-    })
-    return check(ticket, 'An actual floor-change route survives old-query and old-map results injected out of order.')
+  planner('GAME-20', (backend) => {
+    const old = usingMesh(backend, decks, (nav) => nav.route(low, lowEdge), { links: [forward] })
+    const upstairs = usingMesh(backend, decks, (nav) => nav.route(low, high), { links: [forward] })
+    const blocked = usingMesh(backend, decks, (nav) => nav.route(low, high))
+    const lateTarget = { revision: 1, query: 1, path: old }
+    const currentTarget = { revision: 1, query: 2, path: upstairs }
+    const currentMap = { revision: 2, query: 2, path: blocked }
+    let accepted: typeof currentTarget | undefined
+    let revision = 1
+    function receive(result: typeof currentTarget) {
+      if (result.query !== currentTarget.query || result.revision !== revision) return
+      accepted = result
+    }
+    receive(currentTarget)
+    receive(lateTarget)
+    const staysUpstairs = accepted === currentTarget && complete(upstairs) &&
+      upstairs.points.some((point) => point[1] > 2.8)
+    revision = 2
+    accepted = undefined
+    receive(currentTarget)
+    const ignoresBlockedSegment = accepted === undefined
+    receive(currentMap)
+    return check(complete(old) && staysUpstairs && ignoresBlockedSegment &&
+      accepted === currentMap && !complete(blocked),
+    'Late downstairs result cannot replace the upstairs route. Removing its only link invalidates the old map result with the same query ID.')
   }),
   planner('GAME-22', (backend) => {
     const links = [shortLane, longLane]

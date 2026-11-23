@@ -1,8 +1,9 @@
 import {
   addOffMeshConnection, addTile, buildTile, createDefaultQueryFilter, createFindNearestPolyResult,
+  createGetClosestPointOnPolyResult,
   createSlicedNodePathQuery, DEFAULT_QUERY_FILTER, finalizeSlicedFindNodePath, findNearestPoly,
   findNodePath, findSmoothPath, FindNodePathResultFlags, FindSmoothPathResultFlags,
-  findStraightPath, FindStraightPathOptions, getNodeByRef, getNodeByTileAndPoly,
+  findStraightPath, FindStraightPathOptions, getClosestPointOnPoly, getNodeByRef, getNodeByTileAndPoly,
   getTileAt, initSlicedFindNodePath, moveAlongSurface, NODE_FLAG_CLOSED, OffMeshConnectionDirection, raycast,
   raycastWithCosts, removeTile, SlicedFindNodePathStatusFlags, updateSlicedFindNodePath,
   type NavMesh
@@ -13,7 +14,7 @@ import type { Point } from '../../src/arena'
 import { bakeNavcatMesh, createNavcatNavigatorFromMesh, toRecastGeometry } from '../../src/navigation'
 import { bakeDetourMesh, createDetourNavigatorFromMesh } from '../../test/detour'
 import { crosses, floor } from './ground'
-import { CELL_SIZE, detourPoint, nativePoint, navcatTiles, usingNativeTiles } from './native-tiles'
+import { CELL_SIZE, detourPoint, detourTiles, nativePoint, navcatTiles, usingNativeTiles } from './native-tiles'
 import { check, unsupported, type CatalogCase } from './types'
 
 const nearest = (mesh: NavMesh, point: Point) =>
@@ -111,6 +112,84 @@ const zeroPolygon: CatalogCase['run'] = (backend) => {
   const nonzero = query()
   return check(zero.ref === 0 && nonzero.ref !== 0 && zero.clear && nonzero.clear && zero.count === nonzero.count,
     'Raycast, one-iteration sliced search and smooth path agree before and after re-inserting the node that originally had reference zero.')
+}
+
+const pathStatuses: CatalogCase['run'] = (backend) => {
+  const from: Point = [1, 0, 1]
+  const to: Point = [27, 0, 1]
+  const chain = Array.from({ length: 12 }, (_, i) => floor(i * 2, i * 2 + 2, 0, 2))
+  const faces = (connected: boolean) => [...chain, floor(connected ? 24 : 25, 28, 0, 2)]
+  const atGoal = (x: number) => Math.abs(x - to[0]) < 0.05
+  const beforeGap = (x: number) => x > 23 && x <= 24
+  if (backend === 'navcat') {
+    const matched = [true, false].every((connected) => {
+      const mesh = navcatTiles(faces(connected))
+      const start = nearest(mesh, from)
+      const end = nearest(mesh, to)
+      if (!start.success || !end.success) return false
+      const route = findNodePath(mesh, start.nodeRef, end.nodeRef, start.position, end.position, DEFAULT_QUERY_FILTER)
+      const last = route.path[route.path.length - 1]
+      if (!route.success || last === undefined) return false
+      const target = getClosestPointOnPoly(createGetClosestPointOnPolyResult(), mesh, last, end.position)
+      const straight = findStraightPath(mesh, start.position, target.position, route.path, null, FindStraightPathOptions.ALL_CROSSINGS)
+      const final = straight.path[straight.path.length - 1]?.position[0]
+      const adapter = createNavcatNavigatorFromMesh(mesh).route(from, to)
+      return target.success && straight.success && final !== undefined && (connected
+        ? Boolean(route.flags & FindNodePathResultFlags.COMPLETE_PATH) && last === end.nodeRef && atGoal(final) && adapter.status === 'complete'
+        : Boolean(route.flags & FindNodePathResultFlags.PARTIAL_PATH) && last !== end.nodeRef && beforeGap(final) &&
+          adapter.status === 'unreachable' && adapter.points.length === 0)
+    })
+    return check(matched, 'Native complete and partial flags match the corridor endpoint. Navcat exposes no node-pool limit.')
+  }
+  function query(connected: boolean, maxNodes?: number, maxPathPolys?: number) {
+    const mesh = detourTiles(faces(connected))
+    const native = new NavMeshQuery(mesh, { maxNodes })
+    const navigator = createDetourNavigatorFromMesh(mesh, undefined, { maxNodes, maxPathPolys })
+    try {
+      const start = native.findNearestPoly(detourPoint(from))
+      const end = native.findNearestPoly(detourPoint(to))
+      if (!start.success || !end.success || !start.nearestRef || !end.nearestRef) throw new Error('Missing native endpoints.')
+      const route = native.findPath(start.nearestRef, end.nearestRef, start.nearestPoint, end.nearestPoint, { maxPathPolys })
+      try {
+        if (!route.success || !route.polys.size) throw new Error('Missing native corridor.')
+        const last = route.polys.get(route.polys.size - 1)
+        const target = native.closestPointOnPoly(last, end.nearestPoint)
+        if (!target.success) throw new Error('Could not project onto the last polygon.')
+        const straight = native.findStraightPath(start.nearestPoint, target.closestPoint, route.polys)
+        try {
+          if (!straight.success || !straight.straightPathCount) throw new Error('Missing native straight path.')
+          return {
+            final: straight.straightPath.get((straight.straightPathCount - 1) * 3),
+            reached: last === end.nearestRef,
+            partial: statusDetail(route.status, Detour.DT_PARTIAL_RESULT),
+            exhausted: statusDetail(route.status, Detour.DT_OUT_OF_NODES),
+            truncated: statusDetail(route.status, Detour.DT_BUFFER_TOO_SMALL),
+            adapter: navigator.route(from, to).status,
+          }
+        } finally {
+          straight.straightPath.destroy()
+          straight.straightPathFlags.destroy()
+          straight.straightPathRefs.destroy()
+        }
+      } finally {
+        route.polys.destroy()
+      }
+    } finally {
+      Raw.destroy(native.defaultFilter.raw)
+      native.destroy()
+      navigator.dispose()
+    }
+  }
+  const full = query(true)
+  const partial = query(false)
+  const limited = query(true, 8)
+  const truncated = query(true, undefined, 2)
+  return check(full.reached && atGoal(full.final) && full.adapter === 'complete' &&
+    partial.partial && !partial.exhausted && !partial.reached && beforeGap(partial.final) && partial.adapter === 'unreachable' &&
+    limited.exhausted && !limited.reached && limited.final < 23 && limited.adapter === 'unreachable' &&
+    truncated.truncated && !truncated.reached && truncated.final < 23 && truncated.adapter === 'unreachable',
+  'Native Detour flags and endpoints distinguish complete, disconnected, node-pool exhaustion and polygon-buffer truncation. ' +
+    JSON.stringify({ full, partial, limited, truncated }))
 }
 
 const surfaceStopsAtGap: CatalogCase['run'] = (backend) => {
@@ -280,6 +359,7 @@ export const nativeRegressionCases: CatalogCase[] = [
   { id: 'E12', layer: 'integration', coverage: 'adapted', run: importResolution },
   { id: 'E14', layer: 'planner', run: anyAngleCosts },
   { id: 'E15', layer: 'planner', run: zeroPolygon },
+  { id: 'E16', layer: 'planner', run: pathStatuses },
   { id: 'E19', layer: 'planner', coverage: 'adapted', run: surfaceStopsAtGap },
   { id: 'E23', layer: 'integration', run: obstacleQueue },
   { id: 'E24', layer: 'integration', run: replaceCorridor },

@@ -185,7 +185,7 @@ export const groundCases: CatalogCase[] = [
       'Three approaches retain connectivity without clipping either hole.')
     })
   }),
-  ground('E10', (backend) => {
+  { ...ground('E10', (backend) => {
     const faces = [floor(0, 4, 0, 6, 2), floor(4, 8, 0, 6, 2),
       { vertices: [[4, 2, 3], [4.00001, 2, 3], [4, 2, 3.00001]], triangles: [0, 1, 2] } satisfies Surface]
     return usingMesh(backend, faces, (nav) => {
@@ -193,12 +193,12 @@ export const groundCases: CatalogCase[] = [
       return check(routes.every((r) => r.status === 'complete' && r.points.every((p) =>
         p.every(Number.isFinite) && Math.abs(p[1] - 2) < 0.15)), 'Three edge queries stay finite and on the authored deck.')
     })
-  }),
-  ground('E11', (backend) => usingMesh(backend, [floor(0, 10, 0, 2), floor(0, 10, 2.65, 5), floor(8, 10, 2, 2.65)], (nav) => {
+  }), coverage: 'adapted' },
+  { ...ground('E11', (backend) => usingMesh(backend, [floor(0, 10, 0, 2), floor(0, 10, 2.65, 5), floor(8, 10, 2, 2.65)], (nav) => {
     const path = nav.route([1, 0, 1], [1, 0, 4])
     return check(path.status === 'complete' && crosses(path, 2, 2.3, ([x]) => x >= 8 && x <= 10),
       'Parallel corridors connect only through the remote portal.')
-  })),
+  })), coverage: 'adapted' },
   { ...ground('E13', (backend) => {
     const a = floor(0, 3, 0, 3)
     const b = floor(3, 6, 0, 3)
@@ -210,12 +210,4 @@ export const groundCases: CatalogCase[] = [
       (withDuplicate.status === 'unreachable' || pathLength(withDuplicate) >= 3.99),
     'A third coplanar edge yields a finite valid route or a safe refusal; the clean mesh connects.')
   }), coverage: 'adapted' },
-  { ...ground('E16', (backend) => {
-    const paths = [true, false].map((connected) => usingMesh(backend, [
-      ...Array.from({ length: 12 }, (_, i) => floor(i * 2, i * 2 + 2, 0, 2)),
-      floor(connected ? 24 : 25, 28, 0, 2)
-    ], (nav) => nav.route([1, 0, 1], [26, 0, 1]), { tiled: true }))
-    return check(paths[0].status === 'complete' && paths[1].status === 'unreachable' && paths[1].points.length === 0,
-      'A truncated corridor is never promoted to a complete route by the SDK7 adapter.')
-  }), coverage: 'adapted' }
 ]

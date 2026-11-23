@@ -121,6 +121,8 @@ The timed batches include crowd updates and reading back agent positions. Geomet
 
 `pnpm compare:catalog` runs the case manifest in Node using the same navcat and Detour versions as the scene. The detailed results go to `.comparison/catalog-comparison.json`. Each entry includes the source case ID and title, tested layer, coverage and a verdict per backend. An adapted case tests only the mechanism described in its result. Controller results use shared logic and should be read independently of engine results. The runner keeps unsupported features and missing inputs visible. A failed check gives the command a non-zero exit code after it writes the report.
 
+`specified` is the default label for a registered test. It does not certify that the test exercises every condition in the research recipe. The full catalogue run covers the two Node backends. Explorer playback and the standalone Godot and landmass comparisons cover separate fixture sets.
+
 The imported grid and MAPF cases use [Moving AI's official map and scenario archives](https://movingai.com/benchmarks/mapf/index.html). Keep extracted `.map` files at the root of `.comparison/movingai`, with scenario files under `scen-even` and `scen-random`. Set `DCL_MAPF_DATA` to use another directory. The report identifies any expected file that is absent. The benchmark inputs stay local and are excluded from scene deployment.
 
 If the default Detour buffers lose routes in the imported single-agent grid cases, the runner repeats them with 16,384 search nodes, 4,096 corridor polygons and 4,096 output points. The verdict uses the second pass and the report keeps both counts. The reported query percentile is for the default limits.

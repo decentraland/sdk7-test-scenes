@@ -434,14 +434,14 @@ export const executionCases: CatalogCase[] = [
   { id: 'EXEC-T02', layer: 'controller', run: staleCompletion },
   { id: 'EXEC-T03', layer: 'controller', run: singleMotionWriter },
   { id: 'EXEC-T04', layer: 'controller', run: deferredWaypoint },
-  { id: 'EXEC-T05', layer: 'planner', run: reversedLadder },
-  { id: 'EXEC-T06', layer: 'planner', run: wideLanes },
+  { id: 'EXEC-T05', layer: 'planner', coverage: 'adapted', run: reversedLadder },
+  { id: 'EXEC-T06', layer: 'planner', coverage: 'adapted', run: wideLanes },
   { id: 'EXEC-T09', layer: 'controller', run: rotatingSupport },
   { id: 'EXEC-T10', layer: 'controller', run: sideContact },
   { id: 'EXEC-T11', layer: 'controller', run: edgeLanding },
   { id: 'EXEC-T12', layer: 'controller', run: slideAlongWall },
   { id: 'EXEC-T13', layer: 'controller', run: crampedAutostep },
   { id: 'EXEC-T15', layer: 'controller', run: animationCompletion },
-  { id: 'SDK-T02', layer: 'integration', run: lateCollider },
-  { id: 'SDK-T03', layer: 'controller', run: remoteAvatarHits }
+  { id: 'SDK-T02', layer: 'integration', coverage: 'adapted', run: lateCollider },
+  { id: 'SDK-T03', layer: 'controller', coverage: 'adapted', run: remoteAvatarHits }
 ]
