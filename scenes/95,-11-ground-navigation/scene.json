@@ -1,0 +1,28 @@
+{
+  "ecs7": true,
+  "runtimeVersion": "7",
+  "display": {
+    "title": "Ground Navigation Lab",
+    "description": "Compare navigation routes from the lower floor to a bridge as a passage opens and closes."
+  },
+  "owner": "",
+  "contact": {
+    "name": "Decentraland",
+    "email": "developer@decentraland.org"
+  },
+  "main": "bin/index.js",
+  "tags": ["navigation", "npc", "test"],
+  "scene": {
+    "base": "95,-11",
+    "parcels": ["95,-11"]
+  },
+  "spawnPoints": [{
+    "name": "Navigation controls",
+    "default": true,
+    "position": { "x": [7, 9], "y": [0, 0], "z": [1, 2] },
+    "cameraTarget": { "x": 8, "y": 1.5, "z": 11 }
+  }],
+  "requiredPermissions": [],
+  "featureToggles": {},
+  "worldConfiguration": { "name": "sdk7testscenes.dcl.eth" }
+}
