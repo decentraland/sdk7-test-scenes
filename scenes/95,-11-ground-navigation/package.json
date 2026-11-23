@@ -12,6 +12,7 @@
     "bake": "tsx scripts/bake.ts",
     "compare:fixtures": "tsx scripts/export-fixtures.ts",
     "compare": "tsx scripts/compare.ts",
+    "probe:prepare": "tsx scripts/bake.ts && tsx scripts/prepare-detour-sdk-probe.ts",
     "test": "vitest run",
     "types": "tsx scripts/bake.ts && tsc --noEmit"
   },

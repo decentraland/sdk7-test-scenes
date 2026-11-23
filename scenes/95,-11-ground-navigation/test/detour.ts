@@ -1,4 +1,4 @@
-import { Crowd, NavMeshQuery, Raw, type Vector3 } from 'recast-navigation'
+import { Crowd, NavMeshQuery, Raw, type NavMesh, type Vector3 } from 'recast-navigation'
 import { generateSoloNavMesh } from 'recast-navigation/generators'
 import { OPPOSING_GROUPS, type Point, type Surface } from '../src/arena'
 import type { CrowdRun } from '../src/crowd'
@@ -44,7 +44,11 @@ export function bakeDetourMesh(surfaces: readonly Surface[]) {
 }
 
 export function createDetourNavigator(surfaces: readonly Surface[]): Navigator & { dispose(): void } {
-  const mesh = bakeDetourMesh(surfaces)
+  return createDetourNavigatorFromMesh(bakeDetourMesh(surfaces))
+}
+
+// Takes ownership of the mesh, including releasing it on dispose().
+export function createDetourNavigatorFromMesh(mesh: NavMesh): Navigator & { dispose(): void } {
   const query = new NavMeshQuery(mesh)
   const halfExtents = { x: SNAP_EXTENTS[0], y: SNAP_EXTENTS[1], z: SNAP_EXTENTS[2] }
 
@@ -103,8 +107,12 @@ export function createDetourNavigator(surfaces: readonly Surface[]): Navigator &
 }
 
 export function createDetourCrowd(surfaces: readonly Surface[]): CrowdRun & { dispose(): void } {
+  return createDetourCrowdFromMesh(bakeDetourMesh(surfaces))
+}
+
+// Takes ownership of the mesh, including releasing it on dispose().
+export function createDetourCrowdFromMesh(mesh: NavMesh): CrowdRun & { dispose(): void } {
   const { agents, radius, height, maxAcceleration, maxSpeed } = OPPOSING_GROUPS
-  const mesh = bakeDetourMesh(surfaces)
   const crowd = new Crowd(mesh, { maxAgents: agents.length, maxAgentRadius: radius })
   const dispose = () => {
     crowd.destroy()

@@ -53,4 +53,20 @@ Explorer smoke check on SDK 7.30.1: switched through the three reference modes a
 
 `pnpm bake` produces both navcat maps. The build and start scripts generate them automatically. Upstream CI calls `npm run build` and `npm run deploy`, equivalent here to `pnpm build` and `pnpm deploy`.
 
-The runtime bundles [navcat](https://github.com/isaac-mason/navcat) and mathcat (MIT). [Recast/Detour](https://github.com/recastnavigation/recastnavigation) (Zlib) through [recast-navigation-js](https://github.com/isaac-mason/recast-navigation-js) (MIT), [Godot](https://github.com/godotengine/godot) (MIT) and [landmass](https://github.com/andriyDev/landmass) (MIT OR Apache-2.0) are used by the standalone comparison. Moving Detour's WASM queries into SDK7 needs a separate loader/runtime check. A live Godot port would need to extract its query and avoidance code from the engine. A live landmass port would need a Rust-to-JS boundary or a TS port and a movement adapter.
+The main scene bundles [navcat](https://github.com/isaac-mason/navcat) and mathcat (MIT). [Recast/Detour](https://github.com/recastnavigation/recastnavigation) (Zlib) through [recast-navigation-js](https://github.com/isaac-mason/recast-navigation-js) (MIT), [Godot](https://github.com/godotengine/godot) (MIT) and [landmass](https://github.com/andriyDev/landmass) (MIT OR Apache-2.0) are used by the standalone comparison. A live Godot port would need to extract its query and avoidance code from the engine. A live landmass port would need a Rust-to-JS boundary or a TS port and a movement adapter.
+
+## Live Detour probe
+
+This optional probe builds a separate local SDK7 scene in the ignored `.comparison/detour-sdk` directory. The normal lab's controls and bundle stay independent. From this scene's directory:
+
+```sh
+pnpm probe:prepare
+pnpm exec sdk-commands build --skip-install --dir .comparison/detour-sdk
+pnpm exec sdk-commands start --skip-build --no-watch --dir .comparison/detour-sdk --port 8145 --mcp --mcp-port 8146
+```
+
+Read `[detour-sdk-probe]` in Explorer's scene logs. The probe uses the stock embedded WASM build in `recast-navigation@0.44.0` and imports precomputed Detour maps. There is no remote request for the maps, special client build or host plugin. Both decks and gate states come from the same authored surfaces and bake parameters, using each engine's own baker. This probe measures queries and crowd updates without rendering agents or rebaking.
+
+The local Desktop Explorer run on SDK 7.30.1 on November 23, 2026 initialized Detour in 59 ms. The imports and setup of two query meshes and a crowd took 3 ms. Both backends returned the expected verdict on all six live route scenarios. Detour's measured query mean was lower on three scenarios and navcat's was lower on the other three. On six opposing agents both backends reached 6/6 with zero overlap steps. The mean over 450 updates was 0.244 ms for navcat and 0.067 ms for Detour. The scene exposed `Date.now`, so individual sub-millisecond timings and p95 from that clock are unreliable. Query means come from batches of 32, with alternating engine order on each step. Crowd means describe this one probe run.
+
+This proves live search and crowd execution on the tested desktop scene runtime. Mobile, web, publication, and rebuilding the navmesh when geometry changes were outside this probe.
