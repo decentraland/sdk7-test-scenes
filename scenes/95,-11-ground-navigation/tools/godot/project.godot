@@ -1,0 +1,11 @@
+; Headless route comparison using the Godot navigation server.
+
+config_version=5
+
+[application]
+
+config/name="SDK7 Navigation Comparison"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"

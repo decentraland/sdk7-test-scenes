@@ -1,6 +1,7 @@
-import { NavMeshQuery, Raw, type Vector3 } from 'recast-navigation'
+import { Crowd, NavMeshQuery, Raw, type Vector3 } from 'recast-navigation'
 import { generateSoloNavMesh } from 'recast-navigation/generators'
-import type { Point, Surface } from '../src/arena'
+import { OPPOSING_GROUPS, type Point, type Surface } from '../src/arena'
+import type { CrowdRun } from '../src/crowd'
 import {
   NAVIGATION_BAKE,
   SNAP_EXTENTS,
@@ -20,7 +21,7 @@ function fromDetour({ x, y, z }: Vector3): Point {
   return [x, y, -z]
 }
 
-export function createDetourNavigator(surfaces: readonly Surface[]): Navigator & { dispose(): void } {
+export function bakeDetourMesh(surfaces: readonly Surface[]) {
   const bake = NAVIGATION_BAKE
   const { positions, indices } = toRecastGeometry(surfaces)
   const result = generateSoloNavMesh(positions, indices, {
@@ -39,7 +40,12 @@ export function createDetourNavigator(surfaces: readonly Surface[]): Navigator &
     detailSampleMaxError: bake.detailSampleErrorVoxels,
   })
   if (!result.success) throw new Error(`Detour bake failed: ${result.error}`)
-  const query = new NavMeshQuery(result.navMesh)
+  return result.navMesh
+}
+
+export function createDetourNavigator(surfaces: readonly Surface[]): Navigator & { dispose(): void } {
+  const mesh = bakeDetourMesh(surfaces)
+  const query = new NavMeshQuery(mesh)
   const halfExtents = { x: SNAP_EXTENTS[0], y: SNAP_EXTENTS[1], z: SNAP_EXTENTS[2] }
 
   const findEndpoint = (point: Point) => {
@@ -91,7 +97,39 @@ export function createDetourNavigator(surfaces: readonly Surface[]): Navigator &
     dispose() {
       Raw.destroy(query.defaultFilter.raw)
       query.destroy()
-      result.navMesh.destroy()
+      mesh.destroy()
     },
+  }
+}
+
+export function createDetourCrowd(surfaces: readonly Surface[]): CrowdRun & { dispose(): void } {
+  const { agents, radius, height, maxAcceleration, maxSpeed } = OPPOSING_GROUPS
+  const mesh = bakeDetourMesh(surfaces)
+  const crowd = new Crowd(mesh, { maxAgents: agents.length, maxAgentRadius: radius })
+  const dispose = () => {
+    crowd.destroy()
+    mesh.destroy()
+  }
+  try {
+    const controllers = agents.map(({ start, goal }) => {
+      const agent = crowd.addAgent(toDetour(start), {
+        radius, height, maxAcceleration, maxSpeed,
+        collisionQueryRange: radius * 8,
+        separationWeight: 0,
+        updateFlags: 1 | 2  // DT_CROWD_ANTICIPATE_TURNS | DT_CROWD_OBSTACLE_AVOIDANCE
+      })
+      if (agent.state() === 0 || !agent.requestMoveTarget(toDetour(goal))) {
+        throw new Error('Could not place a Detour crowd agent on the upper deck')
+      }
+      return agent
+    })
+    return {
+      step: (dt) => crowd.update(dt),
+      positions: () => controllers.map((agent) => fromDetour(agent.position())),
+      dispose
+    }
+  } catch (error) {
+    dispose()
+    throw error
   }
 }

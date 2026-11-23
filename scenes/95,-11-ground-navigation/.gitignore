@@ -2,3 +2,4 @@ node_modules/
 bin/
 main.crdt
 src/generated/
+.comparison/

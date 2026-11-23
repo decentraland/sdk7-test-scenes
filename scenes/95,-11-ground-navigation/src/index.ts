@@ -8,13 +8,16 @@ import {
   MeshRenderer,
   TextShape,
   Transform,
+  VisibilityComponent,
   engine,
   pointerEventsSystem
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
-import { GATE, SCENARIOS, SLABS, type Point, type Scenario, type Slab } from './arena'
+import { GATE, OPPOSING_GROUPS, SCENARIOS, SLABS, type Point, type Scenario, type Slab } from './arena'
+import { createCrowdObserver, createNavcatCrowd } from './crowd'
 import meshes from './generated/meshes'
 import { createNavcatNavigatorFromMesh, type Route } from './navigation'
+import referenceRoutes from './reference-routes.json'
 
 const WALK_SPEED = 3
 const ROUTE_LIFT = 0.12
@@ -26,6 +29,20 @@ const colors = {
   ramp: Color4.fromHexString('#74889aff'),
   bridge: Color4.fromHexString('#5974acff'),
   island: Color4.fromHexString('#b07853ff')
+}
+
+type Reference = {
+  backend: string
+  scenarios: { id: string; status: string; points: number[][] }[]
+}
+const references: readonly Reference[] = referenceRoutes
+const BACKEND_NAMES: Record<string, string> = { navcat: 'navcat live', detour: 'Detour replay', godot: 'Godot replay', landmass: 'landmass replay' }
+const BACKENDS = ['navcat', ...references.map((reference) => reference.backend)]
+
+function replayRoute(backend: string, id: string): Route {
+  const reference = references.find((entry) => entry.backend === backend)?.scenarios.find((item) => item.id === id)
+  if (reference?.status !== 'complete') return { status: 'unreachable', points: [] }
+  return { status: 'complete', points: reference.points.map(([x, y, z]) => [x, y, z]) }
 }
 
 function box(position: Vector3, scale: Vector3, color: Color4, rotation = Quaternion.Identity()): Entity {
@@ -106,18 +123,41 @@ export function main() {
   MeshRenderer.setSphere(bot)
   Material.setBasicMaterial(bot, { diffuseColor: Color4.fromHexString('#ffd05aff') })
   const marker = box(Vector3.Zero(), Vector3.create(0.36, 0.25, 0.36), routeColor)
+  VisibilityComponent.create(bot, { visible: true })
+  VisibilityComponent.create(marker, { visible: true })
 
   const board = text(Vector3.create(8, 2.06, 2.3), '', 1.65)
+  let backendIndex = 0
   let current: Scenario = SCENARIOS[0]
   let doorOpen = true
   let route: Route = { status: 'unreachable', points: [] }
   let visual: Entity[] = []
   let waypoint = 0
   let active = false
+  let group: ReturnType<typeof createNavcatCrowd> | undefined
+  let observer: ReturnType<typeof createCrowdObserver> | undefined
+  let groupEntities: Entity[] = []
+  let seconds = 0
+  let steps = 0
 
   function status(message: string) {
-    TextShape.getMutable(board).text = 'Ground Navigation Lab\n' + current.id + '  •  Gate ' +
+    TextShape.getMutable(board).text = 'Ground Navigation Lab  •  ' + BACKEND_NAMES[BACKENDS[backendIndex]] +
+      '\n' + current.id + '  •  Gate ' +
       (doorOpen ? 'open' : 'closed') + '\n' + message
+  }
+
+  function clearRoute() {
+    for (const entity of visual) engine.removeEntity(entity)
+    visual = []
+  }
+
+  function clearCrowd() {
+    group = undefined
+    observer = undefined
+    for (const entity of groupEntities) engine.removeEntity(entity)
+    groupEntities = []
+    VisibilityComponent.getMutable(bot).visible = true
+    VisibilityComponent.getMutable(marker).visible = true
   }
 
   function showGate() {
@@ -129,19 +169,24 @@ export function main() {
 
   function findRoute(start: Point) {
     const before = Date.now()
-    route = (doorOpen ? open : closed).route(start, current.goal)
+    const backend = BACKENDS[backendIndex]
+    route = backend === 'navcat'
+      ? (doorOpen ? open : closed).route(start, current.goal)
+      : replayRoute(backend, current.id)
     const elapsed = Date.now() - before
-    for (const entity of visual) engine.removeEntity(entity)
+    clearRoute()
     visual = drawRoute(route.points)
     waypoint = 0
     active = route.status === 'complete' && route.points.length > 0
     status(active ? 'Following route' : 'No complete route')
     console.log('[ground-navigation] ' + JSON.stringify({
-      scenario: current.id, doorOpen, status: route.status, points: route.points.length, queryMs: elapsed
+      backend, scenario: current.id, doorOpen, status: route.status, points: route.points.length,
+      ...(backend === 'navcat' && { queryMs: elapsed })
     }))
   }
 
   function run(scenario: Scenario) {
+    clearCrowd()
     current = scenario
     doorOpen = scenario.doorOpen
     showGate()
@@ -150,8 +195,41 @@ export function main() {
     findRoute(current.start)
   }
 
+  function runCrowd() {
+    clearCrowd()
+    clearRoute()
+    active = false
+    doorOpen = true
+    showGate()
+    VisibilityComponent.getMutable(bot).visible = false
+    VisibilityComponent.getMutable(marker).visible = false
+    group = createNavcatCrowd(meshes.open)
+    observer = createCrowdObserver()
+    seconds = 0
+    steps = 0
+    groupEntities = group.positions().map((point, i) => {
+      const entity = engine.addEntity()
+      Transform.create(entity, {
+        position: worldPoint(point, BOT_HEIGHT / 2),
+        scale: Vector3.create(0.6, BOT_HEIGHT, 0.6)
+      })
+      MeshRenderer.setSphere(entity)
+      Material.setBasicMaterial(entity, { diffuseColor: i < 3 ? routeColor : Color4.fromHexString('#ffd05aff') })
+      return entity
+    })
+    TextShape.getMutable(board).text = 'Opposing groups  •  navcat live\n6 bots crossing the upper deck'
+  }
+
+  button(3.4, 'Switch engine', () => {
+    backendIndex = (backendIndex + 1) % BACKENDS.length
+    run(current)
+  })
   button(5.2, 'Upper deck', () => run(SCENARIOS[0]))
   button(7.0, 'Toggle gate', () => {
+    if (group || BACKENDS[backendIndex] !== 'navcat') {
+      run(doorOpen ? SCENARIOS[1] : SCENARIOS[0])
+      return
+    }
     doorOpen = !doorOpen
     showGate()
     const { x, y, z } = Transform.get(bot).position
@@ -166,9 +244,28 @@ export function main() {
   })
   button(9.0, 'Underpass', () => run(SCENARIOS[2]))
   button(10.8, 'Isolated platform', () => run(SCENARIOS[3]))
+  button(12.6, 'Opposing groups', runCrowd)
 
   run(current)
   engine.addSystem((dt) => {
+    if (group && observer && steps < OPPOSING_GROUPS.steps) {
+      const stepSeconds = OPPOSING_GROUPS.stepSeconds
+      seconds = Math.min(seconds + dt, stepSeconds * 5)
+      while (seconds >= stepSeconds && steps < OPPOSING_GROUPS.steps) {
+        group.step(stepSeconds)
+        observer.observe(group.positions())
+        steps++
+        seconds -= stepSeconds
+      }
+      group.positions().forEach((point, i) => {
+        Transform.getMutable(groupEntities[i]).position = worldPoint(point, BOT_HEIGHT / 2)
+      })
+      const metrics = observer.metrics()
+      TextShape.getMutable(board).text = 'Opposing groups  •  navcat live\n' +
+        metrics.arrived + '/' + metrics.total + ' reached  •  ' + metrics.overlapSteps + ' overlap steps'
+      if (steps === OPPOSING_GROUPS.steps) console.log('[ground-navigation] crowd ' + JSON.stringify(metrics))
+      return
+    }
     if (!active) return
     const pose = Transform.getMutable(bot)
     let remaining = dt * WALK_SPEED

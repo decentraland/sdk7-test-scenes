@@ -4,6 +4,7 @@
     "strict": true,
     "moduleResolution": "bundler",
     "module": "esnext",
+    "resolveJsonModule": true,
     "skipLibCheck": true
   },
   "include": ["src/**/*.ts", "scripts/**/*.ts", "test/**/*.ts"]

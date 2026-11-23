@@ -55,3 +55,17 @@ export const SCENARIOS: readonly Scenario[] = [
   { id: 'underpass', start: [8, 0, 7], goal: [8, 0, 11.5], doorOpen: true, expected: 'complete' },
   { id: 'isolated-upper-platform', start: [8, 0, 7], goal: [7.5, 3, 3], doorOpen: true, expected: 'unreachable' }
 ]
+
+export const OPPOSING_GROUPS = {
+  agents: [4.1, 11.9].flatMap((x) => [10, 10.8, 11.6].map((z) => ({
+    start: [x, 3, z] as Point,
+    goal: [16 - x, 3, z] as Point
+  }))),
+  radius: 0.3,
+  height: 1.6,
+  maxSpeed: 2,
+  maxAcceleration: 8,
+  stepSeconds: 1 / 30,
+  steps: 450,
+  arrivalRadius: 0.35
+}
