@@ -23,8 +23,13 @@ export function* remoteAvatarSupport(
   setLabel: (label: string) => void,
   { pads, floors, marker } = createRemoteLandingPads(world)
 ) {
-  const occupancy = (samples: Array<{ entityId?: number; position?: Vector3 }>) => pads.map((pad) =>
-    samples.some((hit) => hit.entityId === 0 && hit.position && Math.hypot(hit.position.x - pad.x, hit.position.z - pad.z) <= 0.35))
+  type Hit = { entityId?: number; position?: Vector3 }
+  const onPad = (hit: Hit, pad: Vector3) =>
+    hit.position && Math.hypot(hit.position.x - pad.x, hit.position.z - pad.z) <= 0.35
+  // The protobuf field is optional, so a native hit can omit the zero sentinel.
+  const remoteHits = (samples: readonly Hit[]) => samples.filter((hit) => (hit.entityId ?? 0) === 0)
+  const occupancy = (samples: readonly Hit[]) => pads.map((pad) =>
+    remoteHits(samples).some((hit) => onPad(hit, pad)))
   function* readPads(mask: number) {
     const rays = pads.map((pad) => world.issueRay(fromAbove(pad, 2.4), Vector3.Down(), 2.5, mask))
     const left = yield* world.readRay(rays[0])
@@ -38,8 +43,15 @@ export function* remoteAvatarSupport(
   }
   function* waitForOccupancy(expected: readonly boolean[], detail: string) {
     for (let attempt = 0; attempt < 2400; attempt++) {
-      const occupied = occupancy(yield* readPads(ColliderLayer.CL_PLAYER))
-      if (occupied.every((value, index) => value === expected[index])) return occupied
+      const hits = yield* readPads(ColliderLayer.CL_PLAYER)
+      const occupied = occupancy(hits)
+      if (occupied.every((value, index) => value === expected[index])) {
+        return { occupied, wireIds: pads.map((pad) => remoteHits(hits).find((hit) => onPad(hit, pad))?.entityId ?? null) }
+      }
+      if (attempt === 0 || attempt === 90) {
+        logIntegration({ stage: 'avatar-sample', expected, occupied, hits: hits.map(({ entityId, position }) =>
+          ({ entityId: entityId ?? null, position })) })
+      }
       yield
     }
     throw new Error(detail)
@@ -74,10 +86,13 @@ export function* remoteAvatarSupport(
   setLabel('Move the guest off the left pad. Leave the right pad occupied.')
   logIntegration({ stage: 'avatar-instruction', phase: 'release-left' })
   const final = yield* waitForOccupancy([false, true], 'Releasing one pad did not preserve the other avatar occupancy.')
-  const landing = pads.find((_, index) => !final[index])
+  const landing = pads.find((_, index) => !final.occupied[index])
   requireCheck(landing === pads[0], 'The controller did not choose the freed pad.')
   Transform.getMutable(marker).position = landing
-  return { initialOccupancy: initial, finalOccupancy: final, remoteEntityId: 0, chosenLanding: 'left' }
+  return {
+    initialOccupancy: initial.occupied, finalOccupancy: final.occupied,
+    remoteEntityId: 0, initialWireIds: initial.wireIds, finalWireIds: final.wireIds, chosenLanding: 'left'
+  }
 }
 
 export const remoteLandingTest: LiveRecipe = {
