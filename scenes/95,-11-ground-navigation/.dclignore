@@ -1,0 +1,12 @@
+.*
+bin/*.map
+**/*.md
+node_modules
+package*.json
+pnpm-lock.yaml
+src
+scripts
+test
+tools
+downloads
+tsconfig.json

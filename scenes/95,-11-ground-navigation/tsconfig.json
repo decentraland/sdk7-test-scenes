@@ -1,0 +1,11 @@
+{
+  "extends": "@dcl/sdk/types/tsconfig.ecs7.json",
+  "compilerOptions": {
+    "strict": true,
+    "moduleResolution": "bundler",
+    "module": "esnext",
+    "resolveJsonModule": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", "test/**/*.ts"]
+}

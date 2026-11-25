@@ -1,0 +1,38 @@
+{
+  "name": "ground-navigation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "license": "MIT",
+  "scripts": {
+    "start": "tsx scripts/bake.ts && sdk-commands start",
+    "build": "tsx scripts/bake.ts && sdk-commands build",
+    "deploy": "tsx scripts/bake.ts && sdk-commands deploy",
+    "bake": "tsx scripts/bake.ts",
+    "navmesh:pack": "tsx scripts/package-navmesh.mjs",
+    "navmesh:check-kits": "node scripts/check-navmesh-kits.mjs",
+    "compare:fixtures": "tsx scripts/export-fixtures.ts",
+    "compare": "tsx scripts/compare.ts",
+    "compare:crowd-load": "tsx scripts/compare-crowd-load.ts",
+    "compare:traversal": "tsx scripts/compare-traversal.ts",
+    "compare:catalog": "tsx scripts/compare-catalog.ts",
+    "verify:coverage": "tsx scripts/verify-catalog-coverage.ts",
+    "probe:prepare": "tsx scripts/bake.ts && tsx scripts/prepare-detour-sdk-probe.ts",
+    "test": "vitest run",
+    "types": "tsx scripts/bake.ts && tsc --noEmit"
+  },
+  "dependencies": {
+    "navcat": "0.4.1",
+    "recast-navigation": "0.44.0"
+  },
+  "devDependencies": {
+    "@dcl/js-runtime": "7.30.1",
+    "@dcl/sdk": "7.30.1",
+    "@dcl/sdk-commands": "7.30.1",
+    "@types/node": "^24.0.0",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

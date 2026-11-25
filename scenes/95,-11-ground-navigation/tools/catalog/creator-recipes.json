@@ -1,0 +1,614 @@
+[
+  {
+    "caseId": "RECIPE-GLB-MASKS",
+    "goal": "Build the navmesh from the collision geometry that should stop NPCs.",
+    "queries": [
+      "NPC walks through a wall in a GLB",
+      "clickable glass blocks NPCs",
+      "бот проходит сквозь стену из GLB",
+      "невидимый физический коллайдер"
+    ],
+    "requirements": [
+      "GLB with a visible glass mesh and an invisible *_collider mesh",
+      "GltfContainer physics and pointer masks"
+    ],
+    "node": "Decode distinct render and physical triangle sets from the supplied GLB. Check wall clearance and compare the direct, detour and disconnected routes.",
+    "sdk7": "Creator recipes → SDK7 authoring → GLB collision masks. Observe actual SDK physics and pointer raycasts.",
+    "expect": "Pointer rays hit the visible glass and physics rays hit the separate collider. The bot route clears the full collider footprint.",
+    "control": "Swap the mesh classification and detect a route crossing the actual collider. Reject a corner cut even when its endpoints are outside the wall. Closing the bypass makes the goal unreachable.",
+    "source": [
+      "src/recipes/recipe-authoring-scene.ts",
+      "tools/catalog/recipe-authoring.ts",
+      "models/recipe-authoring/glass-wall.glb"
+    ]
+  },
+  {
+    "caseId": "RECIPE-BAKE-FRESHNESS",
+    "goal": "Rebuild a cached navmesh only when navigation inputs materially change.",
+    "queries": [
+      "stale bake after editing scene",
+      "NPC uses old GLB geometry",
+      "устаревший навмеш после изменения модели"
+    ],
+    "requirements": [
+      "Offline asset import and canonical physical geometry fingerprint"
+    ],
+    "node": "Run the catalogue. Compare a material-only edit, a collider edit and a moved instance under the same asset name.",
+    "sdk7": "Offline catalogue example. The fixture exercises an in-memory cache keyed by the physical geometry and bake settings.",
+    "expect": "Cosmetic edit keeps the bake. Geometry and effective transform changes invalidate it and refresh the route.",
+    "control": "Cache by file path alone and observe the stale route. Hash raw asset bytes and observe the needless rebuild on repaint.",
+    "source": [
+      "tools/catalog/recipe-authoring.ts",
+      "scripts/recipe-authoring-model.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-CLICK-FLOOR",
+    "goal": "Assign a destination on the clicked deck.",
+    "queries": [
+      "NPC picks the wrong floor when I click",
+      "same XZ targets different height",
+      "клик сверху ведёт бота на нижний этаж"
+    ],
+    "requirements": [
+      "Two stacked floor targets",
+      "SDK raycast hit with a zone key and Y"
+    ],
+    "node": "Feed deterministic ray hits into the same destination adapter and check the route's destination floor.",
+    "sdk7": "Creator recipes → SDK7 authoring → Click destination on stacked floors. Scripted SDK rays simulate pointer selection from fixed camera positions.",
+    "expect": "Upper and lower hits select different decks at the same XZ.",
+    "control": "A hit on a non-target or a miss preserves the previous target. Flattening Y would misclassify the upper hit.",
+    "source": [
+      "src/recipes/recipe-authoring.ts",
+      "src/recipes/recipe-authoring-scene.ts",
+      "tools/catalog/recipe-authoring.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-RAYCAST",
+    "goal": "Use a cheap shortcut only when it reaches the intended surface.",
+    "queries": [
+      "navmesh raycast goes through a balcony",
+      "overlapping floor false positive",
+      "бот срезает под балкон вместо подъёма"
+    ],
+    "requirements": [
+      "Stacked walkable surfaces with an alternative ramp",
+      "Target polygon projection"
+    ],
+    "node": "Run the upper, lower and wall variants of the catalogue case.",
+    "sdk7": "Creator recipes → Gameplay → Navmesh ray on two floors, with live navcat queries and deterministic follower playback.",
+    "expect": "Reject the horizontal shortcut to the upper polygon and use the ramp. Accept the lower shortcut when unblocked.",
+    "control": "A wall blocks the same-floor shortcut even when the target polygon is on the correct deck.",
+    "source": [
+      "src/recipes/recipe-runtime.ts",
+      "src/recipes/recipe-runtime-support.ts",
+      "tools/catalog/recipe-runtime.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-SWING-DOOR",
+    "goal": "Wait where the moving door leaf cannot hit the NPC.",
+    "queries": [
+      "door hits waiting bot halfway through opening",
+      "safe door waiting spot",
+      "дверь задевает бота в точке ожидания"
+    ],
+    "requirements": [
+      "Swept hinge geometry",
+      "Waiting pocket or alternate lane"
+    ],
+    "node": "Run the safe pocket, physically disconnected pocket and unsafe endpoints variants.",
+    "sdk7": "Creator recipes → Gameplay → Door sweeps the waiting point, with live navcat queries and an analytic controller.",
+    "expect": "A reachable pocket stays clear during the swing. If removing its floor disconnects it, the native route search chooses the alternate lane.",
+    "control": "Checking only the open and closed angles leaves a location inside the swept leaf. Remove the pocket floor to exercise real route fallback.",
+    "source": [
+      "src/recipes/recipe-runtime.ts",
+      "tools/catalog/recipe-runtime.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-CROUCH",
+    "goal": "Change NPC height to enter a low passage and stand up only after clearing it.",
+    "queries": [
+      "NPC needs to crouch under a beam",
+      "agent stands too early after a tunnel",
+      "бот встаёт под низкой балкой"
+    ],
+    "requirements": [
+      "Standing and crouching clearance profiles",
+      "Capsule front and rear clearance checks"
+    ],
+    "node": "Run enabled, disabled, too-low and wrong-floor variants with both engines. Check the observed capsule movement in three dimensions.",
+    "sdk7": "Creator recipes → Gameplay → Stand, crouch, stand, with live navcat queries and an analytic controller.",
+    "expect": "Crouch before reaching the beam, clear it with the whole body, then stand. Return to the standing profile at the goal.",
+    "control": "Disable crouch, lower the roof below crouching height or inject a route with a roof waypoint. The controller detects invalid support or clearance and takes the standing bypass.",
+    "source": [
+      "src/recipes/recipe-runtime.ts",
+      "tools/catalog/recipe-runtime.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-LONG-FRAME",
+    "goal": "Follow each waypoint in order when an SDK system receives a long delta.",
+    "queries": [
+      "NPC skips a corner on a slow frame",
+      "бот срезает два поворота при длинном кадре"
+    ],
+    "requirements": [
+      "Static L-turn corridor with two bends, authored waypoints, fixed speed, injected long delta"
+    ],
+    "node": "Compare one long update with equivalent short updates against the same swept-capsule oracle.",
+    "sdk7": "Creator recipes → Gameplay → Two turns in one long frame. Scripted movement and swept geometry checks.",
+    "expect": "Both updates traverse the two bends in order without crossing the wall.",
+    "control": "Advance directly along the chord between endpoints. The swept check detects the cut.",
+    "source": [
+      "src/recipes/recipe-gameplay.ts",
+      "src/recipes/recipe-gameplay-motion.ts",
+      "tools/catalog/recipe-gameplay.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-INTERCEPT",
+    "goal": "Intercept a moving NPC by predicting a reachable future position on another floor.",
+    "queries": [
+      "chase NPC upstairs around a nearer ramp",
+      "перехватить патруль на другом этаже"
+    ],
+    "requirements": [
+      "Two levels with separate ascents and a known patrol schedule"
+    ],
+    "node": "Compare predictive, reactive and stationary variants using native navmesh routes.",
+    "sdk7": "Creator recipes → Gameplay → Intercept a patrol upstairs. Routes use navcat where applicable. The scene shows the authored controller and its checks.",
+    "expect": "Take the nearer ascent and reach the upper meeting point by the time limit.",
+    "control": "Chase the current position and miss the moving target. A stationary target should stay a lower-floor goal.",
+    "source": [
+      "src/recipes/recipe-gameplay.ts",
+      "src/recipes/recipe-gameplay-routes.ts",
+      "tools/catalog/recipe-gameplay.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-CONCEALED",
+    "goal": "Choose a route whose intermediate positions stay out of an observer's direct line of sight.",
+    "queries": [
+      "avoid a camera along the whole route",
+      "маршрут под укрытием, видимость только на середине пути"
+    ],
+    "requirements": [
+      "Two comparable routes, an observer, an opaque screen and explicit exposure checks"
+    ],
+    "node": "Compare covered, unobserved and no-cover variants. The controller evaluates geometric visibility along the candidate paths.",
+    "sdk7": "Creator recipes → Gameplay → Find a route with cover. Routes use navcat where applicable. The scene shows the authored controller and its checks.",
+    "expect": "Choose the covered route when required. Choose the shorter route when the observer is absent.",
+    "control": "Remove the screen while keeping the observer. Reject both routes when each has an exposed segment.",
+    "source": [
+      "src/recipes/recipe-gameplay.ts",
+      "src/recipes/recipe-gameplay-routes.ts",
+      "tools/catalog/recipe-gameplay.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-CONVEYOR",
+    "goal": "Account for conveyor velocity when evaluating movement direction and available paths.",
+    "queries": [
+      "NPC runs in place against a conveyor",
+      "бот застревает на реверсивном конвейере"
+    ],
+    "requirements": [
+      "A moving surface with known velocity, an agent speed cap and an optional bypass"
+    ],
+    "node": "Compare forward, reversed, stopped and no-bypass variants.",
+    "sdk7": "Creator recipes → Gameplay → Reversible conveyor. Routes use navcat where applicable. The scene shows the authored controller and its checks.",
+    "expect": "Switch the viable direction when the belt reverses. Take the bypass if the belt cannot be overcome.",
+    "control": "Without a bypass, report the opposing direction as unreachable. Stopping the conveyor restores both directions.",
+    "source": [
+      "src/recipes/recipe-gameplay.ts",
+      "src/recipes/recipe-gameplay-routes.ts",
+      "tools/catalog/recipe-gameplay.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-ROBOT-TURN",
+    "goal": "Pick a station where a rectangular NPC can rotate its whole footprint.",
+    "queries": [
+      "rectangular robot clips the corner while turning",
+      "длинный робот задевает стену при развороте"
+    ],
+    "requirements": [
+      "Rectangular footprint, two turning bays and an analytic swept-rotation check"
+    ],
+    "node": "Compare the wider station, narrow-only fixture and circular footprint control.",
+    "sdk7": "Creator recipes → Gameplay → Turn a long robot at a station. Routes use navcat where applicable. The scene shows the authored controller and its checks.",
+    "expect": "Use a station with enough space for the full turn and reach the requested heading.",
+    "control": "Both axis-aligned poses fit the narrow bay but the rectangular rotation collides. A small circular footprint fits.",
+    "source": [
+      "src/recipes/recipe-gameplay.ts",
+      "src/recipes/recipe-gameplay-motion.ts",
+      "tools/catalog/recipe-gameplay.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-PATROL",
+    "goal": "Sample reproducible patrol points within an actual radius on a reachable floor.",
+    "queries": [
+      "patrol picks a point outside its circle or on another floor",
+      "патруль выходит за заданный радиус или уходит на другой этаж"
+    ],
+    "requirements": [
+      "Stacked floors, reachable polygons, isolated room and controlled random seed"
+    ],
+    "node": "Sample using the nearest start ref and validate distance, layer and reachable route for accepted points.",
+    "sdk7": "Creator recipes → Navigation APIs → Patrol on one floor. Native navcat query or crowd simulation with visualization of its result.",
+    "expect": "Every accepted point stays within the circle, on the chosen layer and reachable. Reusing the seed reproduces the series.",
+    "control": "A long eligible polygon can produce a raw sample outside the radius. Excluding the final distance check exposes it.",
+    "source": [
+      "src/recipes/recipe-engine.ts",
+      "src/recipes/recipe-engine-query.ts",
+      "src/recipes/recipe-engine-navcat.ts",
+      "tools/catalog/recipe-engine.ts",
+      "tools/catalog/recipe-engine-detour.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-AREA-WAYPOINTS",
+    "goal": "Extract waypoints for area events and detect a truncated output path.",
+    "queries": [
+      "waypoint buffer cut off the goal; area crossings missing",
+      "буфер обрезал путь, где граница области"
+    ],
+    "requirements": [
+      "A complete corridor with area changes and a same-area portal"
+    ],
+    "node": "Compare plain, area-crossing, all-crossing and capped straight-path extraction with named options.",
+    "sdk7": "Creator recipes → Navigation APIs → Area and portal crossings. Native navcat query or crowd simulation with visualization of its result.",
+    "expect": "Area mode reports transitions between areas. All-crossings adds a same-area portal. Only a path reaching the endpoint is complete.",
+    "control": "A short output buffer retains a full corridor but loses the endpoint.",
+    "source": [
+      "src/recipes/recipe-engine.ts",
+      "src/recipes/recipe-engine-query.ts",
+      "src/recipes/recipe-engine-navcat.ts",
+      "tools/catalog/recipe-engine.ts",
+      "tools/catalog/recipe-engine-detour.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-SPILL",
+    "goal": "Mark a runtime cost change on the intended floor without bleeding into the deck above.",
+    "queries": [
+      "a hazard on the floor affects the balcony too",
+      "пролив на нижнем этаже меняет маршрут по верхнему"
+    ],
+    "requirements": [
+      "Overlapping upper and lower corridors, floor-specific volume and alternate route"
+    ],
+    "node": "Query candidate polygons and exact-filter the intended layer before applying a cost change.",
+    "sdk7": "Creator recipes → Navigation APIs → Spill on the lower floor. Native navcat query or crowd simulation with visualization of its result.",
+    "expect": "Only the lower covered polygons change. The lower NPC uses an alternative and the upper route stays unchanged.",
+    "control": "Widen the query vertically without checking layers. This change incorrectly reaches upper polygons.",
+    "source": [
+      "src/recipes/recipe-engine.ts",
+      "src/recipes/recipe-engine-query.ts",
+      "src/recipes/recipe-engine-navcat.ts",
+      "tools/catalog/recipe-engine.ts",
+      "tools/catalog/recipe-engine-detour.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-LINK-DISPATCH",
+    "goal": "Choose the correct traversal action when multiple links share endpoints.",
+    "queries": [
+      "wrong animation for two links at the same position",
+      "два off-mesh перехода совпадают по координатам, но выбирается не то действие"
+    ],
+    "requirements": [
+      "Two same-endpoint links with different flags, keys and compatible NPC profiles"
+    ],
+    "node": "Query from each profile and resolve the traversed link identity instead of inferring it from coordinates.",
+    "sdk7": "Creator recipes → Navigation APIs → Coincident off-mesh actions. Native navcat query or crowd simulation with visualization of its result.",
+    "expect": "The same endpoints produce different action keys according to the NPC profile, including after registration order changes.",
+    "control": "Dispatching by nearest coordinates picks the same action for both profiles.",
+    "source": [
+      "src/recipes/recipe-engine.ts",
+      "src/recipes/recipe-engine-topology.ts",
+      "src/recipes/recipe-engine-navcat.ts",
+      "tools/catalog/recipe-engine.ts",
+      "tools/catalog/recipe-engine-detour.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-BAKE-LANDING",
+    "goal": "Tune the region filter so an essential intermediate landing survives bake.",
+    "queries": [
+      "a small landing disappeared after baking",
+      "маленькая посадочная площадка исчезла из навмеша"
+    ],
+    "requirements": [
+      "Two outer platforms, an intermediate landing and two authored transitions"
+    ],
+    "node": "Bake below and above a region threshold and test the refs and route separately.",
+    "sdk7": "Creator recipes → Navigation APIs → Keep the intermediate landing. Native navcat query or crowd simulation with visualization of its result.",
+    "expect": "The lower threshold preserves the intermediate polygon and enables the two-hop route.",
+    "control": "Increasing the threshold removes the intermediate surface. Removing just the links preserves it but leaves the route disconnected.",
+    "source": [
+      "src/recipes/recipe-engine.ts",
+      "src/recipes/recipe-engine-topology.ts",
+      "src/recipes/recipe-engine-navcat.ts",
+      "tools/catalog/recipe-engine.ts",
+      "tools/catalog/recipe-engine-detour.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-CROWD-OVERRIDE",
+    "goal": "Temporarily steer a crowd agent by velocity, then give it a new path target.",
+    "queries": [
+      "temporarily steer a crowd NPC and resume a route",
+      "ручная скорость агента crowd с возвратом к цели"
+    ],
+    "requirements": [
+      "One crowd with an active agent, side pocket and two goals"
+    ],
+    "node": "Use native target, velocity, reset and explicit zero-velocity hold in a persistent crowd.",
+    "sdk7": "Creator recipes → Navigation APIs → Crowd velocity override. Native navcat query or crowd simulation with visualization of its result.",
+    "expect": "The agent moves through the pocket, holds position after reset and a zero-velocity command, and reaches the replacement goal.",
+    "control": "Compare no lateral override, no reset, and reset without the zero-velocity hold. Record drift during the stop window.",
+    "source": [
+      "src/recipes/recipe-engine.ts",
+      "src/recipes/recipe-engine-crowd.ts",
+      "src/recipes/recipe-engine-navcat.ts",
+      "tools/catalog/recipe-engine.ts",
+      "tools/catalog/recipe-engine-detour.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-CROWD-POLICY",
+    "goal": "Use different access filters for agents moving on the same geometry and in one crowd.",
+    "queries": [
+      "two agents in one crowd need different access flags",
+      "разные права прохода у NPC в одном crowd"
+    ],
+    "requirements": [
+      "Two alternate access lanes, two agents and individual filters"
+    ],
+    "node": "Compare two policies in one crowd, then swap them. Use engine-specific filter and projection adapters.",
+    "sdk7": "Creator recipes → Navigation APIs → Crowd access policies. Native navcat query or crowd simulation with visualization of its result.",
+    "expect": "Each agent takes only its allowed lane, and the paths swap when permissions swap.",
+    "control": "Sharing one filter incorrectly sends both agents down the same allowed lane.",
+    "source": [
+      "src/recipes/recipe-engine.ts",
+      "src/recipes/recipe-engine-crowd.ts",
+      "src/recipes/recipe-engine-navcat.ts",
+      "tools/catalog/recipe-engine.ts",
+      "tools/catalog/recipe-engine-detour.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-PORTAL-WALL",
+    "goal": "Inspect the local border a specific NPC sees through its access filter.",
+    "queries": [
+      "debug forbidden portal as a wall for one character",
+      "проём виден как стена только конкретному NPC"
+    ],
+    "requirements": [
+      "A shared doorway and two access filters"
+    ],
+    "node": "Use navcat's wall segment query or pass --detour-wasm=<built-wasm-compat.js> to test the optional Detour binding on the same fixture.",
+    "sdk7": "Creator recipes → Navigation APIs → Portal or wall by NPC. Native navcat query or crowd simulation with visualization of its result.",
+    "expect": "The same edge is a wall or a portal depending on the NPC filter.",
+    "control": "A shared permissive filter reports the doorway as open for both agents.",
+    "source": [
+      "src/recipes/recipe-engine.ts",
+      "src/recipes/recipe-engine-topology.ts",
+      "src/recipes/recipe-engine-navcat.ts",
+      "tools/catalog/recipe-engine.ts",
+      "tools/catalog/recipe-engine-detour.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-PRUNE-ISLANDS",
+    "goal": "Prune unreachable polygons while preserving all valid spawn regions and directed connections.",
+    "queries": [
+      "pruning removed my second spawn or kept an unreachable upper island",
+      "отсечение островков потеряло второй спавн"
+    ],
+    "requirements": [
+      "Two legal spawn seeds, a decorative island and one-way links"
+    ],
+    "node": "Run native directed reachability or pruning and validate nearest-poly candidates under the normal query filter.",
+    "sdk7": "Creator recipes → Navigation APIs → Prune islands from two spawns. Native navcat query or crowd simulation with visualization of its result.",
+    "expect": "Keep both legal spawns and the reachable landing. Ignore decorative polygons unreachable from either seed.",
+    "control": "Omitting a legal seed loses its valid region. Treating links as bidirectional keeps an unreachable island.",
+    "source": [
+      "src/recipes/recipe-engine.ts",
+      "src/recipes/recipe-engine-topology.ts",
+      "src/recipes/recipe-engine-navcat.ts",
+      "tools/catalog/recipe-engine.ts",
+      "tools/catalog/recipe-engine-detour.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-MIRRORED-GLB",
+    "goal": "Import mirrored nested meshes while preserving walkable ramps.",
+    "queries": [
+      "mirrored glTF ramp stops routing",
+      "зеркальная вложенная рампа исчезает из навмеша"
+    ],
+    "requirements": [
+      "Nested GLB transforms, one and two negative axes, instance poses and a flat reference"
+    ],
+    "node": "Read the fixture GLB and compare transformed geometry and route heights with manually expanded ramps.",
+    "sdk7": "Creator recipes → SDK7 authoring → Mirrored GLB ramp. Open the synthetic GLB fixture and verify supports with SDK7 raycasts.",
+    "expect": "Both composed transforms preserve the expected ramp and floor height.",
+    "control": "Leave the reflected winding unchanged or flip both instances. The reference detects the lost or incorrectly oriented support.",
+    "source": [
+      "src/recipes/recipe-creator-geometry.ts",
+      "src/recipes/recipe-creator-geometry-scene.ts",
+      "tools/catalog/recipe-creator-geometry.ts",
+      "scripts/recipe-creator-geometry-model.ts",
+      "models/recipe-creator-geometry/mirrored-ramp.glb"
+    ]
+  },
+  {
+    "caseId": "RECIPE-NAMED-MARKERS",
+    "goal": "Resolve patrol points from stable scene entity names and parent-relative transforms.",
+    "queries": [
+      "named markers stable after reordering",
+      "маршрут по именованным маркерам в Scene Editor"
+    ],
+    "requirements": [
+      "Named entities on two floors and author-controlled order"
+    ],
+    "node": "Run the marker fixture with changed creation order and with missing marker input.",
+    "sdk7": "Creator recipes → SDK7 authoring → Named patrol markers. The fixture looks up real named SDK7 entities and composes their scene poses.",
+    "expect": "Patrol order, marker identity and floor remain stable under creation-order changes.",
+    "control": "Remove an expected name. Report the missing marker rather than using stale IDs or another floor.",
+    "source": [
+      "src/recipes/recipe-creator-geometry.ts",
+      "src/recipes/recipe-creator-geometry-scene.ts",
+      "tools/catalog/recipe-creator-geometry.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-L-PARCELS",
+    "goal": "Restrict NPC routes to an authored non-rectangular parcel footprint while preserving shared seams.",
+    "queries": [
+      "NPC shortcuts across missing parcel",
+      "бот срезает через отсутствующий parcel"
+    ],
+    "requirements": [
+      "Three parcels with a missing quadrant and aligned seams"
+    ],
+    "node": "Compare the clipped navigation geometry with a bounding rectangle and a relocated origin.",
+    "sdk7": "Creator recipes → SDK7 authoring → L-shaped parcel bounds. The lab shows a scaled logical parcel layout within one physical parcel.",
+    "expect": "The NPC stays in the union of the allowed parcels and crosses the valid seams.",
+    "control": "A bounding box admits a shortcut through the cutout. Eroding parcels in isolation breaks the valid seams.",
+    "source": [
+      "src/recipes/recipe-creator-geometry.ts",
+      "tools/catalog/recipe-creator-geometry.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-ANIMATOR",
+    "goal": "Drive an in-place clip from observed speed while leaving world motion to the follower.",
+    "queries": [
+      "NPC animation moves the transform twice",
+      "анимация NPC не совпадает с остановкой или скоростью"
+    ],
+    "requirements": [
+      "GltfContainer and Animator on a separate visual entity, visible start/stop route"
+    ],
+    "node": "Run the shared locomotion and animation contract with the debug control for displacement.",
+    "sdk7": "Creator recipes → SDK7 authoring → Locomotion drives in-place animation. Watch the real Animator change between idle and walk as the route follower moves and stops.",
+    "expect": "Animation follows actual motion and the gameplay root follows the same route with animation enabled or disabled.",
+    "control": "A clip with root displacement or an animation state inferred from requested speed is detected by its respective check.",
+    "source": [
+      "src/recipes/recipe-creator-behavior-scene.ts",
+      "src/recipes/recipe-creator-behavior.ts",
+      "tools/catalog/recipe-creator-behavior.ts",
+      "scripts/recipe-creator-behavior-model.ts",
+      "models/recipe-creator-behavior.glb"
+    ]
+  },
+  {
+    "caseId": "RECIPE-SCENE-RESUME",
+    "goal": "Retain the destination and revalidate navigation when a hidden scene resumes.",
+    "queries": [
+      "NPC teleports after opening and closing Explorer map",
+      "бот перескакивает закрытую дверь после закрытия карты Explorer"
+    ],
+    "requirements": [
+      "ExplorerUi map lifecycle events, changed door revision, bounded catch-up logic"
+    ],
+    "node": "Inject a hidden interval, a door update and a long resume delta while native route queries use the new mesh.",
+    "sdk7": "Creator recipes → SDK7 authoring → Resume after fullscreen UI. Click Open Explorer map in the recipe panel, keep it open briefly, then close it.",
+    "expect": "The visible NPC resumes toward the same goal with a current route and bounded movement.",
+    "control": "Resume along the old route with the accumulated delta and detect it crossing or ignoring the changed door.",
+    "source": [
+      "src/recipes/recipe-creator-behavior-scene.ts",
+      "src/recipes/recipe-creator-behavior.ts",
+      "tools/catalog/recipe-creator-behavior.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-EXPLORER-REPLAY",
+    "goal": "Carry a reproducer from an Explorer log into a headless run using stable scene keys.",
+    "queries": [
+      "replay Explorer NPC navigation bug in CLI",
+      "перенести лог навигационного бага из Explorer в CLI"
+    ],
+    "requirements": [
+      "Versioned navigation trace, fixture fingerprint, stable actor keys and ordered events"
+    ],
+    "node": "Run pnpm exec tsx scripts/recipe-creator-behavior-replay.ts <trace-or-log-path> with a captured JSON file or Explorer log.",
+    "sdk7": "Creator recipes → SDK7 authoring → Record an Explorer navigation replay. Choose the recording example and copy its tagged trace from the Explorer scene log.",
+    "expect": "Headless replay reproduces the same relevant events despite changed runtime entity IDs.",
+    "control": "Reject traces with a stale geometry fingerprint, unsupported format or invalid event order.",
+    "source": [
+      "src/recipes/recipe-creator-behavior-scene.ts",
+      "src/recipes/recipe-creator-behavior-replay.ts",
+      "scripts/recipe-creator-behavior-replay.ts",
+      "tools/catalog/recipe-creator-behavior.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-IMPORT-ROLLBACK",
+    "goal": "Stage validated tiles and publish a complete navigation snapshot atomically.",
+    "queries": [
+      "partial navmesh import breaks old routes",
+      "при неудачном импорте часть новой карты ломает текущую сцену"
+    ],
+    "requirements": [
+      "One active snapshot, a candidate with an invalid tile, and a repaired rebuild"
+    ],
+    "node": "Import genuine tile artifacts into a separate candidate and record import/setup and queries.",
+    "sdk7": "Creator recipes → Runtime operations → Recover from a failed import. Inspect the navcat snapshot used after a failed import and after the repaired retry.",
+    "expect": "A failed candidate preserves the active revision and usable route. The repaired candidate publishes together.",
+    "control": "Expose partial staged state and observe a route assembled from inconsistent revisions.",
+    "source": [
+      "src/recipes/recipe-creator-ops.ts",
+      "src/recipes/recipe-creator-ops-tiles.ts",
+      "tools/catalog/recipe-creator-ops.ts",
+      "tools/catalog/recipe-creator-ops-detour.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-STREAMING-MEMORY",
+    "goal": "Evict tiles and retire references as the navigation window travels repeatedly.",
+    "queries": [
+      "navmesh streaming memory grows each lap",
+      "при повторных обходах растёт число загруженных тайлов"
+    ],
+    "requirements": [
+      "Overlapping loading windows, hundreds of tile transitions and bounded application ownership"
+    ],
+    "node": "Record tile count, stale references, phase durations and process memory counters. Treat memory samples as diagnostics.",
+    "sdk7": "Creator recipes → Runtime operations → Bound tile streaming. The native navcat fixture tracks tile residency as the window moves. Process memory counters are available in Node.",
+    "expect": "Resident tile count is bounded and retired route references become invalid.",
+    "control": "Disable eviction or retain obsolete ownership. The independent residency or reference check detects the growth.",
+    "source": [
+      "src/recipes/recipe-creator-ops.ts",
+      "src/recipes/recipe-creator-ops-tiles.ts",
+      "tools/catalog/recipe-creator-ops.ts",
+      "tools/catalog/recipe-creator-ops-detour.ts"
+    ]
+  },
+  {
+    "caseId": "RECIPE-URGENT-REPLAN",
+    "goal": "Prioritize a route invalidated by a changed door within a bounded work queue.",
+    "queries": [
+      "urgent route starves while many NPCs replan",
+      "срочное перепланирование теряется в фоновой очереди"
+    ],
+    "requirements": [
+      "Backlogged queries, an urgent route on a new revision and a deterministic per-tick work quota"
+    ],
+    "node": "Compare FIFO and bounded priority scheduling while native queries perform the work.",
+    "sdk7": "Creator recipes → Runtime operations → Schedule urgent replans. Watch the urgent and background work advance with navcat routes in the same scene.",
+    "expect": "The urgent route completes promptly, stale results are discarded and background work also advances.",
+    "control": "FIFO misses the urgent latency target. The priority variant must also show background completion while urgent work is queued.",
+    "source": [
+      "src/recipes/recipe-creator-ops.ts",
+      "tools/catalog/recipe-creator-ops.ts"
+    ]
+  }
+]
