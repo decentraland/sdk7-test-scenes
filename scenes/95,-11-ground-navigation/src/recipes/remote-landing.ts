@@ -31,6 +31,11 @@ export function* remoteAvatarSupport(
     const right = yield* world.readRay(rays[1])
     return [...left.hits, ...right.hits]
   }
+  function* checkPhysicsMask() {
+    const worldHits = yield* readPads(ColliderLayer.CL_PHYSICS)
+    requireCheck(!occupancy(worldHits).some(Boolean) && floors.every((floor) => worldHits.some((hit) => hit.entityId === floor)),
+      'The physics-only mask must see the platforms without the avatars.')
+  }
   function* waitForOccupancy(expected: readonly boolean[], detail: string) {
     for (let attempt = 0; attempt < 2400; attempt++) {
       const occupied = occupancy(yield* readPads(ColliderLayer.CL_PLAYER))
@@ -39,17 +44,33 @@ export function* remoteAvatarSupport(
     }
     throw new Error(detail)
   }
-  setLabel('Two remote guests: stand on both green pads. Observer stays off the pads.')
+  setLabel('One guest: start on the left pad. Two guests: take one pad each. Observer stays off the pads.')
   logIntegration({ stage: 'avatar-instruction', phase: 'occupy-both' })
   const remotePlayers = () => new Set([...engine.getEntitiesWith(PlayerIdentityData)]
     .flatMap(([entity, player]) => entity === engine.PlayerEntity || !player.address ? [] : [player.address])).size
-  for (let frames = 0; frames < 14_400 && remotePlayers() < 2; frames++) yield
+  let leftSeen = false
+  let singleGuestPassed = false
+  for (let frames = 0; frames < 14_400 && remotePlayers() < 2; frames++) {
+    if (!singleGuestPassed && remotePlayers() === 1) {
+      const [left, right] = occupancy(yield* readPads(ColliderLayer.CL_PLAYER))
+      if (!leftSeen && left && !right) {
+        yield* checkPhysicsMask()
+        leftSeen = true
+        setLabel('One guest detected on the left pad. Move to the right pad.')
+        logIntegration({ stage: 'one-guest-smoke', phase: 'move-right', occupancy: [left, right], remoteEntityId: 0 })
+      } else if (leftSeen && !left && right) {
+        yield* checkPhysicsMask()
+        singleGuestPassed = true
+        setLabel('One-guest smoke PASS. A second remote guest is needed for the main test.')
+        logIntegration({ stage: 'one-guest-smoke', verdict: 'pass', occupancy: [left, right], remoteEntityId: 0 })
+      }
+    }
+    yield
+  }
   if (remotePlayers() < 2) throw new MissingParticipants('Explorer did not see two remote players in the test realm.')
   logIntegration({ stage: 'avatar-instruction', phase: 'participants-ready', count: remotePlayers() })
   const initial = yield* waitForOccupancy([true, true], 'Did not receive separate native CL_PLAYER hits with entityId 0 on both pads.')
-  const worldHits = yield* readPads(ColliderLayer.CL_PHYSICS)
-  requireCheck(!occupancy(worldHits).some(Boolean) && floors.every((floor) => worldHits.some((hit) => hit.entityId === floor)),
-    'The physics-only mask must see the platforms without the avatars.')
+  yield* checkPhysicsMask()
   setLabel('Move the guest off the left pad. Leave the right pad occupied.')
   logIntegration({ stage: 'avatar-instruction', phase: 'release-left' })
   const final = yield* waitForOccupancy([false, true], 'Releasing one pad did not preserve the other avatar occupancy.')

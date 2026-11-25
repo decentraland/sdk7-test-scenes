@@ -47,6 +47,8 @@ For **SDK-T03 Два игрока на посадке без уникальны�
 
 For the PR preview in Unity Editor, use environment `zone` and initial realm `sdk7testscenes.dcl.eth`.
 
+With one guest, open the same test on both clients and start observation. The guest enters `/goto-local landing-left`, waits for the observer's cue, then enters `/goto-local landing-right`. The observer reports **One-guest smoke PASS** after native rays detect the move and the physics-only mask sees both platforms. The full two-guest verdict checks simultaneous hits that share the same remote entity ID.
+
 ## Creator recipes
 
 Search the [recipe index](tools/catalog/creator-recipes.json) for a symptom, goal or constraint in English or Russian. Give that index to your coding agent together with the relevant scene files. Every entry has a minimal setup, an expected outcome, a failure control and links to the implementation. Use the case ID to find the corresponding timing below.
