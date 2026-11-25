@@ -10,6 +10,8 @@
     "build": "tsx scripts/bake.ts && sdk-commands build",
     "deploy": "tsx scripts/bake.ts && sdk-commands deploy",
     "bake": "tsx scripts/bake.ts",
+    "navmesh:pack": "tsx scripts/package-navmesh.mjs",
+    "navmesh:check-kits": "node scripts/check-navmesh-kits.mjs",
     "compare:fixtures": "tsx scripts/export-fixtures.ts",
     "compare": "tsx scripts/compare.ts",
     "compare:crowd-load": "tsx scripts/compare-crowd-load.ts",

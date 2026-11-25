@@ -1,4 +1,5 @@
 import { mountGroundLab } from './ground-lab'
+import { twoFloorTests } from './navmesh/examples/live-comparison'
 import { authoringLiveRecipes } from './recipes/recipe-authoring-scene'
 import { creatorBehaviorLiveRecipes } from './recipes/recipe-creator-behavior-scene'
 import { creatorGeometryRecipes } from './recipes/recipe-creator-geometry'
@@ -20,7 +21,7 @@ export function mountNavigationLab(playbackRate = 1) {
     { id: 'gameplay', label: 'Gameplay', simulations: [...recipeRuntimeScenarios, ...gameplayRecipeScenarios] },
     { id: 'navigation-apis', label: 'Navigation APIs', simulations: engineRecipeScenarios },
     { id: 'runtime-operations', label: 'Runtime operations', simulations: creatorOpsRecipes }
-  ], playbackRate, remoteLandingTest)
+  ], playbackRate, [remoteLandingTest, ...twoFloorTests])
 }
 
 export function main() {

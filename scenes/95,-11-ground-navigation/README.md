@@ -19,6 +19,25 @@ pnpm start --mcp
 - **Opposing groups** runs navcat avoidance live. Three bots from each end of the upper deck swap sides. The board shows arrivals and steps with overlap.
 - **Run WASM probe** initializes Detour in the current Explorer and runs six route checks and the opposing-groups case in the background. The panel shows initialization and Detour's results. The scene log also records navcat results and timing.
 
+## Choose and copy a navigation kit
+
+1. Open **Traversal tests → Two floors · navcat live** or **Two floors · Detour live**. Both run the same local NPC, upper-floor target and unreachable isolated platform through the API that ships with the downloads. Restart or switch examples to compare. The label and the `[navmesh-two-floors]` log report the verdict, initial open time and a batch of 64 queries. The first Detour open includes WASM startup.
+2. Look up your own symptom in [Creator recipes](#creator-recipes), then read the matched row in [Per-case performance](#per-case-performance). That table measures both engines in Node and names the WASM variant and absent features. For live Explorer query and crowd measurements, see [Live Detour probe](#live-detour-probe) and [Crowd load comparison](#crowd-load-comparison). The examples use `Date.now` in Explorer, so compare timed batches and check cost on your target.
+3. Download one kit and copy `src/navmesh` into your current SDK7 project. Follow the few lines under **Add ground navigation to an SDK7 scene** in the archive README. Keep your scene's existing `main()` and SDK dependencies. The kits bundle their own engine and require no additional package installation.
+
+| Engine | Copy into an SDK7 scene | Optional offline tools | Clean SDK7 bundle |
+| --- | --- | --- | ---: |
+| navcat 0.4.1 with mathcat 0.0.12 | [SDK7 kit · 25,592 B](downloads/navcat-sdk7-v1.zip?raw=true) | [Bake and measure · 37,049 B](downloads/navcat-bake-v1.zip?raw=true) | 3,187,784 B |
+| Detour via recast-navigation 0.44.0 | [SDK7 kit · 235,886 B](downloads/detour-sdk7-v1.zip?raw=true) | [Bake and measure · 232,470 B](downloads/detour-bake-v1.zip?raw=true) | 5,114,504 B |
+
+Clean bundle sizes are from the standard SDK7 7.30.1 build with the copied starter and an existing game entry point. They include the SDK runtime and the prepared example mesh. The archive sizes are the files you download.
+
+Both copied kits passed in Desktop Explorer `v0.199.0-alpha-main`. The NPC reached the upper floor and the query for the isolated platform returned unreachable.
+
+The Detour kit embeds the stock WASM. It supports the same basic routes as this live example. The [optional Detour wall-segment binding](#optional-detour-wall-segment-binding) section covers the separately tested custom build, including sliced search. The offline tools accept authored collision surfaces in SDK7 coordinates and produce prepared mesh data for the matching kit. Copy `measure.mjs` from either offline archive if you want to time your own queries in Node. Each archive contains its own version and licensing information. [Archive checksums](downloads/SHA256SUMS)
+
+To regenerate and verify the downloads in the lab checkout, run `pnpm navmesh:pack` and `pnpm navmesh:pack --verify`. Run `pnpm navmesh:check-kits` to unpack them in temporary folders and verify independent Node routes, offline bake and SDK7 builds with standard SDK dependencies only.
+
 ## Traversal tests
 
 Open **Traversal tests**, choose a fixture and select a variant. The scene spawns its geometry and bots in place of the comparison arena. **Run** steps the fixture at 30 fixed simulation ticks per second. **Pause** keeps the current state visible, **Reset** returns to the start of the variant, and **Back to comparison** restores the main arena. Start from the front of the parcel to watch the course.
@@ -48,6 +67,8 @@ For **SDK-T03 Два игрока на посадке без уникальны�
 For the PR preview in Unity Editor, use environment `zone` and initial realm `sdk7testscenes.dcl.eth`.
 
 With one guest, open the same test on both clients and start observation. The guest enters `/goto-local landing-left`, waits for the observer's cue, then enters `/goto-local landing-right`. The observer reports **One-guest smoke PASS** after native rays detect the move and the physics-only mask sees both platforms. The full two-guest verdict checks simultaneous hits that share the same remote entity ID.
+
+The hosted run with Desktop Explorer `v0.199.0-alpha-main` and two Unity Editor guests passed. Both native hits omitted the optional `entityId` field. The check accepts that representation and the explicit zero sentinel. It identifies each landing by hit position.
 
 ## Creator recipes
 

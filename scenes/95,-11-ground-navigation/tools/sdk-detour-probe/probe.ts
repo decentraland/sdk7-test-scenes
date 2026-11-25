@@ -1,11 +1,12 @@
 import { engine, executeTask } from '@dcl/sdk/ecs'
-import { init, importNavMesh } from 'recast-navigation'
+import { importNavMesh } from 'recast-navigation'
 import { OPPOSING_GROUPS, SCENARIOS, type Point, type Scenario } from '../../src/arena'
 import { createCrowdObserver, createNavcatCrowd, type CrowdRun } from '../../src/crowd'
 import detourMeshes from '../../src/generated/detour-meshes'
 import meshes from '../../src/generated/meshes'
 import { createNavcatNavigatorFromMesh, type Navigator, type Route } from '../../src/navigation'
 import { createDetourCrowdFromMesh, createDetourNavigatorFromMesh } from '../../test/detour'
+import { initializeDetour } from '../../src/navmesh/detour-runtime'
 
 const host = globalThis as typeof globalThis & { performance?: { now(): number } }
 const timer = typeof host.performance?.now === 'function' ? 'performance.now' : 'Date.now'
@@ -65,7 +66,7 @@ export function runProbe(onStatus?: (status: ProbeStatus) => void) {
   executeTask(async () => {
     const initStart = now()
     try {
-      await init()
+      await initializeDetour()
       log({ stage: 'init', result: 'ok', ms: now() - initStart })
     } catch (error) {
       fail('init', error)

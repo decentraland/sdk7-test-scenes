@@ -55,7 +55,7 @@ export function mountTraversalPlayground(
   mountComparison: () => () => void,
   recipeGroups: readonly RecipeGroup[] = [],
   playbackRate = 1,
-  multiplayerTest?: LiveRecipe
+  liveTests: readonly LiveRecipe[] = []
 ) {
   const visuals = createTraversalVisuals()
   let unmountComparison: (() => void) | undefined = mountComparison()
@@ -175,8 +175,9 @@ export function mountTraversalPlayground(
           {browsing && showRecipes && !recipeGroup && recipeGroups.map((group) =>
             item(group.id, group.label, () => { recipeGroup = group })
           )}
-          {browsing && !showRecipes && multiplayerTest &&
-            item(multiplayerTest.id, multiplayerTest.label, () => spawnLive(multiplayerTest))}
+          {browsing && !showRecipes && liveTests.map((test) =>
+            item(test.id, test.label, () => spawnLive(test))
+          )}
           {browsing && visibleScenarios.map((scenario) =>
             item(scenario.id, scenario.label, () => spawn(scenario, scenario.variants[0]))
           )}
