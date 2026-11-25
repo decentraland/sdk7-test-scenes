@@ -3,8 +3,14 @@ import type { TraversalShape } from '../../src/traversal/types'
 import type { TraversalBackend } from '../sdk-detour-probe/traversal-routing'
 
 export type CatalogResult = {
-  status: 'pass' | 'fail' | 'unsupported' | 'missing'
+  status: 'pass' | 'fail' | 'unsupported' | 'not-applicable' | 'missing' | 'error'
   detail: string
+  metrics?: Readonly<Record<string, number>>
+  performance?: {
+    scope: 'full case' | 'required variants'
+    samplesMs: readonly number[]
+    sampleMetrics?: readonly Readonly<Record<string, number>>[]
+  }
 }
 
 export type CatalogCase = {
@@ -20,6 +26,10 @@ export function check(passed: boolean, detail: string): CatalogResult {
 
 export function unsupported(detail: string): CatalogResult {
   return { status: 'unsupported', detail }
+}
+
+export function notApplicable(detail: string): CatalogResult {
+  return { status: 'not-applicable', detail }
 }
 
 export function missing(detail: string): CatalogResult {

@@ -8,8 +8,9 @@ import {
   createTraversalNavigator, traversalSurfaces, type AuthoredLink, type TraversalBackend, type TraversalQueryOptions
 } from '../sdk-detour-probe/traversal-routing'
 import { CLUTTER_CELL, CLUTTER_GOAL, CLUTTER_RADIUS, CLUTTER_SPEED, CLUTTER_START,
-  clutterMaps, clutterOverlap, clutterPoint, clutterTrace } from './clutter'
-import { gridDistance } from './grid'
+  clutterMaps, clutterOverlap, clutterPoint, clutterTrace, routeThroughClutter } from './clutter'
+import { gridDistance, gridRouteProblem } from './grid'
+import { liveCrossingFlow } from './time-crowd-gate'
 import { outsideRect } from './ground'
 import { box, check, missing, type CatalogCase, type CatalogResult } from './types'
 import {
@@ -299,12 +300,16 @@ async function warehouseScale(backend: TraversalBackend): Promise<CatalogResult>
         }
       }
       const point = (cell: number): Point => [cell % width + 0.5, 0, Math.floor(cell / width) + 0.5]
+      // Eight voxels across a one-metre corridor leave room for erosion while
+      // still resolving its boundary and the turns around shelves.
       const bake = {
-        ...NAVIGATION_BAKE, radius: 0.18, height: 0.8, cellSize: 0.25,
+        ...NAVIGATION_BAKE, radius: 0.18, height: 0.8, cellSize: 0.125,
         maxEdgeLength: 40, maxSimplificationError: 0.35
       }
       const native = backend === 'navcat' ? createNavcatNavigatorFromMesh(bakeNavcatMesh(geometry, bake))
-        : createDetourNavigatorFromMesh(bakeDetourMesh(geometry, bake))
+        : createDetourNavigatorFromMesh(bakeDetourMesh(geometry, bake), undefined, {
+          maxNodes: 16384, maxPathPolys: 4096, maxStraightPathPoints: 4096
+        })
       try {
         for (const pool of ['even', 'random']) {
           const data = await readFile(join(cache, 'scen-' + pool, name + '-' + pool + '-1.scen'), 'utf8')
@@ -326,15 +331,9 @@ async function warehouseScale(backend: TraversalBackend): Promise<CatalogResult>
             const route = native.route(from, to)
             if (route.status !== 'complete' || gap(route.points[0], from) > 0.25 ||
                 gap(route.points[route.points.length - 1], to) > 0.25) return false
-            return route.points.slice(1).every((end, i) => {
-              const start = route.points[i]
-              const samples = Math.max(1, Math.ceil(gap(start, end) / 0.15))
-              for (let j = 0; j <= samples; j++) {
-                const [x, , z] = interpolate(start, end, j / samples)
-                if (!walkable(Math.floor(x), Math.floor(z))) return false
-              }
-              return true
-            })
+            return !gridRouteProblem(route, rows, {
+              start: [start % width, Math.floor(start / width)], goal: [goal % width, Math.floor(goal / width)]
+            }, 1)
           })
           overallNative += nativeChecks.filter(Boolean).length
           const scores = []
@@ -553,7 +552,7 @@ function timedClutter(backend: TraversalBackend) {
       const shapes = obstacles.map(({ x, z }, i) =>
         box('obstacle-' + i, 'obstacle', [x * CLUTTER_CELL, 0, z * CLUTTER_CELL], [(x + 1) * CLUTTER_CELL, 1, (z + 1) * CLUTTER_CELL]))
       const route = withNavigator(backend, traversalSurfaces([floor, ...shapes], 0.8, 0),
-        (nav) => nav.route(start, goal), [], CLUTTER_RADIUS)
+        routeThroughClutter, [], CLUTTER_RADIUS)
       const connected = Number.isFinite(gridDistance(rows, CLUTTER_START, CLUTTER_GOAL))
       if (!connected || route.status !== 'complete' || gap(route.points[route.points.length - 1], goal) > 0.25) {
         for (const outcome of outcomes) {
@@ -658,7 +657,10 @@ function integrateCrowd(
 
 function antipodal(backend: TraversalBackend) {
   const reports: ReturnType<typeof integrateCrowd>[] = []
-  const create = crowdFactory(backend, [surface(0, 24, 0, 24)], 0.3, 1.6)
+  const bodyRadius = 0.3
+  // Native avoidance can compress its steering discs in dense crowds.
+  const radius = bodyRadius + 0.06
+  const create = crowdFactory(backend, [surface(0, 24, 0, 24)], radius, 1.6)
   for (const count of [8, 16, 32]) {
     for (const ring of [4, 8]) {
       for (const dt of [1 / 30, 1 / 60]) {
@@ -671,102 +673,22 @@ function antipodal(backend: TraversalBackend) {
               const difference = skew ? (i % 2 ? -0.02 : 0.02) : 0
               return { start: [12 + x + difference, 0, 12 + z] as Point, goal: [12 - x, 0, 12 - z] as Point }
             })
-            reports.push(integrateCrowd(create, { agents, radius: 0.3, height: 1.6, maxSpeed: 2, maxAcceleration: 8 }, dt, 12))
+            reports.push(integrateCrowd(create, { agents, radius, height: 1.6, maxSpeed: 2, maxAcceleration: 8 }, dt, 12))
           }
         }
       }
     }
   }
-  const clashes = reports.filter(({ minGap }) => minGap < 0.58).length
+  const clashes = reports.filter(({ minGap }) => minGap < 2 * bodyRadius - 0.02).length
   const complete = reports.map(({ arrived }, i) => arrived / [8, 16, 32][Math.floor(i / 16)])
   const min = Math.min(...reports.map(({ minGap }) => minGap))
   const tail = Math.max(...reports.map(({ p95 }) => p95))
   const stall = Math.max(...reports.map(({ stalledSeconds }) => stalledSeconds))
   return check(reports.every(({ valid }) => valid) && !clashes,
-    reports.length + ' native sweeps; completed fraction ' + Math.min(...complete).toFixed(2) + '–' + Math.max(...complete).toFixed(2) +
+    reports.length + ' native sweeps with a 0.06 m steering margin; completed fraction ' +
+    Math.min(...complete).toFixed(2) + '–' + Math.max(...complete).toFixed(2) +
     '; unsafe sweeps ' + clashes + '; min gap ' + min.toFixed(4) + ' m; max stall ' + stall.toFixed(2) +
     ' s; max p95 ' + tail.toFixed(4) + ' ms/agent')
-}
-
-function crossingFlow(backend: TraversalBackend) {
-  const west = surface(0, 8, 9, 11)
-  const east = surface(12, 20, 9, 11)
-  const south = surface(9, 11, 0, 8)
-  const north = surface(9, 11, 12, 20)
-  const arms = [west, east, south, north]
-  const chamber = surface(8, 12, 8, 12)
-  const constrained = [
-    surface(8, 12, 9.6, 10.4), surface(9.6, 10.4, 8, 9.6), surface(9.6, 10.4, 10.4, 12)
-  ]
-  const meshes = [[...arms, chamber], [...arms, ...constrained]]
-  function rotate([x, y, z]: Point, arm: number): Point {
-    return arm === 0 ? [x, y, z] : arm === 1 ? [20 - x, y, 20 - z]
-      : arm === 2 ? [z, y, x] : [20 - z, y, 20 - x]
-  }
-  const template = Array.from({ length: 32 }, (_, i) => {
-    const index = i % 8
-    const arm = Math.floor(i / 8)
-    const start = rotate([6 - Math.floor(index / 2) * 1.25, 0, 9.65 + index % 2 * 0.7], arm)
-    const goal = rotate([14 + Math.floor(index / 2) * 1.25, 0, 9.65 + index % 2 * 0.7], arm)
-    return { start, goal, release: index * 0.2, arm }
-  })
-  let switched = false
-  let everNarrowed = false
-  let active: typeof template = []
-  const settings: CrowdSettings = { agents: [], radius: 0.25, height: 1.2, maxSpeed: 2, maxAcceleration: 8 }
-  const create = meshes.map((mesh) => crowdFactory(backend, mesh, settings.radius, settings.height))
-  let crowd: ReturnType<ReturnType<typeof crowdFactory>> | undefined
-  let positions: Point[] = []
-  const completed = [0, 0, 0, 0]
-  const waits = [0, 0, 0, 0]
-  let contacts = 0
-  let min = Infinity
-  let maxBacklog = 0
-  let resume = Infinity
-  let previousArrived = 0
-  try {
-    for (let step = 0; step <= 25 * 30; step++) {
-      const t = step / 30
-      const unsafeToNarrow = positions.some(([x, , z]) =>
-        x > 7.7 && x < 12.3 && z > 7.7 && z < 12.3 && (Math.abs(x - 10) > 0.13 && Math.abs(z - 10) > 0.13))
-      const nextSwitch: boolean = t >= 1.2 && t < 11.2 && (switched || !unsafeToNarrow)
-      const releases = template.filter(({ release }) => Math.abs(release - t) < 1e-6)
-      if (!crowd || nextSwitch !== switched || releases.length) {
-        active = [...active.map((entry, i) => ({ ...entry, start: positions[i] })), ...releases]
-        switched = nextSwitch
-        everNarrowed ||= switched
-        const replacement = create[switched ? 1 : 0]({ ...settings, agents: active })
-        crowd?.dispose()
-        crowd = replacement
-        positions = crowd.positions()
-      }
-      crowd.step(1 / 30)
-      const next = crowd.positions()
-      let hit = false
-      for (let i = 0; i < next.length; i++) {
-        if (gap(positions[i], next[i]) < 0.003 && gap(next[i], active[i].goal) > 0.25) waits[active[i].arm] += 1 / 30
-        for (let j = 0; j < i; j++) {
-          const distance = sweptGap(positions[i], next[i], positions[j], next[j]).distance
-          min = Math.min(min, distance)
-          hit ||= distance < 0.48
-        }
-      }
-      if (hit) contacts++
-      completed.fill(0)
-      next.forEach((point, i) => { if (gap(point, active[i].goal) <= 0.25) completed[active[i].arm]++ })
-      const done = completed.reduce((sum, n) => sum + n, 0)
-      if (t >= 11.2 && done > previousArrived) resume = Math.min(resume, t - 11.2)
-      previousArrived = done
-      maxBacklog = Math.max(maxBacklog, active.length - done)
-      positions = next
-    }
-    return check(everNarrowed && contacts === 0 && completed.every((count) => count === 8),
-      'Four arms; narrowed ' + everNarrowed + '; finished ' + completed.join('/') + '; swept contact ticks ' + contacts + '; min gap ' + min.toFixed(3) +
-      ' m; wait/arm ' + waits.map((wait) => wait.toFixed(1)).join('/') + ' s; backlog ' + maxBacklog +
-      '; post-open progress ' + (Number.isFinite(resume) ? resume.toFixed(2) + ' s' : 'none'))
-  } finally {
-    crowd?.dispose()
-  }
 }
 
 export const timeCrowdCases: CatalogCase[] = [
@@ -781,7 +703,7 @@ export const timeCrowdCases: CatalogCase[] = [
   { id: 'M03', layer: 'controller', run: cyclicTraffic },
   { id: 'M04', layer: 'benchmark', run: warehouseScale },
   { id: 'M05', layer: 'benchmark', run: antipodal },
-  { id: 'M06', layer: 'benchmark', coverage: 'adapted', run: crossingFlow },
+  { id: 'M06', layer: 'benchmark', run: liveCrossingFlow },
   { id: 'GAME-12', layer: 'integration', run: stairBlockage },
   { id: 'GAME-13', layer: 'integration', run: docking },
   { id: 'GAME-16', layer: 'controller', run: occupancySlots },

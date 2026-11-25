@@ -1,18 +1,60 @@
 import { createFindNearestPolyResult, createGetPolyHeightResult, DEFAULT_QUERY_FILTER,
   findNearestPoly, getPolyHeight, getTileAndPolyByRef } from 'navcat'
-import type { Point } from '../../src/arena'
+import { NavMeshQuery, Raw } from 'recast-navigation'
+import type { Point, Surface } from '../../src/arena'
 import { floor } from './ground'
-import { nativePoint, navcatTiles } from './native-tiles'
-import { check, unsupported, type CatalogCase } from './types'
+import { detourPoint, detourTiles, nativePoint, navcatTiles } from './native-tiles'
+import { check, type CatalogCase } from './types'
 
 const samples: Point[] = [3.98, 4, 4.02].map((x) => [x, 2, 3])
 const onDeck = (height: number) => Number.isFinite(height) && Math.abs(height - 2) < 0.15
 
-export const degenerateDetails: CatalogCase['run'] = (backend) => {
-  if (backend === 'detour') {
-    return unsupported('recast-navigation 0.44 declares setDetailTris but its WASM binding has no set_detailTris. The malformed detail input cannot be injected through this adapter.')
+function detourDegenerateDetails(surfaces: Surface[]) {
+  const mesh = detourTiles(surfaces)
+  const query = new NavMeshQuery(mesh)
+  try {
+    const halfExtents = { x: 0.3, y: 0.3, z: 0.3 }
+    const anchors = samples.map(detourPoint).map((position) => ({
+      position, ref: query.findNearestPoly(position, { halfExtents }).nearestRef
+    }))
+    if (anchors.some(({ ref }) => !ref)) return check(false, 'The clean fixture must hit all three deck samples.')
+    const sample = () => anchors.map(({ ref, position }) => query.getPolyHeight(ref, position))
+    const initial = sample()
+    let triangles = 0
+    for (const ref of new Set(anchors.map(({ ref }) => ref))) {
+      const { tile, poly, success } = mesh.getTileAndPolyByRef(ref)
+      const header = tile.header()
+      if (!success || !header) return check(false, 'Projection did not return a live tile and polygon.')
+      const detail = tile.detailMeshes(ref - mesh.getPolyRefBase(tile))
+      if (!detail.triCount()) return check(false, 'The fixture polygon has no detail triangles to replace.')
+      for (let i = 0; i < detail.triCount(); i++) {
+        const at = 4 * (detail.triBase() + i)
+        if (at + 3 >= 4 * header.detailTriCount()) return check(false, 'Detail triangle index lies outside its tile.')
+        const vertex = tile.detailTris(at)
+        if (vertex >= poly.vertCount() + detail.vertCount()) return check(false, 'Detail vertex index lies outside its polygon.')
+        // Duplicate an existing vertex to force zero area while preserving the edge flags.
+        tile.raw.set_detailTris(at + 1, vertex)
+        tile.raw.set_detailTris(at + 2, vertex)
+        if (tile.detailTris(at + 1) !== vertex || tile.detailTris(at + 2) !== vertex) {
+          return check(false, 'The native detail-triangle fixture was not modified.')
+        }
+        triangles++
+      }
+    }
+    const malformed = sample()
+    return check(triangles > 0 && [...initial, ...malformed].every(({ success, height }) => success && onDeck(height)),
+      'Native height queries before and after all sampled detail triangles were collapsed: ' +
+      JSON.stringify({ triangles, initial, malformed }))
+  } finally {
+    Raw.destroy(query.defaultFilter.raw)
+    query.destroy()
+    mesh.destroy()
   }
+}
+
+export const degenerateDetails: CatalogCase['run'] = (backend) => {
   const surfaces = [floor(0, 4, 0, 6, 2), floor(4, 8, 0, 6, 2)]
+  if (backend === 'detour') return detourDegenerateDetails(surfaces)
   const mesh = navcatTiles(surfaces)
   const anchors = samples.map((point) => {
     const position = nativePoint(point)

@@ -1,6 +1,7 @@
 import type { Point } from '../../arena'
 import type { TraversalScenario, TraversalShape } from '../types'
 import { walkPoints } from '../walk'
+import { capsuleHits, coversFootprint, interpolate } from './mantles-support'
 
 type Probe = { id: number; revision: number; due: number; supported: boolean }
 type Landing = { surface: TraversalShape; feet: Point; time: number }
@@ -19,6 +20,8 @@ const startDeck: TraversalShape = { id: 'start-deck', kind: 'surface', center: [
 const originalLanding: TraversalShape = { id: 'landing', kind: 'surface', center: [10.25, 1.9, 6.25], size: [3.1, 0.2, 2.7] }
 const shiftedLanding: TraversalShape = { ...originalLanding, center: [10.62, 1.9, 6.25] }
 const loweredLanding: TraversalShape = { ...originalLanding, center: [10.25, 0.85, 6.25] }
+const bypassDeck: TraversalShape = { id: 'bypass-deck', kind: 'surface', center: [6.83, 1.9, 7.94], size: [4.86, 0.2, 1.52] }
+const flightVolume: TraversalShape = { id: 'flight-volume', kind: 'guide', center: [7.05, 2.58, 6.25], size: [4.54, 2.24, 1.4] }
 
 function surfaceY(surface: TraversalShape) {
   return surface.center[1] + surface.size[1] / 2
@@ -88,6 +91,11 @@ export const interruptedJump: TraversalScenario = {
     let replanSurface: TraversalShape | undefined
     let replans = 0
     let previousPlanCompleted = false
+    let bypassVerified = false
+    let airborneClaim: { landingId: string; revision: number } | undefined
+    let retiredClaim = false
+    let releasedAfterExit = false
+    let replanOrigin: Point | undefined
     const pending: Probe[] = []
     let stepsToTakeoff: Point[] | undefined
     let recoveryPoints: Point[] = []
@@ -98,7 +106,8 @@ export const interruptedJump: TraversalScenario = {
     }
 
     function surfaces() {
-      return [lowerFloor, startDeck, ...(landing ? [landing] : [])]
+      return [lowerFloor, startDeck, ...(landing ? [landing] : []),
+        ...(variantId === 'cancel-before' || variantId === 'cancel-airborne' ? [bypassDeck] : [])]
     }
 
     function setLanding(next: TraversalShape | undefined) {
@@ -138,8 +147,12 @@ export const interruptedJump: TraversalScenario = {
       if (Math.abs(feet[1] - surfaceY(support)) > 1e-6 || !hasFootprint(feet, support) || !hasFootprint(nextGoal, support)) {
         return fail('Replan did not start and end on the measured support.')
       }
+      if (tookOff && (!contact || contact.feet !== feet || airborneClaim)) {
+        return fail('The new route was requested before real contact and release of the old traversal.')
+      }
       const points = walkPoints(route, 'Recovery from ' + support.id, feet, nextGoal, surfaces(), radius, height)
-      if (!points) return fail('Planner did not route from the measured support.')
+      if (!points?.length) return fail('Planner did not route from the measured support.')
+      replanOrigin = feet
       recoveryPoints = [...points]
       replanSurface = support
       replans++
@@ -151,6 +164,11 @@ export const interruptedJump: TraversalScenario = {
     function onContact(hit: Landing) {
       contact = hit
       feet = hit.feet
+      if (!airborneClaim || capsuleHits(feet, feet, flightVolume, radius, height)) {
+        return fail('The off-mesh claim was released before a supported exit from its volume.')
+      }
+      releasedAfterExit = true
+      airborneClaim = undefined
       previousPlanCompleted = !cancelRequested && hit.surface.id === 'landing'
       if (previousPlanCompleted) {
         phase = 'settled'
@@ -163,9 +181,12 @@ export const interruptedJump: TraversalScenario = {
       const landedOn = contact?.surface.id
       const expected = {
         clear: tookOff && landedOn === 'landing' && previousPlanCompleted && replans === 0,
-        'cancel-before': cancelRequested && !tookOff && !contact && !previousPlanCompleted && replanSurface === startDeck && replans === 1,
-        'cancel-airborne': cancelRequested && tookOff && landedOn === 'landing' && !previousPlanCompleted && replanSurface?.id === 'landing' && replans === 1,
-        'remove-landing': tookOff && landedOn === 'lower-floor' && !previousPlanCompleted && replanSurface === lowerFloor && replans === 1,
+        'cancel-before': bypassVerified && cancelRequested && !tookOff && !contact && !previousPlanCompleted &&
+          replanSurface === startDeck && replans === 1 && replanOrigin !== undefined && replanOrigin[0] < takeoff[0],
+        'cancel-airborne': bypassVerified && cancelRequested && tookOff && landedOn === 'landing' && !previousPlanCompleted &&
+          replanSurface?.id === 'landing' && replans === 1 && replanOrigin === contact?.feet && releasedAfterExit,
+        'remove-landing': tookOff && retiredClaim && landedOn === 'lower-floor' && !previousPlanCompleted &&
+          replanSurface === lowerFloor && replans === 1 && replanOrigin === contact?.feet && releasedAfterExit,
         'stale-probe': tookOff && landedOn === 'landing' && previousPlanCompleted &&
           ignoredRevisionHints === 1 && ignoredSupersededHints === 1 && acceptedHints === 1 && replans === 0
       }
@@ -174,7 +195,30 @@ export const interruptedJump: TraversalScenario = {
       }
       verdict = 'pass'
       detail = (landedOn ? 'Contact: ' + landedOn : 'Takeoff suppressed') +
-        ' · ' + replans + ' replans · ' + (ignoredRevisionHints + ignoredSupersededHints) + ' stale replies ignored.'
+        ' · ' + replans + ' replans · ' + (ignoredRevisionHints + ignoredSupersededHints) + ' stale replies ignored.' +
+        (bypassVerified ? ' A supported upper-deck bypass was available.' : '') +
+        (retiredClaim ? ' Stale off-mesh claim released after contacting the lower floor.' : '')
+    }
+
+    function validateBypass() {
+      const to: Point = [9.6, 2, 6.25]
+      const routePoints: readonly Point[] | undefined = route
+        ? walkPoints(route, 'Validate the ground bypass', start, to, surfaces(), radius, height)
+        : [[4.85, 2, 7.15], [4.85, 2, 7.9], [8.95, 2, 7.9], [8.95, 2, 7.15], to]
+      if (!routePoints?.length) return false
+      let usedBridge = false
+      let from = start
+      for (const point of routePoints) {
+        const steps = Math.max(1, Math.ceil(Math.hypot(point[0] - from[0], point[2] - from[2]) / 0.06))
+        for (let i = 0; i <= steps; i++) {
+          const sample = interpolate(from, point, i / steps)
+          if (!coversFootprint(surfaces(), sample, radius)) return false
+          if (sample[0] > startDeck.center[0] + startDeck.size[0] / 2 &&
+              sample[0] < originalLanding.center[0] - originalLanding.size[0] / 2) usedBridge = true
+        }
+        from = point
+      }
+      return usedBridge && from === to
     }
 
     function advanceFlight(dt: number) {
@@ -186,6 +230,9 @@ export const interruptedJump: TraversalScenario = {
       }
       if (variantId === 'remove-landing' && reached(0.36)) {
         setLanding(undefined)
+        retiredClaim = airborneClaim?.landingId === originalLanding.id && airborneClaim.revision < revision &&
+          capsuleHits(feet, feet, flightVolume, radius, height)
+        if (!retiredClaim) return fail('Removing the landing lost the in-flight claim or missed the flight volume.')
         detail = 'The upper landing disappeared after takeoff.'
       }
       if (variantId === 'stale-probe') {
@@ -205,6 +252,7 @@ export const interruptedJump: TraversalScenario = {
       const hit = findLanding(flightTime, next, surfaces())
       if (hit) onContact(hit)
       else {
+        if (!airborneClaim || replans !== 0) return fail('The route switched while the agent was airborne.')
         flightTime = next
         feet = flightAt(next)
         if (feet[1] < surfaceY(lowerFloor)) fail('The capsule passed below the lowest floor without valid support.')
@@ -219,21 +267,28 @@ export const interruptedJump: TraversalScenario = {
         switch (phase) {
           case 'approach': {
             if (!stepsToTakeoff) {
+              if (variantId === 'cancel-before' || variantId === 'cancel-airborne') {
+                bypassVerified = validateBypass()
+                if (!bypassVerified) return fail('The authored upper-deck bypass was not continuously walkable.')
+              }
               const points = walkPoints(route, 'Jump approach', feet, takeoff, surfaces(), radius, height)
               if (!points) return fail('Planner did not find the initial route to takeoff.')
               stepsToTakeoff = [...points]
             }
             const waypoint = stepsToTakeoff[0]
             const next = moveToward(feet, waypoint, 2.8 * dt)
-            if (variantId === 'cancel-before' && stepsToTakeoff.length === 1 && next === takeoff) {
+            if (variantId === 'cancel-before' && stepsToTakeoff.length === 1 && next !== takeoff &&
+                moveToward(next, takeoff, 2.8 * dt) === takeoff) {
+              feet = next
               cancelRequested = true
               startReplan(startDeck, safeBeforeJump)
             } else {
               feet = next
               if (next === waypoint) stepsToTakeoff.shift()
               if (stepsToTakeoff.length === 0) {
-                if (!hasFootprint(feet, startDeck)) return fail('The bot cannot take off without support.')
+                if (!hasFootprint(feet, startDeck) || !landing) return fail('The bot cannot take off without support and a landing.')
                 tookOff = true
+                airborneClaim = { landingId: landing.id, revision }
                 phase = 'airborne'
                 detail = 'Jump committed. Landing requires actual contact.'
               }

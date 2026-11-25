@@ -1,9 +1,10 @@
 import {
-  ColliderLayer, engine, GltfContainer, GltfContainerLoadingState, LoadingState, PlayerIdentityData, TextShape, Transform, type Entity
+  ColliderLayer, engine, GltfContainer, GltfContainerLoadingState, LoadingState, TextShape, Transform, type Entity
 } from '@dcl/sdk/ecs'
 import { Color4, Quaternion, Vector3 } from '@dcl/sdk/math'
 import { init } from 'recast-navigation'
 import type { Point, Surface } from '../../src/arena'
+import { logIntegration as log, MissingParticipants, remoteAvatarSupport } from '../../src/recipes/remote-landing'
 import { displacedCorridor } from '../catalog/ground-corridor'
 import { actionableDoor, lateDoor } from '../catalog/ground-door'
 import { followPartial } from '../catalog/ground-partial'
@@ -16,8 +17,6 @@ const teal = Color4.create(0.18, 0.65, 0.54, 1)
 const amber = Color4.create(1, 0.76, 0.25, 1)
 const white = Color4.White()
 const v = Vector3.create
-const log = (value: unknown) => console.log('[sdk-navigation-integration] ' + JSON.stringify(value))
-class MissingParticipants extends Error {}
 
 function* delayedSupport(world: ProbeWorld) {
   const left = v(4, 2, 6)
@@ -185,44 +184,6 @@ function* reparentedPose(world: ProbeWorld) {
   const turn = Math.max(angle(heading(before), heading(after)), angle(heading(after), heading(free)))
   requireCheck(move <= 0.02 && turn <= 1, 'Reparent caused a discontinuity in the world-space collider pose.')
   return { maxPositionDeltaM: move, maxYawDeltaDegrees: turn }
-}
-
-function* remoteAvatarSupport(world: ProbeWorld, setLabel: (label: string) => void) {
-  const pads = [v(5, 0.25, 8), v(11, 0.25, 8)]
-  const floors = pads.map((pad) => world.box(v(pad.x, 0.125, pad.z), v(1.6, 0.25, 1.6), teal))
-  const marker = world.marker(v(8, 0.3, 8), amber)
-  const occupancy = (samples: Array<{ entityId?: number; position?: Vector3 }>) => pads.map((pad) =>
-    samples.some((hit) => hit.entityId === 0 && hit.position && Math.hypot(hit.position.x - pad.x, hit.position.z - pad.z) <= 0.35))
-  function* readPads(mask: number) {
-    const rays = pads.map((pad) => world.issueRay(fromAbove(pad, 2.4), Vector3.Down(), 2.5, mask))
-    const left = yield* world.readRay(rays[0])
-    const right = yield* world.readRay(rays[1])
-    return [...left.hits, ...right.hits]
-  }
-  function* waitForOccupancy(expected: readonly boolean[], detail: string) {
-    for (let attempt = 0; attempt < 900; attempt++) {
-      const occupied = occupancy(yield* readPads(ColliderLayer.CL_PLAYER))
-      if (occupied.every((value, index) => value === expected[index])) return occupied
-      yield
-    }
-    throw new Error(detail)
-  }
-  setLabel('Two remote guests: stand on both green pads. Observer stays off the pads.')
-  log({ stage: 'avatar-instruction', phase: 'occupy-both' })
-  const remotePlayers = () => [...engine.getEntitiesWith(PlayerIdentityData)].filter(([entity]) => entity !== engine.PlayerEntity).length
-  for (let frames = 0; frames < 900 && remotePlayers() < 2; frames++) yield
-  if (remotePlayers() < 2) throw new MissingParticipants('Explorer did not see two remote players in the test realm.')
-  const initial = yield* waitForOccupancy([true, true], 'Did not receive separate native CL_PLAYER hits with entityId 0 on both pads.')
-  const worldHits = yield* readPads(ColliderLayer.CL_PHYSICS)
-  requireCheck(!occupancy(worldHits).some(Boolean) && floors.every((floor) => worldHits.some((hit) => hit.entityId === floor)),
-    'The physics-only mask must see the platforms without the avatars.')
-  setLabel('Move the guest off the left pad. Leave the right pad occupied.')
-  log({ stage: 'avatar-instruction', phase: 'release-left' })
-  const final = yield* waitForOccupancy([false, true], 'Releasing one pad did not preserve the other avatar occupancy.')
-  const landing = pads.find((_, index) => !final[index])
-  requireCheck(landing === pads[0], 'The controller did not choose the freed pad.')
-  Transform.getMutable(marker).position = landing
-  return { initialOccupancy: initial, finalOccupancy: final, remoteEntityId: 0, chosenLanding: 'left' }
 }
 
 function* compareGround(run: CatalogCase['run']) {

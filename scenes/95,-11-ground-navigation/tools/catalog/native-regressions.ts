@@ -4,20 +4,23 @@ import {
   createSlicedNodePathQuery, DEFAULT_QUERY_FILTER, finalizeSlicedFindNodePath, findNearestPoly,
   findNodePath, findSmoothPath, FindNodePathResultFlags, FindSmoothPathResultFlags,
   findStraightPath, FindStraightPathOptions, getClosestPointOnPoly, getNodeByRef, getNodeByTileAndPoly,
-  getTileAt, initSlicedFindNodePath, moveAlongSurface, NODE_FLAG_CLOSED, OffMeshConnectionDirection, raycast,
+  getTileAt, initSlicedFindNodePath, INVALID_NODE_REF, moveAlongSurface, OffMeshConnectionDirection, raycast,
   raycastWithCosts, removeTile, SlicedFindNodePathStatusFlags, updateSlicedFindNodePath,
   type NavMesh
 } from 'navcat'
 import { Detour, NavMeshQuery, Raw, statusDetail } from 'recast-navigation'
 import { generateTileCache } from 'recast-navigation/generators'
 import type { Point } from '../../src/arena'
+import { findNavcatPathWithShortcut } from '../../src/navigation-any-angle'
 import { bakeNavcatMesh, createNavcatNavigatorFromMesh, toRecastGeometry, type Route } from '../../src/navigation'
 import { bakeDetourMesh, createDetourNavigatorFromMesh } from '../../test/detour'
 import { crosses, floor } from './ground'
+import { detourAnyAngleCosts } from './detour-any-angle'
 import { degenerateDetails } from './ground-detail'
 import { groundFollower, pointDistance } from './ground-motion'
 import { CELL_SIZE, detourPoint, detourTiles, nativePoint, navcatTiles, TILE_EDGE, usingNativeTiles } from './native-tiles'
-import { check, unsupported, type CatalogCase } from './types'
+import { obstacleBackpressure } from './obstacle-backpressure'
+import { check, notApplicable, type CatalogCase } from './types'
 
 const nearest = (mesh: NavMesh, point: Point) =>
   findNearestPoly(createFindNearestPolyResult(), mesh, nativePoint(point), [0.3, 0.3, 0.3], DEFAULT_QUERY_FILTER)
@@ -62,7 +65,7 @@ const persistedLink: CatalogCase['run'] = (backend) => {
 }
 
 const anyAngleCosts: CatalogCase['run'] = (backend) => {
-  if (backend === 'detour') return unsupported('Pinned Detour JS bindings expose a cost-aware raycast but no sliced any-angle search.')
+  if (backend === 'detour') return detourAnyAngleCosts()
   const mesh = navcatTiles([floor(0, 12, 0, 6)])
   for (const tile of Object.values(mesh.tiles)) {
     if (tile.tileY !== 2 || (tile.tileX !== 2 && tile.tileX !== 3)) continue
@@ -79,16 +82,21 @@ const anyAngleCosts: CatalogCase['run'] = (backend) => {
     filter.getCost = (a, b, nav, previous, current, next) =>
       distance(a, b, nav, previous, current, next) * (getNodeByRef(nav, current).area === 2 ? areaCost : 1)
     const rawRay = raycastWithCosts(mesh, from.nodeRef, from.position, to.position, filter, from.nodeRef)
-    const corridor = findNodePath(mesh, from.nodeRef, to.nodeRef, from.position, to.position, filter, { raycastDistance })
-    const straight = findStraightPath(mesh, from.position, to.position, corridor.path, null, FindStraightPathOptions.ALL_CROSSINGS)
-    const finalPoint = straight.path[straight.path.length - 1]?.position
-    const terminal = corridor.nodes[to.nodeRef]?.find((node) => (node.flags & NODE_FLAG_CLOSED) !== 0)
+    const route = findNavcatPathWithShortcut(mesh, from, to, filter, raycastDistance)
+    const upstream = raycastDistance > 0
+      ? findNodePath(mesh, from.nodeRef, to.nodeRef, from.position, to.position, filter, { raycastDistance })
+      : undefined
+    const upstreamStraight = upstream &&
+      findStraightPath(mesh, from.position, to.position, upstream.path, null, FindStraightPathOptions.ALL_CROSSINGS)
+    const upstreamPath = upstreamStraight?.path ?? []
+    const upstreamEnd = upstreamPath[upstreamPath.length - 1]?.position
     return {
       directCost: rawRay.pathCost,
-      chosenCost: terminal?.cost ?? Infinity,
-      reachesGoal: Boolean(corridor.flags & FindNodePathResultFlags.COMPLETE_PATH) && straight.success &&
-        finalPoint !== undefined && Math.abs(finalPoint[0] - to.position[0]) < 0.05,
-      outside: straight.path.some(({ position }) => position[2] < -1.95)
+      chosenCost: route?.cost ?? Infinity,
+      reachesGoal: route !== undefined,
+      outside: route?.path.some(({ position }) => position[2] < -1.95) ?? false,
+      upstreamAnyAngleReachesGoal: upstream && Boolean(upstreamStraight?.success && upstreamEnd &&
+        Math.hypot(...upstreamEnd.map((value, axis) => value - to.position[axis])) < 1e-4)
     }
   }
   const cheap = query(1, 30)
@@ -99,11 +107,11 @@ const anyAngleCosts: CatalogCase['run'] = (backend) => {
     Math.abs(cheap.directCost - 10) < 0.15 && expensive.directCost > 70 &&
     expensive.chosenCost <= control.chosenCost + 0.5,
   'Standard search at 20x: ' + JSON.stringify(control) +
-    '. Any-angle at equal and 20x cost: ' + JSON.stringify(cheap) + ' / ' + JSON.stringify(expensive) + '.')
+    '. Complete ray corridor versus ordinary A* at equal and 20x cost: ' + JSON.stringify(cheap) + ' / ' + JSON.stringify(expensive) + '.')
 }
 
 const zeroPolygon: CatalogCase['run'] = (backend) => {
-  if (backend === 'detour') return unsupported('Reference 0 denotes no polygon in Detour, so the navcat numeric-zero regression does not apply.')
+  if (backend === 'detour') return notApplicable('Reference 0 denotes no polygon in Detour. Invalid and stale references are checked in Недействительная ссылка после замены тайла.')
   const mesh = navcatTiles([floor(0, 6, 0, 1.8)])
   const from: Point = [1, 0, 0.9]
   const to: Point = [5, 0, 0.9]
@@ -139,6 +147,26 @@ const zeroPolygon: CatalogCase['run'] = (backend) => {
   return check(zero.ref === 0 && nonzero.ref !== 0 && zero.clear && nonzero.clear && zero.count === nonzero.count,
     'Raycast, one-iteration sliced search and smooth path agree before and after re-inserting the node that originally had reference zero.')
 }
+
+const invalidPolyRef: CatalogCase['run'] = (backend) => usingNativeTiles(backend, (fixture) => {
+  const start: Point = [1, 0, 0.9]
+  const goal: Point = [5, 0, 0.9]
+  const invalid = backend === 'detour' ? 0 : INVALID_NODE_REF
+  const before = fixture.path(start, goal)
+  const oldRef = fixture.middleRef(before.refs)
+  const noStart = fixture.path([100, 0, 100], goal)
+  if (oldRef === undefined || !before.complete || !fixture.valid(oldRef) || !fixture.evict()) {
+    return check(false, 'The test requires a complete corridor and a removable live middle polygon.')
+  }
+  const staleWhileEvicted = !fixture.valid(oldRef) && !fixture.path(start, goal).complete
+  fixture.refill('original')
+  const after = fixture.path(start, goal)
+  const newRef = fixture.middleRef(after.refs)
+  return check(!fixture.valid(invalid) && noStart.refs.length === 0 && !noStart.complete &&
+    staleWhileEvicted && !fixture.valid(oldRef) && newRef !== undefined && newRef !== oldRef &&
+    fixture.valid(newRef) && after.complete,
+  'Native invalid-ref sentinel and missing projection are rejected. The replaced tile invalidates its old ref and the fresh corridor succeeds.')
+})
 
 const pathStatuses: CatalogCase['run'] = (backend) => {
   const from: Point = [1, 0, 1]
@@ -279,8 +307,7 @@ const surfaceStopsAtGap: CatalogCase['run'] = (backend) => {
   }
 }
 
-const obstacleQueue: CatalogCase['run'] = (backend) => {
-  if (backend === 'navcat') return unsupported('Navcat has no Detour TileCache obstacle request queue or fixed cap of 64.')
+function nativeDetourObstacleQueue() {
   const geometry = toRecastGeometry([floor(0, 20, 0, 20)])
   const obstaclePositions = Array.from({ length: 65 }, (_, i) =>
     ({ x: 1 + i % 8 * 2, y: 0, z: -1 - Math.floor(i / 8) * 2 }))
@@ -341,6 +368,13 @@ const obstacleQueue: CatalogCase['run'] = (backend) => {
     burst.preRetryCount === 64 && batches.preRetryCount === 65 && burst.final.every(Boolean) && batches.final.every(Boolean) &&
     burst.through === 'complete' && batches.through === burst.through,
   'Native TileCache rejected the 65th request. After draining and retry, all centres were blocked and a long path matched the 8-request batching control.')
+}
+
+const obstacleQueue: CatalogCase['run'] = (backend) => {
+  const shared = obstacleBackpressure(backend)
+  if (backend === 'navcat') return shared
+  const native = nativeDetourObstacleQueue()
+  return check(shared.status === 'pass' && native.status === 'pass', shared.detail + ' ' + native.detail)
 }
 
 const start: Point = [1, 0, 0.9]
@@ -430,6 +464,7 @@ export const nativeRegressionCases: CatalogCase[] = [
   { id: 'E12', layer: 'integration', run: importResolution },
   { id: 'E14', layer: 'planner', run: anyAngleCosts },
   { id: 'E15', layer: 'planner', run: zeroPolygon },
+  { id: 'E15B', layer: 'planner', run: invalidPolyRef },
   { id: 'E16', layer: 'planner', run: pathStatuses },
   { id: 'E19', layer: 'integration', run: surfaceStopsAtGap },
   { id: 'E21', layer: 'integration', run: persistedLink },

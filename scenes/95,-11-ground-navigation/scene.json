@@ -21,6 +21,18 @@
     "default": true,
     "position": { "x": [7, 9], "y": [0, 0], "z": [1, 2] },
     "cameraTarget": { "x": 8, "y": 1.5, "z": 11 }
+  }, {
+    "name": "landing-left",
+    "default": false,
+    "position": { "x": 5, "y": 1, "z": 8 }
+  }, {
+    "name": "landing-right",
+    "default": false,
+    "position": { "x": 11, "y": 1, "z": 8 }
+  }, {
+    "name": "landing-clear",
+    "default": false,
+    "position": { "x": 5, "y": 1, "z": 5 }
   }],
   "requiredPermissions": [],
   "featureToggles": {},

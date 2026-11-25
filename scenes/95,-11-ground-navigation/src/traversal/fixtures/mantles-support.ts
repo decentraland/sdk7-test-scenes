@@ -26,6 +26,32 @@ export function supports(shape: TraversalShape, feet: Point, radius = BOT_RADIUS
     Math.abs(feet[2] - shape.center[2]) + radius <= shape.size[2] / 2 + EPSILON
 }
 
+export function coversFootprint(shapes: readonly TraversalShape[], [x, y, z]: Point, radius = BOT_RADIUS) {
+  const pads = shapes.filter((part) => part.kind === 'surface' && Math.abs(surfaceHeight(part) - y) <= EPSILON)
+    .map(({ center, size }) => ({
+      left: center[0] - size[0] / 2, right: center[0] + size[0] / 2,
+      near: center[2] - size[2] / 2, far: center[2] + size[2] / 2
+    }))
+  const cuts = [x - radius, x + radius, ...pads.flatMap(({ left, right }) => [left, right])
+    .filter((edge) => edge > x - radius && edge < x + radius)].sort((a, b) => a - b)
+  for (let i = 1; i < cuts.length; i++) {
+    const left = cuts[i - 1]
+    const right = cuts[i]
+    if (right - left <= EPSILON) continue
+    const center = (left + right) / 2
+    const nearestX = Math.min(right, Math.max(left, x))
+    const halfDepth = Math.sqrt(Math.max(0, radius ** 2 - (nearestX - x) ** 2))
+    let supportedUntil = z - halfDepth
+    for (const pad of pads.filter((rect) => rect.left <= center && center <= rect.right)
+      .sort((a, b) => a.near - b.near)) {
+      if (pad.near > supportedUntil + EPSILON) break
+      supportedUntil = Math.max(supportedUntil, pad.far)
+    }
+    if (supportedUntil < z + halfDepth - EPSILON) return false
+  }
+  return true
+}
+
 export function touchesGrip(point: Point, shape: TraversalShape) {
   return point.every((value, axis) => Math.abs(value - shape.center[axis]) <= shape.size[axis] / 2 + EPSILON)
 }
@@ -34,14 +60,14 @@ function distanceToInterval(value: number, min: number, max: number) {
   return Math.max(min - value, value - max, 0)
 }
 
-export function capsuleHits(start: Point, end: Point, shape: TraversalShape) {
+export function capsuleHits(start: Point, end: Point, shape: TraversalShape, radius = BOT_RADIUS, height = BOT_HEIGHT) {
   const [x, y, z] = shape.center
   const [w, h, d] = shape.size
   // The capsule axis spans [feet.y + radius, feet.y + height - radius].
   // This extends the box vertically so the axis-to-box distance uses only the feet position.
   function distanceSquared(feet: Point) {
     const dx = distanceToInterval(feet[0], x - w / 2, x + w / 2)
-    const dy = distanceToInterval(feet[1], y - h / 2 - (BOT_HEIGHT - BOT_RADIUS), y + h / 2 - BOT_RADIUS)
+    const dy = distanceToInterval(feet[1], y - h / 2 - (height - radius), y + h / 2 - radius)
     const dz = distanceToInterval(feet[2], z - d / 2, z + d / 2)
     return dx * dx + dy * dy + dz * dz
   }
@@ -64,5 +90,5 @@ export function capsuleHits(start: Point, end: Point, shape: TraversalShape) {
     distanceSquared(end),
     distanceSquared(interpolate(start, end, (lo + hi) / 2))
   )
-  return minimum < BOT_RADIUS * BOT_RADIUS - EPSILON
+  return minimum < radius * radius - EPSILON
 }

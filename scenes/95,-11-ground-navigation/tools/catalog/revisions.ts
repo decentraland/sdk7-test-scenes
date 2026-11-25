@@ -1,10 +1,12 @@
 import type { Point } from '../../src/arena'
-import { createNavcatNavigatorFromMesh } from '../../src/navigation'
+import { toRecastGeometry } from '../../src/navigation'
 import type { TraversalShape } from '../../src/traversal/types'
-import { createDetourNavigatorFromMesh } from '../../test/detour'
 import { traversalSurfaces, type TraversalBackend } from '../sdk-detour-probe/traversal-routing'
 import { outsideRect } from './ground'
-import { detourTiles, navcatTiles } from './native-tiles'
+import { CELL_SIZE, TILE_EDGE } from './native-tiles'
+import { initialSnapshot, patchedSnapshot } from './revision-snapshot'
+import type { TileCoordinate, WorldBounds } from './revision-tile-worker'
+import { createRevisionWorkers } from './revision-workers'
 import { box, check, type CatalogCase } from './types'
 
 const start: Point = [1, 0, 4]
@@ -16,59 +18,68 @@ const chunks = [box('nw', 'obstacle', [5.4, 0, 5.4], [6, 2, 6]),
   box('sw', 'obstacle', [5.4, 0, 6], [6, 2, 6.6]),
   box('se', 'obstacle', [6, 0, 6], [6.6, 2, 6.6])]
 
-function store(backend: TraversalBackend, initial: readonly TraversalShape[]) {
-  function stage(revision: number, shapes: readonly TraversalShape[]) {
-    const faces = traversalSurfaces([slab, ...shapes], 1.4)
-    if (backend === 'navcat') {
-      const mesh = navcatTiles(faces, 0.18)
-      return { revision, navigator: createNavcatNavigatorFromMesh(mesh), tiles: Object.keys(mesh.tiles).length, dispose() {} }
-    }
-    const mesh = detourTiles(faces, 0.18)
-    let tiles = 0
-    for (let i = 0; i < mesh.getMaxTiles(); i++) {
-      if (mesh.getTile(i).header()) tiles++
-    }
-    const navigator = createDetourNavigatorFromMesh(mesh)
-    return { revision, navigator, tiles, dispose: navigator.dispose }
+const worldBounds: WorldBounds = [[0, 0, -10], [12, 0, 0]]
+const dirtyHalo = (Math.ceil(0.18 / CELL_SIZE) + 3) * CELL_SIZE
+
+function dirtyTiles(before: readonly TraversalShape[], after: readonly TraversalShape[]) {
+  const changed = [
+    ...before.filter((shape) => !after.includes(shape)), ...after.filter((shape) => !before.includes(shape))
+  ]
+  const coords: TileCoordinate[] = []
+  for (let y = 0; y < 5; y++) for (let x = 0; x < 6; x++) {
+    const west = x * TILE_EDGE
+    const near = 10 - (y + 1) * TILE_EDGE
+    if (changed.some(({ center: [cx, , cz], size: [width, , depth] }) =>
+      cx + width / 2 >= west - dirtyHalo && cx - width / 2 <= west + TILE_EDGE + dirtyHalo &&
+      cz + depth / 2 >= near - dirtyHalo && cz - depth / 2 <= near + TILE_EDGE + dirtyHalo
+    )) coords.push([x, y])
   }
-  let published = stage(0, initial)
-  let staged: ReturnType<typeof stage> | undefined
+  return coords
+}
+
+function store(backend: TraversalBackend, initial: readonly TraversalShape[]) {
+  const surfaces = (shapes: readonly TraversalShape[]) => traversalSurfaces([slab, ...shapes], 1.4)
+  let published = { revision: 0, shapes: initial, mesh: initialSnapshot(backend, surfaces(initial)) }
+  const workers = createRevisionWorkers(backend)
   let latestRevision = 0
-  let pending = Promise.resolve()
   return {
     query(from = start, to = goal) {
-      const { revision, navigator, tiles } = published
-      return { revision, tiles, path: navigator.route(from, to) }
+      const { revision, mesh } = published
+      return { revision, path: mesh.navigator.route(from, to) }
     },
-    inspectStaged(revision: number, from = start, to = goal) {
-      if (staged?.revision !== revision) return undefined
-      return { tiles: staged.tiles, path: staged.navigator.route(from, to) }
-    },
-    schedule(shapes: readonly TraversalShape[], completions: readonly Promise<unknown>[]) {
-      const revision = latestRevision + 1
-      const candidate = stage(revision, shapes)
-      staged?.dispose()
-      staged = candidate
-      latestRevision = revision
-      // Build native tile data now. The barrier delays publication, so queries
-      // during the hold still run against the previous live tiled snapshot.
-      pending = Promise.all(completions).then(() => {
-        if (revision !== latestRevision) return
-        published.dispose()
-        published = candidate
-        staged = undefined
+    schedule(shapes: readonly TraversalShape[], hold?: Promise<unknown>, heldTile?: TileCoordinate) {
+      const revision = ++latestRevision
+      const coordinates = dirtyTiles(published.shapes, shapes)
+      const held = heldTile ?? coordinates[coordinates.length - 1]
+      const geometry = toRecastGeometry(surfaces(shapes))
+      const jobs = coordinates.map((coord) => workers.build({
+        ...geometry, coordinates: coord, bounds: worldBounds
+      }, held && coord[0] === held[0] && coord[1] === held[1] ? hold : undefined))
+      let error: unknown
+      const ready = Promise.all(jobs.map(({ result }) => result)).then((patches) => {
+        if (revision !== latestRevision) return false
+        const mesh = patchedSnapshot(published.mesh, patches)
+        const retired = published.mesh
+        published = { revision, shapes, mesh }
+        retired.dispose()
+        return true
+      }).catch((failure: unknown) => {
+        error = failure
+        return false
       })
-      return revision
+      return {
+        revision, coordinates, ready,
+        progress: () => {
+          if (error !== undefined) throw error
+          const states = jobs.map(({ state }) => state())
+          return { active: states.filter((state) => state === 1).length, built: states.filter((state) => state === 2).length }
+        }
+      }
     },
-    async ready(revision: number) {
-      while (revision === latestRevision && published.revision < revision) await pending
-      return published.revision === revision
-    },
-    dispose() {
+    async dispose() {
       latestRevision++
-      staged?.dispose()
-      staged = undefined
-      published.dispose()
+      published.mesh.dispose()
+      await workers.dispose()
     }
   }
 }
@@ -79,46 +90,52 @@ function barrier() {
   return { passed, release }
 }
 
+const yieldWorker = () => new Promise<void>((resolve) => setTimeout(resolve, 1))
+
+async function waitForWorkers(report: () => boolean) {
+  const end = Date.now() + 15_000
+  while (!report()) {
+    if (Date.now() >= end) throw new Error('Timed out waiting for native tile worker progress.')
+    await yieldWorker()
+  }
+}
+
 export const revisionCases: CatalogCase[] = [
   {
-    id: 'GAME-14', layer: 'integration', coverage: 'adapted',
+    id: 'GAME-14', layer: 'integration',
     async run(backend) {
       const map = store(backend, [wall])
-      const gates = chunks.map(() => barrier())
+      const gate = barrier()
       try {
         const from: Point = [1, 0, 6]
         const to: Point = [11, 0, 6]
         const before = map.query(from, to)
-        const change = map.schedule(chunks, gates.map((gate) => gate.passed))
-        const candidate = map.inspectStaged(change, from, to)
-        gates.slice(0, 3).forEach((gate) => gate.release())
-        await Promise.resolve()
+        const change = map.schedule(chunks, gate.passed, [3, 2])
+        const corners = ['2,1', '2,2', '3,1', '3,2'].every((tile) => change.coordinates.some((coord) => coord.join() === tile))
+        await waitForWorkers(() => change.progress().built === change.coordinates.length - 1)
         const during = map.query(from, to)
-        gates[3].release()
-        const rebuilt = await map.ready(change)
+        gate.release()
+        const rebuilt = await change.ready
         const after = map.query(from, to)
         const unaffected = map.query([1, 0, 8.4], [11, 0, 8.4])
-        const remove = map.schedule([], [])
-        await map.ready(remove)
+        const remove = map.schedule([])
+        const removed = await remove.ready
         const clear = map.query(from, to)
-        return check(rebuilt && before.tiles > 4 && before.path.status === 'complete' &&
-          candidate !== undefined && candidate.tiles > 4 && candidate.path.status === 'complete' &&
-          outsideRect(candidate.path, [5.4, 6.6, 5.4, 6.6]) &&
-          JSON.stringify(candidate.path) !== JSON.stringify(before.path) && during.revision === before.revision &&
-          JSON.stringify(during.path) === JSON.stringify(before.path) && after.revision === change &&
-          JSON.stringify(after.path) === JSON.stringify(candidate.path) &&
+        return check(corners && rebuilt && removed && before.path.status === 'complete' &&
+          JSON.stringify(after.path) !== JSON.stringify(before.path) && during.revision === before.revision &&
+          JSON.stringify(during.path) === JSON.stringify(before.path) && after.revision === change.revision &&
           after.path.status === 'complete' && outsideRect(after.path, [5.4, 6.6, 5.4, 6.6]) &&
           unaffected.path.status === 'complete' && clear.path.status === 'complete' &&
           !outsideRect(clear.path, [5.4, 6.6, 5.4, 6.6]),
-        'The staged native tiled map already routes around debris. Three released barriers expose only the original map. ' +
-          'The fourth publishes the staged path, and removing debris restores the direct passage.')
+        change.coordinates.length + ' native worker patches include the four debris corners. Until the held corner is built, queries see the original route. After commit, the detour is open and clearing the debris restores the shortcut.')
       } finally {
-        map.dispose()
+        gate.release()
+        await map.dispose()
       }
     }
   },
   {
-    id: 'GAME-27', layer: 'integration', coverage: 'adapted',
+    id: 'GAME-27', layer: 'integration',
     async run(backend) {
       let rng = 417
       const boxes = Array.from({ length: 100 }, (_, i) => {
@@ -130,61 +147,79 @@ export const revisionCases: CatalogCase[] = [
       })
       const map = store(backend, boxes)
       let invalid = 0
+      let overlapped = 0
       try {
         for (let revision = 1; revision <= 5; revision++) {
           const gate = barrier()
           const z = 2.5 + revision * 0.1
           const hazard = box('hazard', 'obstacle', [4.8, 0, z], [6.3, 2, z + 1.5])
-          const job = map.schedule([...boxes.slice(revision), hazard], [gate.passed])
-          if ((map.inspectStaged(job)?.tiles ?? 0) <= 4) invalid++
-          const concurrent = await Promise.all(Array.from({ length: 30 }, async (_, i) => {
-            await Promise.resolve()
-            const lane = 2.6 + i * 0.015
-            return map.query([1, 0, lane], [11, 0, lane])
-          }))
-          invalid += concurrent.filter((entry) => entry.revision !== revision - 1 || entry.path.status !== 'complete').length
-          gate.release()
-          if (!(await map.ready(job))) invalid++
+          const moved = boxes.map((block, index) => {
+            if (index % 13 !== 0) return block
+            const [x, y, baseZ] = block.center
+            return { ...block, center: [x + revision * 0.045, y, baseZ - revision * 0.025] as Point }
+          })
+          const shapes = [...moved, hazard]
+          const job = map.schedule(shapes, gate.passed)
+          try {
+            await waitForWorkers(() => {
+              const { active, built } = job.progress()
+              return active > 0 || built === job.coordinates.length - 1
+            })
+            for (let i = 0; i < 30; i++) {
+              const lane = 2.6 + i * 0.015
+              const { active } = job.progress()
+              const entry = map.query([1, 0, lane], [11, 0, lane])
+              if (active) overlapped++
+              if (entry.revision !== revision - 1 || entry.path.status !== 'complete') invalid++
+              if (i % 5 === 4) await yieldWorker()
+            }
+          } finally {
+            gate.release()
+          }
+          if (!(await job.ready)) invalid++
           for (let i = 0; i < 30; i++) {
             const lane = 2.6 + i * 0.015
             const after = map.query([1, 0, lane], [11, 0, lane])
-            if (after.revision !== revision || after.path.status !== 'complete' ||
-                !outsideRect(after.path, [4.8, 6.3, z, z + 1.5])) invalid++
+            const hits = shapes.some(({ center: [cx, , cz], size: [w, , d] }) =>
+              !outsideRect(after.path, [cx - w / 2, cx + w / 2, cz - d / 2, cz + d / 2]))
+            if (after.revision !== revision || after.path.status !== 'complete' || hits) invalid++
           }
         }
-        return check(invalid === 0, '300 calls against 100 seeded obstacles and five staged native tiled revisions, invalid results ' + invalid + '.')
+        return check(invalid === 0 && overlapped > 0,
+          '300 queries around 100 seeded blockers; ' + overlapped + ' started while a worker reported a native tile build in progress. Invalid routes ' + invalid + '.')
       } finally {
-        map.dispose()
+        await map.dispose()
       }
     }
   },
   {
-    id: 'GAME-28', layer: 'integration', coverage: 'adapted',
+    id: 'GAME-28', layer: 'integration',
     async run(backend) {
       const map = store(backend, [])
+      const staleGate = barrier()
+      const gate = barrier()
       try {
-        const staleGate = barrier()
-        const oldRevision = map.schedule(chunks, [staleGate.passed])
-        const oldReady = map.ready(oldRevision)
-        const gate = barrier()
-        const revision = map.schedule([wall], [gate.passed])
-        const candidate = map.inspectStaged(revision)
+        const oldRevision = map.schedule(chunks, staleGate.passed)
+        const revision = map.schedule([wall], gate.passed)
         let settled = false
-        const ready = map.ready(revision).then((valid) => { settled = true; return valid })
+        const ready = revision.ready.then((valid) => { settled = true; return valid })
+        await waitForWorkers(() => revision.progress().built === revision.coordinates.length - 1)
         staleGate.release()
-        const obsolete = !(await oldReady)
+        const obsolete = !(await oldRevision.ready) && oldRevision.progress().built === oldRevision.coordinates.length
         const oldRoute = map.query()
         const stillPending = !settled && oldRoute.revision === 0 && oldRoute.path.status === 'complete' &&
           !outsideRect(oldRoute.path, [5.8, 6.2, 0, 7])
         gate.release()
         const current = await ready
         const result = map.query()
-        return check(obsolete && stillPending && current && candidate !== undefined && candidate.tiles > 4 &&
-          result.revision === revision && result.path.status === 'complete' && JSON.stringify(result.path) === JSON.stringify(candidate.path) &&
+        return check(obsolete && stillPending && current && revision.progress().built === revision.coordinates.length &&
+          result.revision === revision.revision && result.path.status === 'complete' &&
           outsideRect(result.path, [5.8, 6.2, 0, 7]),
-        'The obsolete native snapshot is discarded. The last barrier keeps the original tiled path visible until the current staged detour can publish.')
+        'A finished tile patch from the superseded worker batch cannot satisfy the current fence. Only the last current tile publishes the new detour.')
       } finally {
-        map.dispose()
+        staleGate.release()
+        gate.release()
+        await map.dispose()
       }
     }
   }

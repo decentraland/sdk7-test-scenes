@@ -1,6 +1,7 @@
 import type { Point } from '../../arena'
 import type { TraversalFrame, TraversalRouter, TraversalRun, TraversalScenario, TraversalShape } from '../types'
 import { walkPoints } from '../walk'
+import { advance, capsuleHits, coversFootprint, interpolate } from './mantles-support'
 
 const radius = 0.24
 const standingHeight = 1.65
@@ -109,6 +110,8 @@ const runupVariants = [
   { id: 'too-slow', label: 'Too slow at the lip' },
   { id: 'build-speed', label: 'Build speed from rest' },
   { id: 'side-on', label: 'Recover the run-up' },
+  { id: 'side-on-minus', label: 'Recover from 10 cm behind' },
+  { id: 'side-on-plus', label: 'Recover from 10 cm ahead' },
   { id: 'wall', label: 'Run-up obstructed' },
   { id: 'clear-beam', label: 'Stand before the lip' },
   { id: 'moving-beam', label: 'Beam blocks standing' }
@@ -121,18 +124,25 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
   const surfaces = [start, target, floor]
   const ready = variantId === 'ready'
   const tooSlow = variantId === 'too-slow'
-  const retreat = variantId === 'side-on' || variantId === 'wall'
+  const fallback = variantId === 'wall'
+  const retreat = variantId.startsWith('side-on') || fallback
+  const startOffset = variantId === 'side-on-minus' ? -0.1 : variantId === 'side-on-plus' ? 0.1 : 0
   const startsCrouched = variantId === 'clear-beam' || variantId === 'moving-beam'
   const shouldLand = !tooSlow && variantId !== 'wall' && variantId !== 'moving-beam'
   const beamAt = (far: number) => makeBox('beam', 'obstacle', [6.6, 2.26, far - 1.32], [9.4, 2.57, far])
-  const wall = variantId === 'wall'
+  const wall = fallback
     ? makeBox('runup-wall', 'obstacle', [6.6, platformY, 5.18], [9.4, 2.8, 5.52])
     : undefined
+  const bypass = fallback ? [
+    makeBox('bypass', 'surface', [9.4, 0.75, 5.65], [12.2, 1, 9.96])
+  ] : []
+  const bypassWaypoints: Point[] = [[10.5, platformY, 6.53], [10.5, platformY, 9.52], [8, platformY, 9.52]]
+  const drawnSurfaces = [...surfaces, ...bypass]
   const originalBeam = beamAt(launchZ - 0.5)
   let beam = startsCrouched ? originalBeam : undefined
   let feet: Point = ready || tooSlow
     ? [laneX, platformY, launchZ]
-    : retreat ? [laneX + 0.85, platformY, 6.53] : [laneX, platformY, 4.94]
+    : retreat ? [laneX + 0.85, platformY, 6.53 + startOffset] : [laneX, platformY, 4.94]
   let stance = startsCrouched ? crouchingHeight : standingHeight
   let heading = retreat ? 90 : 0
   let speed = ready ? runupSpeed : tooSlow ? 1 : 0
@@ -148,6 +158,9 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
   let launchTick = 0
   let runupChecked = false
   let retreatPoints: Point[] | undefined
+  let retreatDistance = 0
+  let alignedAt = 0
+  let bypassPoints: Point[] = []
 
   function finish(passed: boolean, message: string, endPhase: string) {
     verdict = passed ? 'pass' : 'fail'
@@ -159,6 +172,30 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
     if (verdict !== 'running') return
     tick++
 
+    if (wall) {
+      if (!bypassPoints.length) {
+        if (!capsuleHits(feet, [laneX, platformY, approachZ], wall, radius, standingHeight)) {
+          return finish(false, 'The authored wall did not obstruct the direct run-up recovery.', 'Stopped')
+        }
+        const planned = route
+          ? walkPoints(route, 'Blocked run-up bypass', feet, bypassWaypoints[bypassWaypoints.length - 1], [...drawnSurfaces, wall], radius, standingHeight)
+          : bypassWaypoints
+        if (!planned?.length) return finish(false, 'No ground bypass around the blocked runway.', 'Stopped')
+        bypassPoints = [...planned]
+        phase = 'Bypass'
+      }
+      const next = advance(feet, bypassPoints[0], 2.8 * dt)
+      if (capsuleHits(feet, next, wall, radius, standingHeight) ||
+          ![feet, interpolate(feet, next, 0.5), next].every((point) => coversFootprint(drawnSurfaces, point, radius))) {
+        return finish(false, 'The walking bypass crossed the wall or lost support.', 'Stopped')
+      }
+      feet = next
+      if (feet === bypassPoints[0]) bypassPoints.shift()
+      if (!bypassPoints.length) finish(hasFootprint(target, feet) && launchTick === 0,
+        'Blocked run-up: reached the far deck on the ground bypass.', 'Bypass complete')
+      return
+    }
+
     if (flight) {
       const until = flight.time + dt
       const contact = findLanding(flight, surfaces, until)
@@ -166,8 +203,9 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
       flight.time = until
       if (contact) {
         const stoodBeforeLaunch = standTick > 0 && standTick === baselineStandTick && standTick < launchTick
-        finish(shouldLand && contact.surface === target && (!startsCrouched || stoodBeforeLaunch),
-          'Contact with ' + contact.surface.id, 'Touchdown')
+        const recovered = !retreat || alignedAt > 0 && alignedAt < launchTick && retreatDistance > 1.7 && retreatDistance < 3
+        finish(shouldLand && recovered && contact.surface === target && (!startsCrouched || stoodBeforeLaunch),
+          'Contact with ' + contact.surface.id + (retreat ? ' after one ' + retreatDistance.toFixed(2) + ' m run-up recovery.' : ''), 'Touchdown')
       } else if (until > 1.4) {
         finish(false, 'No valid support found below jumper.', 'Missed landing')
       }
@@ -177,7 +215,7 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
     if (phase === 'Find run-up') {
       if (!retreatPoints) {
         const planned = walkPoints(route, 'Run-up recovery', feet, [laneX, platformY, approachZ],
-          [...surfaces, ...(wall ? [wall] : [])], radius, stance)
+          surfaces, radius, stance)
         if (!planned) {
           finish(!shouldLand && hasFootprint(start, feet), 'No available route to the run-up.', 'Stopped')
           return
@@ -188,17 +226,23 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
       const dx = x - feet[0]
       const dz = z - feet[2]
       const distance = Math.hypot(dx, dz)
-      const fraction = Math.min(1, 2.8 * dt / distance)
+      const fraction = distance <= epsilon ? 1 : Math.min(1, 2.8 * dt / distance)
       const next: Point = [feet[0] + dx * fraction, platformY, feet[2] + dz * fraction]
-      if (wall && overlapsBody(wall, next, stance)) {
-        finish(!shouldLand && hasFootprint(start, feet), 'Run-up blocked. Bot stops on the launch deck.', 'Stopped')
-        return
+      if (!hasFootprint(start, next) || tick > 90) {
+        return finish(false, 'Run-up recovery left its deck or oscillated near the approach.', 'Stopped')
       }
       heading = Math.atan2(dx, dz) * 180 / Math.PI
       feet = next
+      retreatDistance += distance * fraction
       if (fraction === 1) {
         retreatPoints.shift()
-        if (!retreatPoints.length) phase = 'Approach lip'
+        if (!retreatPoints.length) {
+          if (Math.abs(feet[0] - laneX) > epsilon || Math.abs(feet[2] - approachZ) > epsilon) {
+            return finish(false, 'Run-up recovery ended off the alignment marker.', 'Stopped')
+          }
+          alignedAt = tick
+          phase = 'Approach lip'
+        }
       }
       return
     }
@@ -269,7 +313,7 @@ function createRunup(variantId: string, route?: TraversalRouter): TraversalRun {
   }
 
   return {
-    frame: () => frame([...surfaces, ...(beam ? [beam] : []), ...(wall ? [wall] : [])],
+    frame: () => frame([...drawnSurfaces, ...(beam ? [beam] : []), ...(wall ? [wall] : [])],
       feet, stance, heading, phase, verdict, detail),
     step
   }

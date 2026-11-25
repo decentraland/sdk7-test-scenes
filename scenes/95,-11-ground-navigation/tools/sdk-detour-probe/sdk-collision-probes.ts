@@ -46,8 +46,7 @@ export function createProbeWorld() {
     return result
   }
   function remove(target: Entity) {
-    entities.delete(target)
-    engine.removeEntity(target)
+    if (entities.delete(target)) engine.removeEntity(target)
   }
   function issueRay(
     origin: Vector3, direction: Vector3, maxDistance: number, collisionMask: number = ColliderLayer.CL_PHYSICS
@@ -74,8 +73,8 @@ export function createProbeWorld() {
     return yield* readRay(issueRay(origin, direction, maxDistance, mask))
   }
   return {
-    entity, box, marker, issueRay, readRay, cast,
-    dispose() { for (const target of entities) engine.removeEntity(target) }
+    entity, box, marker, issueRay, readRay, cast, remove,
+    dispose() { for (const target of entities) remove(target) }
   }
 }
 

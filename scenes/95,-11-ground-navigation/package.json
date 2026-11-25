@@ -15,6 +15,7 @@
     "compare:crowd-load": "tsx scripts/compare-crowd-load.ts",
     "compare:traversal": "tsx scripts/compare-traversal.ts",
     "compare:catalog": "tsx scripts/compare-catalog.ts",
+    "verify:coverage": "tsx scripts/verify-catalog-coverage.ts",
     "probe:prepare": "tsx scripts/bake.ts && tsx scripts/prepare-detour-sdk-probe.ts",
     "test": "vitest run",
     "types": "tsx scripts/bake.ts && tsc --noEmit"

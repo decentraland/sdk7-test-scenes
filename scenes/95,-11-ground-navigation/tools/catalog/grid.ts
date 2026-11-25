@@ -6,13 +6,17 @@ import type { Point, Surface } from '../../src/arena'
 import { bakeNavcatMesh, createNavcatNavigatorFromMesh, NAVIGATION_BAKE, type Navigator, type Route } from '../../src/navigation'
 import { bakeDetourMesh, createDetourNavigatorFromMesh } from '../../test/detour'
 import { CLUTTER_CELL, CLUTTER_GOAL, CLUTTER_RADIUS, CLUTTER_SPEED, CLUTTER_START, clutterMaps, clutterPoint,
-  clutterOverlap, clutterTrace } from './clutter'
+  clutterOverlap, clutterTrace, routeThroughClutter } from './clutter'
 import { crosses, floor, outsideRect, pathLength, usingMesh } from './ground'
+import { observeNavcatSearch } from './ground-search'
+import { navcatTiles } from './native-tiles'
 import { check, missing, type CatalogCase } from './types'
 
 type Cell = readonly [x: number, z: number]
 type Sample = { start: Cell; goal: Cell; cost: number }
 const CELL_SIZE = 0.4
+// Retain a voxel of clearance from authored blocked cells after rasterization.
+const MOVING_AI_BAKE_RADIUS = 0.01 + 0.05
 const dataDirectory = () => resolve(process.env.DCL_MAPF_DATA ?? '.comparison/movingai')
 
 type BenchmarkNavigator = Navigator & { dispose?(): void }
@@ -234,21 +238,36 @@ function wallSurfaces(rows: readonly string[], scale = CELL_SIZE): Surface[] {
   return surfaces
 }
 
-function legal(route: Route, rows: readonly string[], sample: Sample, scale = CELL_SIZE) {
-  if (route.status !== 'complete' || route.points.length === 0) return false
+export function gridRouteProblem(route: Route, rows: readonly string[], sample: Pick<Sample, 'start' | 'goal'>, scale = CELL_SIZE) {
+  if (route.status !== 'complete' || route.points.length === 0) return { kind: 'unreachable' }
   const cell = ([x, , z]: Point): Cell => [Math.floor(x / scale), Math.floor(z / scale)]
-  if (cell(route.points[0]).join() !== sample.start.join() ||
-      cell(route.points[route.points.length - 1]).join() !== sample.goal.join()) return false
+  const endpoints = [route.points[0], route.points[route.points.length - 1]]
+  if (cell(endpoints[0]).join() !== sample.start.join() || cell(endpoints[1]).join() !== sample.goal.join()) {
+    return { kind: 'wrong endpoint cell', endpoints }
+  }
   for (let i = 1; i < route.points.length; i++) {
     const a = route.points[i - 1]
     const b = route.points[i]
-    const count = Math.ceil(Math.hypot(a[0] - b[0], a[2] - b[2]) / 0.03)
-    for (let j = 0; j <= count; j++) {
-      const t = j / Math.max(1, count)
-      if (!walkable(rows, ...cell([a[0] + (b[0] - a[0]) * t, 0, a[2] + (b[2] - a[2]) * t]))) return false
+    const cuts = [0, 1]
+    for (const axis of [0, 2] as const) {
+      const delta = b[axis] - a[axis]
+      if (!delta) continue
+      const min = Math.floor(Math.min(a[axis], b[axis]) / scale) + 1
+      const max = Math.ceil(Math.max(a[axis], b[axis]) / scale) - 1
+      for (let corner = min; corner <= max; corner++) cuts.push((corner * scale - a[axis]) / delta)
+    }
+    cuts.sort((left, right) => left - right)
+    for (let j = 1; j < cuts.length; j++) {
+      if (cuts[j] - cuts[j - 1] < 1e-8) continue
+      const t = (cuts[j] + cuts[j - 1]) / 2
+      const crossed = cell([a[0] + (b[0] - a[0]) * t, 0, a[2] + (b[2] - a[2]) * t])
+      if (!walkable(rows, ...crossed)) return { kind: 'blocked cell', crossed, segment: [a, b] }
     }
   }
-  return true
+}
+
+function legal(route: Route, rows: readonly string[], sample: Sample, scale = CELL_SIZE) {
+  return gridRouteProblem(route, rows, sample, scale) === undefined
 }
 
 function parseMap(path: string) {
@@ -292,7 +311,7 @@ function load(name: string, mode: string) {
 
 function fromMovingAI(
   name: string, mode: string, choose: (samples: Sample[]) => Sample[],
-  representation: 'merged' | 'cells' | 'walls' = 'merged'
+  representation: 'merged' | 'cells' | 'walls' = 'merged', nativeCounters = false
 ) {
   return (backend: Parameters<CatalogCase['run']>[0]) => {
     const beganLoading = performance.now()
@@ -316,10 +335,15 @@ function fromMovingAI(
     let builtMs = 0
     const rssBefore = process.memoryUsage.rss()
     let rssDelta = 0
+    const problems = new Map<string, { from: Cell; goal: Cell; problem: NonNullable<ReturnType<typeof gridRouteProblem>> }>()
     const beganBake = performance.now()
 
     function record(route: Route, sample: Sample) {
-      if (!legal(route, rows, sample)) return false
+      const problem = gridRouteProblem(route, rows, sample)
+      if (problem) {
+        if (!problems.has(problem.kind)) problems.set(problem.kind, { from: sample.start, goal: sample.goal, problem })
+        return false
+      }
       const length = pathLength(route)
       longestRoute = Math.max(longestRoute, length)
       maximumWaypoints = Math.max(maximumWaypoints, route.points.length)
@@ -337,7 +361,7 @@ function fromMovingAI(
         queryTimes.push(performance.now() - began)
         if (record(route, sample)) defaultLegal++
       }
-    }, { radius: 0.01, tiled: true })
+    }, { radius: MOVING_AI_BAKE_RADIUS, tiled: true })
     if (backend === 'detour' && defaultLegal !== samples.length) {
       longestRoute = 0
       maximumWaypoints = 0
@@ -346,21 +370,45 @@ function fromMovingAI(
         for (const sample of samples) {
           if (record(nav.route(toPoint(sample.start), toPoint(sample.goal)), sample)) expandedLegal++
         }
-      }, { radius: 0.01, tiled: true, detourLimits: { maxNodes: 16384, maxPathPolys: 4096, maxStraightPathPoints: 4096 } })
+      }, { radius: MOVING_AI_BAKE_RADIUS, tiled: true,
+        detourLimits: { maxNodes: 16384, maxPathPolys: 4096, maxStraightPathPoints: 4096 } })
     } else {
       expandedLegal = defaultLegal
     }
     queryTimes.sort((a, b) => a - b)
     const p95 = queryTimes[Math.ceil(queryTimes.length * 0.95) - 1]
     const p99 = queryTimes[Math.ceil(queryTimes.length * 0.99) - 1]
-    return check(matches === samples.length && expandedLegal === samples.length,
+    const metrics = nativeCounters ? nativeSearchMetrics(backend, faces, samples, MOVING_AI_BAKE_RADIUS) : undefined
+    return check(matches === samples.length && expandedLegal === samples.length && (metrics?.complete ?? true),
       `${name} (${representation}): grid oracle ${matches}/${samples.length}, legal paths at default ${defaultLegal}/${samples.length}` +
       (backend === 'detour' && defaultLegal !== samples.length ? `, expanded limits ${expandedLegal}/${samples.length}` : '') +
       `, default query p95/p99 ${p95.toFixed(3)}/${p99.toFixed(3)} ms, load ${loadMs.toFixed(1)} ms, bake ${builtMs.toFixed(1)} ms` +
       `, bake RSS delta ${(rssDelta / 2 ** 20).toFixed(1)} MiB, input vertices ${faces.reduce((n, face) => n + face.vertices.length, 0)}` +
       `, longest ${longestRoute.toFixed(2)} m, max waypoints ${maximumWaypoints}, mean route/grid ratio ${(stretchTotal / Math.max(expandedLegal, 1)).toFixed(3)}` +
-      `, Dijkstra expanded ${stats.expanded} / peak open ${stats.peak}, full run ${(performance.now() - start).toFixed(1)} ms`)
+      `, Dijkstra expanded ${stats.expanded} / peak open ${stats.peak}` +
+      (metrics ? `, ${metrics.report}` : '') + `, full run ${(performance.now() - start).toFixed(1)} ms` +
+      (problems.size ? ', first failures by kind: ' + JSON.stringify([...problems.values()]) : ''))
   }
+}
+
+function nativeSearchMetrics(backend: Parameters<CatalogCase['run']>[0], faces: readonly Surface[], samples: readonly Sample[], radius = 0.01) {
+  if (backend === 'detour') {
+    return { complete: true, report: 'native search counters unsupported by the Detour WASM binding' }
+  }
+  const mesh = navcatTiles(faces, radius)
+  let observed = 0
+  let expanded = 0
+  let peakOpen = 0
+  // Sample each native open-list transition outside the timed query workload.
+  for (const { start, goal } of samples) {
+    const result = observeNavcatSearch(mesh, toPoint(start), toPoint(goal))
+    if (!result) continue
+    observed++
+    expanded += result.expanded
+    peakOpen = Math.max(peakOpen, result.peakOpen)
+  }
+  return { complete: observed === samples.length,
+    report: `Navcat native sliced queries sampled ${observed}/${samples.length}, expanded ${expanded}, peak open ${peakOpen}` }
 }
 
 function useMaps(...run: CatalogCase['run'][]): CatalogCase['run'] {
@@ -388,15 +436,17 @@ const uRoom: CatalogCase['run'] = (backend) => {
   const from = toPoint(start)
   const to = toPoint(goal)
   const oracle = gridDistance(rows, start, goal)
-  return usingMesh(backend, toSurfaces(rows), (nav) => {
+  const faces = toSurfaces(rows)
+  const metrics = nativeSearchMetrics(backend, faces, [{ start, goal, cost: oracle }])
+  return usingMesh(backend, faces, (nav) => {
     const route = nav.route(from, to)
     const first = route.points.find((point) => Math.hypot(point[0] - from[0], point[2] - from[2]) > 0.08)
     const walksAway = first !== undefined && first[2] > from[2] &&
       Math.hypot(first[0] - to[0], first[2] - to[2]) > Math.hypot(from[0] - to[0], from[2] - to[2])
     const throughOpening = crosses(route, 2, 6 * CELL_SIZE, ([x]) => x > 2.8 * CELL_SIZE && x < 8.2 * CELL_SIZE)
-    return check(oracle > 14 && walksAway && throughOpening && legal(route, rows, { start, goal, cost: oracle }),
+    return check(oracle > 14 && walksAway && throughOpening && legal(route, rows, { start, goal, cost: oracle }) && metrics.complete,
       'Generated U: first significant move away from goal ' + walksAway + ', takes opening ' + throughOpening +
-      ', route/grid ratio ' + (pathLength(route) / (oracle * CELL_SIZE)).toFixed(3))
+      ', route/grid ratio ' + (pathLength(route) / (oracle * CELL_SIZE)).toFixed(3) + ', ' + metrics.report)
   }, { radius: 0.01, tiled: true })
 }
 
@@ -457,9 +507,9 @@ export const gridCases: CatalogCase[] = [
       return s.cost / Math.max(1, Math.hypot(s.start[0] - s.goal[0], s.start[1] - s.goal[1]))
     }
     return [...new Set([...byDistance.slice(0, decile), ...byDistance.slice(-decile), ...ratios])]
-  }), uRoom), 'adapted'),
+  }, 'merged', true), uRoom)),
   bench('G04', useMaps(...['maze-32-32-2', 'maze-128-128-1'].flatMap((name) =>
-    [fromMovingAI(name, 'even', longest, 'cells'), fromMovingAI(name, 'even', longest, 'walls')])), 'adapted'),
+    [fromMovingAI(name, 'even', longest, 'cells', true), fromMovingAI(name, 'even', longest, 'walls', true)]))),
   bench('G05', useMaps(...['random-32-32-10', 'random-32-32-20', 'random-64-64-20'].map((name) =>
     fromMovingAI(name, 'even', (samples) => samples.slice(0, 32))), isolatedGoal)),
   bench('G06', useMaps(fromMovingAI('den312d', 'even', dungeonSample, 'cells'),
@@ -529,7 +579,7 @@ export const gridCases: CatalogCase[] = [
       for (const { rows, obstacles } of maps) {
         const cost = gridDistance(rows, CLUTTER_START, CLUTTER_GOAL)
         const route = usingMesh(backend, toSurfaces(rows, CLUTTER_CELL),
-          (nav) => nav.route(start, goal), { radius: CLUTTER_RADIUS })
+          routeThroughClutter, { radius: CLUTTER_RADIUS })
         if (!Number.isFinite(cost)) {
           if (route.status === 'complete') falselyReachable++
           continue

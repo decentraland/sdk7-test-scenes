@@ -1,7 +1,8 @@
 import type { Point } from '../../arena'
 import type { TraversalFrame, TraversalRouter, TraversalRun, TraversalScenario, TraversalShape } from '../types'
 import { walkPoints } from '../walk'
-import { advance, BOT_HEIGHT, BOT_RADIUS, capsuleHits, supports, touchesGrip } from './mantles-support'
+import { advance, BOT_HEIGHT, BOT_RADIUS, capsuleHits, coversFootprint, supports, touchesGrip } from './mantles-support'
+import { createWindowClearance } from './window-clearance'
 
 type Leg = { to: Point; speed: number; label: string }
 type Verdict = TraversalFrame['verdict']
@@ -19,10 +20,12 @@ const mantleVariants = [
   { id: 'no-grip-low', label: 'No grip + low opening', grip: false, opening: false, landing: true, blocked: false },
   { id: 'no-grip-narrow', label: 'No grip + narrow landing', grip: false, opening: true, landing: false, blocked: false },
   { id: 'low-narrow', label: 'Low opening + narrow landing', grip: true, opening: false, landing: false, blocked: false },
-  { id: 'all-blocked', label: 'All three checks blocked', grip: false, opening: false, landing: false, blocked: false }
+  { id: 'all-blocked', label: 'All three checks blocked', grip: false, opening: false, landing: false, blocked: false },
+  { id: 'remove-handhold', label: 'Handhold removed after planning', grip: true, opening: true, landing: true, blocked: false }
 ]
 
 function createMantle(variantId: string, route?: TraversalRouter): TraversalRun {
+  if (variantId === 'window-low' || variantId === 'window-high') return createWindowClearance(variantId === 'window-high', route)
   const selected = mantleVariants.find(({ id }) => id === variantId)
   if (!selected) throw new Error('Unknown mantle variant: ' + variantId)
   const variant = selected
@@ -31,10 +34,10 @@ function createMantle(variantId: string, route?: TraversalRouter): TraversalRun 
   const approach: Point = [8, 0.35, 5.55]
   const landing: Point = [8, 1.5, 7.85]
   const platform = shape('start', 'surface', [8, 0.15, 4], [3.2, 0.4, 3.7])
-  const lowerZ = variant.blocked ? 6.12 : 6.22
-  const lower = shape('lower-ledge', 'surface', [8, 0.85, lowerZ], [1.25, 0.2, 0.58])
+  const lower = shape('lower-ledge', 'surface', [8, 0.85, 6.22], [1.25, 0.2, 0.58])
   const target = shape('target-ledge', 'surface', [8, 1.4, 7.74], [variant.landing ? 1.65 : 0.42, 0.2, 2.32])
   const grip = shape('target-grip', 'obstacle', [8, 1.51, 6.53], [0.58, 0.14, 0.14])
+  const targetBlocker = shape('target-blocker', 'obstacle', [8, 1.99, 6.76], [0.68, 0.36, 0.18])
   const openingBottom = variant.opening ? 3.55 : 2.7
   const openingTop = 4.25
   const blockers = [
@@ -42,12 +45,17 @@ function createMantle(variantId: string, route?: TraversalRouter): TraversalRun 
     shape('opening-right', 'obstacle', [8.875, 2.15, 7.14], [0.75, 4.2, 0.2]),
     shape('opening-top', 'obstacle', [8, (openingBottom + openingTop) / 2, 7.14], [1, openingTop - openingBottom, 0.2])
   ]
-  if (variant.blocked) {
-    blockers.push(shape('target-blocker', 'obstacle', [8, 1.99, 6.76], [0.68, 0.36, 0.18]))
-  }
-  const solids = [platform, lower, target, ...blockers, ...(variant.grip ? [grip] : [])]
-  const shapes = [
-    ...solids,
+  const removeHandhold = variantId === 'remove-handhold'
+  const sideStart = shape('side-start', 'surface', [10.25, 0.15, 4.65], [1.7, 0.4, 2.4])
+  const sideFinish = shape('side-finish', 'surface', [10.6, 0.15, 7.8], [1.6, 0.4, 1.3])
+  const sideTakeoff: Point = [10.6, 0.35, 5.3]
+  const sideGoal: Point = [10.6, 0.35, 7.8]
+  const alternateGoal: Point = [10.4, 0.35, 4.45]
+  const solids = [
+    platform, lower, target, ...blockers, ...(variant.grip ? [grip] : []),
+    ...(variant.blocked || removeHandhold ? [sideStart] : []), ...(removeHandhold ? [sideFinish] : [])
+  ]
+  const guides = [
     shape('target-marker', 'target', [landing[0], landing[1] + 0.06, landing[2]], [0.24, 0.12, 0.24]),
     shape('probe-guide', 'guide', [8, 2.35, 6.7], [0.035, 0.035, 2.3])
   ]
@@ -60,10 +68,12 @@ function createMantle(variantId: string, route?: TraversalRouter): TraversalRun 
   let feet = start
   let legs: readonly Leg[] = [{ to: approach, speed: 2.2, label: 'Approach ledges' }]
   let legIndex = 0
-  let stage: 'approach' | 'vault' | 'retreat' = 'approach'
+  let stage: 'approach' | 'vault' | 'retreat' | 'jump-approach' | 'jump' = 'approach'
   let verdict: Verdict = 'running'
   let detail = 'The guide shows the narrow probe. The bot needs hand contact and full capsule clearance.'
   let approachPlanned = false
+  let jumpElapsed = 0
+  let movedLower = lower
 
   function fail(reason: string) {
     verdict = 'fail'
@@ -78,7 +88,7 @@ function createMantle(variantId: string, route?: TraversalRouter): TraversalRun 
     return across && supports(target, landing, 0)
   }
 
-  function evaluateVault() {
+  function inspectVault() {
     const hand: Point = [8, 1.58, 6.48]
     const maxReach = 1
     const handDistance = Math.hypot(hand[1] - (feet[1] + 1.23), hand[2] - feet[2])
@@ -88,9 +98,55 @@ function createMantle(variantId: string, route?: TraversalRouter): TraversalRun 
       return !solids.some((part) => capsuleHits(from, to, part))
     })
     const fullLanding = supports(target, landing)
-    if (!supports(lower, [8, 0.95, lowerZ]) || !probeSeesLanding() || hasGrip !== variant.grip ||
+    return { hasGrip, clearArc, fullLanding }
+  }
+
+  function jumpPose(time: number): Point {
+    return [sideTakeoff[0], sideTakeoff[1] + 4 * time - 5 * time ** 2, sideTakeoff[2] + 3.125 * time]
+  }
+
+  function jumpIsAvailable() {
+    if (!supports(sideStart, sideTakeoff) || !supports(sideFinish, jumpPose(0.8))) return false
+    if (supports(sideStart, [sideTakeoff[0], sideTakeoff[1], 6.55]) ||
+        supports(sideFinish, [sideTakeoff[0], sideTakeoff[1], 6.55])) return false
+    for (let i = 1; i <= 24; i++) {
+      const from = jumpPose((i - 1) / 30)
+      const to = jumpPose(i / 30)
+      if (solids.some((part) => capsuleHits(from, to, part))) return false
+    }
+    return true
+  }
+
+  function evaluateVault() {
+    const plannedTarget = target.id
+    if (variant.blocked || removeHandhold) {
+      const initial = inspectVault()
+      if (!(initial.hasGrip && initial.clearArc && initial.fullLanding)) return fail('The named vault was invalid before the edit.')
+      if (variant.blocked) {
+        movedLower = { ...lower, center: [8, 0.85, 6.12] }
+        solids[solids.indexOf(lower)] = movedLower
+        solids.push(targetBlocker)
+      } else {
+        if (!jumpIsAvailable()) return fail('Independent jump was unavailable before the panel moved.')
+        solids.splice(solids.indexOf(grip), 1)
+      }
+    }
+
+    const { hasGrip, clearArc, fullLanding } = inspectVault()
+    if (!supports(movedLower, [8, 0.95, movedLower.center[2]]) || !probeSeesLanding() || hasGrip !== (variant.grip && !removeHandhold) ||
         clearArc !== (variant.opening && !variant.blocked) || fullLanding !== variant.landing) {
       fail('The observed probe, grip, swept capsule or landing disagrees with the fixture.')
+      return
+    }
+
+    if (removeHandhold) {
+      if (hasGrip || !jumpIsAvailable()) return fail('Panel removal invalidated the wrong traversal candidates.')
+      const path = walkPoints(route, 'Reach independent jump', feet, sideTakeoff, solids, BOT_RADIUS, BOT_HEIGHT)
+      if (!path?.length) return fail('Could not reach the independent jump.')
+      stage = 'jump-approach'
+      legs = path.map((to) => ({ to, speed: 2.4, label: 'Approach independent jump' }))
+      legIndex = 0
+      detail = 'The handhold disappeared. The vault was invalidated and the free jump remained available.'
       return
     }
     const failures = [
@@ -100,13 +156,14 @@ function createMantle(variantId: string, route?: TraversalRouter): TraversalRun 
     ]
     if (failures.length) {
       stage = 'retreat'
-      const retreat = walkPoints(route, 'Vault retreat', feet, start, solids, BOT_RADIUS, BOT_HEIGHT)
+      const alternate = variant.blocked ? alternateGoal : start
+      const retreat = walkPoints(route, variant.blocked ? 'Use side bypass' : 'Vault retreat', feet, alternate, solids, BOT_RADIUS, BOT_HEIGHT)
       if (!retreat) {
         fail('Planner did not find the retreat across the start platform.')
         return
       }
-      legs = retreat.map((to) => ({ to, speed: 2.4, label: 'Retreat to start' }))
-      detail = 'Probe sees the target. Vault rejected: ' + failures.join(', ') + '.'
+      legs = retreat.map((to) => ({ to, speed: 2.4, label: variant.blocked ? 'Use side bypass' : 'Retreat to start' }))
+      detail = 'Probe sees ' + plannedTarget + '. Vault rejected: ' + failures.join(', ') + '.'
     } else {
       stage = 'vault'
       legs = vault
@@ -118,12 +175,26 @@ function createMantle(variantId: string, route?: TraversalRouter): TraversalRun 
   return {
     frame() {
       return {
-        shapes, bots: [{ id: 'bot', feet, radius: BOT_RADIUS, height: BOT_HEIGHT }],
-        phase: verdict === 'running' ? legs[legIndex].label : 'Finished', verdict, detail
+        shapes: [...solids, ...guides], bots: [{ id: 'bot', feet, radius: BOT_RADIUS, height: BOT_HEIGHT }],
+        phase: verdict === 'running' ? stage === 'jump' ? 'Free jump' : legs[legIndex].label : 'Finished', verdict, detail
       }
     },
     step(dt) {
       if (verdict !== 'running') return
+      if (stage === 'jump') {
+        jumpElapsed = Math.min(0.8, jumpElapsed + dt)
+        const next = jumpPose(jumpElapsed)
+        if (solids.some((part) => capsuleHits(feet, next, part))) return fail('The separate jump collided with a solid.')
+        feet = next
+        if (jumpElapsed >= 0.8) {
+          if (!supports(sideFinish, feet) || Math.hypot(feet[0] - sideGoal[0], feet[2] - sideGoal[2]) > 0.01) {
+            return fail('The separate jump missed its measured landing.')
+          }
+          verdict = 'pass'
+          detail = 'Only the vault was invalidated. The independent free jump reached its own landing.'
+        }
+        return
+      }
       if (!approachPlanned) {
         approachPlanned = true
         const path = walkPoints(route, 'Vault approach', feet, approach, solids, BOT_RADIUS, BOT_HEIGHT)
@@ -136,14 +207,22 @@ function createMantle(variantId: string, route?: TraversalRouter): TraversalRun 
         fail('The executing capsule intersected a solid.')
         return
       }
+      if ((stage === 'jump-approach' || stage === 'retreat') && !coversFootprint(solids, next)) {
+        return fail('The walking fallback left the authored support.')
+      }
       feet = next
       if (feet !== leg.to || ++legIndex < legs.length) return
       if (stage === 'approach') {
         evaluateVault()
         return
       }
-      const expectedSupport = stage === 'vault' ? target : platform
-      if (!supports(expectedSupport, feet) || supports(lower, feet)) {
+      if (stage === 'jump-approach') {
+        if (feet !== sideTakeoff || !jumpIsAvailable()) return fail('Free jump did not start on the retained edge.')
+        stage = 'jump'
+        return
+      }
+      const expectedSupport = stage === 'vault' ? target : variant.blocked ? sideStart : platform
+      if (!supports(expectedSupport, feet) || supports(movedLower, feet)) {
         fail('The bot stopped without the intended floor support.')
         return
       }
@@ -157,7 +236,11 @@ export const mantleClearance: TraversalScenario = {
   id: 'mantle-clearance',
   label: 'Ledges and vault clearance',
   cases: ['GAME-T08', 'TALK-T07', 'TALK-T10'],
-  variants: mantleVariants.map(({ id, label }) => ({ id, label })),
+  variants: [
+    ...mantleVariants.map(({ id, label }) => ({ id, label })),
+    { id: 'window-low', label: 'Probe through a 1.2 m opening' },
+    { id: 'window-high', label: 'Traverse a 2 m opening' }
+  ],
   create: createMantle
 }
 
@@ -169,6 +252,23 @@ const transferVariants = [
 
 type Pose = { feet: Point; heading: number }
 type TransferStage = 'approach' | 'grab' | 'rotate' | 'released' | 'transfer' | 'landing'
+type GripNode = 'start' | 'first-hang' | 'second-hang' | 'exit' | 'lower-floor'
+type GripEdge = readonly [from: GripNode, to: GripNode]
+
+function findGripPlan(edges: readonly GripEdge[]) {
+  const queue: GripNode[][] = [['start']]
+  const visited = new Set<GripNode>(['start'])
+  for (let i = 0; i < queue.length; i++) {
+    const path = queue[i]
+    const node = path[path.length - 1]
+    if (node === 'exit') return path
+    for (const [from, to] of edges) {
+      if (from !== node || visited.has(to)) continue
+      visited.add(to)
+      queue.push([...path, to])
+    }
+  }
+}
 
 function rotate(point: Point, degrees: number): Point {
   const angle = degrees * Math.PI / 180
@@ -210,9 +310,8 @@ function createTransfer(variantId: string, route?: TraversalRouter): TraversalRu
   const secondWall = shape('second-wall', 'obstacle', add(secondGrip.center, [0, -0.25, -0.27]), [0.38, 0.64, 0.38])
   const pivotMarker = shape('pivot', 'guide', [pivot[0], 1.16, pivot[2]], [0.08, 2.04, 0.08])
   const targetMarker = shape('target', 'target', [targetFeet[0], targetFeet[1] + 0.05, targetFeet[2]], [0.24, 0.10, 0.24])
-  const links = variantId === 'missing-transfer'
-    ? { start: 'first', first: undefined, second: 'target' }
-    : { start: 'first', first: 'second', second: 'target' }
+  const links: GripEdge[] = [['start', 'first-hang'], ['first-hang', 'lower-floor'], ['second-hang', 'exit']]
+  if (variantId !== 'missing-transfer') links.push(['first-hang', 'second-hang'])
 
   let parentHeading = 0
   let attached = false
@@ -224,6 +323,8 @@ function createTransfer(variantId: string, route?: TraversalRouter): TraversalRu
   let legs: readonly Leg[] = [{ to: approach, speed: 2.4, label: 'Approach first grip' }]
   let legIndex = 0
   let approachPlanned = false
+  let actionPlan: GripNode[] | undefined
+  const visited: GripNode[] = ['start']
 
   function worldPose(): Pose {
     if (!attached) return pose
@@ -256,6 +357,15 @@ function createTransfer(variantId: string, route?: TraversalRouter): TraversalRu
 
   function grounded(feet: Point) {
     return floors.some((floor) => supports(floor, feet))
+  }
+
+  function reach(node: GripNode) {
+    if (actionPlan?.[visited.length] !== node) {
+      fail('Executed an action outside the selected grip sequence: ' + node)
+      return false
+    }
+    visited.push(node)
+    return true
   }
 
   function holdsGrip(value: Pose, grip: TraversalShape) {
@@ -301,9 +411,14 @@ function createTransfer(variantId: string, route?: TraversalRouter): TraversalRu
 
   function onArrival() {
     if (stage === 'approach') {
-      const reachesTarget = links.start === 'first' && links.first === 'second' && links.second === 'target'
-      if (!reachesTarget) {
-        if (!supports(startFloor, pose.feet)) {
+      if (grounded(firstFeet) || grounded(secondFeet) || ![firstFeet, secondFeet].every(([x, , z]) =>
+        supports(bottomFloor, [x, 0.14, z]))) {
+        fail('Both handholds must sit above the lower floor at the same XZ, outside ground navigation.')
+        return
+      }
+      actionPlan = findGripPlan(links)
+      if (!actionPlan) {
+        if (variantId !== 'missing-transfer' || !supports(startFloor, pose.feet) || visited.length !== 1) {
           fail('Missing transfer allowed the bot to leave the starting floor.')
           return
         }
@@ -311,6 +426,7 @@ function createTransfer(variantId: string, route?: TraversalRouter): TraversalRu
         detail = 'Both grips exist, but the transfer between them is disabled. The bot stayed on the start floor.'
         return
       }
+      if (variantId === 'missing-transfer') return fail('The lower floor bypassed the missing grip edge.')
       follow('grab', [
         { to: [firstFeet[0], 1.64, firstFeet[2]], speed: 2.3, label: 'Leap to first grip' },
         { to: firstFeet, speed: 1.8, label: 'Catch first grip' }
@@ -319,7 +435,10 @@ function createTransfer(variantId: string, route?: TraversalRouter): TraversalRu
     } else if (stage === 'grab') {
       if (!holdsGrip(pose, firstGrip())) {
         fail('The first grip was not reached while suspended.')
-      } else if (variantId === 'rotating-grip') {
+        return
+      }
+      if (!reach('first-hang')) return
+      if (variantId === 'rotating-grip') {
         pose = { feet: rotate(subtract(pose.feet, pivot), -parentHeading), heading: pose.heading - parentHeading }
         attached = true
         stage = 'rotate'
@@ -331,6 +450,7 @@ function createTransfer(variantId: string, route?: TraversalRouter): TraversalRu
         fail('The second grip was not reached while suspended.')
         return
       }
+      if (!reach('second-hang')) return
       follow('landing', [
         { to: [secondFeet[0], 2.12, secondFeet[2]], speed: 1.9, label: 'Pull above exit floor' },
         { to: [targetFeet[0], 2.12, targetFeet[2]], speed: 2.4, label: 'Move across exit ledge' },
@@ -338,7 +458,8 @@ function createTransfer(variantId: string, route?: TraversalRouter): TraversalRu
       ])
       pose = { feet: pose.feet, heading: 90 }
     } else if (stage === 'landing') {
-      if (!supports(finalFloor, pose.feet)) {
+      if (!supports(finalFloor, pose.feet) || !reach('exit') ||
+          visited.join(',') !== 'start,first-hang,second-hang,exit') {
         fail('The bot ended without the required exit floor contact.')
         return
       }
@@ -389,7 +510,7 @@ function createTransfer(variantId: string, route?: TraversalRouter): TraversalRu
         fail(leg.label + ': capsule intersected ' + obstacle.id + '.')
         return
       }
-      if (stage === 'transfer' && grounded(next)) {
+      if ((stage === 'grab' || stage === 'transfer') && grounded(next)) {
         fail('The transfer erroneously used a floor between the grips.')
         return
       }

@@ -3,11 +3,13 @@ import type { Navigator, Route } from '../../src/navigation'
 import { capsuleHits } from '../../src/traversal/fixtures/mantles-support'
 import { createTraversalNavigator, traversalSurfaces, type AuthoredLink, type TraversalBackend, type TraversalQueryOptions } from '../sdk-detour-probe/traversal-routing'
 import { crosses, floor, outsideRect, pathLength, usingMesh } from './ground'
-import { avoidTerrain, hazardTerrain, regionalFilters, slowTerrain } from './ground-areas'
+import { avoidTerrain, clearanceWeights, hazardTerrain, occupiedRegionEscape, regionalFilters, slowTerrain, weightedGround } from './ground-areas'
 import { displacedCorridor } from './ground-corridor'
 import { actionableDoor, lateDoor } from './ground-door'
+import { independentDoors } from './ground-door-pair'
 import { groundFollower, pointDistance } from './ground-motion'
 import { followPartial, tolerantGoal } from './ground-partial'
+import { budgetedHairpin } from './ground-search'
 import { box, check, type CatalogCase } from './types'
 
 function planner(id: string, run: CatalogCase['run'], coverage?: CatalogCase['coverage']): CatalogCase {
@@ -51,7 +53,6 @@ const to: Point = [10.75, 0, 3]
 const lanes = [floor(0, 3, 0, 10), floor(9, 12, 0, 10)]
 const shortLane: AuthoredLink = { from: [2.6, 0, 3], to: [9.4, 0, 3], flags: 2, area: 1, bidirectional: true }
 const longLane: AuthoredLink = { from: [2.6, 0, 7], to: [9.4, 0, 7], flags: 4, area: 2, bidirectional: true }
-const via = (nav: Navigator, z: number) => crosses(nav.route(from, to), 0, 6, (point) => Math.abs(point[2] - z) < 0.4)
 const near = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])
 
 const rampBottom: Point = [2.2, 0, 8]
@@ -95,8 +96,13 @@ export const topologyCases: CatalogCase[] = [
   }),
   planner('E18', (backend) => {
     const ledges = [floor(0, 3, 0, 6), floor(6, 9, 0, 6), floor(6, 9, 0, 6, 3)]
+    const start: Point = [2, 0, 3]
+    // Isolate the landing test. Detour attaches the takeoff within walkableClimb
+    // of the baked surface, whose height can differ from the source triangles.
+    const takeoff = native(backend, ledges, [], (nav) => nav.route(start, start).points[0])
+    if (!takeoff) return check(false, 'The takeoff cannot be projected onto its own floor.')
     const connect = (x: number, y: number, faces = ledges) => native(backend, faces, [
-      { from: [2, 0, 3], to: [x, y, 3], radius: 0.5 }
+      { from: [start[0], takeoff[1], start[2]], to: [x, y, 3], radius: 0.5 }
     ], (nav) => [nav.route([1, 0, 3], [8, 0, 3]).status, nav.route([1, 0, 3], [8, 3, 3]).status], {}, false)
     const inside = connect(5.82, 0)
     const outside = connect(5.42, 0)
@@ -104,7 +110,7 @@ export const topologyCases: CatalogCase[] = [
     const intentionalUpper = connect(6.24, 3)
     return check(inside.join() === 'complete,unreachable' && outside.join() === 'unreachable,unreachable' &&
       floorRemoved.join() === 'unreachable,unreachable' && intentionalUpper.join() === 'unreachable,complete',
-    'Raw anchor radius and wrong-floor rejection, with a positive upper-anchor control: ' +
+    'Raw landing anchor radius and wrong-floor rejection, with a positive upper-anchor control: ' +
       JSON.stringify({ inside, outside, floorRemoved, intentionalUpper }))
   }),
   planner('E20', regionalFilters),
@@ -185,37 +191,9 @@ export const topologyCases: CatalogCase[] = [
     }
   },
   planner('GAME-06', slowTerrain),
-  planner('GAME-07', (backend) => {
-    const strip = [floor(0, 3, 0, 21), floor(4, 7, 0, 21), floor(3, 4, 20, 21)]
-    const narrow = [floor(0, 3, 0, 6), floor(4, 7, 0, 6)]
-    const from: Point = [2.85, 0, 2]
-    const goal: Point = [4.2, 0, 2]
-    return check(usingMesh(backend, narrow, (nav) => !complete(nav.route(from, goal))) &&
-      usingMesh(backend, strip, (nav) => {
-        const route = nav.route(from, goal)
-        return complete(route) && pathLength(route) > 35 && crosses(route, 0, 3.5, ([, , z]) => z > 20)
-      }), 'The cropped search cannot shortcut the hairpin; the full envelope goes around the wall.')
-  }, 'adapted'),
-  planner('GAME-08', (backend) => {
-    const narrowLaneExposure = 8
-    function choice(preferClearance: number, z: number) {
-      return native(backend, lanes, [shortLane, longLane], (nav) => via(nav, z),
-        { costs: { 1: 1 + preferClearance * narrowLaneExposure } })
-    }
-    return check(choice(0, 3) && choice(0.5, 7), 'An explicit near-wall cost switches the preferred branch while both routes remain legal.')
-  }, 'adapted'),
-  planner('GAME-09', (backend) => {
-    const left: Point = [1.5, 0, 2]
-    const middle: Point = [5.5, 0, 2]
-    const right: Point = [9.5, 0, 2]
-    const faces = [floor(0, 3, 0, 4), floor(4, 7, 0, 4), floor(8, 11, 0, 4)]
-    const cases = [false, true].flatMap((a) => [false, true].map((b) => native(backend, faces, [
-      ...(a ? [{ from: [2.5, 0, 2] as Point, to: [4.5, 0, 2] as Point, bidirectional: true }] : []),
-      ...(b ? [{ from: [6.5, 0, 2] as Point, to: [8.5, 0, 2] as Point, bidirectional: true }] : [])
-    ], (nav) => complete(nav.route(left, middle)) === a && complete(nav.route(right, middle)) === b &&
-      complete(nav.route(middle, [6, 0, 2])))))
-    return check(cases.every(Boolean), 'All four door states keep the middle navigable and affect only the corresponding branch.')
-  }, 'adapted'),
+  planner('GAME-07', budgetedHairpin),
+  planner('GAME-08', clearanceWeights),
+  { id: 'GAME-09', layer: 'integration', run: independentDoors },
   { id: 'GAME-10', layer: 'integration', run: actionableDoor },
   planner('GAME-11', (backend) => {
     const links = [{ ...shortLane, flags: 2 }, longLane]
@@ -247,15 +225,7 @@ export const topologyCases: CatalogCase[] = [
       'Both teams share identical endpoints and geometry. Transfer swaps their route privileges and fences each team’s cached route by ownership revision.')
     }, { includeFlags: 5 }))
   }),
-  planner('GAME-15', (backend) => {
-    const start: Point = [2, 3, 3]
-    const exit: Point = [7, 3, 3]
-    const shapes = [floor(0, 3, 0, 5, 3), floor(5, 9, 0, 5, 3), floor(0, 9, 0, 5)]
-    return check(native(backend, shapes, [{ from: start, to: exit }], (nav) =>
-      complete(nav.route(start, exit)) && !complete(nav.route(exit, start)) &&
-      nav.route(start, exit).points.every((p) => p[1] > 2.8)),
-    'One-way escape from an invalidated region does not re-enter it or project onto the floor beneath.')
-  }, 'adapted'),
+  { id: 'GAME-15', layer: 'integration', run: occupiedRegionEscape },
   planner('GAME-18', (backend) => {
     const shapes = [box('floor', 'surface', [0, -0.2, 0], [10, 0, 10]),
       box('wall', 'obstacle', [4.8, 0, 4.4], [5.2, 3, 5.6])]
@@ -317,46 +287,98 @@ export const topologyCases: CatalogCase[] = [
   }),
   planner('GAME-22', hazardTerrain),
   planner('GAME-23', (backend) => {
-    const y = [0, 3, 6]
-    const faces = y.map((height) => floor(0, 9, 0, 9, height))
+    const heights = [0, 3, 6]
+    const faces = heights.map((height) => floor(0, 9, 0, 9, height))
     const stairs = [{ from: [8, 0, 8] as Point, to: [8, 3, 8] as Point, bidirectional: true },
       { from: [1, 3, 8] as Point, to: [1, 6, 8] as Point, bidirectional: true }]
-    let searches = 0
-    const cache = new Map<string, Route>()
-    const durations: number[] = []
-    const run = (stage: number, size: number, goal: Point) => native(backend, faces, stage < 2 ? stairs : stairs.slice(0, 1), (nav) => {
-      const query = (i: number) => {
-        const from: Point = [2 + i % 5, y[i % 3], 2 + Math.floor(i / 5)]
-        const key = JSON.stringify([stage, from, goal])
-        let result = cache.get(key)
-        if (!result) {
-          const start = performance.now()
-          result = nav.route(from, goal)
-          durations.push(performance.now() - start)
-          cache.set(key, result)
-          searches++
+    const perTick = 4
+    const singletonBudget = 9
+    type Request = { ordinal: number; source: Point; target: Point; revision: number; queued: number; singleton?: true }
+    const q = (durations: number[]) => {
+      const ordered = durations.slice().sort((a, b) => a - b)
+      return [0.5, 0.95, 0.99].map((p) => Number(ordered[Math.ceil(ordered.length * p) - 1].toFixed(4)))
+    }
+    return native(backend, faces, stairs, (open) => native(backend, faces, stairs.slice(0, 1), (closed) => {
+      const trials = [1, 8, 32].map((size) => {
+        const cache = new Map<string, { revision: number; route: Route }>()
+        const begins: Point[] = Array.from({ length: size }, (_, i) => [2 + i % 5, heights[i % 3], 2 + Math.floor(i / 5)])
+        const queue: Request[] = []
+        let serial = 0
+        let tick = 0
+        let staleRejected = 0
+        let staleReturned = 0
+        let previousOrder = -1
+        let fifo = true
+        let valid = true
+        const enqueue = (source: Point, target: Point, revision: number, singleton?: true) => {
+          queue.push({ ordinal: serial++, source, target, revision, queued: tick, singleton })
         }
-        return result
-      }
-      const initial = Array.from({ length: size }, (_, i) => query(i))
-      const measured = searches
-      const same = initial.every((route, i) => route === query(i))
-      return same && searches === measured &&
-        initial.every((route, i) => complete(route) === (stage < 2 || i % 3 === 2))
-    })
-    const consistent = [1, 8, 32].every((size) => run(0, size, [7, 0, 7]) &&
-      run(1, size, [7, 6, 7]) && run(2, size, [7, 6, 7]))
-    durations.sort((a, b) => a - b)
-    return check(consistent && searches === 96, '1/8/32 agents, shared target, changed floor and portal closed; ' +
-      searches + ' cached searches; cold p95 ' + durations[Math.ceil(durations.length * 0.95) - 1]?.toFixed(3) + ' ms.')
-  }, 'adapted'),
+        const stages = ([
+          { goal: [7, 0, 7], nav: open }, { goal: [7, 6, 7], nav: open }, { goal: [7, 6, 7], nav: closed }
+        ] as const).map(({ goal, nav }, revision) => {
+          const cold: number[] = []
+          const warm: number[] = []
+          const nativeQueriesPerTick: number[] = []
+          let singletonTicks = Infinity
+          const coldRoutes = new Map<string, Route>()
+          function finish(layer: 'cold' | 'warm') {
+            while (queue.length) {
+              tick++
+              let queries = 0
+              for (let slot = 0; slot < perTick && queue.length; slot++) {
+                const request = queue.shift()!
+                fifo &&= request.ordinal > previousOrder
+                previousOrder = request.ordinal
+                if (request.revision !== revision) { staleRejected++; continue }
+                const key = JSON.stringify([request.source, request.target])
+                const entered = performance.now()
+                let result = cache.get(key)
+                const cacheHit = result?.revision === revision
+                if (!result || !cacheHit) {
+                  result = { revision, route: nav.route(request.source, request.target) }
+                  cache.set(key, result)
+                  queries++
+                }
+                const elapsed = performance.now() - entered
+                if (result.revision !== revision) staleReturned++
+                if ((layer === 'warm') !== cacheHit) valid = false
+                const reachable = revision < 2 || request.source[1] === 6
+                const endpoint = result.route.points[result.route.points.length - 1]
+                valid &&= complete(result.route) === reachable &&
+                  (!reachable || near(endpoint, request.target) < 0.15)
+                if (request.singleton) singletonTicks = tick - request.queued
+                else if (layer === 'cold') {
+                  coldRoutes.set(key, result.route)
+                  cold.push(elapsed)
+                } else {
+                  valid &&= coldRoutes.get(key) === result.route
+                  warm.push(elapsed)
+                }
+              }
+              nativeQueriesPerTick.push(queries)
+            }
+          }
+          begins.forEach((source) => enqueue(source, goal, revision))
+          enqueue([6.8, 6, 5.5], goal, revision, true)
+          finish('cold')
+          begins.forEach((source) => enqueue(source, goal, revision))
+          finish('warm')
+          if (revision < 2) enqueue(begins[0], goal, revision)
+          valid &&= cold.length === size && warm.length === size && singletonTicks <= singletonBudget &&
+            Math.max(...nativeQueriesPerTick) <= perTick && nativeQueriesPerTick.reduce((sum, count) => sum + count, 0) === size + 1
+          return { coldMs: q(cold), warmMs: q(warm), nativeQueriesPerTick, singletonTicks }
+        })
+        return { size, valid: valid && fifo && staleRejected === 2 && staleReturned === 0, staleRejected, staleReturned, stages }
+      })
+      return check(trials.every(({ valid }) => valid),
+        'Cold/warm p50/p95/p99 ms by group and event. FIFO allows four requests per tick. An independent request must finish within nine ticks; superseded routes cannot escape. ' +
+        JSON.stringify(trials))
+    }))
+  }),
   { id: 'GAME-24', layer: 'integration', run: followPartial },
   { id: 'GAME-25', layer: 'integration', run: tolerantGoal },
   planner('GAME-26', avoidTerrain),
-  planner('P04', (backend) => check(
-    native(backend, lanes, [shortLane, longLane], (nav) => via(nav, 3)) &&
-    native(backend, lanes, [shortLane, longLane], (nav) => via(nav, 7), { costs: { 1: 3 } }),
-  'Native area weights switch between short and cheap branches.'), 'adapted'),
+  planner('P04', weightedGround),
   planner('P05', (backend) => {
     const withReturn = native(backend, decks, [balcony, { from: [0.7, 0, 2], to: [0.7, 3, 2] }], (nav) => {
       const up = nav.route(low, high)

@@ -1,4 +1,5 @@
 import type { Point } from '../../src/arena'
+import type { Navigator, Route } from '../../src/navigation'
 import { gap, interpolate, type TimedPoint } from './time-crowd-support'
 
 export const CLUTTER_CELL = 0.25
@@ -12,6 +13,18 @@ const TICK = 1 / 30
 
 export function clutterPoint([x, z]: readonly [number, number]): Point {
   return [(x + 0.5) * CLUTTER_CELL, 0, (z + 0.5) * CLUTTER_CELL]
+}
+
+export function routeThroughClutter(navigator: Navigator): Route {
+  const route = navigator.route(clutterPoint(CLUTTER_START), clutterPoint(CLUTTER_GOAL))
+  const inCell = ([x, , z]: Point, [column, row]: readonly [number, number]) =>
+    Math.floor(x / CLUTTER_CELL) === column && Math.floor(z / CLUTTER_CELL) === row
+  // Point goals in this scenario must remain in their authored cells after snapping.
+  if (route.status === 'complete' && route.points.length > 0 &&
+      inCell(route.points[0], CLUTTER_START) && inCell(route.points[route.points.length - 1], CLUTTER_GOAL)) {
+    return route
+  }
+  return { status: 'unreachable', points: [] }
 }
 
 export function clutterMaps() {

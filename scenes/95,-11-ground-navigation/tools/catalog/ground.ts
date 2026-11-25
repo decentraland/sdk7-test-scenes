@@ -223,21 +223,34 @@ export const groundCases: CatalogCase[] = [
       'Three approaches retain connectivity without clipping either hole.')
     })
   }),
-  { ...ground('E11', (backend) => {
+  ground('E11', (backend) => {
     const faces = [floor(0, 10, 0, 2), floor(0, 10, 2.65, 5), floor(8, 10, 2, 2.65)]
-    const route = (links: Parameters<typeof createTraversalNavigator>[4] = []) =>
-      usingMesh(backend, faces, (nav) => nav.route([1, 0, 1], [1, 0, 4]), { links })
-    const legalPortal = (path: Route) => path.status === 'complete' &&
-      crosses(path, 2, 2.3, ([x]) => x >= 8 && x <= 10) &&
-      !crosses(path, 2, 2.3, ([x]) => x < 8 || x > 10)
-    const valid = route()
-    // A bad seam weld is represented as one false adjacency. These adapters do not
-    // expose Godot's edge-connection margin directly.
-    const faulty = route([{ from: [1, 0, 1.6], to: [1, 0, 3.1] }])
-    return check(legalPortal(valid) && faulty.status === 'complete' &&
-      crosses(faulty, 2, 2.3, ([x]) => x < 8) && !legalPortal(faulty),
-    'The portal oracle accepts the remote bridge and rejects an injected false connection across the gap.')
-  }), coverage: 'adapted' },
+    function weld(margin: number) {
+      // Both native bakers take triangles. The SDK fixture resolves nearby parallel
+      // edges into explicit ground seams before baking, rather than adding travel links.
+      const [first, second, bridge] = faces
+      const [a, b] = first.vertices.slice(1, 3)
+      const [c, d] = [second.vertices[0], second.vertices[3]]
+      const sharedMin = Math.max(a[0], c[0])
+      const sharedMax = Math.min(b[0], d[0])
+      const canWeld = sharedMin < sharedMax && a[1] === c[1] && c[2] - a[2] <= margin
+      return canWeld ? [...faces, floor(sharedMin, Math.min(sharedMax, bridge.vertices[0][0]), a[2], c[2])] : faces
+    }
+    const probe = (margin: number) => usingMesh(backend, weld(margin), (nav) => {
+      const path = nav.route([1, 0, 1], [1, 0, 4])
+      // The navigator includes every crossed portal in the straight path.
+      const gapCrossings: Point[] = []
+      crosses(path, 2, 2.3, (point) => { gapCrossings.push(point); return false })
+      return { complete: path.status === 'complete', gapCrossings,
+        legal: path.status === 'complete' && gapCrossings.length === 1 && gapCrossings[0][0] >= 8 && gapCrossings[0][0] <= 10 }
+    }, { tiled: true })
+    const safe = probe(0.2)
+    const unsafe = probe(0.7)
+    return check(safe.legal && unsafe.complete && unsafe.gapCrossings.length === 1 &&
+      unsafe.gapCrossings[0][0] < 8 && !unsafe.legal,
+    'The 0.20 m SDK seam margin leaves only the authored bridge. The 0.70 m margin welds genuine floor polygons across the gap and the portal oracle rejects that route. ' +
+      JSON.stringify({ safe, unsafe }))
+  }),
   ground('E13', (backend) => {
     const a = floor(0, 3, 0, 3)
     const b = floor(3, 6, 0, 3)

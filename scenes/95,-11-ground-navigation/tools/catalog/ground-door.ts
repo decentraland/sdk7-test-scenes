@@ -1,8 +1,4 @@
-import {
-  addTile, BuildContext, buildCompactHeightfield, buildContours, buildDistanceField, buildPolyMesh,
-  buildPolyMeshDetail, buildRegions, buildTile, ContourBuildFlags, erodeWalkableArea, getTileAt,
-  markBoxArea, NULL_AREA, polyMeshDetailToTileDetailMesh, polyMeshToTilePolys, removeTile, WALKABLE_AREA
-} from 'navcat'
+import { getTileAt } from 'navcat'
 import type { BoxObstacle } from 'recast-navigation'
 import { generateTileCache } from 'recast-navigation/generators'
 import type { Point } from '../../src/arena'
@@ -11,6 +7,7 @@ import { createDetourNavigatorFromMesh } from '../../test/detour'
 import { createTraversalNavigator, type AuthoredLink } from '../sdk-detour-probe/traversal-routing'
 import { crosses, floor, pathLength } from './ground'
 import { groundClearance, groundFollower, pointDistance, rectangleEdges } from './ground-motion'
+import { replaceNavcatObstacleTile } from './live-obstacles'
 import { bakeNavcatTiles, CELL_SIZE, TILE_EDGE } from './native-tiles'
 import { check, type CatalogCase } from './types'
 
@@ -59,24 +56,8 @@ function navcatGate(): LiveGate {
     apply() {
       if (!pending) return { changed: [], complete: true }
       const { tile, heightfield } = affected[affected.length - pending]
-      const ctx = BuildContext.create()
-      const radius = Math.ceil(RADIUS / CELL_SIZE)
-      const compact = buildCompactHeightfield(ctx, 28, 2, heightfield)
-      erodeWalkableArea(radius, compact)
-      if (closed) markBoxArea([GATE.x0, -0.4, -GATE.z1, GATE.x1, 2, -GATE.z0], NULL_AREA, compact)
-      buildDistanceField(compact)
-      buildRegions(ctx, compact, radius + 3, 1, 1)
-      const contours = buildContours(ctx, compact, 0.35, 80, ContourBuildFlags.CONTOUR_TESS_WALL_EDGES)
-      const polygons = buildPolyMesh(ctx, contours, 6)
-      for (let i = 0; i < polygons.nPolys; i++) {
-        if (polygons.areas[i] === WALKABLE_AREA) polygons.areas[i] = 0
-        if (polygons.areas[i] === 0) polygons.flags[i] = 1
-      }
-      const detail = buildPolyMeshDetail(ctx, polygons, compact, 0.25, 0.05)
-      const data = polyMeshToTilePolys(polygons)
-      const mesh = polyMeshDetailToTileDetailMesh(data.polys, detail)
-      if (!removeTile(navMesh, tile.tileX, tile.tileY, tile.tileLayer)) throw new Error('Could not remove a door tile.')
-      addTile(navMesh, buildTile({ ...tile, bounds: polygons.bounds, ...data, ...mesh }))
+      replaceNavcatObstacleTile(navMesh, tile, heightfield,
+        closed ? [[GATE.x0, -0.4, -GATE.z1, GATE.x1, 2, -GATE.z0]] : [], RADIUS)
       pending--
       return { changed: [tile.tileX + ',' + tile.tileY], complete: pending === 0 }
     }
